@@ -9,39 +9,7 @@
 <meta name="language" content="de" />
  
 <!-------------------------------------------------------------------->
-<script> // XML2DOM
-
-function onLoadXML2DOM() {
-	// Choose an alternativ parser on old browsers (but I guess that the program would not work on old browsers anyway)
-	if(typeof(DOMParser) == 'undefined') {
-	console.log('DOMParser is undefined..')
-		DOMParser = function() {}
-		DOMParser.prototype.parseFromString = function(str, contentType) {
-			if(typeof(ActiveXObject) != 'undefined') {
-	console.log('.. be we can use ActiveXObject')
-				var xmldata = new ActiveXObject('MSXML.DomDocument');
-				xmldata.async = false;
-				xmldata.loadXML(str);
-				return xmldata;
-			} else if(typeof(XMLHttpRequest) != 'undefined') {
-	console.log('..but we can use XMLHttpRequest')
-				var xmldata = new XMLHttpRequest;
-				if(!contentType) {
-					contentType = 'application/xml';
-				}
-				xmldata.open('GET', 'data:' + contentType + ';charset=utf-8,' + encodeURIComponent(str), false);
-				if(xmldata.overrideMimeType) {
-					xmldata.overrideMimeType(contentType);
-				}
-				xmldata.send(null);
-				return xmldata.responseXML;
-			} else {
-	console.log('..bad luck: no ActiveXObject or XMLHttpRequest')
-			}
-		}
-	}
-}
-
+<script>
 // Load and process file
 function loadFile() {
 	var input, file, fr;
@@ -616,12 +584,6 @@ console.log(
 <!-------------------------------------------------------------------->
 <script> // html page
 
-// Call all onLoad functions
-function onLoadBody() {
-	onLoadXML2DOM();
-}
-
-
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	for (const ele of document.getElementById('svg').querySelectorAll(selector)) {
@@ -668,7 +630,7 @@ body {
 
 </head>
 
-<body onload=onLoadBody()>
+<body>
 
 <div id='header'>
 
