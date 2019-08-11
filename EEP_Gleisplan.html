@@ -11,25 +11,17 @@
 <!-------------------------------------------------------------------->
 <script>
 // Load and process file
-function loadFile() {
-	var input, file, fr;
+function loadFile(file) {
+	var fr;
 	if (typeof window.FileReader !== 'function') {
 		bodyAppend("p", "The file API isn't supported on this browser yet.");
 		return;
-	};
-	
-	input = document.getElementById('fileinput');
-	if (!input) {
-		bodyAppend("p", "Um, couldn't find the fileinput element.");
 	}
-	else if (!input.files) {
-		bodyAppend("p", "This browser doesn't seem to support the `files` property of file inputs.");
-	}
-	else if (!input.files[0]) {
+
+	if (!file) {
 		bodyAppend("p", "Please select a file before clicking 'Load'");
 	}
 	else {
-		file = input.files[0];
 		fr = new FileReader();
 		fr.onload = processFile;
 		fr.readAsText(file);
@@ -633,7 +625,7 @@ body {
 <h3>EEP Gleisplan</h3>
 <form action='#' onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better --> 
 	<label for="fileinput">Wähle und lade eine EEP-Anlage-Datei (.anl3)</label>
-	<input type='file' id='fileinput' accept='.anl3' onchange="loadFile(this.files)">
+	<input type='file' id='fileinput' accept='.anl3' onchange="loadFile(this.files && this.files[0])">
 	<!-- An extra button is not neccessary -->
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>
