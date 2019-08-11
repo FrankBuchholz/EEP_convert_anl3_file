@@ -153,9 +153,9 @@ function svgCreate(sutrackp) {
 		const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
 	
 		// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
-		if (Gleise.length == 0) {
+		if (Gleise.length > 0) {
 			for (const ele of document.getElementsByClassName(GleissystemText[GleissystemID])) {
-				ele.classList.add('hidden');
+				ele.classList.remove('hidden');
 			}
 		}
 		
@@ -700,12 +700,12 @@ Sichtbarer Bereich: <span id="visible_area"> </span> Zentrum des Bereichs: <span
 <!-- https://wiki.selfhtml.org/wiki/HTML/Formulare/input/Radio-Buttons_und_Checkboxen#Checkboxen -->
 <form> 
 	<fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
-		<label class='Eisenbahn'><input type='checkbox' name=Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label>
-		<label class='Strassenbahn'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label>
-		<label class='Strasse'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strasse', this.checked)">Strasse</label>
-		<label class='Wasserwege'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label>
-		<label class='Steuerstrecken'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label>
-		<label class='GBS'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#GBS', this.checked)">GBS</label>
+		<label class='Eisenbahn hidden'><input type='checkbox' name=Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label>
+		<label class='Strassenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label>
+		<label class='Strasse hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strasse', this.checked)">Strasse</label>
+		<label class='Wasserwege hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label>
+		<label class='Steuerstrecken hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label>
+		<label class='GBS hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#GBS', this.checked)">GBS</label>
 		<label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label>
   </fieldset> 
 </form>
