@@ -30,25 +30,65 @@ function loadFile(file) {
 
 	// process file (local function to get access to local variable fr)
 	function processFile() {
-	
-		// Create parser				
-		var parser = new DOMParser();
-		// Parse xml into DOM
-		var xmlDoc = parser.parseFromString(fr.result, "text/xml");
-		fr.result = null; // we do not need this data anymore
+		updateUi(function() {
+			// Hide file selector
+			document.getElementById('fileselector').classList.add('hidden');
 
-		// Hide file selector
-		document.getElementById('fileselector').classList.add('hidden');
-		// Show main area
-		document.getElementById('controls').classList.remove('hidden');
-		document.getElementById('container').classList.remove('hidden');
-		// Show file name
-		document.getElementById('filename').innerHTML = file.name.substring(0, file.name.length -1 -1 -3);
+			// Show loading
+			document.getElementById('loading').classList.remove('hidden');
+		}).then(function() {
+			// Create parser
+			var parser = new DOMParser();
+			// Parse xml into DOM
+			var xmlDoc = parser.parseFromString(fr.result, "text/xml");
+			fr.result = null; // we do not need this data anymore
 
-		// Process root node (documentElement always represents the root node)
-		svgCreate(xmlDoc.documentElement);
+			return xmlDoc;
+		}).then(function(xmlDoc) {
+			let progress = document.getElementById('progress');
+
+			// Process root node (documentElement always represents the root node)
+			return svgCreate(xmlDoc.documentElement, initProgress, incrementProgress);
+
+			function initProgress(progressMax) {
+				return updateUi(function() {
+					progress.max = progressMax;
+					progress.value = 0;
+					progress.classList.remove('hidden');
+				});
+			}
+			function incrementProgress() {
+				return updateUi(function() {
+					progress.value++;
+				});
+			}
+		}).then(function(usedArea) {
+			// Hide loading
+			document.getElementById('loading').classList.add('hidden');
+
+			// Show main area
+			document.getElementById('controls').classList.remove('hidden');
+			document.getElementById('container').classList.remove('hidden');
+			// Show file name
+			document.getElementById('filename').textContent = file.name.substring(0, file.name.length -1 -1 -3);
+
+			// Activate Pan and Zoom
+			SvgPanZoom(usedArea);
+		});
 	}
 
+}
+
+// helper method which waits some time to let the browser update the ui
+function updateUi(fn) {
+	return new Promise(function(resolve) {
+		requestAnimationFrame(function() {
+			const result = fn();
+			requestAnimationFrame(function() {
+				resolve(result);
+			});
+		})
+	});
 }
 </script>
 
@@ -56,8 +96,7 @@ function loadFile(file) {
 <script> // DOM2SVG
 
 // Process root node (sutrackp)	
-function svgCreate(sutrackp) {
-
+function svgCreate(sutrackp, initProgress, incrementProgress) {
 	// EEP: Static texts
 	const GleissystemText = { 			// GleissystemID
 		1 : 'Eisenbahn',
@@ -98,212 +137,226 @@ function svgCreate(sutrackp) {
 	let fragment = document.createDocumentFragment();
 
 	const Gleissysteme 	= sutrackp.getElementsByTagName('Gleissystem')
-	for (const Gleissystem of Gleissysteme) {
-//console.log(Gleissystem)
 
-		const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
-
-		// Append groups to the root node; append other elements to these group nodes
-		let svg_group_node = svgAppend(fragment, { 
-			svg_tag	: `g`,
-			id		: `${GleissystemText[GleissystemID]}`,
-		});
-//console.log(svg_group_node)
-
-		const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
-	
-		// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
-		if (Gleise.length > 0) {
-			for (const ele of document.getElementsByClassName(GleissystemText[GleissystemID])) {
-				ele.classList.remove('hidden');
+	return initProgress(Gleissysteme.length).then(function() {
+		let promise = null;
+		for (const Gleissystem of Gleissysteme) {
+			if (promise == null) {
+				promise = process(Gleissystem);
+			} else {
+				promise = promise.then(function() { return process(Gleissystem); });
 			}
 		}
-		
-		for (const Gleis of Gleise) {
-//console.log(Gleis)
+		return promise;
 
-/* Example:
-		<Gleis GleisID="1" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm" LockEd="0">
-			<Dreibein>
-				<Vektor x="-12359.88" y="-1854.389" z="30">Pos</Vektor>
-				<Vektor x="0.699066" y="-0.715057" z="0">Dir</Vektor>
-				<Vektor x="0.715057" y="0.699066" z="0">Nor</Vektor>
-				<Vektor x="-0" y="0" z="1">Bin</Vektor>
-			</Dreibein>
-			<Anfangsfuehrungsverdrehung Wert="0"/>
-			<Charakteristik Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Kurve="0" Laenge="2580"/>
-		</Gleis>
-*/
-	
-/*
-Das Kordinatensystem von SVG ist gegenüber dem üblichen Koordinatensystem (also auch dem von EEP) an der x-Achse gespiegelt.
-Die Spiegelung ließe sich über CSS einfach zurücknehmen:
-	svg { transform: scale(1,-1); }
-Damit würde allerdings auch der Text gespiegelt und müsste daher erneut gespiegelt und verschoben werden.
-Daher werden hier stattdessten alle y-Koordinaten und y-Winkel negativ angegeben (also z.Z. -PosY -DirY -NorY)
-Statt cm soll als Einheit m verwendet werden, daher wird Laenge, Kruemmung, PosX und PosY geeignet skaliert.
-*/
+		function process(Gleissystem) {
+			//console.log(Gleissystem)
 
-			const GleisID 	= Gleis.getAttribute('GleisID');
-			const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
-			const stil 		= Gleis.getAttribute('stil');		// Gleisstil
-			const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
-			const Key_Id	=  Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
-			
-			const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
-			const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
-			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-			const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-			const DirX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('x');
-			const DirY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('y');
-			const NorX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('x');
-			const NorY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('y');
+			const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
 
-			// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz für die Position der Endpunkte)
-			usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge )
-			usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge )
-			usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge )
-			usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge )
+			// Append groups to the root node; append other elements to these group nodes
+			let svg_group_node = svgAppend(fragment, { 
+				svg_tag	: `g`,
+				id		: `${GleissystemText[GleissystemID]}`,
+			});
+			//console.log(svg_group_node)
 
-			let pathElement;
-			if (Kruemmung == '0') {
-/*
-SVG: Gerades Gleis
+			const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
 
-Alternativen (line erlaubt allerdings kein text-path, daher wird path verwendet)
-a) <line x1="0" y1="0" x2="Laenge" y2="0" transform="translate(PosX PosY) matrix(DirX DirY NorX NorY 0 0)"/>
-b) <line x1="0" y1="0" x2="Laenge" y2="0" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
-b) <path d="M 0 0 H Laenge" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
-*/
-
-				pathElement = svgAppend(svg_group_node, { 
-					svg_tag		: `path`,
-					id			: `G${GleissystemID}-${GleisID}`,
-					class		: `stil-${stil} ${Gleisart[clsid]}`,
-					d 			: `M 0 0 H ${Laenge}`, 
-					transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
-				});
-
-
-			} else { // Kruemmung != 0
-/*
-SVG: Gebogenes Gleis
-
-Winkel (rad) = Kruemmung * Laenge
-ArcFlag = 0 für Winkel im Bereich -180° bis +180°, ansonsten 1
-SweepFlag = 1 für Winkel >= 0, 0 für Winkel < 0
-Radius = 1 / Kruemmung
-DeltaX = sin(Winkel) * Radius
-DeltaY = (1-cos(Winkel)) * Radius
-
-Kreisbogen als Spezialfall eines Ausschnittes einer allgenmeinen Ellipse:
-<path d="M PosX PosY A RadiusX RadiusY RotateX ArcFlag SweepFlag PosEndX PosEndY" />
-PosX = 0			x-Koordinate des Anfangpunktes
-PosY = 0			Y-Koordinate des Anfangpunktes
-RadiusX = Radius	Radius der x-Achse der Ellipse
-RadiusY	= Radius	Radius der y-Achse der Ellipse
-RotateX = 0 		Rotation der x-Achse der Ellipse in Grad (0: keine Rotation)
-ArcFlag = 0			large-arc-flag: kurzer Weg um die Ellipse: 0, langer Weg um die Ellipse: 1
-SweepFlag = ...		Zeichnung entgegen den Uhrzeigersinn: 0, Zeichnung mit dem Uhrzeigersinn: 1
-PosEndX = DeltaX	x-Koordinate des Endpunktes
-PosEndY = DeltaY	Y-Koordinate des Endpunktes
-
-Dies ergibt folgende vereinfachte Form:
-<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
-*/
-				const Winkel 	= Kruemmung * Laenge
-				const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
-				const SweepFlag = ( Winkel >= 0 ? 1 : 0)
-				const Radius 	= 1 / Kruemmung
-				const DeltaX 	= Math.sin(Winkel) * Radius
-				const DeltaY 	= (1 - Math.cos(Winkel)) * Radius
-
-				pathElement = svgAppend(svg_group_node, { 
-					svg_tag		: `path`,
-					id			: `G${GleissystemID}-${GleisID}`,
-					class		: `stil-${stil} ${Gleisart[clsid]}`,
-					d 			: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`, 
-					transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
-				});
-			
+			// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
+			if (Gleise.length > 0) {
+				for (const ele of document.getElementsByClassName(GleissystemText[GleissystemID])) {
+					ele.classList.remove('hidden');
+				}
 			}
 
-			// special text/textPath element to show GleisID in the middle of the track
-			svgAppend(svg_group_node, { 
-				svg_tag			: `text`,
-				href			: `#G${GleissystemID}-${GleisID}`,
-				'text-anchor'	: `middle`,
-				//x 				: pathElement.getTotalLength() / 2,
-				//y 				: 0,
-				text 			: `${GleisID}`
-			});
-			
-			if (Key_Id) {
-				// special text/textPath element to show Key_Id at the end of the track
+			for (const Gleis of Gleise) {
+			//console.log(Gleis)
+
+			/* Example:
+			<Gleis GleisID="1" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm" LockEd="0">
+				<Dreibein>
+					<Vektor x="-12359.88" y="-1854.389" z="30">Pos</Vektor>
+					<Vektor x="0.699066" y="-0.715057" z="0">Dir</Vektor>
+					<Vektor x="0.715057" y="0.699066" z="0">Nor</Vektor>
+					<Vektor x="-0" y="0" z="1">Bin</Vektor>
+				</Dreibein>
+				<Anfangsfuehrungsverdrehung Wert="0"/>
+				<Charakteristik Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Kurve="0" Laenge="2580"/>
+			</Gleis>
+			*/
+
+			/*
+			Das Kordinatensystem von SVG ist gegenüber dem üblichen Koordinatensystem (also auch dem von EEP) an der x-Achse gespiegelt.
+			Die Spiegelung ließe sich über CSS einfach zurücknehmen:
+			svg { transform: scale(1,-1); }
+			Damit würde allerdings auch der Text gespiegelt und müsste daher erneut gespiegelt und verschoben werden.
+			Daher werden hier stattdessten alle y-Koordinaten und y-Winkel negativ angegeben (also z.Z. -PosY -DirY -NorY)
+			Statt cm soll als Einheit m verwendet werden, daher wird Laenge, Kruemmung, PosX und PosY geeignet skaliert.
+			*/
+
+				const GleisID 	= Gleis.getAttribute('GleisID');
+				const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
+				const stil 		= Gleis.getAttribute('stil');		// Gleisstil
+				const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
+				const Key_Id	=  Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
+				
+				const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
+				const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
+				const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+				const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+				const DirX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('x');
+				const DirY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('y');
+				const NorX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('x');
+				const NorY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('y');
+
+				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz für die Position der Endpunkte)
+				usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge )
+				usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge )
+				usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge )
+				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge )
+
+				let pathElement;
+				if (Kruemmung == '0') {
+			/*
+			SVG: Gerades Gleis
+
+			Alternativen (line erlaubt allerdings kein text-path, daher wird path verwendet)
+			a) <line x1="0" y1="0" x2="Laenge" y2="0" transform="translate(PosX PosY) matrix(DirX DirY NorX NorY 0 0)"/>
+			b) <line x1="0" y1="0" x2="Laenge" y2="0" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
+			b) <path d="M 0 0 H Laenge" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
+			*/
+
+					pathElement = svgAppend(svg_group_node, { 
+						svg_tag		: `path`,
+						id			: `G${GleissystemID}-${GleisID}`,
+						class		: `stil-${stil} ${Gleisart[clsid]}`,
+						d 			: `M 0 0 H ${Laenge}`, 
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+
+
+				} else { // Kruemmung != 0
+			/*
+			SVG: Gebogenes Gleis
+
+			Winkel (rad) = Kruemmung * Laenge
+			ArcFlag = 0 für Winkel im Bereich -180° bis +180°, ansonsten 1
+			SweepFlag = 1 für Winkel >= 0, 0 für Winkel < 0
+			Radius = 1 / Kruemmung
+			DeltaX = sin(Winkel) * Radius
+			DeltaY = (1-cos(Winkel)) * Radius
+
+			Kreisbogen als Spezialfall eines Ausschnittes einer allgenmeinen Ellipse:
+			<path d="M PosX PosY A RadiusX RadiusY RotateX ArcFlag SweepFlag PosEndX PosEndY" />
+			PosX = 0			x-Koordinate des Anfangpunktes
+			PosY = 0			Y-Koordinate des Anfangpunktes
+			RadiusX = Radius	Radius der x-Achse der Ellipse
+			RadiusY	= Radius	Radius der y-Achse der Ellipse
+			RotateX = 0 		Rotation der x-Achse der Ellipse in Grad (0: keine Rotation)
+			ArcFlag = 0			large-arc-flag: kurzer Weg um die Ellipse: 0, langer Weg um die Ellipse: 1
+			SweepFlag = ...		Zeichnung entgegen den Uhrzeigersinn: 0, Zeichnung mit dem Uhrzeigersinn: 1
+			PosEndX = DeltaX	x-Koordinate des Endpunktes
+			PosEndY = DeltaY	Y-Koordinate des Endpunktes
+
+			Dies ergibt folgende vereinfachte Form:
+			<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
+			*/
+					const Winkel 	= Kruemmung * Laenge
+					const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
+					const SweepFlag = ( Winkel >= 0 ? 1 : 0)
+					const Radius 	= 1 / Kruemmung
+					const DeltaX 	= Math.sin(Winkel) * Radius
+					const DeltaY 	= (1 - Math.cos(Winkel)) * Radius
+
+					pathElement = svgAppend(svg_group_node, { 
+						svg_tag		: `path`,
+						id			: `G${GleissystemID}-${GleisID}`,
+						class		: `stil-${stil} ${Gleisart[clsid]}`,
+						d 			: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`, 
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+				
+				}
+
+				// special text/textPath element to show GleisID in the middle of the track
 				svgAppend(svg_group_node, { 
 					svg_tag			: `text`,
 					href			: `#G${GleissystemID}-${GleisID}`,
-					'text-anchor'	: `end`,
-					//x 				: pathElement.getTotalLength(),
+					'text-anchor'	: `middle`,
+					//x 				: pathElement.getTotalLength() / 2,
 					//y 				: 0,
-					text 			: `W${Key_Id}`
+					text 			: `${GleisID}`
 				});
-			}
+				
+				if (Key_Id) {
+					// special text/textPath element to show Key_Id at the end of the track
+					svgAppend(svg_group_node, { 
+						svg_tag			: `text`,
+						href			: `#G${GleissystemID}-${GleisID}`,
+						'text-anchor'	: `end`,
+						//x 				: pathElement.getTotalLength(),
+						//y 				: 0,
+						text 			: `W${Key_Id}`
+					});
+				}
 
-		} // Gleise
+			} // Gleise
+
+			return incrementProgress();
+		}
+
+	}).then(function() {
+		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
+		usedArea.min.x = Math.max( usedArea.min.x, Area.min.x )
+		usedArea.min.y = Math.max( usedArea.min.y, Area.min.y )
+		usedArea.max.x = Math.min( usedArea.max.x, Area.min.x + Area.width  )
+		usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height )
+
+		// Group for additional general elements
+		let svg_group_node = svgAppend(fragment, { 
+			svg_tag	: `g`,
+			id		: `general`,
+		});
+
+		// Box zur Anzeige der Groesse der Anlage
+		// <rect class="box" x="-503" y="-303" width="1006" height="606" />
+		svgAppend(svg_group_node, { 
+			svg_tag	: `rect`,
+			class	: `box`,
+			x		:  Area.min.x,
+			y		:  Area.min.y,
+			width	:  Area.width,
+			height	:  Area.height,
+		});
+		// Box zur Anzeige des verwendeten Teils der Anlage
+		// <rect class="box" x="-175" y="-140" width="382" height="305" />
+		svgAppend(svg_group_node, { 
+			svg_tag	: `rect`,
+			class	: `box`,
+			x		:  usedArea.min.x,
+			y		:  usedArea.min.y,
+			width	:  usedArea.max.x - usedArea.min.x,
+			height	:  usedArea.max.y - usedArea.min.y,
+		});
+		// Zusätzliche Markierung des Zentrums
+		// <circle id="center" cx="0" cy="0" r="1" />
+		svgAppend(svg_group_node, { 
+			svg_tag	: `circle`,
+			id		: `center`,
+			cx		:  `0`,
+			cy		:  `0`,
+			r		:  `1`,
+		});
+
+		// Now we can append the fragment to the svg node
+		document.getElementById("sutrackp").appendChild(fragment);
 		
-	} // Gleissysteme
+		// Test: process all nodes recursivly
+		//process_node(sutrackp);
 
-	// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
-	usedArea.min.x = Math.max( usedArea.min.x, Area.min.x )
-	usedArea.min.y = Math.max( usedArea.min.y, Area.min.y )
-	usedArea.max.x = Math.min( usedArea.max.x, Area.min.x + Area.width  )
-	usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height )
-
-	// Group for additional general elements
-	let svg_group_node = svgAppend(fragment, { 
-		svg_tag	: `g`,
-		id		: `general`,
+		return usedArea;
 	});
-
-	// Box zur Anzeige der Groesse der Anlage
-	// <rect class="box" x="-503" y="-303" width="1006" height="606" />
-	svgAppend(svg_group_node, { 
-		svg_tag	: `rect`,
-		class	: `box`,
-		x		:  Area.min.x,
-		y		:  Area.min.y,
-		width	:  Area.width,
-		height	:  Area.height,
-	});
-	// Box zur Anzeige des verwendeten Teils der Anlage
-	// <rect class="box" x="-175" y="-140" width="382" height="305" />
-	svgAppend(svg_group_node, { 
-		svg_tag	: `rect`,
-		class	: `box`,
-		x		:  usedArea.min.x,
-		y		:  usedArea.min.y,
-		width	:  usedArea.max.x - usedArea.min.x,
-		height	:  usedArea.max.y - usedArea.min.y,
-	});
-	// Zusätzliche Markierung des Zentrums
-	// <circle id="center" cx="0" cy="0" r="1" />
-	svgAppend(svg_group_node, { 
-		svg_tag	: `circle`,
-		id		: `center`,
-		cx		:  `0`,
-		cy		:  `0`,
-		r		:  `1`,
-	});
-
-	// Now we can append the fragment to the svg node
-	document.getElementById("sutrackp").appendChild(fragment);
-	
-	// Activate Pan and Zoom
-	SvgPanZoom(usedArea);
-
-	// Test: process all nodes recursivly
-	//process_node(sutrackp);
 }
 	
 function process_node(node) {
@@ -599,6 +652,10 @@ body {
 	margin: 5px;
 }
 
+#loading {
+	text-align: center;
+}
+
 #container {
 	flex: 1;
 	display: flex;
@@ -635,6 +692,10 @@ Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a h
 Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.</small></p>
 <p><small>Click, hold and move: pan; Double click: zoom in; Shift+Double click: zoom out</small></p>
 <p><small>(c) Frank Buchholz, 2019</small></p>
+</div>
+
+<div id='loading' class='hidden'>
+	Lade... <progress id='progress' class='hidden' max='100'></progress>
 </div>
 
 <div id='controls' class='hidden'>
