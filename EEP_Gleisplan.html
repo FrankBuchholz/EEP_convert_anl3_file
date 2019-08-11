@@ -504,7 +504,7 @@ function SvgPanZoom(usedArea) {
 		const usedwidth 	= usedArea.max.x - usedArea.min.x;
 		const usedheight	= usedArea.max.y - usedArea.min.y;
 console.log(
-`width=${width}`
+`old: width=${panZoom.getSizes().width} heigh=${panZoom.getSizes().height} usedwidth=${usedwidth} usedheight=${usedheight} zoom=${panZoom.getZoom()} realZoom=${panZoom.getSizes().realZoom}`
 )		
 		
 		if (pan) {
@@ -517,6 +517,10 @@ console.log(
 			width  / usedwidth,
 			height / usedheight,
 		))
+console.log(
+`new: width=${panZoom.getSizes().width} heigh=${panZoom.getSizes().height} usedwidth=${usedwidth} usedheight=${usedheight} zoom=${panZoom.getZoom()} realZoom=${panZoom.getSizes().realZoom}`
+)		
+
 	}
 
 	// resize SvgPanZoom after resizing the window
