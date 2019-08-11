@@ -505,8 +505,8 @@ function SvgPanZoom(usedArea) {
 		const usedheight	= usedArea.max.y - usedArea.min.y;
 		const realZoom		= panZoom.getSizes().realZoom;
 		
-		const panX 			= width/2  - ( ( usedArea.min.x + usedwidth/2  ) / 2 )
-		const panY 			= height/2 - ( ( usedArea.min.y + usedheight/2 ) / 2 )
+		const panX 			= width/2  - ( usedArea.min.x + usedwidth/2  ) * realZoom
+		const panY 			= height/2 - ( usedArea.min.y + usedheight/2 ) * realZoom
 		const scale 		= Math.min( width  / usedwidth,
 										height / usedheight ) / realZoom;
 		
