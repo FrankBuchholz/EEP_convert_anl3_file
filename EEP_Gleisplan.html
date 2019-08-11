@@ -503,24 +503,18 @@ function SvgPanZoom(usedArea) {
 		const height		= panZoom.getSizes().height;
 		const usedwidth 	= usedArea.max.x - usedArea.min.x;
 		const usedheight	= usedArea.max.y - usedArea.min.y;
-console.log(
-`old: width=${panZoom.getSizes().width} heigh=${panZoom.getSizes().height} usedwidth=${usedwidth} usedheight=${usedheight} zoom=${panZoom.getZoom()} realZoom=${panZoom.getSizes().realZoom}`
-)		
+		const realZoom		= panZoom.getSizes().realZoom;
+		
+		const panX 			= width/2  - ( ( usedArea.min.x + usedwidth/2  ) / 2 )
+		const panY 			= height/2 - ( ( usedArea.min.y + usedheight/2 ) / 2 )
+		const scale 		= Math.min( width  / usedwidth,
+										height / usedheight ) / realZoom;
 		
 		if (pan) {
-			panZoom.pan({
-				x: width/2  - ( usedArea.min.x + usedwidth/2  ),
-				y: height/2 - ( usedArea.min.y + usedheight/2 ),
-			})
+			panZoom.pan({x: panX, y: panY,})
 		}
-		panZoom.zoom(Math.min( 
-			width  / usedwidth,
-			height / usedheight,
-		))
-console.log(
-`new: width=${panZoom.getSizes().width} heigh=${panZoom.getSizes().height} usedwidth=${usedwidth} usedheight=${usedheight} zoom=${panZoom.getZoom()} realZoom=${panZoom.getSizes().realZoom}`
-)		
-
+		
+		panZoom.zoom(scale);
 	}
 
 	// resize SvgPanZoom after resizing the window
@@ -545,16 +539,16 @@ console.log(
 	// Button Reset
 	document.getElementById('reset').addEventListener('click', function(ev){
 		ev.preventDefault()
-		//panZoom.fit();
-		//panZoom.center();
-		//panZoom.resetZoom();
+		panZoom.fit();
+		panZoom.center();
+		panZoom.resetZoom();
 		// Pan and zoom to used area
 		showUsedArea(true);
 	});
 	// Button ResetZoom
 	document.getElementById('resetzoom').addEventListener('click', function(ev){
 		ev.preventDefault()
-		//panZoom.resetZoom()
+		panZoom.resetZoom()
 		// Zoom to used area
 		showUsedArea();
 	});
@@ -593,7 +587,7 @@ console.log(
 		const sizes 	= t.getSizes();	// width height of svg area
 									// viewBox (x y width height)
 									// realZoom = min(width/viewBox.width, height/viewBox.height)
-		const zoom 	= t.getZoom();	// zoom factor
+		const zoom 		= t.getZoom();	// zoom factor
 	
 		const minX		= (-pan.x) / sizes.realZoom;
 		const minY		= (-pan.y) / sizes.realZoom;	
@@ -609,6 +603,7 @@ console.log(
 		/* Show center position */
 		text = '(' + (centerX).toFixed(0) + ' ' + (-centerY).toFixed(0) + ')';
 		document.getElementById('center_position').innerHTML = text;
+
 	};
 };
 </script>
