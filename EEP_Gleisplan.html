@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Interaktive Anzeige des Gleisplans zu einer EEP-Anlage-Datei (.anl)</title>
+<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit SVG-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von CSS. Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek svg-pan-zoom verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.">
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,Gleisplan" />
+<meta name="language" content="de" />
+ 
+<!-------------------------------------------------------------------->
+<script> // XML2DOM
+
+function onLoadXML2DOM() {
+	// Choose an alternativ parser on old browsers (but I guess that the program would not work on old browsers anyway)
+	if(typeof(DOMParser) == 'undefined') {
+	console.log('DOMParser is undefined..')
+		DOMParser = function() {}
+		DOMParser.prototype.parseFromString = function(str, contentType) {
+			if(typeof(ActiveXObject) != 'undefined') {
+	console.log('.. be we can use ActiveXObject')
+				var xmldata = new ActiveXObject('MSXML.DomDocument');
+				xmldata.async = false;
+				xmldata.loadXML(str);
+				return xmldata;
+			} else if(typeof(XMLHttpRequest) != 'undefined') {
+	console.log('..but we can use XMLHttpRequest')
+				var xmldata = new XMLHttpRequest;
+				if(!contentType) {
+					contentType = 'application/xml';
+				}
+				xmldata.open('GET', 'data:' + contentType + ';charset=utf-8,' + encodeURIComponent(str), false);
+				if(xmldata.overrideMimeType) {
+					xmldata.overrideMimeType(contentType);
+				}
+				xmldata.send(null);
+				return xmldata.responseXML;
+			} else {
+	console.log('..bad luck: no ActiveXObject or XMLHttpRequest')
+			}
+		}
+	}
+}
+
+// Load and process file
+function loadFile() {
+	var input, file, fr;
+	if (typeof window.FileReader !== 'function') {
+		bodyAppend("p", "The file API isn't supported on this browser yet.");
+		return;
+	};
+	
+	input = document.getElementById('fileinput');
+	if (!input) {
+		bodyAppend("p", "Um, couldn't find the fileinput element.");
+	}
+	else if (!input.files) {
+		bodyAppend("p", "This browser doesn't seem to support the `files` property of file inputs.");
+	}
+	else if (!input.files[0]) {
+		bodyAppend("p", "Please select a file before clicking 'Load'");
+	}
+	else {
+		file = input.files[0];
+		fr = new FileReader();
+		fr.onload = processFile;
+		fr.readAsText(file);
+// console.log(fr.result);
+	}
+
+	// process file (local function to get access to local variable fr)
+	function processFile() {
+	
+		// Create parser				
+		var parser = new DOMParser();
+		// Parse xml into DOM
+		var xmlDoc = parser.parseFromString(fr.result, "text/xml");
+		fr.result = null; // we do not need this data anymore
+
+		// Hide file selector
+		document.getElementById('fileselector').classList.add('hidden');
+		// Show main area
+		document.getElementById('controls').classList.remove('hidden');
+		document.getElementById('container').classList.remove('hidden');
+		// Show file name
+		document.getElementById('filename').innerHTML = file.name.substring(0, file.name.length -1 -1 -3);
+
+		// Process root node (documentElement always represents the root node)
+		svgCreate(xmlDoc.documentElement);
+	}
+
+}
+</script>
+
+<!-------------------------------------------------------------------->
+<script> // DOM2SVG
+
+// Process root node (sutrackp)	
+function svgCreate(sutrackp) {
+
+	// EEP: Static texts
+	const GleissystemText = { 			// GleissystemID
+		1 : 'Eisenbahn',
+		2 : 'Strassenbahn',
+		3 : 'Strasse',
+		4 : 'Wasserwege',
+		5 : 'Steuerstrecken',			// nicht in EEP 9
+		6 : 'GBS',						// nicht in EEP 9
+	}
+
+	const Gleisart = { 					// clsid
+		'2E25C8E2-ADCD-469A-942E-7484556FF932' : 'Normal',
+		'C889EADB-63B5-44A2-AAB9-457424CFF15F' : 'Weiche',
+		'B0818DD8-5DFD-409F-8022-993FD3C90759' : '3-Weg-Weiche',
+		'06D80C90-4E4B-469B-BFE0-509A573EBC99' : 'Prellbock',
+	}
+
+	//var version 	= sutrackp.getElementsByTagName('Version')[0]
+	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0]
+
+	// Groesse der Anlage (alle Positionsangaben in m statt cm)
+	const Area = {
+		min : {	
+			x : Schandlaft.getAttribute('posX') / 100,
+			y : Schandlaft.getAttribute('posY') / 100,
+		},
+		width  	: Math.abs(Schandlaft.getAttribute('posX') * 2 / 100),
+		height 	: Math.abs(Schandlaft.getAttribute('posY') * 2 / 100),
+	}
+
+	// Verwendeter Bereich der Anlage
+	let usedArea = {
+		min : {x : 0, y : 0}, 
+		max : {x : 0, y : 0},
+	}
+
+	// Append new svg elements to this root node which we apend to the svg node later
+	let fragment = document.createDocumentFragment();
+
+	const Gleissysteme 	= sutrackp.getElementsByTagName('Gleissystem')
+	for (const Gleissystem of Gleissysteme) {
+//console.log(Gleissystem)
+
+		const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+
+		// Append groups to the root node; append other elements to these group nodes
+		let svg_group_node = svgAppend(fragment, { 
+			svg_tag	: `g`,
+			id		: `${GleissystemText[GleissystemID]}`,
+		});
+//console.log(svg_group_node)
+
+		const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
+	
+		// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
+		if (Gleise.length == 0) {
+			for (const ele of document.getElementsByClassName(GleissystemText[GleissystemID])) {
+				ele.classList.add('hidden');
+			}
+		}
+		
+		for (const Gleis of Gleise) {
+//console.log(Gleis)
+
+/* Example:
+		<Gleis GleisID="1" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm" LockEd="0">
+			<Dreibein>
+				<Vektor x="-12359.88" y="-1854.389" z="30">Pos</Vektor>
+				<Vektor x="0.699066" y="-0.715057" z="0">Dir</Vektor>
+				<Vektor x="0.715057" y="0.699066" z="0">Nor</Vektor>
+				<Vektor x="-0" y="0" z="1">Bin</Vektor>
+			</Dreibein>
+			<Anfangsfuehrungsverdrehung Wert="0"/>
+			<Charakteristik Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Kurve="0" Laenge="2580"/>
+		</Gleis>
+*/
+	
+/*
+Das Kordinatensystem von SVG ist gegenüber dem üblichen Koordinatensystem (also auch dem von EEP) an der x-Achse gespiegelt.
+Die Spiegelung ließe sich über CSS einfach zurücknehmen:
+	svg { transform: scale(1,-1); }
+Damit würde allerdings auch der Text gespiegelt und müsste daher erneut gespiegelt und verschoben werden.
+Daher werden hier stattdessten alle y-Koordinaten und y-Winkel negativ angegeben (also z.Z. -PosY -DirY -NorY)
+Statt cm soll als Einheit m verwendet werden, daher wird Laenge, Kruemmung, PosX und PosY geeignet skaliert.
+*/
+
+			const GleisID 	= Gleis.getAttribute('GleisID');
+			const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
+			const stil 		= Gleis.getAttribute('stil');		// Gleisstil
+			const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
+			const Key_Id	=  Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
+			
+			const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
+			const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
+			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+			const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+			const DirX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('x');
+			const DirY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('y');
+			const NorX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('x');
+			const NorY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('y');
+
+			// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz für die Position der Endpunkte)
+			usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge )
+			usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge )
+			usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge )
+			usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge )
+
+			let pathElement;
+			if (Kruemmung == '0') {
+/*
+SVG: Gerades Gleis
+
+Alternativen (line erlaubt allerdings kein text-path, daher wird path verwendet)
+a) <line x1="0" y1="0" x2="Laenge" y2="0" transform="translate(PosX PosY) matrix(DirX DirY NorX NorY 0 0)"/>
+b) <line x1="0" y1="0" x2="Laenge" y2="0" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
+b) <path d="M 0 0 H Laenge" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
+*/
+
+				pathElement = svgAppend(svg_group_node, { 
+					svg_tag		: `path`,
+					id			: `G${GleissystemID}-${GleisID}`,
+					class		: `stil-${stil} ${Gleisart[clsid]}`,
+					d 			: `M 0 0 H ${Laenge}`, 
+					transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+				});
+
+
+			} else { // Kruemmung != 0
+/*
+SVG: Gebogenes Gleis
+
+Winkel (rad) = Kruemmung * Laenge
+ArcFlag = 0 für Winkel im Bereich -180° bis +180°, ansonsten 1
+SweepFlag = 1 für Winkel >= 0, 0 für Winkel < 0
+Radius = 1 / Kruemmung
+DeltaX = sin(Winkel) * Radius
+DeltaY = (1-cos(Winkel)) * Radius
+
+Kreisbogen als Spezialfall eines Ausschnittes einer allgenmeinen Ellipse:
+<path d="M PosX PosY A RadiusX RadiusY RotateX ArcFlag SweepFlag PosEndX PosEndY" />
+PosX = 0			x-Koordinate des Anfangpunktes
+PosY = 0			Y-Koordinate des Anfangpunktes
+RadiusX = Radius	Radius der x-Achse der Ellipse
+RadiusY	= Radius	Radius der y-Achse der Ellipse
+RotateX = 0 		Rotation der x-Achse der Ellipse in Grad (0: keine Rotation)
+ArcFlag = 0			large-arc-flag: kurzer Weg um die Ellipse: 0, langer Weg um die Ellipse: 1
+SweepFlag = ...		Zeichnung entgegen den Uhrzeigersinn: 0, Zeichnung mit dem Uhrzeigersinn: 1
+PosEndX = DeltaX	x-Koordinate des Endpunktes
+PosEndY = DeltaY	Y-Koordinate des Endpunktes
+
+Dies ergibt folgende vereinfachte Form:
+<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
+*/
+				const Winkel 	= Kruemmung * Laenge
+				const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
+				const SweepFlag = ( Winkel >= 0 ? 1 : 0)
+				const Radius 	= 1 / Kruemmung
+				const DeltaX 	= Math.sin(Winkel) * Radius
+				const DeltaY 	= (1 - Math.cos(Winkel)) * Radius
+
+				pathElement = svgAppend(svg_group_node, { 
+					svg_tag		: `path`,
+					id			: `G${GleissystemID}-${GleisID}`,
+					class		: `stil-${stil} ${Gleisart[clsid]}`,
+					d 			: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`, 
+					transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+				});
+			
+			}
+
+			// special text/textPath element to show GleisID in the middle of the track
+			svgAppend(svg_group_node, { 
+				svg_tag			: `text`,
+				href			: `#G${GleissystemID}-${GleisID}`,
+				'text-anchor'	: `middle`,
+				//x 				: pathElement.getTotalLength() / 2,
+				//y 				: 0,
+				text 			: `${GleisID}`
+			});
+			
+			if (Key_Id) {
+				// special text/textPath element to show Key_Id at the end of the track
+				svgAppend(svg_group_node, { 
+					svg_tag			: `text`,
+					href			: `#G${GleissystemID}-${GleisID}`,
+					'text-anchor'	: `end`,
+					//x 				: pathElement.getTotalLength(),
+					//y 				: 0,
+					text 			: `W${Key_Id}`
+				});
+			}
+
+		} // Gleise
+		
+	} // Gleissysteme
+
+	// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
+	usedArea.min.x = Math.max( usedArea.min.x, Area.min.x )
+	usedArea.min.y = Math.max( usedArea.min.y, Area.min.y )
+	usedArea.max.x = Math.min( usedArea.max.x, Area.min.x + Area.width  )
+	usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height )
+
+	// Group for additional general elements
+	let svg_group_node = svgAppend(fragment, { 
+		svg_tag	: `g`,
+		id		: `general`,
+	});
+
+	// Box zur Anzeige der Groesse der Anlage
+	// <rect class="box" x="-503" y="-303" width="1006" height="606" />
+	svgAppend(svg_group_node, { 
+		svg_tag	: `rect`,
+		class	: `box`,
+		x		:  Area.min.x,
+		y		:  Area.min.y,
+		width	:  Area.width,
+		height	:  Area.height,
+	});
+	// Box zur Anzeige des verwendeten Teils der Anlage
+	// <rect class="box" x="-175" y="-140" width="382" height="305" />
+	svgAppend(svg_group_node, { 
+		svg_tag	: `rect`,
+		class	: `box`,
+		x		:  usedArea.min.x,
+		y		:  usedArea.min.y,
+		width	:  usedArea.max.x - usedArea.min.x,
+		height	:  usedArea.max.y - usedArea.min.y,
+	});
+	// Zusätzliche Markierung des Zentrums
+	// <circle id="center" cx="0" cy="0" r="1" />
+	svgAppend(svg_group_node, { 
+		svg_tag	: `circle`,
+		id		: `center`,
+		cx		:  `0`,
+		cy		:  `0`,
+		r		:  `1`,
+	});
+
+	// Now we can append the fragment to the svg node
+	document.getElementById("sutrackp").appendChild(fragment);
+	
+	// Activate Pan and Zoom
+	SvgPanZoom(usedArea);
+
+	// Test: process all nodes recursivly
+	//process_node(sutrackp);
+}
+	
+function process_node(node) {
+//console.log(node.nodeName);
+
+	bodyAppend("p", node.nodeName + '|' + node.nodeValue + '|' + node.nodeType);
+
+	// Process child elements
+	for(let i=0; i<node.childNodes.length; i++) {
+		process_node(node.childNodes[i]);
+	}
+}
+	
+function bodyAppend(tagName, innerHTML) {
+	var elm = document.createElement(tagName);
+	elm.textContent = innerHTML;
+	document.body.appendChild(elm);
+}
+
+function svgAppend(svg_node, obj) {
+	const svgNS 	= "http://www.w3.org/2000/svg";
+	const xlinkNS	= "http://www.w3.org/1999/xlink";
+
+	let element = document.createElementNS(svgNS, obj.svg_tag);
+
+	if (obj.svg_tag != 'text') { 
+		
+		// copy all attributes except the tag (an alternate approach would be to construct a string and use innerHTML)
+		const entries = Object.entries(obj);
+		for (const [key, value] of entries) {
+			if (key != 'svg_tag') { element.setAttribute(key, value) };
+		};
+
+	} else { // text
+
+		// Create special text/textPath element using mandatory attributes href and text
+		// Example:
+		// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
+		let textPath = document.createElementNS(svgNS, 'textPath');
+		if (obj['text-anchor'] == 'middle') { 
+			textPath.setAttribute('startOffset', '50%'); 
+		}   	
+		else if (obj['text-anchor'] == 'end') { 
+			textPath.setAttribute('startOffset', '95%'); // How to put the text exactly to the end?
+		}   	
+		textPath.setAttributeNS(xlinkNS, "xlink:href", obj.href);
+		let text = document.createTextNode(obj.text);
+		textPath.appendChild(text);
+		element.appendChild(textPath);
+	};
+
+	svg_node.appendChild(element);
+	
+//console.log(element)	
+	return element;
+}
+
+</script>
+
+<!-------------------------------------------------------------------->
+<script src="svg-pan-zoom.js"></script>
+<script> // svg-pan-zoom
+// https://github.com/ariutta/svg-pan-zoom
+
+function SvgPanZoom(usedArea) {
+	
+	const beforePan = function(oldPan, newPan){
+		return; // Zoom-in near the border does not work well if we limt pan with fixed gutter
+
+		// Limit pan to keep SVG content visible by not allowing panning over SVG borders.
+		const gutterWidth = 100,
+			  gutterHeight = 100
+
+		const sizes = this.getSizes();
+		const leftLimit = -((sizes.viewBox.x + sizes.viewBox.width) * sizes.realZoom) + gutterWidth
+		const rightLimit = sizes.width - gutterWidth - (sizes.viewBox.x * sizes.realZoom)
+		const topLimit = -((sizes.viewBox.y + sizes.viewBox.height) * sizes.realZoom) + gutterHeight
+		const bottomLimit = sizes.height - gutterHeight - (sizes.viewBox.y * sizes.realZoom)
+
+		customPan = {};
+		customPan.x = Math.max(leftLimit, Math.min(rightLimit,  newPan.x));
+		customPan.y = Math.max(topLimit,  Math.min(bottomLimit, newPan.y));
+
+		return customPan	
+	};
+
+	const onZoom = function(newZoom){
+		show_area(this);
+	};
+
+	const onPan = function(newPan){
+		show_area(this);
+	};
+
+	const panZoom = svgPanZoom('#svg', {
+		viewportSelector: '.svg-pan-zoom_viewport' // Viewport selector. Can be querySelector string or SVGElement
+		//, panEnabled: true // enable or disable panning (default enabled)
+		, controlIconsEnabled: false // insert icons to give user an option in addition to mouse events to control pan/zoom (default disabled)
+		// , zoomEnabled: true // enable or disable zooming (default enabled)
+		// , dblClickZoomEnabled: true // enable or disable zooming by double clicking (default enabled)
+		// , mouseWheelZoomEnabled: true // enable or disable zooming by mouse wheel (default enabled)
+		// , preventMouseEventsDefault: true // enable or disable preventDefault for mouse events
+		, zoomScaleSensitivity: 0.1 // Zoom sensitivity
+		, minZoom: 0.1 // Minimum Zoom level
+		, maxZoom: 100 // Maximum Zoom level
+		// , fit: true // enable or disable viewport fit in SVG (default true)
+		// , contain: false // enable or disable viewport contain the svg (default false)
+		// , center: true // enable or disable viewport centering in SVG (default true)
+		// , refreshRate: 'auto' // Maximum number of frames per second (altering SVG's viewport)
+		// , beforeZoom: function(oldZoom, newZoom){return true;}
+		// , onZoom: function(ZoomScale){}
+		, onZoom: onZoom
+		// , beforePan: function(oldPan, newPan){return customPan} // oldPan.x, oldPan.y, newPan.x, newPan.y
+		, beforePan: beforePan
+		// , onPan: function(newPan){}
+		, onPan: onPan
+		// , customEventsHandler: { init : function(options){}, destroy : function(options){} }
+		, customEventsHandler: { 
+			init : function(options){
+				this.listeners = {
+					mouseenter : function(ev){
+						show_position(options.instance, ev);
+						show_area(options.instance, ev);
+					},
+					click : function(ev){
+						show_area(options.instance, ev);
+					},
+					mousemove : function(ev){
+						//document.getElementById('cursor_position').innerHTML = 'in';
+						show_position(options.instance, ev);
+					},
+					mouseleave : function(ev){
+						document.getElementById('cursor_position').innerHTML = '';
+					}
+				};
+				for (const eventName in this.listeners){
+					options.svgElement.addEventListener(eventName, this.listeners[eventName]);
+				};
+			}, 
+			destroy : function(options){
+				for (const eventName in this.listeners){
+					options.svgElement.removeEventListener(eventName, this.listeners[eventName]);
+				};
+			} 
+		}
+		// , eventsListenerElement: SVGElement 
+		, onUpdatedCTM: null
+	});
+
+	// Pan and zoom to used area
+	showUsedArea(true);
+
+	function showUsedArea(pan) {
+		// Pan and zoom to used area 
+		// zoomAtPoint(scale, {x:0,y:0});   or   pan({x:0,y:0}); zoom(scale);
+		const width 		= panZoom.getSizes().width;
+		const height		= panZoom.getSizes().height;
+		const usedwidth 	= usedArea.max.x - usedArea.min.x;
+		const usedheight	= usedArea.max.y - usedArea.min.y;
+console.log(
+`width=${width}`
+)		
+		
+		if (pan) {
+			panZoom.pan({
+				x: width/2  - ( usedArea.min.x + usedwidth/2  ),
+				y: height/2 - ( usedArea.min.y + usedheight/2 ),
+			})
+		}
+		panZoom.zoom(Math.min( 
+			width  / usedwidth,
+			height / usedheight,
+		))
+	}
+
+	// resize SvgPanZoom after resizing the window
+	window.addEventListener('resize', function(ev){
+		// Resize content
+		ev.preventDefault()
+		panZoom.resize();
+		panZoom.fit();
+		panZoom.center();
+	});
+
+	// Button Zoom-In
+	document.getElementById('zoom-in').addEventListener('click', function(ev){
+		ev.preventDefault()
+		panZoom.zoomIn()
+	});
+	// Button Zoom-Out
+	document.getElementById('zoom-out').addEventListener('click', function(ev){
+		ev.preventDefault()
+		panZoom.zoomOut()
+	});
+	// Button Reset
+	document.getElementById('reset').addEventListener('click', function(ev){
+		ev.preventDefault()
+		//panZoom.fit();
+		//panZoom.center();
+		//panZoom.resetZoom();
+		// Pan and zoom to used area
+		showUsedArea(true);
+	});
+	// Button ResetZoom
+	document.getElementById('resetzoom').addEventListener('click', function(ev){
+		ev.preventDefault()
+		//panZoom.resetZoom()
+		// Zoom to used area
+		showUsedArea();
+	});
+	// Button 'enable controls'
+/*	
+	document.getElementById('enable').addEventListener('click', function() {
+		panZoom.enableControlIcons();
+	})
+*/	
+	// Button 'disable controls'
+/*
+	document.getElementById('disable').addEventListener('click', function() {
+		panZoom.disableControlIcons();
+	})
+*/
+
+	// Show cursor position
+	function show_position(t, event) {
+		const pan 	= t.getPan();	// (x y)
+		const sizes = t.getSizes();	// width height of svg area
+									// viewBox (x y width height)
+									// realZoom = min(width/viewBox.width, height/viewBox.height)
+		//const zoom 	= t.getZoom();	// zoom factor
+
+		const posX	= ( event.offsetX - pan.x) / sizes.realZoom;
+		const posY	= ( event.offsetY - pan.y) / sizes.realZoom;
+
+		/* Show cursor position */
+		const text = '(' + (posX).toFixed(0) + ' ' + (-posY).toFixed(0) + ')';
+		document.getElementById('cursor_position').innerHTML = text;
+	}
+	
+	// Show coordinates of visible area
+	function show_area(t, event) {
+		const pan 		= t.getPan();	// (x y)
+		const sizes 	= t.getSizes();	// width height of svg area
+									// viewBox (x y width height)
+									// realZoom = min(width/viewBox.width, height/viewBox.height)
+		const zoom 	= t.getZoom();	// zoom factor
+	
+		const minX		= (-pan.x) / sizes.realZoom;
+		const minY		= (-pan.y) / sizes.realZoom;	
+		const centerX	= (-pan.x + sizes.width/2)  / sizes.realZoom;	
+		const centerY	= (-pan.y + sizes.height/2)	/ sizes.realZoom;
+		const maxX		= (-pan.x + sizes.width)  	/ sizes.realZoom;	
+		const maxY		= (-pan.y + sizes.height) 	/ sizes.realZoom;
+
+		/* Show coordinates of visible area */
+		let text = '('  + (minX).toFixed(0) + ' ' + (-minY).toFixed(0) + ') .. (' 
+						+ (maxX).toFixed(0) + ' ' + (-maxY).toFixed(0) + ')';
+		document.getElementById('visible_area').innerHTML = text;
+		/* Show center position */
+		text = '(' + (centerX).toFixed(0) + ' ' + (-centerY).toFixed(0) + ')';
+		document.getElementById('center_position').innerHTML = text;
+	};
+};
+</script>
+
+<!-------------------------------------------------------------------->
+<script> // html page
+
+// Call all onLoad functions
+function onLoadBody() {
+	onLoadXML2DOM();
+}
+
+
+// Toggle visibility of elements
+function toggleElements(selector, visible) {
+	for (const ele of document.getElementById('svg').querySelectorAll(selector)) {
+		if (visible) {
+			ele.classList.remove('hidden');
+		} else {
+			ele.classList.add('hidden');
+		}
+	}
+}
+</script>
+
+<style> /* html page */
+html, body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+}
+
+#header {
+	margin: 5px;
+}
+
+#container {
+	flex: 1;
+	display: flex;
+}
+
+#svg {
+	flex: 1;
+	height: 100%;
+}
+
+.hidden {
+	display: none !important;
+}
+
+</style>
+
+</head>
+
+<body onload=onLoadBody()>
+
+<div id='header'>
+
+<div id='fileselector'>
+<h3>EEP Gleisplan</h3>
+<form action='#' onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better --> 
+	<label for="fileinput">Wähle und lade eine EEP-Anlage-Datei (.anl3)</label>
+	<input type='file' id='fileinput' accept='.anl3' onchange="loadFile(this.files)">
+	<!-- An extra button is not neccessary -->
+	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
+</form>
+
+<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.</br>
+Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href='https://www.w3schools.com/html/html5_svg.asp' target='_blank'>SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href='https://www.w3schools.com/html/html_css.asp' target='_blank'>CSS</a>.</br>
+Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.</small></p>
+<p><small>Click, hold and move: pan; Double click: zoom in; Shift+Double click: zoom out</small></p>
+<p><small>(c) Frank Buchholz, 2019</small></p>
+</div>
+
+<div id='controls' class='hidden'>
+	<h3 id='filename'>EEP Gleisplan</h3>
+	
+	<button id="zoom-in">+</button>
+	<button id="zoom-out">-</button>
+	<button id="resetzoom">reset zoom</button>
+	<button id="reset">reset all</button>
+<!--
+	<button id="enable">enable controls</button>
+	<button id="disable">disable controls</button>
+-->
+Sichtbarer Bereich: <span id="visible_area"> </span> Zentrum des Bereichs: <span id="center_position"> </span> Cursor: <span id="cursor_position"> </span>
+
+<!-- https://wiki.selfhtml.org/wiki/HTML/Formulare/input/Radio-Buttons_und_Checkboxen#Checkboxen -->
+<form> 
+	<fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
+		<label class='Eisenbahn'><input type='checkbox' name=Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label>
+		<label class='Strassenbahn'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label>
+		<label class='Strasse'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strasse', this.checked)">Strasse</label>
+		<label class='Wasserwege'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label>
+		<label class='Steuerstrecken'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label>
+		<label class='GBS'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#GBS', this.checked)">GBS</label>
+		<label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label>
+  </fieldset> 
+</form>
+
+</div>
+
+</div>  <!-- header --> 
+
+<div id='container' class='hidden'>
+<svg id='svg' viewBox="-500 -300 1000 600" xmlns="http://www.w3.org/2000/svg" version="1.1"> <!-- dummy viewBox required -->  
+
+<title>EEP Gleisplan</title>
+<desc>EEP Gleisplan</desc>
+<defs>
+	<style type="text/css">
+      <![CDATA[
+svg {
+	background: white;
+	border: 1px dotted #3983ab;
+	padding: 0;
+	box-sizing: border-box;
+	/* transform: scale(1,-1);     		not useful as it would mirror the text, too */
+}
+
+/* Gleisnummern etc. */
+text { 
+	font-size: 4px; 
+	font-family: Arial;
+	stroke-width: 0;
+	fill: black;
+	dominant-baseline: text-after-edge;	/* kleiner Abstand von der Linie			*/
+	text-anchor: middle;
+}
+/*- textPath {	startOffset: "50%";	}	startOffset is not available in CSS 		*/
+
+
+/* Box zur Anzeige der verwendeten Groesse der Anlage */ 
+.box {
+	stroke-width: 0.1;
+	stroke: black;
+	fill:   none;
+	stroke-dasharray: 1;
+}
+
+/* Zusätzliche Markierung des Zentrums */ 
+#center {
+	stroke-width: 0;
+	stroke: #cc0000;
+	fill:   #cc0000;
+}
+
+/* Individuelle Formatierung je Gleissystem */ 
+
+#Eisenbahn {
+	stroke-width: 0.5;
+	stroke: red;
+	fill:   none;
+    marker-start: url(#EisenbahnMarkerCircle);
+    marker-end:   url(#EisenbahnMarkerArrow);
+}
+#EisenbahnMarkerCircle, #EisenbahnMarkerArrow {
+	fill: red;
+}
+#Eisenbahn text { 
+	fill: red;
+}
+
+#Strassenbahn {
+	stroke-width: 0.5;
+	stroke: darkgray ;
+	fill:   none;
+    marker-start: url(#StrassenbahnMarkerCircle);
+    marker-end:   url(#StrassenbahnMarkerArrow);
+}
+#StrassenbahnMarkerCircle, #StrassenbahnMarkerArrow {
+	fill: darkgray ;
+}
+#Strassenbahn text { 
+	fill: darkgray ;
+}
+
+#Strasse {
+	stroke-width: 0.5;
+	stroke: grey;
+	fill:   none;
+    marker-start: url(#StrasseMarkerCircle);
+    marker-end:   url(#StrasseMarkerArrow);
+}
+#StrasseMarkerCircle, #StrasseMarkerArrow {
+	fill: grey;
+}
+#Strasse text { 
+	fill: grey;
+}
+
+#Wasserwege {
+	stroke-width: 0.25;
+	stroke: blue;
+	fill:   none;
+    marker-start: url(#WasserwegeMarkerCircle);
+    marker-end:   url(#WasserwegeMarkerArrow); 
+}
+#WasserwegeMarkerCircle, #WasserwegeMarkerArrow {
+	fill: blue;
+}
+#Wasserwege text { 
+	fill: blue;
+}
+
+#Steuerstrecken {
+	stroke-width: 0.25;
+	stroke: purple;
+	fill:   none;
+    marker-start: url(#SteuerstreckenMarkerCircle);
+    marker-end:   url(#SteuerstreckenMarkerArrow); 
+}
+#SteuerstreckenMarkerCircle, #SteuerstreckenMarkerArrow {
+	fill: purple;
+}
+#Steuerstrecken text { 
+	fill: purple;
+}
+
+#GBS {
+	stroke-width: 0.25;
+	stroke: brown;
+	fill:   none;
+    marker-start: url(#GBSMarkerCircle);
+    marker-end:   url(#GBSMarkerArrow); 
+}
+#GBSMarkerCircle, #GBSMarkerArrow {
+	fill: brown;
+}
+#GBS text { 
+	fill: brown;
+}
+
+/* Individuelle Formatierung je Gleisstil */
+
+.Prellbock {
+    marker-end:   url(#Prellbock);
+}
+
+.stil-1353 { 	/* Gleis mit Betonschwellen */
+}
+.stil-17 { 		/* Wasserweg unsichtbar */
+}
+.stil-34 { 		/* Eisenbahn unsichtbar */
+	stroke-dasharray: 1;
+}
+.stil-36 { 		/* Strasse unsichtbar */
+	stroke-dasharray: 1;
+}
+.stil-5146 { 	/* Farm track */ 
+	stroke: brown;
+	stroke-dasharray: 1;
+} 
+.stil-5602 { 	/* Fence */
+	stroke-dasharray: 1;
+} 
+      ]]>
+	</style>
+</defs>
+
+<defs>
+	<marker id="Prellbock" 	markerWidth="2" markerHeight="5" refX="2" refY="2" orient="auto">
+        <rect x="0" y="0" width="2" height="4"/>
+    </marker>
+
+	<!-- We need individual markers to be able to apply CSS --> 
+	<marker id="EisenbahnMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+        <circle cx="3" cy="3" r="1" />
+    </marker>
+	<marker id="StrassenbahnMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+        <circle cx="3" cy="3" r="1" />
+    </marker>
+	<marker id="StrasseMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+        <circle cx="3" cy="3" r="1" />
+    </marker>
+	<marker id="WasserwegeMarkerCircle" markerWidth="5" markerHeight="5" refX="2" refY="3">
+        <circle cx="3" cy="3" r="1" />
+    </marker>
+	<marker id="SteuerstreckenMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+        <circle cx="3" cy="3" r="1" />
+    </marker>
+	<marker id="GBSMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+        <circle cx="3" cy="3" r="1" />
+    </marker>
+
+    <marker id="EisenbahnMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+        <path d="M0,1 L0,5 L3,3 L0,1" />
+    </marker>
+    <marker id="StrassenbahnMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+        <path d="M0,1 L0,5 L3,3 L0,1" />
+    </marker>
+    <marker id="StrasseMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+        <path d="M0,1 L0,5 L3,3 L0,1" />
+    </marker>
+    <marker id="WasserwegeMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+        <path d="M0,1 L0,5 L3,3 L0,1" />
+    </marker>
+    <marker id="SteuerstreckenMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+        <path d="M0,1 L0,5 L3,3 L0,1" />
+    </marker>
+    <marker id="GBSMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+        <path d="M0,1 L0,5 L3,3 L0,1" />
+    </marker>
+
+</defs>
+
+<g id="sutrackp" class="svg-pan-zoom_viewport">
+<!-- hier werden dynamisch die weiteren svg-Elemente der EEP Anlage eingefügt -->
+</g> <!-- sutrackp -->
+
+</svg>
+</div> <!-- container -->
+</body>
+<html>
