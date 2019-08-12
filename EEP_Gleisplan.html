@@ -594,6 +594,11 @@ function SvgPanZoom(usedArea) {
 		panZoom.disableControlIcons();
 	})
 */
+	// Button savePNG
+	document.getElementById('savePNG').addEventListener('click', function(ev){
+		ev.preventDefault(); // is this neccessary as we are outside of the svg area?
+		savePNG();
+	});
 
 	// Show cursor position
 	function show_position(t, event) {
@@ -651,6 +656,50 @@ function toggleElements(selector, visible) {
 			ele.classList.add('hidden');
 		}
 	}
+}
+
+// save current svg area to png
+function savePNG() {
+
+	// Get file name without extension
+	const filename = document.getElementById('fileinput').files[0].name.slice(0,-5)
+
+	// Read svg
+	const svg 		= document.getElementById('svg'); // document.querySelector
+	const svgSize 	= svg.getBoundingClientRect();
+	const svgString	= new XMLSerializer().serializeToString(svg);
+	const svgBlob 	= new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+
+	// Create object url
+	const DOMURL = self.URL || self.webkitURL || self;
+	const url = DOMURL.createObjectURL(svgBlob);
+
+	// Create canvas
+	const canvas = document.createElement('canvas');
+	canvas.width = svgSize.width;
+	canvas.height = svgSize.height;
+	const ctx = canvas.getContext('2d');
+
+	// Create image from object url
+	const img = new Image();
+	img.onload = function() {
+		ctx.drawImage(img, 0, 0);
+		const png = canvas.toDataURL('image/png');
+		
+		// Create download link and click it 
+		const link = document.createElement('a');
+		link.setAttribute('href', png);
+		link.setAttribute('download', filename + '.png');
+		link.setAttribute('target', '_blank');
+		link.style.display = 'none';
+		document.body.appendChild(link);
+		link.click();
+		// Remove temporary data
+		document.body.removeChild(link);		
+		DOMURL.revokeObjectURL(png);
+	};
+	// Load img
+	img.src = url;
 }
 </script>
 
@@ -723,6 +772,7 @@ Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibl
 	<button id="zoom-out">-</button>
 	<button id="resetzoom">reset zoom</button>
 	<button id="reset">reset all</button>
+	<button id='savePNG'>save PNG</button>
 <!--
 	<button id="enable">enable controls</button>
 	<button id="disable">disable controls</button>
