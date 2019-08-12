@@ -114,6 +114,20 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		'06D80C90-4E4B-469B-BFE0-509A573EBC99' : 'Prellbock',
 	}
 
+	/* Gleisstile: 
+	http://up.picr.de/33875489iu.pdf 
+	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
+	*/	
+	const unsichtbar = [	// unsichtbare Gleisstile
+		17, 				// Wasser, Steuerstrecke
+		28, 34, 562,		// Gleis
+		35, 				// Strassenbahn
+		36, 				// Strasse
+		5146,				// Farm track 
+		5602,				// Fence
+		100000,				// Kamerafahrweg
+	]
+
 	//var version 	= sutrackp.getElementsByTagName('Version')[0]
 	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0]
 
@@ -230,7 +244,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					pathElement = svgAppend(svg_group_node, { 
 						svg_tag		: `path`,
 						id			: `G${GleissystemID}-${GleisID}`,
-						class		: `stil-${stil} ${Gleisart[clsid]}`,
+						class		: `stil-${stil} ${Gleisart[clsid]}${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						d 			: `M 0 0 H ${Laenge}`, 
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
@@ -272,7 +286,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					pathElement = svgAppend(svg_group_node, { 
 						svg_tag		: `path`,
 						id			: `G${GleissystemID}-${GleisID}`,
-						class		: `stil-${stil} ${Gleisart[clsid]}`,
+						class		: `stil-${stil} ${Gleisart[clsid]}${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						d 			: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`, 
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
@@ -283,6 +297,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				svgAppend(svg_group_node, { 
 					svg_tag			: `text`,
 					href			: `#G${GleissystemID}-${GleisID}`,
+					class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 					'text-anchor'	: `middle`,
 					//x 				: pathElement.getTotalLength() / 2,
 					//y 				: 0,
@@ -294,6 +309,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					svgAppend(svg_group_node, { 
 						svg_tag			: `text`,
 						href			: `#G${GleissystemID}-${GleisID}`,
+						class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						'text-anchor'	: `end`,
 						//x 				: pathElement.getTotalLength(),
 						//y 				: 0,
@@ -392,7 +408,7 @@ function svgAppend(svg_node, obj) {
 
 	} else { // text
 
-		// Create special text/textPath element using mandatory attributes href and text
+		// Create special text/textPath element using mandatory attributes href, text, class
 		// Example:
 		// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
 		let textPath = document.createElementNS(svgNS, 'textPath');
@@ -403,6 +419,7 @@ function svgAppend(svg_node, obj) {
 			textPath.setAttribute('startOffset', '95%'); // How to put the text exactly to the end?
 		}   	
 		textPath.setAttributeNS(xlinkNS, "xlink:href", obj.href);
+		textPath.setAttribute('class', obj.class);
 		let text = document.createTextNode(obj.text);
 		textPath.appendChild(text);
 		element.appendChild(textPath);
@@ -626,6 +643,7 @@ function SvgPanZoom(usedArea) {
 
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
+
 	for (const ele of document.getElementById('svg').querySelectorAll(selector)) {
 		if (visible) {
 			ele.classList.remove('hidden');
@@ -721,6 +739,7 @@ Sichtbarer Bereich: <span id="visible_area"> </span> Zentrum des Bereichs: <span
 		<label class='Steuerstrecken hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label>
 		<label class='GBS hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#GBS', this.checked)">GBS</label>
 		<label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label>
+		<label class='unsichtbar'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label>
   </fieldset> 
 </form>
 
@@ -859,26 +878,19 @@ text {
 
 /* Individuelle Formatierung je Gleisstil */
 
+.unsichtbar {
+	stroke-dasharray: 1;
+}
+
 .Prellbock {
     marker-end:   url(#Prellbock);
 }
 
 .stil-1353 { 	/* Gleis mit Betonschwellen */
 }
-.stil-17 { 		/* Wasserweg unsichtbar */
-}
-.stil-34 { 		/* Eisenbahn unsichtbar */
-	stroke-dasharray: 1;
-}
-.stil-36 { 		/* Strasse unsichtbar */
-	stroke-dasharray: 1;
-}
+
 .stil-5146 { 	/* Farm track */ 
 	stroke: brown;
-	stroke-dasharray: 1;
-} 
-.stil-5602 { 	/* Fence */
-	stroke-dasharray: 1;
 } 
       ]]>
 	</style>
