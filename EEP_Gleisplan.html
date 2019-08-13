@@ -11,6 +11,7 @@
 <!-------------------------------------------------------------------->
 <script>
 // Load and process file
+let global_sutrackp; // global variable because it's used later with interactive elements as well
 function loadFile(file) {
 	var fr;
 	if (typeof window.FileReader !== 'function') {
@@ -48,7 +49,9 @@ function loadFile(file) {
 			let progress = document.getElementById('progress');
 
 			// Process root node (documentElement always represents the root node)
-			return svgCreate(xmlDoc.documentElement, initProgress, incrementProgress);
+			const sutrackp = xmlDoc.documentElement;
+			global_sutrackp = sutrackp;
+			return svgCreate(sutrackp, initProgress, incrementProgress);
 
 			function initProgress(progressMax) {
 				return updateUi(function() {
@@ -96,7 +99,6 @@ function updateUi(fn) {
 <script> // DOM2SVG
 
 // Process root node (sutrackp)	
-function svgCreate(sutrackp, initProgress, incrementProgress) {
 	// EEP: Static texts
 	const GleissystemText = { 			// GleissystemID
 		1 : 'Eisenbahn',
@@ -106,6 +108,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		5 : 'Steuerstrecken',			// nicht in EEP 9
 		6 : 'GBS',						// nicht in EEP 9
 	}
+
+function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 	const Gleisart = { 					// clsid
 		'2E25C8E2-ADCD-469A-942E-7484556FF932' : 'Normal',
@@ -437,7 +441,7 @@ function svgAppend(svg_node, obj) {
 <script src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <script> // svg-pan-zoom
 // https://github.com/ariutta/svg-pan-zoom
-
+let global_panZoom;
 function SvgPanZoom(usedArea) {
 	
 	const beforePan = function(oldPan, newPan){
@@ -522,7 +526,8 @@ function SvgPanZoom(usedArea) {
 		// , eventsListenerElement: SVGElement 
 		, onUpdatedCTM: null
 	});
-
+	global_panZoom = panZoom;
+	
 	// Pan and zoom to used area
 	showUsedArea(true);
 
@@ -599,6 +604,11 @@ function SvgPanZoom(usedArea) {
 		ev.preventDefault(); // is this neccessary as we are outside of the svg area?
 		savePNG();
 	});
+	// Button centerItem
+	document.getElementById('centerItem').addEventListener('click', function(ev){
+		ev.preventDefault(); // is this neccessary as we are outside of the svg area?
+		centerItem();
+	});
 
 	// Show cursor position
 	function show_position(t, event) {
@@ -662,7 +672,7 @@ function toggleElements(selector, visible) {
 function savePNG() {
 
 	// Get file name without extension
-	const filename = document.getElementById('fileinput').files[0].name.slice(0,-5)
+	const filename = document.getElementById('filename').textContent // document.getElementById('fileinput').files[0].name.slice(0,-5)
 
 	// Read svg
 	const svg 		= document.getElementById('svg'); // document.querySelector
@@ -701,6 +711,60 @@ function savePNG() {
 	// Load img
 	img.src = url;
 }
+
+function centerItem() {
+
+	// Get the element from a set with a specific attribute value
+	function getElement(Set, Attribute, ID) {
+		for (const Element of Set) {
+			if (Element.getAttribute(Attribute) == ID) return Element;
+		}
+	}
+
+	// Get input values
+	const o 	= document.getElementById('select');
+	const sel 	= Number(o.options[o.selectedIndex].value);	// e.g. 1
+	//const text 	= o.options[o.selectedIndex].text;		// e.g. Eisenbahn
+	const val 	= Number(document.getElementById('number').value);
+	
+	if (sel <= 6) { // Gleissystem
+	
+		const GleissystemID = sel;
+		const GleisID 		= val;
+		const Gleissystem	= getElement(global_sutrackp.getElementsByTagName('Gleissystem'), 'GleissystemID', GleissystemID)
+		if (!Gleissystem) { return; }	// Gleissystem nicht gefunden
+
+		const Gleis 		= getElement(Gleissystem.getElementsByTagName('Gleis'), 'GleisID', GleisID) 
+		if (!Gleis) { return; }	// Gleis nicht gefunden
+
+		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+		const PosY			= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+
+		const width 		= global_panZoom.getSizes().width;
+		const height		= global_panZoom.getSizes().height;
+		const realZoom		= global_panZoom.getSizes().realZoom;
+		
+		const panX 			= width/2	- PosX * realZoom;
+		const panY 			= height/2	- PosY * realZoom;
+
+		global_panZoom.pan({x: panX, y: panY,})	
+		
+	} else if (sel == 7) {		// Weiche (Nummern übergreifend über alle Gleissysteme, jedoch nict eindeutig)
+		// Gleis.getAttribute('Key_Id')
+		const Key_Id 		= val;
+		//...
+		
+	} else if (sel == 8) {		// Signal (Nummern übergreifend über alle Gleissysteme)
+		// Gleis.getAttribute('Meldung').getAttribute('Key_Id')
+		const Key_Id 		= val;
+		//...
+
+	} else if (sel == 9) {		// Kontakt
+		//...
+	}
+	return false;
+}
+
 </script>
 
 <style> /* html page */
@@ -778,8 +842,8 @@ Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibl
 	<button id="disable">disable controls</button>
 -->
 Sichtbarer Bereich: <span id="visible_area"> </span> Zentrum des Bereichs: <span id="center_position"> </span> Cursor: <span id="cursor_position"> </span>
-
-<!-- https://wiki.selfhtml.org/wiki/HTML/Formulare/input/Radio-Buttons_und_Checkboxen#Checkboxen -->
+  
+<!-- Auswahl der anzuzeigenden Objekte. class=hidden wird enfernt wenn eine Checkbox aktiv ist -->
 <form> 
 	<fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
 		<label class='Eisenbahn hidden'><input type='checkbox' name=Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label>
@@ -791,6 +855,23 @@ Sichtbarer Bereich: <span id="visible_area"> </span> Zentrum des Bereichs: <span
 		<label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label>
 		<label class='unsichtbar'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label>
   </fieldset> 
+
+<!-- Auswahl den im Zentrum anzuzeigendes Objektes -->
+  <select id='select' >
+    <option value='1'>Eisenbahn</option>
+    <option value='2'>Strassenbahn</option>
+    <option value='3'>Strasse</option>
+    <option value='4'>Wasserwege</option>
+    <option value='5'>Steuerstrecken</option>
+    <option value='6'>GBS</option>
+<!--	
+    <option value='7'>Weiche</option>
+    <option value='8'>Signal</option>
+    <option value='9'>Kontakt</option>
+-->	
+  </select>
+  <input type='number' id='number' value='1'>
+  <button id='centerItem'>Zeige Objekt </button>
 </form>
 
 </div>
