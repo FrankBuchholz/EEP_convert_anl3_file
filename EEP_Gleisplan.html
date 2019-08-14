@@ -677,9 +677,11 @@ function savePNG() {
 	// Read svg
 	const svg 		= document.getElementById('svg'); // document.querySelector
 	const svgSize 	= svg.getBoundingClientRect();
-	svg.setAttribute("width", svgSize.width)
-	svg.setAttribute("height", svgSize.height)
+	svg.setAttribute("width", svgSize.width);
+	svg.setAttribute("height", svgSize.height);
 	const svgString	= new XMLSerializer().serializeToString(svg);
+	svg.removeAttribute("width");
+	svg.removeAttribute("height");
 	const svgBlob 	= new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
 
 	// Create object url
