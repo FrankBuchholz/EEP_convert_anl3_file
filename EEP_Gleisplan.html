@@ -8,7 +8,7 @@
 <meta name="keywords" content="EEP,.anl3,Gleisplan" />
 <meta name="language" content="de" />
  
-<!-------------------------------------------------------------------->
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script>
 // Load and process file
 let global_sutrackp; // global variable because it's used later with interactive elements as well
@@ -95,7 +95,7 @@ function updateUi(fn) {
 }
 </script>
 
-<!-------------------------------------------------------------------->
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // DOM2SVG
 
 // Process root node (sutrackp)	
@@ -437,7 +437,7 @@ function svgAppend(svg_node, obj) {
 
 </script>
 
-<!-------------------------------------------------------------------->
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <script> // svg-pan-zoom
 // https://github.com/ariutta/svg-pan-zoom
@@ -677,7 +677,11 @@ function savePNG() {
 	// Read svg
 	const svg 		= document.getElementById('svg'); // document.querySelector
 	const svgSize 	= svg.getBoundingClientRect();
+	svg.setAttribute("width", svgSize.width);
+	svg.setAttribute("height", svgSize.height);
 	const svgString	= new XMLSerializer().serializeToString(svg);
+	svg.removeAttribute("width");
+	svg.removeAttribute("height");
 	const svgBlob 	= new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
 
 	// Create object url
@@ -818,8 +822,8 @@ body {
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>
 
-<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.</br>
-Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href='https://www.w3schools.com/html/html5_svg.asp' target='_blank'>SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href='https://www.w3schools.com/html/html_css.asp' target='_blank'>CSS</a>.</br>
+<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br/>
+Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href='https://www.w3schools.com/html/html5_svg.asp' target='_blank'>SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href='https://www.w3schools.com/html/html_css.asp' target='_blank'>CSS</a>.<br/>
 Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.</small></p>
 <p><small>Click, hold and move: pan; Double click: zoom in; Shift+Double click: zoom out</small></p>
 <p><small>(c) Frank Buchholz, 2019</small></p>
@@ -846,7 +850,7 @@ Sichtbarer Bereich: <span id="visible_area"> </span> Zentrum des Bereichs: <span
 <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird enfernt wenn eine Checkbox aktiv ist -->
 <form> 
 	<fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
-		<label class='Eisenbahn hidden'><input type='checkbox' name=Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label>
+		<label class='Eisenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label>
 		<label class='Strassenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label>
 		<label class='Strasse hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strasse', this.checked)">Strasse</label>
 		<label class='Wasserwege hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label>
@@ -885,7 +889,7 @@ Sichtbarer Bereich: <span id="visible_area"> </span> Zentrum des Bereichs: <span
 <desc>EEP Gleisplan</desc>
 <defs>
 	<style type="text/css">
-      <![CDATA[
+      /* <![CDATA[ */
 svg {
 	background: white;
 	border: 1px dotted #3983ab;
@@ -1022,12 +1026,13 @@ text {
 
 .stil-5146 { 	/* Farm track */ 
 	stroke: brown;
+
 }
 
 .hidden {
 	display: none !important;
 }
-      ]]>
+      /* ]]> */
 	</style>
 </defs>
 
@@ -1084,4 +1089,4 @@ text {
 </svg>
 </div> <!-- container -->
 </body>
-<html>
+</html>
