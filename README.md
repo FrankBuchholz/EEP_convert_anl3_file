@@ -6,13 +6,13 @@
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html
 
 ### Mausfunktionen 
-Verschieben: Klick+Halten+Bewegen
-An der Stelle des Cursors hineinzoomen: Doppelklick
+Verschieben: Klick+Halten+Bewegen; 
+An der Stelle des Cursors hineinzoomen: Doppelklick; 
 Herauszoomen: Umschalttaste+Doppelklick
 
 ### Interaktive Funktionen
-Zoomen
-Auswahl der anzuzeigenden Gleissysteme
+Zoomen;
+Auswahl der anzuzeigenden Gleissysteme;
 aktuelles Bild als png-Bild speichern
 
 ### Referenz
