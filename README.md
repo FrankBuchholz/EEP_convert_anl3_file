@@ -6,14 +6,27 @@
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html
 
 ### Mausfunktionen 
-Verschieben: Klick+Halten+Bewegen; 
-An der Stelle des Cursors hineinzoomen: Doppelklick; 
+Verschieben: Klick+Halten+Bewegen<br/>
+An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
 Herauszoomen: Umschalttaste+Doppelklick
 
 ### Interaktive Funktionen
-Zoomen;
-Auswahl der anzuzeigenden Gleissysteme;
-aktuelles Bild als png-Bild speichern
+Zoom-in, -out, -reset<br/>
+Auswahl der anzuzeigenden Gleissysteme<br/>
+Aktuelles Bild als png-Bild speichern<br/>
+Graphik auf bestimmtes Gleis positionieren
+
+### Tipp zum Export als svg
+
+Google Chrome:
+
+Rechts-Klick in der Graphik -> Inspect (Ctrl+Shift+I) -> Das svg-Element wird im neuen Fenster (DevTools ) blau hinterlegt angezeigt -> Rechts-Klick auf diesem Element -> Copy -> Copy Element
+
+FireFox:
+
+Rechts-Klick in der Graphik -> Element untersuchen -> Das svg-Element wird im neuen Fenster (DevTools ) blau hinterlegt angezeigt -> Rechts-Klick auf diesem Element -> Kopieren -> Äußeres HTML
+
+Nun kann man das svg-Element aus der Zwischenablage in ein leeres Textdokument pasten und z.B. als .svg-Datei speichern.
 
 ### Referenz
 Diskussionbeitrag im <a href='https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt' target='_blank'>EEP-Forum</a>.
@@ -27,8 +40,7 @@ Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibl
 
 Die automatische Größenanpassung des SVG-Elements im Brower zur Nutzung des gesamten restlichen Bildschirmbereiches erfolgt mit <a href='https://www.w3schools.com/css/css3_flexbox.asp' target='_blank'>flex</a>.
 
-Der Fortschittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit <i>Promise</i> / <i>requestAnimationFrame</i> und diversen Stopps während der Verarbeitung realisiert.  
-
+Der Fortschittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit <i>Promise</i> / <i>requestAnimationFrame</i> und diversen Schritten bei der Verarbeitung realisiert. Leider unterstützt der Internet Explorer diese Funktion nicht und kann daher gar nicht verwendet werden. Die empfohlenen Browser sind daher Google Chrome und Firefox. 
 
 # Impressum
 (c) Frank Buchholz, 2019
