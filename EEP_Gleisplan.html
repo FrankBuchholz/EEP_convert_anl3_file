@@ -9,8 +9,7 @@
 <meta name="language" content="de" />
  
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-<script>
-// Load and process file
+<script> // Load and process file
 let global_sutrackp; // global variable because it's used later with interactive elements as well
 function loadFile(file) {
 	var fr;
@@ -217,7 +216,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
 				const stil 		= Gleis.getAttribute('stil');		// Gleisstil
 				const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
-				const Key_Id	=  Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
+				const Key_Id	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
 				
 				const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
 				const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
@@ -554,11 +553,25 @@ function SvgPanZoom(usedArea) {
 
 	// resize SvgPanZoom after resizing the window
 	window.addEventListener('resize', function(ev){
-		// Resize content
 		ev.preventDefault()
+		// Resize content
 		panZoom.resize();
 		panZoom.fit();
 		panZoom.center();
+	});
+
+
+	// Button swap
+	document.getElementById('swap').addEventListener('click', function(ev){
+		ev.preventDefault()
+		// Toogle between flex-direction: column and flex-direction: row
+		document.body.classList.toggle('column');
+		document.body.classList.toggle('row');
+		// Swapping changes the size of the svg element 
+		panZoom.resize();
+		// Currently the top left point keeps its position. We need to pan, too, if we want to keep the center beeing centered.
+		//...
+		show_area(panZoom);
 	});
 
 	// Button Zoom-In
@@ -590,23 +603,25 @@ function SvgPanZoom(usedArea) {
 	// Button 'enable controls'
 /*	
 	document.getElementById('enable').addEventListener('click', function() {
+		ev.preventDefault();
 		panZoom.enableControlIcons();
 	})
 */	
 	// Button 'disable controls'
 /*
 	document.getElementById('disable').addEventListener('click', function() {
+		ev.preventDefault();
 		panZoom.disableControlIcons();
 	})
 */
 	// Button savePNG
 	document.getElementById('savePNG').addEventListener('click', function(ev){
-		ev.preventDefault(); // is this neccessary as we are outside of the svg area?
+		ev.preventDefault();
 		savePNG();
 	});
 	// Button centerItem
 	document.getElementById('centerItem').addEventListener('click', function(ev){
-		ev.preventDefault(); // is this neccessary as we are outside of the svg area?
+		ev.preventDefault();
 		centerItem();
 	});
 
@@ -653,7 +668,7 @@ function SvgPanZoom(usedArea) {
 };
 </script>
 
-<!-------------------------------------------------------------------->
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // html page
 
 // Toggle visibility of elements
@@ -672,15 +687,15 @@ function toggleElements(selector, visible) {
 function savePNG() {
 
 	// Get file name without extension
-	const filename = document.getElementById('filename').textContent // document.getElementById('fileinput').files[0].name.slice(0,-5)
-
+	const filename = document.getElementById('filename').textContent
+	
 	// Read svg
-	const svg 		= document.getElementById('svg'); // document.querySelector
-	const svgSize 	= svg.getBoundingClientRect();
-	svg.setAttribute("width", svgSize.width);
+	const svg 		= document.getElementById('svg');
+	const svgSize 	= svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
+	svg.setAttribute("width", svgSize.width);		
 	svg.setAttribute("height", svgSize.height);
 	const svgString	= new XMLSerializer().serializeToString(svg);
-	svg.removeAttribute("width");
+	svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again 
 	svg.removeAttribute("height");
 	const svgBlob 	= new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
 
@@ -727,13 +742,13 @@ function centerItem() {
 
 	// Get input values
 	const o 	= document.getElementById('select');
-	const sel 	= Number(o.options[o.selectedIndex].value);	// e.g. 1
+	const sel 	= o.options[o.selectedIndex].value;			// e.g. 1-6, W, S, K
 	//const text 	= o.options[o.selectedIndex].text;		// e.g. Eisenbahn
 	const val 	= Number(document.getElementById('number').value);
 	
-	if (sel <= 6) { // Gleissystem
+	if (sel >= '1' && sel <= '6') { // Gleissystem
 	
-		const GleissystemID = sel;
+		const GleissystemID = Number(sel);
 		const GleisID 		= val;
 		const Gleissystem	= getElement(global_sutrackp.getElementsByTagName('Gleissystem'), 'GleissystemID', GleissystemID)
 		if (!Gleissystem) { return; }	// Gleissystem nicht gefunden
@@ -753,17 +768,17 @@ function centerItem() {
 
 		global_panZoom.pan({x: panX, y: panY,})	
 		
-	} else if (sel == 7) {		// Weiche (Nummern übergreifend über alle Gleissysteme, jedoch nict eindeutig)
+	} else if (sel == 'W') {		// Weiche (Nummern übergreifend über alle Gleissysteme, jedoch nicht eindeutig)
 		// Gleis.getAttribute('Key_Id')
 		const Key_Id 		= val;
 		//...
 		
-	} else if (sel == 8) {		// Signal (Nummern übergreifend über alle Gleissysteme)
+	} else if (sel == 'S') {		// Signal (Nummern übergreifend über alle Gleissysteme)
 		// Gleis.getAttribute('Meldung').getAttribute('Key_Id')
 		const Key_Id 		= val;
 		//...
 
-	} else if (sel == 9) {		// Kontakt
+	} else if (sel == 'K') {		// Kontakt
 		//...
 	}
 	return false;
@@ -772,28 +787,46 @@ function centerItem() {
 </script>
 
 <style> /* html page */
+
+/* margins */
+
 html, body {
 	margin: 0;
 	padding: 0;
-}
-
-body {
-	height: 100vh;
-	display: flex;
-	flex-direction: column;
 }
 
 #header {
 	margin: 5px;
 }
 
-#loading {
-	text-align: center;
+/* flex */ 
+
+body {
+	height: 100vh;
 }
 
-#container {
-	flex: 1;
+body.column {
 	display: flex;
+	flex-direction: column; 	/* vertically stacked */
+}
+body.column #header {
+	flex: 0;					/* shrink as much as possible */ 
+}
+body.column #container {
+	flex: 1;					/* grow as much as possible */
+	display: flex;				/* important to flex svg */
+}
+
+body.row {
+	display: flex;
+	flex-direction: row; 		/* side by side */
+}
+body.row #header {
+	flex: 1;					/* 1/5 = width: 20% */
+}
+body.row #container {
+	flex: 4;					/* 4/5 = width: 80% */
+	display: flex;				/* important to flex svg element */
 }
 
 #svg {
@@ -801,17 +834,43 @@ body {
 	height: 100%;
 }
 
+/* other styles */ 
+
 .hidden {
-	display: none !important;
+	display: none;
+}
+
+#loading {						/* progress bar */
+	text-align: center;
+}
+
+input[type='number']#number {
+   width:60px;
+}
+
+/* The handling of the controls and the seperators could be improved: using span seems to be quite ugly, div's floating horizontally respective vertically would serve better */
+body.column span.separator { 
+	opacity: 1;					/* show element */
+	white-space: wrap;			/* do not show line break */
+}
+body.row span.separator { 
+	opacity: 0;					/* do not show element */
+	white-space: pre-line;		/* show line break */
+}
+
+.item { 					
+	white-space: nowrap;		/* keep checkbox and label together */
+	display:inline;				/* but do no add extra line breaks per item */
 }
 
 </style>
 
 </head>
 
-<body>
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<body class='column'>
 
-<div id='header'>
+<div id='header'> <!-- The header contains the initial selection screen and the html part of the output sceen -->
 
 <div id='fileselector'>
 <h3>EEP Gleisplan</h3>
@@ -822,67 +881,88 @@ body {
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>
 
-<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br/>
+<p><small><strong>Mausfunktionen</strong><br/> 
+Verschieben: Klick+Halten+Bewegen<br/>
+An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
+Herauszoomen: Umschalttaste+Doppelklick</small></p>
+<p><small><strong>Technische Beschreibung</strong><br/>
+Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br/>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href='https://www.w3schools.com/html/html5_svg.asp' target='_blank'>SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href='https://www.w3schools.com/html/html_css.asp' target='_blank'>CSS</a>.<br/>
-Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.</small></p>
-<p><small>Click, hold and move: pan; Double click: zoom in; Shift+Double click: zoom out</small></p>
-<p><small>(c) Frank Buchholz, 2019</small></p>
-</div>
+Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.<br/>
+Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explorer.</small></p>
+<p><small>(c) Frank Buchholz, 2019, mit Unterstützung von <a href='https://github.com/campersau' target='_blank'>campersau</a> und <a href='https://github.com/EEP-Benny' target='_blank'>Benny</a></small></p>
+</div> <!-- fileselector -->
 
 <div id='loading' class='hidden'>
 	Lade... <progress id='progress' class='hidden' max='100'></progress>
 </div>
 
 <div id='controls' class='hidden'>
-	<h3 id='filename'>EEP Gleisplan</h3>
-	
-	<button id="zoom-in">+</button>
-	<button id="zoom-out">-</button>
-	<button id="resetzoom">reset zoom</button>
-	<button id="reset">reset all</button>
-	<button id='savePNG'>save PNG</button>
-<!--
+<h3 id='filename'>EEP Gleisplan</h3>
+
+<button id="swap">swap</button>
+<button id='savePNG'>save PNG</button>
+<span class='separator'>|
+</span>
+<button id="zoom-in">+</button>
+<button id="zoom-out">-</button>
+<button id="resetzoom">reset zoom</button>
+<button id="reset">reset all</button>
+<!-- enable/disable of controls of SvgPanZoom within the graphic
 	<button id="enable">enable controls</button>
 	<button id="disable">disable controls</button>
 -->
-Sichtbarer Bereich: <span id="visible_area"> </span> Zentrum des Bereichs: <span id="center_position"> </span> Cursor: <span id="cursor_position"> </span>
-  
-<!-- Auswahl der anzuzeigenden Objekte. class=hidden wird enfernt wenn eine Checkbox aktiv ist -->
-<form> 
-	<fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
-		<label class='Eisenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label>
-		<label class='Strassenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label>
-		<label class='Strasse hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strasse', this.checked)">Strasse</label>
-		<label class='Wasserwege hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label>
-		<label class='Steuerstrecken hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label>
-		<label class='GBS hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#GBS', this.checked)">GBS</label>
-		<label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label>
-		<label class='unsichtbar'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label>
-  </fieldset> 
+<span class='separator'>|
 
-<!-- Auswahl den im Zentrum anzuzeigendes Objektes -->
-  <select id='select' >
-    <option value='1'>Eisenbahn</option>
-    <option value='2'>Strassenbahn</option>
-    <option value='3'>Strasse</option>
-    <option value='4'>Wasserwege</option>
-    <option value='5'>Steuerstrecken</option>
-    <option value='6'>GBS</option>
+</span>
+<!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
+<select id='select' >
+	<option value='1'>Eisenbahn</option>
+	<option value='2'>Strassenbahn</option>
+	<option value='3'>Strasse</option>
+	<option value='4'>Wasserwege</option>
+	<option value='5'>Steuerstrecken</option>
+	<option value='6'>GBS</option>
 <!--	
-    <option value='7'>Weiche</option>
-    <option value='8'>Signal</option>
-    <option value='9'>Kontakt</option>
+	<option value='W'>Weiche</option>
+	<option value='S'>Signal</option>
+	<option value='K'>Kontakt</option>
 -->	
-  </select>
-  <input type='number' id='number' value='1'>
-  <button id='centerItem'>Zeige Objekt </button>
-</form>
+</select>
+  
+<input type='number' id='number' value='1' min='1'>
+<button id='centerItem'>Zeige Objekt </button>
+<span class='separator'>|
 
-</div>
+</span>
+<!-- Status line -->
+Sichtbarer Bereich: <span id="visible_area"> </span>
+<span class='separator'>
+</span>
+Zentrum des Bereichs: <span id="center_position"> </span>
+<span class='separator'>
+</span>
+Cursor: <span id="cursor_position"> </span>
+<span class='separator'>
+
+</span>
+<!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
+<fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
+	<div class="item"><label class='Eisenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
+	<div class="item"><label class='Strassenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
+	<div class="item"><label class='Strasse hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
+	<div class="item"><label class='Wasserwege hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
+	<div class="item"><label class='Steuerstrecken hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
+	<div class="item"><label class='GBS hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
+	<div class="item"><label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label></div>
+	<div class="item"><label class='unsichtbar'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
+</fieldset> 
+
+</div> <!-- controls -->
 
 </div>  <!-- header --> 
 
-<div id='container' class='hidden'>
+<div id='container' class='hidden'> <!-- The container takes the remainig part of the screen to show the graphic -->
 <svg id='svg' xmlns="http://www.w3.org/2000/svg" version="1.1">
 
 <title>EEP Gleisplan</title>
@@ -1026,7 +1106,6 @@ text {
 
 .stil-5146 { 	/* Farm track */ 
 	stroke: brown;
-
 }
 
 .hidden {
