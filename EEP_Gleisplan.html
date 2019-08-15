@@ -848,7 +848,7 @@ body {
 }
 
 body.column {
-	display: flex;
+	display: flex;				/* top level flex */
 	flex-direction: column; 	/* vertically stacked */
 }
 body.column #header {
@@ -856,7 +856,17 @@ body.column #header {
 }
 body.column #container {
 	flex: 1;					/* grow as much as possible */
-	display: flex;				/* important to flex svg */
+	
+	display: flex;				/* second level flex for svg */
+}
+body.column #controls {
+	display: flex;				/* second level flex for div within header */
+	flex-direction: row; 		/* horizontally */
+	flex-wrap: wrap;
+	justify-content: space-between;
+}
+body.column #controls .group {
+	flex: 1;
 }
 
 body.row {
@@ -868,7 +878,18 @@ body.row #header {
 }
 body.row #container {
 	flex: 4;					/* 4/5 = width: 80% */
-	display: flex;				/* important to flex svg element */
+	
+	display: flex;				/* second level flex for svg */
+}
+body.row #controls {
+	display: flex;				/* second level flex for div within header */
+	flex-direction: column; 	/* vertically */
+	flex-wrap: wrap
+	justify-content: space-between;
+}
+body.row #controls .group {
+	flex: 1;
+	margin: 5px; 
 }
 
 #svg {
@@ -940,12 +961,14 @@ Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explor
 </div>
 
 <div id='controls' class='hidden'>
+<div class='group'>
 <h3 id='filename'>EEP Gleisplan</h3>
+</div>
 
+<div class='group'>
 <button id="swap">swap</button>
 <button id='savePNG'>save PNG</button>
-<span class='separator'>|
-</span>
+<br/>
 <button id="zoom-in">+</button>
 <button id="zoom-out">-</button>
 <button id="resetzoom">reset zoom</button>
@@ -954,9 +977,9 @@ Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explor
 	<button id="enable">enable controls</button>
 	<button id="disable">disable controls</button>
 -->
-<span class='separator'>|
+</div>
 
-</span>
+<div class='group'>
 <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
 <select id='select' >
 	<option value='1'>Eisenbahn</option>
@@ -971,23 +994,19 @@ Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explor
 	<option value='K'>Kontakt</option>
 -->	
 </select>
-  
 <input type='number' id='number' value='1' min='1'>
 <button id='centerItem'>Zeige Objekt </button>
-<span class='separator'>|
+<div id='message'></div>
+</div>
 
-</span>
+<div class='group'>
 <!-- Status line -->
-Sichtbarer Bereich: <span id="visible_area"> </span>
-<span class='separator'>
-</span>
-Zentrum des Bereichs: <span id="center_position"> </span>
-<span class='separator'>
-</span>
+Sichtbarer Bereich: <span id="visible_area"> </span><br/>
+Zentrum des Bereichs: <span id="center_position"> </span><br/>
 Cursor: <span id="cursor_position"> </span>
-<span class='separator'>
+</div>
 
-</span>
+<div class='group'>
 <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
 	<div class="item"><label class='Eisenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
@@ -999,10 +1018,8 @@ Cursor: <span id="cursor_position"> </span>
 	<div class="item"><label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label></div>
 	<div class="item"><label class='unsichtbar'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
 </fieldset> 
-<span class='separator'>
+</div>
 
-</span>
-<span id='message'></span>
 </div> <!-- controls -->
 
 </div>  <!-- header --> 
