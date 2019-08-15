@@ -444,6 +444,7 @@ let global_panZoom;
 function SvgPanZoom(usedArea) {
 	
 	const beforePan = function(oldPan, newPan){
+		msg();
 		return; // Zoom-in near the border does not work well if we limt pan with fixed gutter
 
 		// Limit pan to keep SVG content visible by not allowing panning over SVG borders.
@@ -464,10 +465,12 @@ function SvgPanZoom(usedArea) {
 	};
 
 	const onZoom = function(newZoom){
+		msg();
 		show_area(this);
 	};
 
 	const onPan = function(newPan){
+		msg();
 		show_area(this);
 	};
 
@@ -553,6 +556,7 @@ function SvgPanZoom(usedArea) {
 
 	// resize SvgPanZoom after resizing the window
 	window.addEventListener('resize', function(ev){
+		msg();
 		ev.preventDefault()
 		// Resize content
 		panZoom.resize();
@@ -563,6 +567,7 @@ function SvgPanZoom(usedArea) {
 
 	// Button swap
 	document.getElementById('swap').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		// Toogle between flex-direction: column and flex-direction: row
 		document.body.classList.toggle('column');
@@ -576,16 +581,19 @@ function SvgPanZoom(usedArea) {
 
 	// Button Zoom-In
 	document.getElementById('zoom-in').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		panZoom.zoomIn()
 	});
 	// Button Zoom-Out
 	document.getElementById('zoom-out').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		panZoom.zoomOut()
 	});
 	// Button Reset
 	document.getElementById('reset').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		panZoom.fit();
 		panZoom.center();
@@ -595,6 +603,7 @@ function SvgPanZoom(usedArea) {
 	});
 	// Button ResetZoom
 	document.getElementById('resetzoom').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		panZoom.resetZoom()
 		// Zoom to used area
@@ -603,6 +612,7 @@ function SvgPanZoom(usedArea) {
 	// Button 'enable controls'
 /*	
 	document.getElementById('enable').addEventListener('click', function() {
+		msg();
 		ev.preventDefault();
 		panZoom.enableControlIcons();
 	})
@@ -610,17 +620,20 @@ function SvgPanZoom(usedArea) {
 	// Button 'disable controls'
 /*
 	document.getElementById('disable').addEventListener('click', function() {
+		msg();
 		ev.preventDefault();
 		panZoom.disableControlIcons();
 	})
 */
 	// Button savePNG
 	document.getElementById('savePNG').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault();
 		savePNG();
 	});
 	// Button centerItem
 	document.getElementById('centerItem').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault();
 		centerItem();
 	});
@@ -673,7 +686,7 @@ function SvgPanZoom(usedArea) {
 
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
-
+	msg();
 	for (const ele of document.getElementById('svg').querySelectorAll(selector)) {
 		if (visible) {
 			ele.classList.remove('hidden');
@@ -824,7 +837,11 @@ function centerGleis(Gleis) {
 }
 
 function msg(text) {
-	document.getElementById('message').innerHTML = text;
+	if (text) {
+		document.getElementById('message').innerHTML = text;
+	} else {
+		document.getElementById('message').innerHTML = '';
+	}	
 }
 </script>
 
@@ -909,16 +926,6 @@ body.row #controls .group {
 
 input[type='number']#number {
    width:60px;
-}
-
-/* The handling of the controls and the seperators could be improved: using span seems to be quite ugly, div's floating horizontally respective vertically would serve better */
-body.column span.separator { 
-	opacity: 1;					/* show element */
-	white-space: wrap;			/* do not show line break */
-}
-body.row span.separator { 
-	opacity: 0;					/* do not show element */
-	white-space: pre-line;		/* show line break */
 }
 
 .item { 					
