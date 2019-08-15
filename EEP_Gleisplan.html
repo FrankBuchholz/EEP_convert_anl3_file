@@ -569,7 +569,7 @@ function SvgPanZoom(usedArea) {
 		document.body.classList.toggle('row');
 		// Swapping changes the size of the svg element 
 		panZoom.resize();
-		// Currently the top left point keeps its position. We need to pan, too, if we want to keep the center beeing centered.
+		// Currently the top left point keeps its position. We need to pan, too, if we want to keep the center being centered.
 		//...
 		show_area(panZoom);
 	});
@@ -751,10 +751,10 @@ function centerItem() {
 		const GleissystemID = Number(sel);
 		const GleisID 		= val;
 		const Gleissystem	= getElement(global_sutrackp.getElementsByTagName('Gleissystem'), 'GleissystemID', GleissystemID)
-		if (!Gleissystem) { return; }	// Gleissystem nicht gefunden
+		if (!Gleissystem) { return false; }	// Gleissystem nicht gefunden
 
 		const Gleis 		= getElement(Gleissystem.getElementsByTagName('Gleis'), 'GleisID', GleisID) 
-		if (!Gleis) { return; }	// Gleis nicht gefunden
+		if (!Gleis) { return false; }	// Gleis nicht gefunden
 
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
@@ -767,16 +767,52 @@ function centerItem() {
 		const panY 			= height/2	- PosY * realZoom;
 
 		global_panZoom.pan({x: panX, y: panY,})	
+//console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
+		return true;
 		
 	} else if (sel == 'W') {		// Weiche (Nummern übergreifend über alle Gleissysteme, jedoch nicht eindeutig)
 		// Gleis.getAttribute('Key_Id')
-		const Key_Id 		= val;
+		const WeicheID 		= val;
 		//...
 		
 	} else if (sel == 'S') {		// Signal (Nummern übergreifend über alle Gleissysteme)
 		// Gleis.getAttribute('Meldung').getAttribute('Key_Id')
-		const Key_Id 		= val;
-		//...
+		const SignalID 		= val;
+		
+		// Suche das Signal auf allen Gleisen
+		const Gleissysteme 	= global_sutrackp.getElementsByTagName('Gleissystem')
+		for (const Gleissystem of Gleissysteme) {
+			
+			const Gleise = Gleissystem.getElementsByTagName('Gleis');
+			for (const Gleis of Gleise) {
+
+				const Meldungen = Gleis.getElementsByTagName('Meldung');
+				for (const Meldung of Meldungen) {
+
+					const Key_Id	= Meldung.getAttribute('Key_Id'); 	// Id eines Signals
+					if (Key_Id == SignalID) {
+						// Signal gefunden (gleiches Coding wie bei Gleisen)
+						const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+						const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+
+						const width 	= global_panZoom.getSizes().width;
+						const height	= global_panZoom.getSizes().height;
+						const realZoom	= global_panZoom.getSizes().realZoom;
+						
+						const panX 		= width/2	- PosX * realZoom;
+						const panY 		= height/2	- PosY * realZoom;
+
+						global_panZoom.pan({x: panX, y: panY,});
+const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+const GleisID 	= Gleis.getAttribute('GleisID');
+//console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
+						return true;	
+					}
+				
+				} // ´Meldungen
+			} // Gleise
+		} // Gleissysteme
+		return false; // Signal nicht gefunden
 
 	} else if (sel == 'K') {		// Kontakt
 		//...
@@ -923,9 +959,9 @@ Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explor
 	<option value='4'>Wasserwege</option>
 	<option value='5'>Steuerstrecken</option>
 	<option value='6'>GBS</option>
+	<option value='S'>Signal</option>
 <!--	
 	<option value='W'>Weiche</option>
-	<option value='S'>Signal</option>
 	<option value='K'>Kontakt</option>
 -->	
 </select>
