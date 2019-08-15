@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<script> // XML2DOM
+
+// Load and process file
+function loadFile() {
+	var input, file, fr;
+	if (typeof window.FileReader !== 'function') {
+		htmlAppend("p", "The file API isn't supported on this browser yet.");
+		return;
+	};
+	
+	input = document.getElementById('fileinput');
+	if (!input) {
+		htmlAppend("p", "Um, couldn't find the fileinput element.");
+	}
+	else if (!input.files) {
+		htmlAppend("p", "This browser doesn't seem to support the `files` property of file inputs.");
+	}
+	else if (!input.files[0]) {
+		htmlAppend("p", "Please select a file before clicking 'Load'");
+	}
+	else {
+		file = input.files[0];
+		fr = new FileReader();
+		fr.onload = processFile;
+		fr.readAsText(file);
+//		console.log(fr.result);
+	}
+
+	// process file (local function to get access to local variable fr)
+	function processFile() {
+	
+		// Create parser				
+		var parser = new DOMParser();
+		// Parse xml into DOM
+		var xmlDoc = parser.parseFromString(fr.result, "text/xml");
+		fr.result = null; // we do not need this data anymore
+console.log(xmlDoc)	
+
+		// Hide header
+		document.getElementById('header').classList.add('hidden');
+		
+		// Show file name
+		document.getElementById('filename').textContent = file.name.substring(0, file.name.length -1 -1 -3);
+		
+		// Process root node (documentElement always represents the root node)
+		process_node(xmlDoc.documentElement);
+	}
+
+}
+</script>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<script> // process_node
+
+function process_node(sutrackp) {
+//console.log(sutrackp.nodeName);
+
+	// EEP: Static texts
+	const GleissystemText = { 			// GleissystemID
+		1 : 'Eisenbahn',
+		2 : 'Strassenbahn',
+		3 : 'Strasse',
+		4 : 'Wasserwege',
+		5 : 'Steuerstrecken',			// nicht in EEP 9
+		6 : 'GBS',						// nicht in EEP 9
+	}
+
+	const Gleisart = { 					// clsid
+		'2E25C8E2-ADCD-469A-942E-7484556FF932' : 'Normal',
+		'C889EADB-63B5-44A2-AAB9-457424CFF15F' : 'Weiche',
+		'B0818DD8-5DFD-409F-8022-993FD3C90759' : '3-Weg-Weiche',
+		'06D80C90-4E4B-469B-BFE0-509A573EBC99' : 'Prellbock',
+	}
+
+	/* Gleisstile: 
+	http://up.picr.de/33875489iu.pdf 
+	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
+	*/	
+	const unsichtbar = [	// unsichtbare Gleisstile
+		17, 				// Wasser, Steuerstrecke
+		28, 34, 562,		// Gleis
+		35, 				// Strassenbahn
+		36, 				// Strasse
+		5145, 5146, 5147,	// Farm track 
+		5602,				// Fence
+		100000,				// Kamerafahrweg
+	]
+
+	const Version 		= sutrackp.getElementsByTagName('Version')[0]
+	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0]
+
+	// Groesse der Anlage (alle Positionsangaben in m statt cm)
+	const Area = {
+		min : {	
+			x : Schandlaft.getAttribute('posX') / 100,
+			y : Schandlaft.getAttribute('posY') / 100,
+		},
+		width  	: Math.abs(Schandlaft.getAttribute('posX') * 2 / 100),
+		height 	: Math.abs(Schandlaft.getAttribute('posY') * 2 / 100),
+	}
+
+	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Höhe = 607 m
+	htmlAppend('p', 
+		`EEP Version = ${Version.getAttribute('EEP')}, 
+		 Anzahl Objekte = ${Version.getAttribute('No3DMs')}, 
+		 Breite = ${Area.width.toFixed(0)} m, 
+		 Höhe = ${Area.height.toFixed(0)} m
+		`
+	);
+
+	const Gleissysteme 	= sutrackp.getElementsByTagName('Gleissystem')
+
+	// Weichen
+	htmlAppend('h4', `Weichen`); 
+	for (const Gleissystem of Gleissysteme) {
+		const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+//		htmlAppend('p', `${GleissystemText[GleissystemID]}`);
+		
+		const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
+		for (const Gleis of Gleise) {
+
+			const GleisID 	= Gleis.getAttribute('GleisID');
+			//const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
+			//const stil 		= Gleis.getAttribute('stil');		// Gleisstil
+			//const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
+			const WeicheID	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
+			
+			//const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
+			//const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
+			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+			const PosY		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+
+			// Weichen
+			if (WeicheID) {
+				htmlAppend('p', 
+					`Weiche ${WeicheID}, 
+					 ${GleissystemText[GleissystemID]},
+					 ${GleisID},
+					 x = ${PosX.toFixed(0)} m,
+					 y = ${PosY.toFixed(0)} m
+					`
+				);
+			}
+			
+		} // Gleise
+	} // Gleissysteme
+
+
+
+	// Signale
+	htmlAppend('h4', `Signale`); 
+	for (const Gleissystem of Gleissysteme) {
+		const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+//		htmlAppend('p', `${GleissystemText[GleissystemID]}`);
+		
+		const Gleise = Gleissystem.getElementsByTagName('Gleis');
+		for (const Gleis of Gleise) {
+
+			const GleisID 	= Gleis.getAttribute('GleisID');
+			//const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
+			//const stil 		= Gleis.getAttribute('stil');		// Gleisstil
+			//const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
+			//const WeicheID	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
+			
+			//const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
+			//const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
+			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+			const PosY		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+
+			const Meldungen = Gleis.getElementsByTagName('Meldung');
+			for (const Meldung of Meldungen) {
+
+				const SignalID	= Meldung.getAttribute('Key_Id'); 	// Id eines Signals
+				const Name		= Meldung.getAttribute('name');
+
+
+				// Signale
+				if (SignalID) {
+					htmlAppend('p', 
+						`Signal ${SignalID}, 
+						 ${GleissystemText[GleissystemID]},
+						 ${GleisID},
+						 x = ${PosX.toFixed(0)} m,
+						 y = ${PosY.toFixed(0)} m,
+						 ${Name}
+						`
+					);
+				}
+			
+			}
+			
+		} // Gleise
+	} // Gleissysteme
+
+
+}
+	
+function htmlAppend(tagName, innerHTML) {
+	var element = document.createElement(tagName);
+	element.innerHTML = innerHTML;
+	document.getElementById('container').appendChild(element);
+}
+
+</script>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<script> // html page
+
+</script>
+
+<style> /* html page */
+.hidden {
+	display: none;
+}
+
+#container p {
+	margin: 0;
+}
+
+</style>
+
+</head>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<body>
+
+<h3 id='filename'>EEP Inventar</h3>
+
+<div id='header'> <!-- The header contains the initial selection screen -->
+
+<div id='fileselector'>
+<form action='#' onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better --> 
+	<label for="fileinput">Wähle und lade eine EEP-Anlage-Datei (.anl3)</label>
+	<input type='file' id='fileinput' accept='.anl3' onchange="loadFile(this.files)">
+	<!-- An extra button is not neccessary -->
+	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
+</form>
+
+<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.</br>
+Anschließend wird der Inhalt ausgegeben.</small></p>
+<p><small>(c) Frank Buchholz, 2019</small></p>
+</div> <!-- fileselector -->
+
+</div>  <!-- header --> 
+
+<div id='container'> <!-- The container shows the result -->
+</div> <!-- container -->
+
+</body>
+</html>
