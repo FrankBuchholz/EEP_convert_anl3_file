@@ -2,6 +2,8 @@
 
 ## Datei: EEP_Gleisplan.html
 
+Der Gleisplan zu einer EEP Anlage wird im Browser angezeigt.
+
 ### Aufruf
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html
 
