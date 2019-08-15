@@ -98,15 +98,15 @@ function updateUi(fn) {
 <script> // DOM2SVG
 
 // Process root node (sutrackp)	
-	// EEP: Static texts
-	const GleissystemText = { 			// GleissystemID
-		1 : 'Eisenbahn',
-		2 : 'Strassenbahn',
-		3 : 'Strasse',
-		4 : 'Wasserwege',
-		5 : 'Steuerstrecken',			// nicht in EEP 9
-		6 : 'GBS',						// nicht in EEP 9
-	}
+// EEP: Static texts
+const GleissystemText = { 			// GleissystemID
+	1 : 'Eisenbahn',
+	2 : 'Strassenbahn',
+	3 : 'Strasse',
+	4 : 'Wasserwege',
+	5 : 'Steuerstrecken',			// nicht in EEP 9
+	6 : 'GBS',						// nicht in EEP 9
+}
 
 function svgCreate(sutrackp, initProgress, incrementProgress) {
 
@@ -751,22 +751,19 @@ function centerItem() {
 		const GleissystemID = Number(sel);
 		const GleisID 		= val;
 		const Gleissystem	= getElement(global_sutrackp.getElementsByTagName('Gleissystem'), 'GleissystemID', GleissystemID)
-		if (!Gleissystem) { return false; }	// Gleissystem nicht gefunden
+		if (!Gleissystem) { 
+			msg(`Gleissystem ${GleissystemID} existiert nicht`);
+			return false; 
+		}
 
 		const Gleis 		= getElement(Gleissystem.getElementsByTagName('Gleis'), 'GleisID', GleisID) 
-		if (!Gleis) { return false; }	// Gleis nicht gefunden
+		if (!Gleis) { 
+			msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
+			return false; 
+		}
 
-		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-
-		const width 		= global_panZoom.getSizes().width;
-		const height		= global_panZoom.getSizes().height;
-		const realZoom		= global_panZoom.getSizes().realZoom;
-		
-		const panX 			= width/2	- PosX * realZoom;
-		const panY 			= height/2	- PosY * realZoom;
-
-		global_panZoom.pan({x: panX, y: panY,})	
+		centerGleis(Gleis);
+		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 //console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 		return true;
 		
@@ -791,20 +788,11 @@ function centerItem() {
 
 					const Key_Id	= Meldung.getAttribute('Key_Id'); 	// Id eines Signals
 					if (Key_Id == SignalID) {
-						// Signal gefunden (gleiches Coding wie bei Gleisen)
-						const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-						const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-
-						const width 	= global_panZoom.getSizes().width;
-						const height	= global_panZoom.getSizes().height;
-						const realZoom	= global_panZoom.getSizes().realZoom;
-						
-						const panX 		= width/2	- PosX * realZoom;
-						const panY 		= height/2	- PosY * realZoom;
-
-						global_panZoom.pan({x: panX, y: panY,});
-const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
-const GleisID 	= Gleis.getAttribute('GleisID');
+						// Signal gefunden
+						const GleissystemID = Gleissystem.getAttribute('GleissystemID');
+						const GleisID = Gleis.getAttribute('GleisID');
+						centerGleis(Gleis);
+						msg(`Das Signal ${SignalID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 //console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 						return true;	
 					}
@@ -812,6 +800,7 @@ const GleisID 	= Gleis.getAttribute('GleisID');
 				} // ´Meldungen
 			} // Gleise
 		} // Gleissysteme
+		msg(`Signal ${SignalID} existiert nicht`);
 		return false; // Signal nicht gefunden
 
 	} else if (sel == 'K') {		// Kontakt
@@ -820,6 +809,23 @@ const GleisID 	= Gleis.getAttribute('GleisID');
 	return false;
 }
 
+function centerGleis(Gleis) {
+	const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+	const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+
+	const width 	= global_panZoom.getSizes().width;
+	const height	= global_panZoom.getSizes().height;
+	const realZoom	= global_panZoom.getSizes().realZoom;
+	
+	const panX 		= width/2	- PosX * realZoom;
+	const panY 		= height/2	- PosY * realZoom;
+
+	global_panZoom.pan({x: panX, y: panY,});
+}
+
+function msg(text) {
+	document.getElementById('message').innerHTML = text;
+}
 </script>
 
 <style> /* html page */
@@ -993,7 +999,10 @@ Cursor: <span id="cursor_position"> </span>
 	<div class="item"><label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label></div>
 	<div class="item"><label class='unsichtbar'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
 </fieldset> 
+<span class='separator'>
 
+</span>
+<span id='message'></span>
 </div> <!-- controls -->
 
 </div>  <!-- header --> 
