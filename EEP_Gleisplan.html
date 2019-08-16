@@ -98,15 +98,15 @@ function updateUi(fn) {
 <script> // DOM2SVG
 
 // Process root node (sutrackp)	
-	// EEP: Static texts
-	const GleissystemText = { 			// GleissystemID
-		1 : 'Eisenbahn',
-		2 : 'Strassenbahn',
-		3 : 'Strasse',
-		4 : 'Wasserwege',
-		5 : 'Steuerstrecken',			// nicht in EEP 9
-		6 : 'GBS',						// nicht in EEP 9
-	}
+// EEP: Static texts
+const GleissystemText = { 			// GleissystemID
+	1 : 'Eisenbahn',
+	2 : 'Strassenbahn',
+	3 : 'Strasse',
+	4 : 'Wasserwege',
+	5 : 'Steuerstrecken',			// nicht in EEP 9
+	6 : 'GBS',						// nicht in EEP 9
+}
 
 function svgCreate(sutrackp, initProgress, incrementProgress) {
 
@@ -444,6 +444,7 @@ let global_panZoom;
 function SvgPanZoom(usedArea) {
 	
 	const beforePan = function(oldPan, newPan){
+		msg();
 		return; // Zoom-in near the border does not work well if we limt pan with fixed gutter
 
 		// Limit pan to keep SVG content visible by not allowing panning over SVG borders.
@@ -464,10 +465,12 @@ function SvgPanZoom(usedArea) {
 	};
 
 	const onZoom = function(newZoom){
+		msg();
 		show_area(this);
 	};
 
 	const onPan = function(newPan){
+		msg();
 		show_area(this);
 	};
 
@@ -553,6 +556,7 @@ function SvgPanZoom(usedArea) {
 
 	// resize SvgPanZoom after resizing the window
 	window.addEventListener('resize', function(ev){
+		msg();
 		ev.preventDefault()
 		// Resize content
 		panZoom.resize();
@@ -563,29 +567,33 @@ function SvgPanZoom(usedArea) {
 
 	// Button swap
 	document.getElementById('swap').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		// Toogle between flex-direction: column and flex-direction: row
 		document.body.classList.toggle('column');
 		document.body.classList.toggle('row');
 		// Swapping changes the size of the svg element 
 		panZoom.resize();
-		// Currently the top left point keeps its position. We need to pan, too, if we want to keep the center beeing centered.
+		// Currently the top left point keeps its position. We need to pan, too, if we want to keep the center being centered.
 		//...
 		show_area(panZoom);
 	});
 
 	// Button Zoom-In
 	document.getElementById('zoom-in').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		panZoom.zoomIn()
 	});
 	// Button Zoom-Out
 	document.getElementById('zoom-out').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		panZoom.zoomOut()
 	});
 	// Button Reset
 	document.getElementById('reset').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		panZoom.fit();
 		panZoom.center();
@@ -595,6 +603,7 @@ function SvgPanZoom(usedArea) {
 	});
 	// Button ResetZoom
 	document.getElementById('resetzoom').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault()
 		panZoom.resetZoom()
 		// Zoom to used area
@@ -603,6 +612,7 @@ function SvgPanZoom(usedArea) {
 	// Button 'enable controls'
 /*	
 	document.getElementById('enable').addEventListener('click', function() {
+		msg();
 		ev.preventDefault();
 		panZoom.enableControlIcons();
 	})
@@ -610,17 +620,20 @@ function SvgPanZoom(usedArea) {
 	// Button 'disable controls'
 /*
 	document.getElementById('disable').addEventListener('click', function() {
+		msg();
 		ev.preventDefault();
 		panZoom.disableControlIcons();
 	})
 */
 	// Button savePNG
 	document.getElementById('savePNG').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault();
 		savePNG();
 	});
 	// Button centerItem
 	document.getElementById('centerItem').addEventListener('click', function(ev){
+		msg();
 		ev.preventDefault();
 		centerItem();
 	});
@@ -673,7 +686,7 @@ function SvgPanZoom(usedArea) {
 
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
-
+	msg();
 	for (const ele of document.getElementById('svg').querySelectorAll(selector)) {
 		if (visible) {
 			ele.classList.remove('hidden');
@@ -751,32 +764,57 @@ function centerItem() {
 		const GleissystemID = Number(sel);
 		const GleisID 		= val;
 		const Gleissystem	= getElement(global_sutrackp.getElementsByTagName('Gleissystem'), 'GleissystemID', GleissystemID)
-		if (!Gleissystem) { return; }	// Gleissystem nicht gefunden
+		if (!Gleissystem) { 
+			msg(`Gleissystem ${GleissystemID} existiert nicht`);
+			return false; 
+		}
 
 		const Gleis 		= getElement(Gleissystem.getElementsByTagName('Gleis'), 'GleisID', GleisID) 
-		if (!Gleis) { return; }	// Gleis nicht gefunden
+		if (!Gleis) { 
+			msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
+			return false; 
+		}
 
-		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-
-		const width 		= global_panZoom.getSizes().width;
-		const height		= global_panZoom.getSizes().height;
-		const realZoom		= global_panZoom.getSizes().realZoom;
-		
-		const panX 			= width/2	- PosX * realZoom;
-		const panY 			= height/2	- PosY * realZoom;
-
-		global_panZoom.pan({x: panX, y: panY,})	
+		centerGleis(Gleis);
+		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+//console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
+		return true;
 		
 	} else if (sel == 'W') {		// Weiche (Nummern übergreifend über alle Gleissysteme, jedoch nicht eindeutig)
 		// Gleis.getAttribute('Key_Id')
-		const Key_Id 		= val;
+		const WeicheID 		= val;
 		//...
 		
 	} else if (sel == 'S') {		// Signal (Nummern übergreifend über alle Gleissysteme)
 		// Gleis.getAttribute('Meldung').getAttribute('Key_Id')
-		const Key_Id 		= val;
-		//...
+		const SignalID 		= val;
+		
+		// Suche das Signal auf allen Gleisen
+		const Gleissysteme 	= global_sutrackp.getElementsByTagName('Gleissystem')
+		for (const Gleissystem of Gleissysteme) {
+			
+			const Gleise = Gleissystem.getElementsByTagName('Gleis');
+			for (const Gleis of Gleise) {
+
+				const Meldungen = Gleis.getElementsByTagName('Meldung');
+				for (const Meldung of Meldungen) {
+
+					const Key_Id	= Meldung.getAttribute('Key_Id'); 	// Id eines Signals
+					if (Key_Id == SignalID) {
+						// Signal gefunden
+						const GleissystemID = Gleissystem.getAttribute('GleissystemID');
+						const GleisID = Gleis.getAttribute('GleisID');
+						centerGleis(Gleis);
+						msg(`Das Signal ${SignalID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+//console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
+						return true;	
+					}
+				
+				} // ´Meldungen
+			} // Gleise
+		} // Gleissysteme
+		msg(`Signal ${SignalID} existiert nicht`);
+		return false; // Signal nicht gefunden
 
 	} else if (sel == 'K') {		// Kontakt
 		//...
@@ -784,6 +822,27 @@ function centerItem() {
 	return false;
 }
 
+function centerGleis(Gleis) {
+	const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+	const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+
+	const width 	= global_panZoom.getSizes().width;
+	const height	= global_panZoom.getSizes().height;
+	const realZoom	= global_panZoom.getSizes().realZoom;
+	
+	const panX 		= width/2	- PosX * realZoom;
+	const panY 		= height/2	- PosY * realZoom;
+
+	global_panZoom.pan({x: panX, y: panY,});
+}
+
+function msg(text) {
+	if (text) {
+		document.getElementById('message').textContent = text; // Text only therefore we do not need to use innerHTML
+	} else {
+		document.getElementById('message').textContent = '';
+	}	
+}
 </script>
 
 <style> /* html page */
@@ -806,15 +865,32 @@ body {
 }
 
 body.column {
-	display: flex;
+	display: flex;				/* top level flex */
 	flex-direction: column; 	/* vertically stacked */
 }
 body.column #header {
 	flex: 0;					/* shrink as much as possible */ 
+	margin-bottom: 0px;
 }
 body.column #container {
 	flex: 1;					/* grow as much as possible */
-	display: flex;				/* important to flex svg */
+	
+	display: flex;				/* second level flex for svg */
+}
+body.column #controls {
+	display: flex;				/* second level flex for div within header */
+	flex-direction: row; 		/* horizontally */
+	flex-wrap: wrap;
+	justify-content: space-between;
+	margin-left: 0px;
+	margin-right: 0px;
+}
+body.column #controls .group {
+	flex: 1;
+	margin: 0px;
+	border-right: 1px dotted;
+	padding-left: 5px;
+	padding-right: 5px;
 }
 
 body.row {
@@ -826,7 +902,18 @@ body.row #header {
 }
 body.row #container {
 	flex: 4;					/* 4/5 = width: 80% */
-	display: flex;				/* important to flex svg element */
+	
+	display: flex;				/* second level flex for svg */
+}
+body.row #controls {
+	display: flex;				/* second level flex for div within header */
+	flex-direction: column; 	/* vertically */
+	flex-wrap: wrap
+	justify-content: space-between;
+}
+body.row #controls .group {
+	flex: 1;
+	margin: 5px;
 }
 
 #svg {
@@ -846,16 +933,6 @@ body.row #container {
 
 input[type='number']#number {
    width:60px;
-}
-
-/* The handling of the controls and the seperators could be improved: using span seems to be quite ugly, div's floating horizontally respective vertically would serve better */
-body.column span.separator { 
-	opacity: 1;					/* show element */
-	white-space: wrap;			/* do not show line break */
-}
-body.row span.separator { 
-	opacity: 0;					/* do not show element */
-	white-space: pre-line;		/* show line break */
 }
 
 .item { 					
@@ -885,11 +962,25 @@ body.row span.separator {
 Verschieben: Klick+Halten+Bewegen<br/>
 An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
 Herauszoomen: Umschalttaste+Doppelklick</small></p>
+
+<p><small><strong>Interaktive Funktionen</strong><br/>
+Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit F11)<br/>
+Zoom-in, -out, -reset<br/>
+Auswahl der anzuzeigenden Gleissysteme<br/>
+Aktuelle Darstellung als png-Bild speichern<br/>
+Graphik auf bestimmtes Gleis oder Signal positionieren</small></p>
+
+<p><small><strong>Referenzen / verwandte Programme</strong><br/>
+Diskussionbeitrag im <a href='https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt' target='_blank'>EEP-Forum</a><br/>
+Entwicklungsprojekt auf <a href='https://github.com/FrankBuchholz/EEP_convert_anl3_file' target='_blank'>GitHub</a><br/>
+Anzeige einer <a href='https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html' target='_blank'>Inventarliste</a> zu einer EEP-Anlage</small></p>
+
 <p><small><strong>Technische Beschreibung</strong><br/>
 Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br/>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href='https://www.w3schools.com/html/html5_svg.asp' target='_blank'>SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href='https://www.w3schools.com/html/html_css.asp' target='_blank'>CSS</a>.<br/>
 Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.<br/>
-Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explorer.</small></p>
+Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explorer.</small></p>
+
 <p><small>(c) Frank Buchholz, 2019, mit Unterstützung von <a href='https://github.com/campersau' target='_blank'>campersau</a> und <a href='https://github.com/EEP-Benny' target='_blank'>Benny</a></small></p>
 </div> <!-- fileselector -->
 
@@ -898,12 +989,14 @@ Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explor
 </div>
 
 <div id='controls' class='hidden'>
+<div class='group'>
 <h3 id='filename'>EEP Gleisplan</h3>
+</div>
 
+<div class='group'>
 <button id="swap">swap</button>
 <button id='savePNG'>save PNG</button>
-<span class='separator'>|
-</span>
+<br/>
 <button id="zoom-in">+</button>
 <button id="zoom-out">-</button>
 <button id="resetzoom">reset zoom</button>
@@ -912,9 +1005,9 @@ Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explor
 	<button id="enable">enable controls</button>
 	<button id="disable">disable controls</button>
 -->
-<span class='separator'>|
+</div>
 
-</span>
+<div class='group'>
 <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
 <select id='select' >
 	<option value='1'>Eisenbahn</option>
@@ -923,29 +1016,25 @@ Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explor
 	<option value='4'>Wasserwege</option>
 	<option value='5'>Steuerstrecken</option>
 	<option value='6'>GBS</option>
+	<option value='S'>Signal</option>
 <!--	
 	<option value='W'>Weiche</option>
-	<option value='S'>Signal</option>
 	<option value='K'>Kontakt</option>
 -->	
 </select>
-  
 <input type='number' id='number' value='1' min='1'>
 <button id='centerItem'>Zeige Objekt </button>
-<span class='separator'>|
+<div id='message'></div>
+</div>
 
-</span>
+<div class='group'>
 <!-- Status line -->
-Sichtbarer Bereich: <span id="visible_area"> </span>
-<span class='separator'>
-</span>
-Zentrum des Bereichs: <span id="center_position"> </span>
-<span class='separator'>
-</span>
+Sichtbarer Bereich: <span id="visible_area"> </span><br/>
+Zentrum des Bereichs: <span id="center_position"> </span><br/>
 Cursor: <span id="cursor_position"> </span>
-<span class='separator'>
+</div>
 
-</span>
+<div class='group'>
 <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
 	<div class="item"><label class='Eisenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
@@ -957,6 +1046,7 @@ Cursor: <span id="cursor_position"> </span>
 	<div class="item"><label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label></div>
 	<div class="item"><label class='unsichtbar'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
 </fieldset> 
+</div>
 
 </div> <!-- controls -->
 
