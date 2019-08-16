@@ -52,7 +52,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 ### Aufruf
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html
 
-Zur Zeit wird eine Liste der Weichen und der Signale ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
+Zur Zeit wird eine Liste der Weichen und der Signale (sowie eine noch vereinfachte Liste der Zugverbände) ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
 
 # Impressum
 (c) Frank Buchholz, 2019
