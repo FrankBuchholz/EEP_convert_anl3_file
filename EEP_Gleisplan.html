@@ -838,9 +838,9 @@ function centerGleis(Gleis) {
 
 function msg(text) {
 	if (text) {
-		document.getElementById('message').innerHTML = text;
+		document.getElementById('message').textContent = text; // Text only therefore we do not need to use innerHTML
 	} else {
-		document.getElementById('message').innerHTML = '';
+		document.getElementById('message').textContent = '';
 	}	
 }
 </script>
@@ -955,11 +955,23 @@ input[type='number']#number {
 Verschieben: Klick+Halten+Bewegen<br/>
 An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
 Herauszoomen: Umschalttaste+Doppelklick</small></p>
+
+<p><small><strong>Interaktive Funktionen</strong><br/>
+Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit F11)<br/>
+Zoom-in, -out, -reset<br/>
+Auswahl der anzuzeigenden Gleissysteme<br/>
+Aktuelles Bild als png-Bild speichern<br/>
+Graphik auf bestimmtes Gleis positionieren</small></p>
+
+<p><small><strong>Referenz</strong><br/>
+Diskussionbeitrag im <a href='https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt' target='_blank'>EEP-Forum</a><br/>
+Entwicklungsprojekt auf <a href='https://github.com/FrankBuchholz/EEP_convert_anl3_file' target='_blank'>GitHub</a></small></p>
+
 <p><small><strong>Technische Beschreibung</strong><br/>
 Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br/>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href='https://www.w3schools.com/html/html5_svg.asp' target='_blank'>SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href='https://www.w3schools.com/html/html_css.asp' target='_blank'>CSS</a>.<br/>
 Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.<br/>
-Das Programm läuft in Google Chome und FireFox, nicht jedoch im Internet Explorer.</small></p>
+Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explorer.</small></p>
 <p><small>(c) Frank Buchholz, 2019, mit Unterstützung von <a href='https://github.com/campersau' target='_blank'>campersau</a> und <a href='https://github.com/EEP-Benny' target='_blank'>Benny</a></small></p>
 </div> <!-- fileselector -->
 

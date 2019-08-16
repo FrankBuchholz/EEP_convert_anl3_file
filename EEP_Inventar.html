@@ -1,30 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Inventar zu einer EEP-Anlage-Datei (.anl) anzeigen</title>
+<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird der Inhalt ausgegeben.">
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,Gleisplan" />
+<meta name="language" content="de" />
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-<script> // XML2DOM
-
-// Load and process file
-function loadFile() {
-	var input, file, fr;
+<script> // Load and process file
+function loadFile(file) {
+	var fr;
 	if (typeof window.FileReader !== 'function') {
 		htmlAppend("p", "The file API isn't supported on this browser yet.");
 		return;
 	};
-	
-	input = document.getElementById('fileinput');
-	if (!input) {
-		htmlAppend("p", "Um, couldn't find the fileinput element.");
-	}
-	else if (!input.files) {
-		htmlAppend("p", "This browser doesn't seem to support the `files` property of file inputs.");
-	}
-	else if (!input.files[0]) {
+
+	if (!file) {
 		htmlAppend("p", "Please select a file before clicking 'Load'");
 	}
 	else {
-		file = input.files[0];
 		fr = new FileReader();
 		fr.onload = processFile;
 		fr.readAsText(file);
@@ -39,7 +35,6 @@ function loadFile() {
 		// Parse xml into DOM
 		var xmlDoc = parser.parseFromString(fr.result, "text/xml");
 		fr.result = null; // we do not need this data anymore
-console.log(xmlDoc)	
 
 		// Hide header
 		document.getElementById('header').classList.add('hidden');
@@ -113,92 +108,97 @@ function process_node(sutrackp) {
 		`
 	);
 
-	const Gleissysteme 	= sutrackp.getElementsByTagName('Gleissystem')
+	// sortable arrays 
+	const 
+		Weichen = [], // ID (der Weiche), Gleissystem, Gleis
+		Signale = []; // ID (des Signals), Name (des Signals), Meldung, Gleissystem, Gleis 
 
-	// Weichen
-	htmlAppend('h4', `Weichen`); 
-	for (const Gleissystem of Gleissysteme) {
-		const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
-//		htmlAppend('p', `${GleissystemText[GleissystemID]}`);
-		
-		const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
-		for (const Gleis of Gleise) {
-
-			const GleisID 	= Gleis.getAttribute('GleisID');
-			//const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
-			//const stil 		= Gleis.getAttribute('stil');		// Gleisstil
-			//const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
-			const WeicheID	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
-			
-			//const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
-			//const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
-			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-			const PosY		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-
-			// Weichen
-			if (WeicheID) {
-				htmlAppend('p', 
-					`Weiche ${WeicheID}, 
-					 ${GleissystemText[GleissystemID]},
-					 ${GleisID},
-					 x = ${PosX.toFixed(0)} m,
-					 y = ${PosY.toFixed(0)} m
-					`
-				);
+	// Extract data
+	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
+		for (const Gleis of Gleissystem.getElementsByTagName('Gleis')) {
+			const WeicheID	= Gleis.getAttribute('Key_Id');
+			if (WeicheID) {  // Ist das Gleis eine Weiche?
+				Weichen.push({
+					ID			: Number(WeicheID),  // sort field
+					
+					Gleissystem : Gleissystem,
+					Gleis 		: Gleis,
+				});
 			}
 			
-		} // Gleise
-	} // Gleissysteme
-
-
-
-	// Signale
-	htmlAppend('h4', `Signale`); 
-	for (const Gleissystem of Gleissysteme) {
-		const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
-//		htmlAppend('p', `${GleissystemText[GleissystemID]}`);
-		
-		const Gleise = Gleissystem.getElementsByTagName('Gleis');
-		for (const Gleis of Gleise) {
-
-			const GleisID 	= Gleis.getAttribute('GleisID');
-			//const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
-			//const stil 		= Gleis.getAttribute('stil');		// Gleisstil
-			//const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
-			//const WeicheID	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
-			
-			//const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
-			//const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
-			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-			const PosY		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-
-			const Meldungen = Gleis.getElementsByTagName('Meldung');
-			for (const Meldung of Meldungen) {
-
-				const SignalID	= Meldung.getAttribute('Key_Id'); 	// Id eines Signals
+			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
+				// get potential sort fields
+				const SignalID	= Meldung.getAttribute('Key_Id');
 				const Name		= Meldung.getAttribute('name');
 
+				Signale.push({
+					ID			: Number(SignalID),  // sort fields
+					Name		: Name,
+					
+					Meldung 	: Meldung,
+					Gleissystem : Gleissystem,
+					Gleis 		: Gleis,
+				});
+			};
+		}
+	}
 
-				// Signale
-				if (SignalID) {
-					htmlAppend('p', 
-						`Signal ${SignalID}, 
-						 ${GleissystemText[GleissystemID]},
-						 ${GleisID},
-						 x = ${PosX.toFixed(0)} m,
-						 y = ${PosY.toFixed(0)} m,
-						 ${Name}
-						`
-					);
-				}
-			
-			}
-			
-		} // Gleise
-	} // Gleissysteme
+	// Anzeige der Weichen
+	htmlAppend('h4', `Weichen (${Weichen.length})`); 
+	Weichen.sort(orderByID).forEach(Weiche => {
+		const WeicheID		= Weiche.Gleis.getAttribute('Key_Id');
+		const GleissystemID	= Weiche.Gleissystem.getAttribute('GleissystemID');
+		const GleisID 		= Weiche.Gleis.getAttribute('GleisID');
+		const PosX			= Weiche.Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+		const PosY			= Weiche.Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 
+		htmlAppend('p', 
+			`Weiche ${WeicheID}, 
+			 ${GleissystemText[GleissystemID]},
+			 ${GleisID},
+			 x = ${PosX.toFixed(0)} m,
+			 y = ${PosY.toFixed(0)} m
+			`
+		);
+	});
+	
+	// Anzeige der Signale
+	htmlAppend('h4', `Signale (${Signale.length})`); 
+	Signale.sort(orderByID).forEach(Signal => {
+		const SignalID		= Signal.Meldung.getAttribute('Key_Id');
+		const Name			= Signal.Meldung.getAttribute('name');
+		const Position		= Signal.Meldung.getAttribute('Position') / 100;
+		const GleissystemID	= Signal.Gleissystem.getAttribute('GleissystemID');
+		const GleisID 		= Signal.Gleis.getAttribute('GleisID');
+		const PosX			= Signal.Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+		const PosY			= Signal.Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+
+		htmlAppend('p', 
+			`Signal ${SignalID}, 
+			 ${GleissystemText[GleissystemID]},
+			 ${GleisID},
+			 x = ${PosX.toFixed(0)} m,
+			 y = ${PosY.toFixed(0)} m,
+			 +${Position.toFixed(0)} m,
+			 ${Name}
+			`
+		);
+	});
 
 }
+
+function orderByID(a,b) {
+	// Sort by number ascending
+	return (a.ID - b.ID);
+}
+function orderByName(a,b) {
+	// Sort by text ascending
+	const NameA = a.Name.toLowerCase(), NameB = b.Name.toLowerCase();
+	if (NameA < NameB)	{ return -1; }
+	if (NameA > NameB)	{ return 1;  }
+	return 0;
+}
+
 	
 function htmlAppend(tagName, innerHTML) {
 	var element = document.createElement(tagName);
@@ -234,9 +234,9 @@ function htmlAppend(tagName, innerHTML) {
 <div id='header'> <!-- The header contains the initial selection screen -->
 
 <div id='fileselector'>
-<form action='#' onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better --> 
-	<label for="fileinput">Wähle und lade eine EEP-Anlage-Datei (.anl3)</label>
-	<input type='file' id='fileinput' accept='.anl3' onchange="loadFile(this.files)">
+<form action='#' onsubmit='return false;'> <!-- better not to use inline listener, explizit register is better --> 
+	<label for='fileinput'>Wähle und lade eine EEP-Anlage-Datei (.anl3)</label>
+	<input type='file' id='fileinput' accept='.anl3' onchange='loadFile(this.files && this.files[0])'>
 	<!-- An extra button is not neccessary -->
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>
