@@ -1,6 +1,6 @@
 # Projekt: EEP_convert_anl3_file
 
-## Datei: EEP_Gleisplan.html
+## Programm: EEP_Gleisplan.html
 Anzeige eines EEP-Gleisplans im Browser
 
 ### Aufruf
@@ -44,9 +44,9 @@ Die automatische Größenanpassung des SVG-Elements im Brower zur Nutzung des ge
 Der Fortschittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit <i>Promise</i> / <i>requestAnimationFrame</i> und diversen Schritten bei der Verarbeitung realisiert. Leider unterstützt der Internet Explorer diese und einige andere der an anderer Stelle verwendeten modernen Javascript-Funktionen nicht und kann daher nicht verwendet werden. Die empfohlenen Browser sind daher Google Chrome und Firefox.
 
 ### Abhängigkeiten
-Die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> wird online aufgerufen. Wenn man das Programm komplett lokal nutzen will muss diese Bibliothen ebenfalls lokal kopiert werden und der entsprechende script-Befehl angepasst werden.
+Die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> wird online aufgerufen. Wenn man das Programm komplett lokal nutzen will muss diese Bibliothek ebenfalls lokal kopiert werden und der entsprechende script-Befehl angepasst werden.
 
-## Datei: EEP_Inventar.html
+## Programm: EEP_Inventar.html
 Anzeige einer Inventarliste zu einer EEP-Anlage.
 
 ### Aufruf
