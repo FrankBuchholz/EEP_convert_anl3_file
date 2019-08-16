@@ -9,7 +9,7 @@
 <meta name="language" content="de" />
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-<script> // Load and process file
+<script> // Load file
 function loadFile(file) {
 	var fr;
 	if (typeof window.FileReader !== 'function') {
@@ -110,8 +110,9 @@ function process_node(sutrackp) {
 
 	// sortable arrays 
 	const 
-		Weichen = [], // ID (der Weiche), Gleissystem, Gleis
-		Signale = []; // ID (des Signals), Name (des Signals), Meldung, Gleissystem, Gleis 
+		Weichen 	= [], // ID (der Weiche), Gleissystem, Gleis
+		Signale 	= []; // ID (des Signals), Name (des Signals), Meldung, Gleissystem, Gleis 
+		Zugverbaende = [];  
 
 	// Extract data
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
@@ -142,7 +143,7 @@ function process_node(sutrackp) {
 			};
 		}
 	}
-
+	
 	// Anzeige der Weichen
 	htmlAppend('h4', `Weichen (${Weichen.length})`); 
 	Weichen.sort(orderByID).forEach(Weiche => {
@@ -154,8 +155,7 @@ function process_node(sutrackp) {
 
 		htmlAppend('p', 
 			`Weiche ${WeicheID}, 
-			 ${GleissystemText[GleissystemID]},
-			 ${GleisID},
+			 ${GleissystemText[GleissystemID]} ${GleisID},
 			 x = ${PosX.toFixed(0)} m,
 			 y = ${PosY.toFixed(0)} m
 			`
@@ -175,14 +175,61 @@ function process_node(sutrackp) {
 
 		htmlAppend('p', 
 			`Signal ${SignalID}, 
-			 ${GleissystemText[GleissystemID]},
-			 ${GleisID},
+			 ${GleissystemText[GleissystemID]} ${GleisID},
 			 x = ${PosX.toFixed(0)} m,
 			 y = ${PosY.toFixed(0)} m,
 			 +${Position.toFixed(0)} m,
 			 ${Name}
 			`
 		);
+	});
+
+	// Extract data
+	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0]
+	for (const Zugverband of Fuhrpark.getElementsByTagName('Zugverband')) {
+		const ZugID		= Zugverband.getAttribute('ZugID');
+		const Name		= Zugverband.getAttribute('name');
+		const Gleisort	= Zugverband.getElementsByTagName('Gleisort')[0];
+		const Rollmaterialien = [];
+	
+		for (const Rollmaterial of Zugverband.getElementsByTagName('Rollmaterial')) {
+			Rollmaterialien.push({
+				Rollmaterial : Rollmaterial,
+			});
+		}
+
+		Zugverbaende.push({
+			ID				: Number(ZugID),  // sort fields
+			Name			: Name,
+			
+			Gleisort 		: Gleisort,
+			Rollmaterialien	: Rollmaterialien,
+		});
+	}
+
+	// Anzeige der Zugverbände
+	htmlAppend('h4', `Zugverbände (${Weichen.length})`); 
+	Zugverbaende.sort(orderByID).forEach(Zugverband => {
+		const ZugID			= Zugverband.ID;
+		const Name			= Zugverband.Name;
+		const GleissystemID	= Zugverband.Gleisort.getAttribute('gleissystemID');
+		const GleisID 		= Zugverband.Gleisort.getAttribute('gleisID');
+		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
+
+		// Gleis ermitteln
+		// ...
+	
+		htmlAppend('p', 
+			`Zugverband ${ZugID}, 
+			 ${Name}, 
+			 ${GleissystemText[GleissystemID]}
+			 ${GleisID}
+			 +${Position.toFixed(0)} m,
+			`
+		);
+		
+		// Rollmaterialien anzeigen
+		// ...
 	});
 
 }
