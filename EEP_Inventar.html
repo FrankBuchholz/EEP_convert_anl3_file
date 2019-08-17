@@ -108,22 +108,32 @@ function process_node(sutrackp) {
 		`
 	);
 
-	// sortable arrays 
-	const 
-		Weichen 	= [], // ID (der Weiche), Gleissystem, Gleis
-		Signale 	= []; // ID (des Signals), Name (des Signals), Meldung, Gleissystem, Gleis 
-		Zugverbaende = [];  
+	// Maps for direct access
+	const
+		Gleise		= new Map();	// Verwendung: Gleis = Gleise.get(GleissystemID).get(GleisID))	
 
-	// Extract data
+	// Sortable arrays 
+	const 
+		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
+		Signale 	= []; 	// ID (des Signals), Name (des Signals), Meldung, Gleissystem, Gleis 
+		Zugverbaende = []; 	// ID, Name, Gleisort, rollmaterialien  
+
+	// Extract data from Gleissystem
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
+		const GleissystemID			= Gleissystem.getAttribute('GleissystemID');
+		Gleise.set(GleissystemID, new Map())
+
 		for (const Gleis of Gleissystem.getElementsByTagName('Gleis')) {
+			const GleisID = Gleis.getAttribute('GleisID');
+			Gleise.get(GleissystemID).set(GleisID, Gleis)
+			
 			const WeicheID	= Gleis.getAttribute('Key_Id');
 			if (WeicheID) {  // Ist das Gleis eine Weiche?
 				Weichen.push({
 					ID			: Number(WeicheID),  // sort field
 					
-					Gleissystem : Gleissystem,
-					Gleis 		: Gleis,
+					GleissystemID : GleissystemID,
+					GleisID 		: GleisID,
 				});
 			}
 			
@@ -133,12 +143,13 @@ function process_node(sutrackp) {
 				const Name		= Meldung.getAttribute('name');
 
 				Signale.push({
-					ID			: Number(SignalID),  // sort fields
-					Name		: Name,
+					ID				: Number(SignalID),  // sort fields
+					Name			: Name,
 					
-					Meldung 	: Meldung,
-					Gleissystem : Gleissystem,
-					Gleis 		: Gleis,
+					GleissystemID 	: GleissystemID,
+					GleisID			: GleisID,
+
+					Meldung 		: Meldung,
 				});
 			};
 		}
@@ -147,11 +158,12 @@ function process_node(sutrackp) {
 	// Anzeige der Weichen
 	htmlAppend('h4', `Weichen (${Weichen.length})`); 
 	Weichen.sort(orderByID).forEach(Weiche => {
-		const WeicheID		= Weiche.Gleis.getAttribute('Key_Id');
-		const GleissystemID	= Weiche.Gleissystem.getAttribute('GleissystemID');
-		const GleisID 		= Weiche.Gleis.getAttribute('GleisID');
-		const PosX			= Weiche.Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= Weiche.Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+		const WeicheID		= Weiche.ID; //Weiche.Gleis.getAttribute('Key_Id');
+		const GleissystemID	= Weiche.GleissystemID; //Weiche.Gleissystem.getAttribute('GleissystemID');
+		const GleisID 		= Weiche.GleisID; //Gleis.getAttribute('GleisID');
+		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
+		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 
 		htmlAppend('p', 
 			`Weiche ${WeicheID}, 
@@ -165,13 +177,14 @@ function process_node(sutrackp) {
 	// Anzeige der Signale
 	htmlAppend('h4', `Signale (${Signale.length})`); 
 	Signale.sort(orderByID).forEach(Signal => {
-		const SignalID		= Signal.Meldung.getAttribute('Key_Id');
-		const Name			= Signal.Meldung.getAttribute('name');
+		const SignalID		= Signal.ID; //Signal.Meldung.getAttribute('Key_Id');
+		const Name			= Signal.Name; //Signal.Meldung.getAttribute('name');
+		const GleissystemID	= Signal.GleissystemID; //Signal.Gleissystem.getAttribute('GleissystemID');
+		const GleisID 		= Signal.GleisID; //Signal.Gleis.getAttribute('GleisID');
+		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
+		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Signal.Meldung.getAttribute('Position') / 100;
-		const GleissystemID	= Signal.Gleissystem.getAttribute('GleissystemID');
-		const GleisID 		= Signal.Gleis.getAttribute('GleisID');
-		const PosX			= Signal.Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= Signal.Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 
 		htmlAppend('p', 
 			`Signal ${SignalID}, 
@@ -184,7 +197,7 @@ function process_node(sutrackp) {
 		);
 	});
 
-	// Extract data
+	// Extract data from Fuhrpark
 	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0]
 	for (const Zugverband of Fuhrpark.getElementsByTagName('Zugverband')) {
 		const ZugID		= Zugverband.getAttribute('ZugID');
@@ -217,14 +230,17 @@ function process_node(sutrackp) {
 		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
 
 		// Gleis ermitteln
-		// ...
+		const Gleis 		= Gleise.get(GleissystemID).get(GleisID)
+		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 	
 		htmlAppend('p', 
 			`Zugverband ${ZugID}, 
+			 ${GleissystemText[GleissystemID]} ${GleisID},
+			 x = ${PosX.toFixed(0)} m,
+			 y = ${PosY.toFixed(0)} m,
+			 +${Position.toFixed(0)} m
 			 ${Name}, 
-			 ${GleissystemText[GleissystemID]}
-			 ${GleisID}
-			 +${Position.toFixed(0)} m,
 			`
 		);
 		
@@ -246,7 +262,6 @@ function orderByName(a,b) {
 	return 0;
 }
 
-	
 function htmlAppend(tagName, innerHTML) {
 	var element = document.createElement(tagName);
 	element.innerHTML = innerHTML;
