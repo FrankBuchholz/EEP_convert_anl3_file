@@ -935,7 +935,17 @@ input[type='number']#number {
    width:60px;
 }
 
-.item { 					
+
+.fieldset {
+	border-width: 0;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
+	padding-block-start: 0;
+	padding-inline-start: 0;
+	padding-inline-end: 0; 
+	padding-block-end: 0;
+}
+.fieldset .item { 					
 	white-space: nowrap;		/* keep checkbox and label together */
 	display:inline;				/* but do no add extra line breaks per item */
 }
@@ -1036,7 +1046,7 @@ Cursor: <span id="cursor_position"> </span>
 
 <div class='group'>
 <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
-<fieldset style='border-width:0;margin-inline-start:0;margin-inline-end:0;padding-block-start:0;padding-inline-start:0;padding-inline-end:0; padding-block-end:0;'>
+<fieldset class='fieldset'>
 	<div class="item"><label class='Eisenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
 	<div class="item"><label class='Strassenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
 	<div class="item"><label class='Strasse hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
