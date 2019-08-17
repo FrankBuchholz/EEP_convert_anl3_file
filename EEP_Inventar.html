@@ -13,12 +13,12 @@
 function loadFile(file) {
 	var fr;
 	if (typeof window.FileReader !== 'function') {
-		htmlAppend("p", "The file API isn't supported on this browser yet.");
+		htmlAppend(null, "p", "The file API isn't supported on this browser yet.");
 		return;
 	};
 
 	if (!file) {
-		htmlAppend("p", "Please select a file before clicking 'Load'");
+		htmlAppend(null, "p", "Please select a file before clicking 'Load'");
 	}
 	else {
 		fr = new FileReader();
@@ -38,6 +38,9 @@ function loadFile(file) {
 
 		// Hide header
 		document.getElementById('header').classList.add('hidden');
+
+		// Show main area
+		document.getElementById('container').classList.remove('hidden');
 		
 		// Show file name
 		document.getElementById('filename').textContent = file.name.substring(0, file.name.length -1 -1 -3);
@@ -99,8 +102,11 @@ function process_node(sutrackp) {
 		height 	: Math.abs(Schandlaft.getAttribute('posY') * 2 / 100),
 	}
 
+	let element;
+	element = htmlAppend(null, 'div', null); 
+	element.classList.add('Intro');
 	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Höhe = 607 m
-	htmlAppend('p', 
+	htmlAppend(element, 'p', 
 		`EEP Version = ${Version.getAttribute('EEP')}, 
 		 Anzahl Objekte = ${Version.getAttribute('No3DMs')}, 
 		 Breite = ${Area.width.toFixed(0)} m, 
@@ -115,8 +121,8 @@ function process_node(sutrackp) {
 	// Sortable arrays 
 	const 
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
-		Signale 	= []; 	// ID (des Signals), Name (des Signals), Meldung, Gleissystem, Gleis 
-		Zugverbaende = []; 	// ID, Name, Gleisort, rollmaterialien  
+		Signale 	= []; 	// ID (des Signals), Name, Meldung, Gleissystem, Gleis 
+		Zugverbaende = []; 	// ID (des Zugverbandes), Name, Gleisort, rollmaterialien  
 
 	// Extract data from Gleissystem
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
@@ -154,48 +160,6 @@ function process_node(sutrackp) {
 			};
 		}
 	}
-	
-	// Anzeige der Weichen
-	htmlAppend('h4', `Weichen (${Weichen.length})`); 
-	Weichen.sort(orderByID).forEach(Weiche => {
-		const WeicheID		= Weiche.ID; //Weiche.Gleis.getAttribute('Key_Id');
-		const GleissystemID	= Weiche.GleissystemID; //Weiche.Gleissystem.getAttribute('GleissystemID');
-		const GleisID 		= Weiche.GleisID; //Gleis.getAttribute('GleisID');
-		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
-		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-
-		htmlAppend('p', 
-			`Weiche ${WeicheID}, 
-			 ${GleissystemText[GleissystemID]} ${GleisID},
-			 x = ${PosX.toFixed(0)} m,
-			 y = ${PosY.toFixed(0)} m
-			`
-		);
-	});
-	
-	// Anzeige der Signale
-	htmlAppend('h4', `Signale (${Signale.length})`); 
-	Signale.sort(orderByID).forEach(Signal => {
-		const SignalID		= Signal.ID; //Signal.Meldung.getAttribute('Key_Id');
-		const Name			= Signal.Name; //Signal.Meldung.getAttribute('name');
-		const GleissystemID	= Signal.GleissystemID; //Signal.Gleissystem.getAttribute('GleissystemID');
-		const GleisID 		= Signal.GleisID; //Signal.Gleis.getAttribute('GleisID');
-		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
-		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-		const Position		= Signal.Meldung.getAttribute('Position') / 100;
-
-		htmlAppend('p', 
-			`Signal ${SignalID}, 
-			 ${GleissystemText[GleissystemID]} ${GleisID},
-			 x = ${PosX.toFixed(0)} m,
-			 y = ${PosY.toFixed(0)} m,
-			 +${Position.toFixed(0)} m,
-			 ${Name}
-			`
-		);
-	});
 
 	// Extract data from Fuhrpark
 	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0]
@@ -219,22 +183,68 @@ function process_node(sutrackp) {
 			Rollmaterialien	: Rollmaterialien,
 		});
 	}
+	
+	// Anzeige der Weichen
+	element = htmlAppend(null, 'div', null); 
+	element.classList.add('Weiche');
+	htmlAppend(element, 'h4', `Weichen (${Weichen.length})`); 
+	Weichen.sort(orderByID).forEach(Weiche => {
+		const WeicheID		= Weiche.ID;
+		const GleissystemID	= Weiche.GleissystemID;
+		const GleisID 		= Weiche.GleisID;
+		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
+		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+
+		htmlAppend(element, 'p', 
+			`Weiche ${WeicheID}, 
+			 ${GleissystemText[GleissystemID]} ${GleisID},
+			 x = ${PosX.toFixed(0)} m,
+			 y = ${PosY.toFixed(0)} m
+			`
+		);
+	});
+	
+	// Anzeige der Signale
+	element = htmlAppend(null, 'div', null); 
+	element.classList.add('Signal');
+	htmlAppend(element, 'h4', `Signale (${Signale.length})`); 
+	Signale.sort(orderByID).forEach(Signal => {
+		const SignalID		= Signal.ID;
+		const Name			= Signal.Name;
+		const GleissystemID	= Signal.GleissystemID;
+		const GleisID 		= Signal.GleisID;
+		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
+		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+		const Position		= Signal.Meldung.getAttribute('Position') / 100;
+
+		htmlAppend(element, 'p', 
+			`Signal ${SignalID}, 
+			 ${GleissystemText[GleissystemID]} ${GleisID},
+			 x = ${PosX.toFixed(0)} m,
+			 y = ${PosY.toFixed(0)} m,
+			 +${Position.toFixed(0)} m,
+			 ${Name}
+			`
+		);
+	});
 
 	// Anzeige der Zugverbände
-	htmlAppend('h4', `Zugverbände (${Weichen.length})`); 
+	element = htmlAppend(null, 'div', null); 
+	element.classList.add('Zugverband');
+	htmlAppend(element, 'h4', `Zugverbände (${Weichen.length})`); 
 	Zugverbaende.sort(orderByID).forEach(Zugverband => {
 		const ZugID			= Zugverband.ID;
 		const Name			= Zugverband.Name;
 		const GleissystemID	= Zugverband.Gleisort.getAttribute('gleissystemID');
 		const GleisID 		= Zugverband.Gleisort.getAttribute('gleisID');
-		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
-
-		// Gleis ermitteln
 		const Gleis 		= Gleise.get(GleissystemID).get(GleisID)
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
 	
-		htmlAppend('p', 
+		htmlAppend(element, 'p', 
 			`Zugverband ${ZugID}, 
 			 ${GleissystemText[GleissystemID]} ${GleisID},
 			 x = ${PosX.toFixed(0)} m,
@@ -262,16 +272,29 @@ function orderByName(a,b) {
 	return 0;
 }
 
-function htmlAppend(tagName, innerHTML) {
-	var element = document.createElement(tagName);
-	element.innerHTML = innerHTML;
-	document.getElementById('container').appendChild(element);
+function htmlAppend(target, tagName, textContent) {
+	const element = document.createElement(tagName);
+	if (textContent) { element.textContent = textContent; }
+	if (!target) { target = document.getElementById('container') }
+	target.appendChild(element);
+	return element;
 }
 
 </script>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // html page
+
+// Toggle visibility of elements
+function toggleElements(selector, visible) {
+	for (const ele of document.getElementById('container').querySelectorAll(selector)) {
+		if (visible) {
+			ele.classList.remove('hidden');
+		} else {
+			ele.classList.add('hidden');
+		}
+	}
+}
 
 </script>
 
@@ -282,6 +305,20 @@ function htmlAppend(tagName, innerHTML) {
 
 #container p {
 	margin: 0;
+}
+
+.fieldset {
+	border-width: 0;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
+	padding-block-start: 0;
+	padding-inline-start: 0;
+	padding-inline-end: 0; 
+	padding-block-end: 0;
+}
+.fieldset .item { 					
+	white-space: nowrap;		/* keep checkbox and label together */
+	display:inline;				/* but do no add extra line breaks per item */
 }
 
 </style>
@@ -310,7 +347,17 @@ Anschließend wird der Inhalt ausgegeben.</small></p>
 
 </div>  <!-- header --> 
 
-<div id='container'> <!-- The container shows the result -->
+<div id='container' class='hidden'> <!-- The container shows the result -->
+
+<div class='group'>
+<!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
+<fieldset class='fieldset'>
+	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Weiche', this.checked)">Weiche</label></div>
+	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Signal', this.checked)">Signal</label></div>
+	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Zugverband', this.checked)">Zugverband</label></div>
+</fieldset> 
+</div>
+
 </div> <!-- container -->
 
 </body>
