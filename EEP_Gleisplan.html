@@ -573,9 +573,14 @@ function SvgPanZoom(usedArea) {
 		document.body.classList.toggle('column');
 		document.body.classList.toggle('row');
 		// Swapping changes the size of the svg element 
+		oldSizes = panZoom.getSizes();	
 		panZoom.resize();
-		// Currently the top left point keeps its position. We need to pan, too, if we want to keep the center being centered.
-		//...
+		newSizes = panZoom.getSizes();	
+		// The top left point keeps its position. We need to pan to keep the center being centered.
+		panZoom.panBy({
+			x: (newSizes.width - oldSizes.width) 	/ 2 , 
+			y: (newSizes.height - oldSizes.height)	/ 2 ,
+		})
 		show_area(panZoom);
 	});
 
