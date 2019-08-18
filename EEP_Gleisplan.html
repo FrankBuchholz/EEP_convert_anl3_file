@@ -614,6 +614,12 @@ function SvgPanZoom(usedArea) {
 		// Zoom to used area
 		showUsedArea();
 	});
+	// Slider strokeWidth
+	document.getElementById('strokeWidth').addEventListener('input', function(ev){
+		msg();
+		ev.preventDefault()
+		changeStrokeWidth(ev.target.value);
+	});
 	// Button 'enable controls'
 /*	
 	document.getElementById('enable').addEventListener('click', function() {
@@ -848,6 +854,37 @@ function msg(text) {
 		document.getElementById('message').textContent = '';
 	}	
 }
+
+function changeStrokeWidth(value) {
+	// Use exponential function to convert the slider value giving v=75 -> f=1
+	// f = 0.1054 * exp(0.03 * v)
+	const factor = 0.1054 * Math.exp(0.03 * value); 
+	
+	// Funktioniert bei Chrome und Firefox
+	for (const ele of document.getElementById('svg').querySelectorAll('#Eisenbahn')) {
+		ele.style['stroke-width'] = 0.5 * factor;
+	}
+	for (const ele of document.getElementById('svg').querySelectorAll('#Strassenbahn')) {
+		ele.style['stroke-width'] = 0.5 * factor;
+	}
+	for (const ele of document.getElementById('svg').querySelectorAll('#Strasse')) {
+		ele.style['stroke-width'] = 0.5 * factor;
+	}
+	for (const ele of document.getElementById('svg').querySelectorAll('#Wasserwege')) {
+		ele.style['stroke-width'] = 0.25 * factor;
+	}
+	for (const ele of document.getElementById('svg').querySelectorAll('#Steuerstrecken')) {
+		ele.style['stroke-width'] = 0.25 * factor;
+	}
+	for (const ele of document.getElementById('svg').querySelectorAll('#GBS')) {
+		ele.style['stroke-width'] = 0.25 * factor;
+	}
+	
+	// Klappt nicht mit Firefox
+	for (const ele of document.getElementById('svg').querySelectorAll('text')) {
+		ele.style['font-size'] = 4 * factor;
+	}
+}
 </script>
 
 <style> /* html page */
@@ -1020,6 +1057,8 @@ Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explor
 	<button id="enable">enable controls</button>
 	<button id="disable">disable controls</button>
 -->
+<br/>
+Schriftgröße <input type="range" min="1" max="100" value="75" name="strokeWidth" id="strokeWidth"/>
 </div>
 
 <div class='group'>
