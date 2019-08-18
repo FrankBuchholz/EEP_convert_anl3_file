@@ -278,9 +278,9 @@ function htmlAppend(target, tagName, textContent) {
 	return element;
 }
 
-function divAppend(class) {
+function divAppend(_class) {
 	const element = document.createElement('div');
-	element.classList.add(class);
+	element.classList.add(_class);
 	document.getElementById('container').appendChild(element);
 	return element;
 }
