@@ -14,11 +14,12 @@ An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
 Herauszoomen: Umschalttaste+Doppelklick
 
 ### Interaktive Funktionen
-Wechsele zwischen vertikalen und horizontaler Ausrichtung<br/>
+Wechsel zwischen vertikalen und horizontaler Ausrichtung<br/>
 Zoom-in, -out, -reset<br/>
-Auswahl der anzuzeigenden Gleissysteme<br/>
+Auswahl der anzuzeigenden Gleissysteme bzw. von Informationen wie Text oder Marker<br/>
 Aktuelles Bild als png-Bild speichern<br/>
-Graphik auf bestimmtes Gleis positionieren
+Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
+Einstellung der Linien- und Textbreite
 
 ### Tipp zum Export als svg
 
@@ -26,7 +27,7 @@ Google Chrome:
 
 Rechts-Klick in der Graphik -> Inspect (Ctrl+Shift+I) -> Das svg-Element wird im neuen Fenster (DevTools ) blau hinterlegt angezeigt -> Rechts-Klick auf diesem Element -> Copy -> Copy Element
 
-FireFox:
+Firefox:
 
 Rechts-Klick in der Graphik -> Element untersuchen -> Das svg-Element wird im neuen Fenster (DevTools ) blau hinterlegt angezeigt -> Rechts-Klick auf diesem Element -> Kopieren -> Äußeres HTML
 
@@ -44,7 +45,9 @@ Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibl
 
 Die automatische Größenanpassung des SVG-Elements im Brower zur Nutzung des gesamten restlichen Bildschirmbereiches erfolgt mit <a href='https://www.w3schools.com/css/css3_flexbox.asp' target='_blank'>flex</a>.
 
-Der Fortschittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit <i>Promise</i> / <i>requestAnimationFrame</i> und diversen Schritten bei der Verarbeitung realisiert. Leider unterstützt der Internet Explorer diese Funktion und diverse andere, moderne Sprachkonstrukte nicht und kann daher gar nicht verwendet werden. Die einzig empfohlenen Browser sind daher Google Chrome (bzw. diejenigen Browser, die auf Chomium basieren) und Firefox. 
+Der Fortschittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit <i>Promise</i> / <i>requestAnimationFrame</i> und diversen Schritten bei der Verarbeitung realisiert. Leider unterstützt der Internet Explorer diese Funktion und diverse andere, moderne Sprachkonstrukte nicht und kann daher gar nicht verwendet werden. Die einzig empfohlenen Browser sind daher Google Chrome (bzw. diejenigen Browser, die auf Chomium basieren) und Firefox.
+
+Die interaktive Einstellung der Linien- und Textbreite wird über dynamische Anpassung der CSS-Regeln realisiert.  
 
 ### Abhängigkeiten
 Die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> wird online aufgerufen. Wenn man das Programm komplett lokal nutzen will muss diese Bibliothek ebenfalls lokal kopiert werden und der entsprechende script-Befehl angepasst werden.
@@ -55,7 +58,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 ### Aufruf
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html
 
-Zur Zeit wird eine Liste der Weichen und der Signale (sowie eine noch vereinfachte Liste der Zugverbände) ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
+Zur Zeit wird eine Liste der Weichen, Signale und Zugverbände ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
 
 # Impressum
 (c) Frank Buchholz, 2019
