@@ -398,10 +398,11 @@ function bodyAppend(tagName, innerHTML) {
 function svgAppend(svg_node, obj) {
 	const svgNS 	= "http://www.w3.org/2000/svg";
 	const xlinkNS	= "http://www.w3.org/1999/xlink";
-
-	let element = document.createElementNS(svgNS, obj.svg_tag);
+	let element;
 
 	if (obj.svg_tag != 'text') { 
+		
+		element = document.createElementNS(svgNS, obj.svg_tag);
 		
 		// copy all attributes except the tag (an alternate approach would be to construct a string and use innerHTML)
 		const entries = Object.entries(obj);
@@ -411,10 +412,14 @@ function svgAppend(svg_node, obj) {
 
 	} else { // text
 
-		// Create special text/textPath element using mandatory attributes href, text, class
+		// Create special element using attributes href, text, text-anchor (optional)
 		// Example:
 		// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
-		let textPath = document.createElementNS(svgNS, 'textPath');
+
+		const textNode 	= document.createTextNode(obj.text);
+
+		const textPath 	= document.createElementNS(svgNS, 'textPath');
+		textPath.setAttribute('class', obj.class); 
 		if (obj['text-anchor'] == 'middle') { 
 			textPath.setAttribute('startOffset', '50%'); 
 		}   	
@@ -422,10 +427,12 @@ function svgAppend(svg_node, obj) {
 			textPath.setAttribute('startOffset', '95%'); // How to put the text exactly to the end?
 		}   	
 		textPath.setAttributeNS(xlinkNS, "xlink:href", obj.href);
-		textPath.setAttribute('class', obj.class);
-		let text = document.createTextNode(obj.text);
-		textPath.appendChild(text);
-		element.appendChild(textPath);
+		textPath.appendChild(textNode);
+
+		const text 		= document.createElementNS(svgNS, 'text');
+		text.appendChild(textPath);
+
+		element = text;
 	};
 
 	svg_node.appendChild(element);
@@ -614,6 +621,12 @@ function SvgPanZoom(usedArea) {
 		// Zoom to used area
 		showUsedArea();
 	});
+	// Slider strokeWidth
+	document.getElementById('strokeWidth').addEventListener('input', function(ev){
+		msg();
+		ev.preventDefault()
+		changeStrokeWidth(ev.target.value);
+	});
 	// Button 'enable controls'
 /*	
 	document.getElementById('enable').addEventListener('click', function() {
@@ -689,6 +702,17 @@ function SvgPanZoom(usedArea) {
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // html page
 
+// Load CSS rules
+function getCSSrules() {
+	const rules = {};
+	for (var i=0; i<document.styleSheets.length; ++i) {
+		const cssRules = document.styleSheets[i].cssRules;
+		for (var j=0; j<cssRules.length; ++j)
+			rules[cssRules[j].selectorText] = cssRules[j];
+	}
+	return rules;
+}
+
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -698,6 +722,45 @@ function toggleElements(selector, visible) {
 		} else {
 			ele.classList.add('hidden');
 		}
+	}
+}
+
+// Toggle visibility of marker
+function toggleMarker(visible) {
+	msg();
+
+	toggleElements('#center', visible)
+
+	const CSSrules = getCSSrules(); 
+//console.log(CSSrules)
+
+	// Modify CSS rules
+	if (visible) {
+		CSSrules['#Eisenbahn'].style['marker-start'] 		= 'url(#EisenbahnMarkerCircle)';
+		CSSrules['#Eisenbahn'].style['marker-end'] 			= 'url(#EisenbahnMarkerArrow)';	
+		CSSrules['#Strassenbahn'].style['marker-start'] 	= 'url(#StrassenbahnMarkerCircle)';
+		CSSrules['#Strassenbahn'].style['marker-end'] 		= 'url(#StrassenbahnMarkerArrow)';	
+		CSSrules['#Strasse'].style['marker-start'] 			= 'url(#StrasseMarkerCircle)';
+		CSSrules['#Strasse'].style['marker-end'] 			= 'url(#StrasseMarkerArrow)';	
+		CSSrules['#Wasserwege'].style['marker-start'] 		= 'url(#WasserwegeMarkerCircle)';
+		CSSrules['#Wasserwege'].style['marker-end'] 		= 'url(#WasserwegeMarkerArrow)';	
+		CSSrules['#Steuerstrecken'].style['marker-start'] 	= 'url(#SteuerstreckenMarkerCircle)';
+		CSSrules['#Steuerstrecken'].style['marker-end'] 	= 'url(#SteuerstreckenMarkerArrow)';	
+		CSSrules['#GBS'].style['marker-start'] 				= 'url(#GBSMarkerCircle)';
+		CSSrules['#GBS'].style['marker-end'] 				= 'url(#GBSMarkerArrow)';	
+	} else {
+		CSSrules['#Eisenbahn'].style['marker-start'] 		= 'url(#)';
+		CSSrules['#Eisenbahn'].style['marker-end'] 			= 'url(#)';	
+		CSSrules['#Strassenbahn'].style['marker-start'] 	= 'url(#)';
+		CSSrules['#Strassenbahn'].style['marker-end'] 		= 'url(#)';	
+		CSSrules['#Strasse'].style['marker-start'] 			= 'url(#)';
+		CSSrules['#Strasse'].style['marker-end'] 			= 'url(#)';	
+		CSSrules['#Wasserwege'].style['marker-start'] 		= 'url(#)';
+		CSSrules['#Wasserwege'].style['marker-end'] 		= 'url(#)';	
+		CSSrules['#Steuerstrecken'].style['marker-start'] 	= 'url(#)';
+		CSSrules['#Steuerstrecken'].style['marker-end'] 	= 'url(#)';	
+		CSSrules['#GBS'].style['marker-start'] 				= 'url(#)';
+		CSSrules['#GBS'].style['marker-end'] 				= 'url(#)';	
 	}
 }
 
@@ -785,32 +848,36 @@ function centerItem() {
 //console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 		return true;
 		
-	} else if (sel == 'W') {		// Weiche (Nummern übergreifend über alle Gleissysteme, jedoch nicht eindeutig)
-		// Gleis.getAttribute('Key_Id')
-		const WeicheID 		= val;
-		//...
+	} else if (sel == 'I') {		// Signal/Weiche (Nummern übergreifend über alle Gleissysteme)
+		// Gleis.getAttribute('Key_Id') bzw. Gleis.getAttribute('Meldung').getAttribute('Key_Id')
+		const ID 		= val;
 		
-	} else if (sel == 'S') {		// Signal (Nummern übergreifend über alle Gleissysteme)
-		// Gleis.getAttribute('Meldung').getAttribute('Key_Id')
-		const SignalID 		= val;
-		
-		// Suche das Signal auf allen Gleisen
+		// Suche das Signal bzw. die Weiche auf allen Gleisen
 		const Gleissysteme 	= global_sutrackp.getElementsByTagName('Gleissystem')
 		for (const Gleissystem of Gleissysteme) {
 			
 			const Gleise = Gleissystem.getElementsByTagName('Gleis');
 			for (const Gleis of Gleise) {
+			
+				const GleissystemID = Gleissystem.getAttribute('GleissystemID');
+				const GleisID = Gleis.getAttribute('GleisID');
+				const Key_Id	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
+					if (Key_Id == ID) {
+						// Signal gefunden
+						centerGleis(Gleis);
+						msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+//console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
+						return true;	
+					}
 
 				const Meldungen = Gleis.getElementsByTagName('Meldung');
 				for (const Meldung of Meldungen) {
 
 					const Key_Id	= Meldung.getAttribute('Key_Id'); 	// Id eines Signals
-					if (Key_Id == SignalID) {
+					if (Key_Id == ID) {
 						// Signal gefunden
-						const GleissystemID = Gleissystem.getAttribute('GleissystemID');
-						const GleisID = Gleis.getAttribute('GleisID');
 						centerGleis(Gleis);
-						msg(`Das Signal ${SignalID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+						msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 //console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 						return true;	
 					}
@@ -818,7 +885,7 @@ function centerItem() {
 				} // ´Meldungen
 			} // Gleise
 		} // Gleissysteme
-		msg(`Signal ${SignalID} existiert nicht`);
+		msg(`Signal/Weiche ${ID} existiert nicht`);
 		return false; // Signal nicht gefunden
 
 	} else if (sel == 'K') {		// Kontakt
@@ -847,6 +914,24 @@ function msg(text) {
 	} else {
 		document.getElementById('message').textContent = '';
 	}	
+}
+
+function changeStrokeWidth(value) {
+	// Use exponential function to convert the slider value into range [0.11 .. 2.12] with f(75) = 1
+	// f = 0.1054 * exp(0.03 * v)
+	const factor = 0.1054 * Math.exp(0.03 * value); 
+	
+	const CSSrules = getCSSrules(); 
+//console.log(CSSrules)
+
+	// Modify CSS rules
+	CSSrules['#Eisenbahn'].style['stroke-width'] 		= 0.5 * factor;
+	CSSrules['#Strassenbahn'].style['stroke-width'] 	= 0.5 * factor;
+	CSSrules['#Strasse'].style['stroke-width']			= 0.5 * factor;
+	CSSrules['#Wasserwege'].style['stroke-width'] 		= 0.25 * factor;
+	CSSrules['#Steuerstrecken'].style['stroke-width'] 	= 0.25 * factor;
+	CSSrules['#GBS'].style['stroke-width'] 				= 0.25 * factor;
+	(CSSrules['textPath'] || CSSrules['textpath']).style['font-size'] = 4 * factor + 'px'; // Chrome converts this to lower case. SVG on Firefox requires explizit unit 
 }
 </script>
 
@@ -1004,11 +1089,11 @@ Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explor
 </div>
 
 <div id='controls' class='hidden'>
-<div class='group'>
+<div class='group'> <!-- Heading -->
 <h3 id='filename'>EEP Gleisplan</h3>
 </div>
 
-<div class='group'>
+<div class='group'> <!-- Buttons -->
 <button id="swap">swap</button>
 <button id='savePNG'>save PNG</button>
 <br/>
@@ -1020,10 +1105,11 @@ Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explor
 	<button id="enable">enable controls</button>
 	<button id="disable">disable controls</button>
 -->
+<br/>
+Stärke <input type='range' min='1' max='100' value='75' name='strokeWidth' id='strokeWidth' autocomplete='off' />
 </div>
 
-<div class='group'>
-<!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
+<div class='group'> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
 <select id='select' >
 	<option value='1'>Eisenbahn</option>
 	<option value='2'>Strassenbahn</option>
@@ -1031,9 +1117,8 @@ Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explor
 	<option value='4'>Wasserwege</option>
 	<option value='5'>Steuerstrecken</option>
 	<option value='6'>GBS</option>
-	<option value='S'>Signal</option>
+	<option value='I'>Signal/Weiche</option>
 <!--	
-	<option value='W'>Weiche</option>
 	<option value='K'>Kontakt</option>
 -->	
 </select>
@@ -1042,24 +1127,33 @@ Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explor
 <div id='message'></div>
 </div>
 
-<div class='group'>
-<!-- Status line -->
+<div class='group'> <!-- Status line -->
 Sichtbarer Bereich: <span id="visible_area"> </span><br/>
 Zentrum des Bereichs: <span id="center_position"> </span><br/>
 Cursor: <span id="cursor_position"> </span>
 </div>
 
-<div class='group'>
-<!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
-<fieldset class='fieldset'>
-	<div class="item"><label class='Eisenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
-	<div class="item"><label class='Strassenbahn hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
-	<div class="item"><label class='Strasse hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
-	<div class="item"><label class='Wasserwege hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
-	<div class="item"><label class='Steuerstrecken hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
-	<div class="item"><label class='GBS hidden'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
-	<div class="item"><label class='Text'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('text', this.checked)">Text</label></div>
-	<div class="item"><label class='unsichtbar'><input type='checkbox' name='Gleissystem' checked onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
+<div class='group'> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
+<fieldset class='fieldset'> 
+	<!-- Firefox keeps the status of the checkbox between page loadsby default. --> 
+	<div class="item"><label class='Eisenbahn hidden'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off'  onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
+	<div class="item"><label class='Strassenbahn hidden'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
+	<div class="item"><label class='Strasse hidden'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
+	<div class="item"><label class='Wasserwege hidden'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
+	<div class="item"><label class='Steuerstrecken hidden'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
+	<div class="item"><label class='GBS hidden'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
+	<div class="item"><label class='Text'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('text', this.checked)">Text</label></div>
+	<div class="item"><label class='unsichtbar'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
+	<div class="item"><label class='Marker'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleMarker(this.checked)">Marker</label></div>
 </fieldset> 
 </div>
 
@@ -1084,11 +1178,10 @@ svg {
 }
 
 /* Gleisnummern etc. */
-text { 
+textPath { 
 	font-size: 4px; 
 	font-family: Arial;
 	stroke-width: 0;
-	fill: black;
 	dominant-baseline: text-after-edge;	/* kleiner Abstand von der Linie			*/
 	text-anchor: middle;
 }
