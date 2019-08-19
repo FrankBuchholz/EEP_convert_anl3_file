@@ -300,7 +300,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				svgAppend(svg_group_node, { 
 					svg_tag			: `text`,
 					href			: `#G${GleissystemID}-${GleisID}`,
-					class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 					'text-anchor'	: `middle`,
 					//x 				: pathElement.getTotalLength() / 2,
 					//y 				: 0,
@@ -312,7 +311,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					svgAppend(svg_group_node, { 
 						svg_tag			: `text`,
 						href			: `#G${GleissystemID}-${GleisID}`,
-						class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						'text-anchor'	: `end`,
 						//x 				: pathElement.getTotalLength(),
 						//y 				: 0,
@@ -398,10 +396,11 @@ function bodyAppend(tagName, innerHTML) {
 function svgAppend(svg_node, obj) {
 	const svgNS 	= "http://www.w3.org/2000/svg";
 	const xlinkNS	= "http://www.w3.org/1999/xlink";
-
-	let element = document.createElementNS(svgNS, obj.svg_tag);
+	let element;
 
 	if (obj.svg_tag != 'text') { 
+		
+		element = document.createElementNS(svgNS, obj.svg_tag);
 		
 		// copy all attributes except the tag (an alternate approach would be to construct a string and use innerHTML)
 		const entries = Object.entries(obj);
@@ -411,10 +410,13 @@ function svgAppend(svg_node, obj) {
 
 	} else { // text
 
-		// Create special text/textPath element using mandatory attributes href, text, class
+		// Create special element using attributes href, text, text-anchor (optional)
 		// Example:
 		// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
-		let textPath = document.createElementNS(svgNS, 'textPath');
+
+		const textNode 	= document.createTextNode(obj.text);
+
+		const textPath 	= document.createElementNS(svgNS, 'textPath');
 		if (obj['text-anchor'] == 'middle') { 
 			textPath.setAttribute('startOffset', '50%'); 
 		}   	
@@ -422,10 +424,12 @@ function svgAppend(svg_node, obj) {
 			textPath.setAttribute('startOffset', '95%'); // How to put the text exactly to the end?
 		}   	
 		textPath.setAttributeNS(xlinkNS, "xlink:href", obj.href);
-		textPath.setAttribute('class', obj.class);
-		let text = document.createTextNode(obj.text);
-		textPath.appendChild(text);
-		element.appendChild(textPath);
+		textPath.appendChild(textNode);
+
+		const text 		= document.createElementNS(svgNS, 'text');
+		text.appendChild(textPath);
+
+		element = text;
 	};
 
 	svg_node.appendChild(element);
@@ -856,34 +860,31 @@ function msg(text) {
 }
 
 function changeStrokeWidth(value) {
-	// Use exponential function to convert the slider value giving v=75 -> f=1
+	// Use exponential function to convert the slider value into range [0.11 .. 2.12] with f(75) = 1
 	// f = 0.1054 * exp(0.03 * v)
 	const factor = 0.1054 * Math.exp(0.03 * value); 
 	
-	// Funktioniert bei Chrome und Firefox
-	for (const ele of document.getElementById('svg').querySelectorAll('#Eisenbahn')) {
-		ele.style['stroke-width'] = 0.5 * factor;
+	// Load CSS rules
+	function getCSSrules() {
+		const rules = {};
+		for (var i=0; i<document.styleSheets.length; ++i) {
+			const cssRules = document.styleSheets[i].cssRules;
+			for (var j=0; j<cssRules.length; ++j)
+				rules[cssRules[j].selectorText] = cssRules[j];
+		}
+		return rules;
 	}
-	for (const ele of document.getElementById('svg').querySelectorAll('#Strassenbahn')) {
-		ele.style['stroke-width'] = 0.5 * factor;
-	}
-	for (const ele of document.getElementById('svg').querySelectorAll('#Strasse')) {
-		ele.style['stroke-width'] = 0.5 * factor;
-	}
-	for (const ele of document.getElementById('svg').querySelectorAll('#Wasserwege')) {
-		ele.style['stroke-width'] = 0.25 * factor;
-	}
-	for (const ele of document.getElementById('svg').querySelectorAll('#Steuerstrecken')) {
-		ele.style['stroke-width'] = 0.25 * factor;
-	}
-	for (const ele of document.getElementById('svg').querySelectorAll('#GBS')) {
-		ele.style['stroke-width'] = 0.25 * factor;
-	}
-	
-	// Klappt nicht mit Firefox
-	for (const ele of document.getElementById('svg').querySelectorAll('text')) {
-		ele.style['font-size'] = 4 * factor;
-	}
+	const CSSrules = getCSSrules(); 
+	console.log(CSSrules)
+
+	// Modify CSS rules
+	CSSrules['#Eisenbahn'].style['stroke-width'] 		= 0.5 * factor;
+	CSSrules['#Strassenbahn'].style['stroke-width'] 	= 0.5 * factor;
+	CSSrules['#Strasse'].style['stroke-width']			= 0.5 * factor;
+	CSSrules['#Wasserwege'].style['stroke-width'] 		= 0.25 * factor;
+	CSSrules['#Steuerstrecken'].style['stroke-width'] 	= 0.25 * factor;
+	CSSrules['#GBS'].style['stroke-width'] 				= 0.25 * factor;
+	(CSSrules['textPath'] || CSSrules['textpath']).style['font-size'] = 4 * factor + 'px'; // Chrome converts this to lower case. SVG on Firefox requires explizit unit 
 }
 </script>
 
@@ -1058,7 +1059,7 @@ Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explor
 	<button id="disable">disable controls</button>
 -->
 <br/>
-Schriftgröße <input type="range" min="1" max="100" value="75" name="strokeWidth" id="strokeWidth"/>
+Text <input type="range" min="1" max="100" value="75" name="strokeWidth" id="strokeWidth"/>
 </div>
 
 <div class='group'>
@@ -1123,11 +1124,11 @@ svg {
 }
 
 /* Gleisnummern etc. */
-text { 
+textPath { 
 	font-size: 4px; 
 	font-family: Arial;
 	stroke-width: 0;
-	fill: black;
+
 	dominant-baseline: text-after-edge;	/* kleiner Abstand von der Linie			*/
 	text-anchor: middle;
 }
