@@ -424,14 +424,14 @@ function svgAppend(svg_node, obj) {
 			textPath.setAttribute('startOffset', '50%'); 
 		}   	
 		else if (obj['text-anchor'] == 'end') { 
-			textPath.setAttribute('startOffset', '95%'); // How to put the text exactly to the end?
+			textPath.setAttribute('startOffset', '90%'); // How to put the text exactly to the end?
 		}   	
-		textPath.setAttributeNS(xlinkNS, "xlink:href", obj.href);
+		textPath.setAttributeNS(xlinkNS, 'xlink:href', obj.href);
 		textPath.appendChild(textNode);
 
 		const text 		= document.createElementNS(svgNS, 'text');
+		if (obj['text-anchor']) { text.setAttribute('text-anchor', obj['text-anchor']) };
 		text.appendChild(textPath);
-
 		element = text;
 	};
 
@@ -728,40 +728,44 @@ function toggleElements(selector, visible) {
 // Toggle visibility of marker
 function toggleMarker(visible) {
 	msg();
-
 	toggleElements('#center', visible)
-
-	const CSSrules = getCSSrules(); 
-//console.log(CSSrules)
+	
+	// Modify svg css to use same setting during PNG export
+	if (visible) {
+		document.getElementById('css-marker-colors').textContent =
+			`svg {
+				--Eisenbahn-marker-color: var(--Eisenbahn-color);
+				--Strassenbahn-marker-color: var(--Strassenbahn-color);
+				--Strasse-marker-color: var(--Strasse-color);
+				--Wasserwege-marker-color: var(--Wasserwege-color);
+				--Steuerstrecken-marker-color: var(--Steuerstrecken-color);
+				--GBS-marker-color: var(--GBS-color);
+			}`	
+	} else {
+		document.getElementById('css-marker-colors').textContent =
+			`svg {
+				--Eisenbahn-marker-color: none;
+				--Strassenbahn-marker-color: none;
+				--Strasse-marker-color: none;
+				--Wasserwege-marker-color: none;
+				--Steuerstrecken-marker-color: none;
+				--GBS-marker-color: none;
+			}`	
+	}
 
 	// Modify CSS rules
-	if (visible) {
-		CSSrules['#Eisenbahn'].style['marker-start'] 		= 'url(#EisenbahnMarkerCircle)';
-		CSSrules['#Eisenbahn'].style['marker-end'] 			= 'url(#EisenbahnMarkerArrow)';	
-		CSSrules['#Strassenbahn'].style['marker-start'] 	= 'url(#StrassenbahnMarkerCircle)';
-		CSSrules['#Strassenbahn'].style['marker-end'] 		= 'url(#StrassenbahnMarkerArrow)';	
-		CSSrules['#Strasse'].style['marker-start'] 			= 'url(#StrasseMarkerCircle)';
-		CSSrules['#Strasse'].style['marker-end'] 			= 'url(#StrasseMarkerArrow)';	
-		CSSrules['#Wasserwege'].style['marker-start'] 		= 'url(#WasserwegeMarkerCircle)';
-		CSSrules['#Wasserwege'].style['marker-end'] 		= 'url(#WasserwegeMarkerArrow)';	
-		CSSrules['#Steuerstrecken'].style['marker-start'] 	= 'url(#SteuerstreckenMarkerCircle)';
-		CSSrules['#Steuerstrecken'].style['marker-end'] 	= 'url(#SteuerstreckenMarkerArrow)';	
-		CSSrules['#GBS'].style['marker-start'] 				= 'url(#GBSMarkerCircle)';
-		CSSrules['#GBS'].style['marker-end'] 				= 'url(#GBSMarkerArrow)';	
-	} else {
-		CSSrules['#Eisenbahn'].style['marker-start'] 		= 'url(#)';
-		CSSrules['#Eisenbahn'].style['marker-end'] 			= 'url(#)';	
-		CSSrules['#Strassenbahn'].style['marker-start'] 	= 'url(#)';
-		CSSrules['#Strassenbahn'].style['marker-end'] 		= 'url(#)';	
-		CSSrules['#Strasse'].style['marker-start'] 			= 'url(#)';
-		CSSrules['#Strasse'].style['marker-end'] 			= 'url(#)';	
-		CSSrules['#Wasserwege'].style['marker-start'] 		= 'url(#)';
-		CSSrules['#Wasserwege'].style['marker-end'] 		= 'url(#)';	
-		CSSrules['#Steuerstrecken'].style['marker-start'] 	= 'url(#)';
-		CSSrules['#Steuerstrecken'].style['marker-end'] 	= 'url(#)';	
-		CSSrules['#GBS'].style['marker-start'] 				= 'url(#)';
-		CSSrules['#GBS'].style['marker-end'] 				= 'url(#)';	
-	}
+	/* Not neccessary because we already have modified the SVG CSS
+	const CSSrules = getCSSrules(); 
+	['Eisenbahn', 'Strassenbahn', 'Strasse', 'Wasserwege', 'Steuerstrecken', 'GBS'].forEach(function(name) {
+		if (visible) {
+			CSSrules['#' + name].style['marker-start'] 	= 'url(#' + name + 'MarkerCircle)';
+			CSSrules['#' + name].style['marker-end'] 	= 'url(#' + name + 'MarkerArrow)';
+		} else {
+			CSSrules['#' + name].style['marker-start'] 	= 'url(#)';
+			CSSrules['#' + name].style['marker-end'] 	= 'url(#)';
+		}
+	});
+	*/ 
 }
 
 // save current svg area to png
@@ -769,6 +773,9 @@ function savePNG() {
 
 	// Get file name without extension
 	const filename = document.getElementById('filename').textContent
+
+	// Get target size of the raster graphic (png)
+	const sizePNG = Number(document.getElementById('sizePNG').value);
 	
 	// Read svg
 	const svg 		= document.getElementById('svg');
@@ -786,15 +793,40 @@ function savePNG() {
 
 	// Create canvas
 	const canvas = document.createElement('canvas');
-	canvas.width = svgSize.width;
-	canvas.height = svgSize.height;
+	
+	// Set size of canvas
+	const ratio = svgSize.width / svgSize.height
+	if (ratio > 1) {
+		canvas.width 	= sizePNG;
+		canvas.height 	= sizePNG / ratio;
+	} else {
+		canvas.width 	= sizePNG / ratio;
+		canvas.height 	= sizePNG;
+	}
+	
 	const ctx = canvas.getContext('2d');
 
 	// Create image from object url
 	const img = new Image();
 	img.onload = function() {
-		ctx.drawImage(img, 0, 0);
-		const png = canvas.toDataURL('image/png');
+		// Paint image into canvas
+		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+		
+		// Convert canvas to png
+		// Firefox might raise exception NS_ERROR_FAILURE
+		let png
+		try{
+			png = canvas.toDataURL('image/png');
+        } catch(err){
+			console.log(err)
+			msg('Zu groß: PNG-Export nicht möglich (toDataURL)')
+			return;
+        }
+		// We might get a very short result which is another type of error
+		if ( png.length <= 6 ) {
+			msg('Zu groß, PNG-Export nicht möglich (png.length)')
+			return;
+		}
 		
 		// Create download link and click it 
 		const link = document.createElement('a');
@@ -803,7 +835,14 @@ function savePNG() {
 		link.setAttribute('target', '_blank');
 		link.style.display = 'none';
 		document.body.appendChild(link);
-		link.click();
+		// Download
+		try{
+			link.click(); // We might get a network error in case of very huge results (but it's not possible to catch the error)
+        } catch(err){
+			console.log(err)
+			msg('Zu groß: PNG-Export nicht möglich (link.click)')
+			return;
+        }
 		// Remove temporary data
 		document.body.removeChild(link);		
 		DOMURL.revokeObjectURL(png);
@@ -920,11 +959,18 @@ function changeStrokeWidth(value) {
 	// Use exponential function to convert the slider value into range [0.11 .. 2.12] with f(75) = 1
 	// f = 0.1054 * exp(0.03 * v)
 	const factor = 0.1054 * Math.exp(0.03 * value); 
-	
-	const CSSrules = getCSSrules(); 
-//console.log(CSSrules)
+
+	// Modify svg css to use same setting during PNG export
+	document.getElementById('css-size-variables').textContent =
+		`svg {
+			--normal-font-size: ${4 * factor}px;
+			--normal-stroke-width: ${0.5 * factor}px;
+			--narrow-stroke-width: ${0.25 * factor}px;
+		}`
 
 	// Modify CSS rules
+	/* Not neccessary because we already have modified the SVG CSS
+	const CSSrules = getCSSrules(); 
 	CSSrules['#Eisenbahn'].style['stroke-width'] 		= 0.5 * factor;
 	CSSrules['#Strassenbahn'].style['stroke-width'] 	= 0.5 * factor;
 	CSSrules['#Strasse'].style['stroke-width']			= 0.5 * factor;
@@ -932,6 +978,7 @@ function changeStrokeWidth(value) {
 	CSSrules['#Steuerstrecken'].style['stroke-width'] 	= 0.25 * factor;
 	CSSrules['#GBS'].style['stroke-width'] 				= 0.25 * factor;
 	(CSSrules['textPath'] || CSSrules['textpath']).style['font-size'] = 4 * factor + 'px'; // Chrome converts this to lower case. SVG on Firefox requires explizit unit 
+	*/
 }
 </script>
 
@@ -1021,7 +1068,7 @@ body.row #controls .group {
 	text-align: center;
 }
 
-input[type='number']#number {
+input[type='number']#number, input[type='number']#sizePNG {
    width:60px;
 }
 
@@ -1094,7 +1141,8 @@ Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explor
 </div>
 
 <div class='group'> <!-- Buttons -->
-<button id="swap">swap</button>
+<button id="swap">swap</button> |
+<input type='number' id='sizePNG' value='3000' min='1'>
 <button id='savePNG'>save PNG</button>
 <br/>
 <button id="zoom-in">+</button>
@@ -1166,7 +1214,43 @@ Cursor: <span id="cursor_position"> </span>
 
 <title>EEP Gleisplan</title>
 <desc>EEP Gleisplan</desc>
-<defs>
+<defs> <!-- style -->
+	<style type="text/css"> /* color per track type */
+      /* <![CDATA[ */
+svg {
+	--Eisenbahn-color: red;
+	--Strassenbahn-color: darkgray;
+	--Strasse-color: grey;
+	--Wasserwege-color: blue;
+	--Steuerstrecken-color: purple;
+	--GBS-color: brown;
+}
+      /* ]]> */
+	</style>
+
+	<style type="text/css" id='css-marker-colors'> /* dynamic update via Javascript to hide/show markers*/
+      /* <![CDATA[ */
+svg {
+	--Eisenbahn-marker-color: var(--Eisenbahn-color);
+	--Strassenbahn-marker-color: var(--Strassenbahn-color);
+	--Strasse-marker-color: var(--Strasse-color);
+	--Wasserwege-marker-color: var(--Wasserwege-color);
+	--Steuerstrecken-marker-color: var(--Steuerstrecken-color);
+	--GBS-marker-color: var(--GBS-color);
+}
+      /* ]]> */
+	</style>
+
+	<style type="text/css" id='css-size-variables'> /* dynamic update via Javascript to ajdust font and line size */
+      /* <![CDATA[ */
+svg {
+	--normal-font-size: 4px;
+	--normal-stroke-width: 0.5px;
+	--narrow-stroke-width: 0.25px;
+}
+      /* ]]> */
+	</style>
+	
 	<style type="text/css">
       /* <![CDATA[ */
 svg {
@@ -1179,7 +1263,7 @@ svg {
 
 /* Gleisnummern etc. */
 textPath { 
-	font-size: 4px; 
+	font-size: var(--normal-font-size); 
 	font-family: Arial;
 	stroke-width: 0;
 	dominant-baseline: text-after-edge;	/* kleiner Abstand von der Linie			*/
@@ -1206,87 +1290,87 @@ textPath {
 /* Individuelle Formatierung je Gleissystem */ 
 
 #Eisenbahn {
-	stroke-width: 0.5;
-	stroke: red;
+	stroke-width: var(--normal-stroke-width);
+	stroke: var(--Eisenbahn-color);
 	fill:   none;
     marker-start: url(#EisenbahnMarkerCircle);
     marker-end:   url(#EisenbahnMarkerArrow);
 }
 #EisenbahnMarkerCircle, #EisenbahnMarkerArrow {
-	fill: red;
+	fill: var(--Eisenbahn-marker-color);
 }
 #Eisenbahn text { 
-	fill: red;
+	fill: var(--Eisenbahn-color);
 }
 
 #Strassenbahn {
-	stroke-width: 0.5;
-	stroke: darkgray ;
+	stroke-width: var(--normal-stroke-width);
+	stroke: var(--Strassenbahn-color);
 	fill:   none;
     marker-start: url(#StrassenbahnMarkerCircle);
     marker-end:   url(#StrassenbahnMarkerArrow);
 }
 #StrassenbahnMarkerCircle, #StrassenbahnMarkerArrow {
-	fill: darkgray ;
+	fill: var(--Strassenbahn-marker-color) ;
 }
 #Strassenbahn text { 
-	fill: darkgray ;
+	fill: var(--Strassenbahn-color) ;
 }
 
 #Strasse {
-	stroke-width: 0.5;
-	stroke: grey;
+	stroke-width: var(--normal-stroke-width);
+	stroke: var(--Strasse-color);
 	fill:   none;
     marker-start: url(#StrasseMarkerCircle);
     marker-end:   url(#StrasseMarkerArrow);
 }
 #StrasseMarkerCircle, #StrasseMarkerArrow {
-	fill: grey;
+	fill: var(--Strasse-marker-color);
 }
 #Strasse text { 
-	fill: grey;
+	fill: var(--Strasse-color);
 }
 
 #Wasserwege {
-	stroke-width: 0.25;
-	stroke: blue;
+	stroke-width: var(--narrow-stroke-width);
+	stroke: var(--Wasserwege-color);
 	fill:   none;
     marker-start: url(#WasserwegeMarkerCircle);
     marker-end:   url(#WasserwegeMarkerArrow); 
 }
 #WasserwegeMarkerCircle, #WasserwegeMarkerArrow {
-	fill: blue;
+	fill: var(--Wasserwege-marker-color);
 }
 #Wasserwege text { 
-	fill: blue;
+	fill: var(--Wasserwege-color);
 }
 
 #Steuerstrecken {
-	stroke-width: 0.25;
-	stroke: purple;
+	stroke-width: var(--narrow-stroke-width);
+	stroke: var(--Steuerstrecken-color);
 	fill:   none;
     marker-start: url(#SteuerstreckenMarkerCircle);
     marker-end:   url(#SteuerstreckenMarkerArrow); 
 }
 #SteuerstreckenMarkerCircle, #SteuerstreckenMarkerArrow {
-	fill: purple;
+	fill: var(--Steuerstrecken-marker-color);
 }
 #Steuerstrecken text { 
-	fill: purple;
+	fill: var(--Steuerstrecken-color);
 }
 
 #GBS {
-	stroke-width: 0.25;
-	stroke: brown;
+	stroke-width: var(--narrow-stroke-width);
+	stroke: var(--GBS-color);
 	fill:   none;
     marker-start: url(#GBSMarkerCircle);
     marker-end:   url(#GBSMarkerArrow); 
 }
 #GBSMarkerCircle, #GBSMarkerArrow {
-	fill: brown;
+	fill: var(--GBS-marker-color);
 }
 #GBS text { 
-	fill: brown;
+	fill: var(--GBS-color);
 }
 
 /* Individuelle Formatierung je Gleisstil */
@@ -1313,7 +1397,7 @@ textPath {
 	</style>
 </defs>
 
-<defs>
+<defs> <!-- marker -->
 	<marker id="Prellbock" 	markerWidth="2" markerHeight="5" refX="2" refY="2" orient="auto">
         <rect x="0" y="0" width="2" height="4"/>
     </marker>

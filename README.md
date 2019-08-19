@@ -47,7 +47,7 @@ Die automatische Größenanpassung des SVG-Elements im Brower zur Nutzung des ge
 
 Der Fortschittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit <i>Promise</i> / <i>requestAnimationFrame</i> und diversen Schritten bei der Verarbeitung realisiert. Leider unterstützt der Internet Explorer diese Funktion und diverse andere, moderne Sprachkonstrukte nicht und kann daher gar nicht verwendet werden. Die einzig empfohlenen Browser sind daher Google Chrome (bzw. diejenigen Browser, die auf Chomium basieren) und Firefox.
 
-Die interaktive Einstellung der Linien- und Textbreite wird über dynamische Anpassung der CSS-Regeln realisiert.  
+Die interaktive Einstellung der Linien- und Textbreite wird über dynamische Anpassung der CSS-Variablen in den SVG-CSS-Regeln realisiert.  
 
 ### Abhängigkeiten
 Die Bibliothek <a href='https://github.com/ariutta/svg-pan-zoom' target='_blank'>svg-pan-zoom</a> wird online aufgerufen. Wenn man das Programm komplett lokal nutzen will muss diese Bibliothek ebenfalls lokal kopiert werden und der entsprechende script-Befehl angepasst werden.
