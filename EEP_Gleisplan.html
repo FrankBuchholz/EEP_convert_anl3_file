@@ -962,7 +962,7 @@ function changeStrokeWidth(value) {
 	const factor = 0.1054 * Math.exp(0.03 * value);
 
 	// I would prefer to set properties instead of replacing textContent, but this code does not have any effect on the graphic:
-	const cssVariables = document.getElementById('css-size-variables').style;
+	const cssVariables = document.getElementById('css-size-variables').sheet.rules[0].style;
 	cssVariables.setProperty('--normal-font-size', `${4 * factor}px`);
 	cssVariables.setProperty('--normal-stroke-width', `${0.5 * factor}px`);
 	cssVariables.setProperty('--narrow-stroke-width', `${0.25 * factor}px`);
