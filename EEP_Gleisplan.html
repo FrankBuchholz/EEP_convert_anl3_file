@@ -961,7 +961,18 @@ function changeStrokeWidth(value) {
 	// f = 0.1054 * exp(0.03 * v)
 	const factor = 0.1054 * Math.exp(0.03 * value);
 
-	// Modify svg css to use same setting during PNG export
+	// I would prefer to set properties instead of replacing textContent, but this code does not have any effect on the graphic:
+	const cssVariables = document.getElementById('css-size-variables').style;
+	cssVariables.setProperty('--normal-font-size', `${4 * factor}px`);
+	cssVariables.setProperty('--normal-stroke-width', `${0.5 * factor}px`);
+	cssVariables.setProperty('--narrow-stroke-width', `${0.25 * factor}px`);
+
+console.log(cssVariables.getPropertyValue('--normal-font-size'))			// new value
+console.log(document.getElementById('css-size-variables').style)			// new value	
+console.log(document.getElementById('css-size-variables').style.cssText)	// new value
+console.log(document.getElementById('css-size-variables').textContent)		// old value (but if I change this it works)
+
+	// Modify svg css to use same setting during PNG export (we maybe could use calc() as well to avoid the constants here)
 	document.getElementById('css-size-variables').textContent =
 		`svg {
 			--normal-font-size: ${4 * factor}px;
