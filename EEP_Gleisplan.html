@@ -297,8 +297,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				}
 
 				// special text/textPath element to show GleisID in the middle of the track
-				svgAppend(svg_group_node, {
-					svg_tag			: `text`,
+				svgAppendTextPath(svg_group_node, {
+					//svg_tag			: `text`,
 					href			: `#G${GleissystemID}-${GleisID}`,
 					class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 					'text-anchor'	: `middle`,
@@ -309,8 +309,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 				if (Key_Id) {
 					// special text/textPath element to show Key_Id at the end of the track
-					svgAppend(svg_group_node, {
-						svg_tag			: `text`,
+					svgAppendTextPath(svg_group_node, {
+						//svg_tag			: `text`,
 						href			: `#G${GleissystemID}-${GleisID}`,
 						class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						'text-anchor'	: `end`,
@@ -319,6 +319,46 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						text 			: `W${Key_Id}`
 					});
 				}
+
+				// Signale
+				for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
+					const SignalID	= Meldung.getAttribute('Key_Id');
+					const Position	= Meldung.getAttribute('Position') / 100;
+					// const Name		= Meldung.getAttribute('name');
+					let x, y;
+					
+					if (Kruemmung == '0') {
+						x = Position;
+						y = 0; 
+					} else { // Kruemmung != 0
+						const Winkel 	= Kruemmung * Position;
+						const Radius 	= 1 / Kruemmung;
+						const DeltaX 	= Math.sin(Winkel) * Radius;
+						const DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+						x = DeltaX;
+						y = DeltaY; 
+					}
+
+					svgAppend(svg_group_node, {
+						svg_tag		: `circle`,
+						id			: `S${SignalID}`,
+						class		: `${Gleisart[clsid]} Signal`,
+						cx			: x,
+						cy			: y,
+						r			: 1,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+					svgAppend(svg_group_node, {
+						svg_tag		: `text`,
+						text		: `S${SignalID}`,
+						class		: `${Gleisart[clsid]} Signal`,
+						'text-anchor'	: `middle`,
+						x			: x,
+						y			: -y,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) scale(1,-1)`,
+					});
+
+				} // Signale
 
 			} // Gleise
 
@@ -397,48 +437,54 @@ function bodyAppend(tagName, innerHTML) {
 
 function svgAppend(svg_node, obj) {
 	const svgNS 	= "http://www.w3.org/2000/svg";
-	const xlinkNS	= "http://www.w3.org/1999/xlink";
-	let element;
+	//const xlinkNS	= "http://www.w3.org/1999/xlink";
 
-	if (obj.svg_tag != 'text') {
+	let element = document.createElementNS(svgNS, obj.svg_tag);
 
-		element = document.createElementNS(svgNS, obj.svg_tag);
+	// copy all attributes except the tag and the text
+	const entries = Object.entries(obj);
+	for (const [key, value] of entries) {
+		if (key != 'svg_tag' && key != 'text') { element.setAttribute(key, value); }
+	}
 
-		// copy all attributes except the tag (an alternate approach would be to construct a string and use innerHTML)
-		const entries = Object.entries(obj);
-		for (const [key, value] of entries) {
-			if (key != 'svg_tag') { element.setAttribute(key, value); }
-		}
-
-	} else { // text
-
-		// Create special element using attributes href, text, text-anchor (optional)
-		// Example:
-		// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
-
+	if (obj.svg_tag = 'text') {
 		const textNode 	= document.createTextNode(obj.text);
-
-		const textPath 	= document.createElementNS(svgNS, 'textPath');
-		textPath.setAttribute('class', obj.class);
-		if (obj['text-anchor'] == 'middle') {
-			textPath.setAttribute('startOffset', '50%');
-		}
-		else if (obj['text-anchor'] == 'end') {
-			textPath.setAttribute('startOffset', '90%'); // How to put the text exactly to the end?
-		}
-		textPath.setAttributeNS(xlinkNS, 'xlink:href', obj.href);
-		textPath.appendChild(textNode);
-
-		const text 		= document.createElementNS(svgNS, 'text');
-		if (obj['text-anchor']) { text.setAttribute('text-anchor', obj['text-anchor']); }
-		text.appendChild(textPath);
-		element = text;
-	};
+		element.appendChild(textNode);
+	}
 
 	svg_node.appendChild(element);
 
-//console.log(element)
 	return element;
+}
+
+function svgAppendTextPath(svg_node, obj) {
+	const svgNS 	= "http://www.w3.org/2000/svg";
+	const xlinkNS	= "http://www.w3.org/1999/xlink";
+
+	// Create special element using attributes href, text, text-anchor (optional)
+	// Example:
+	// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
+
+	const textNode 	= document.createTextNode(obj.text);
+
+	const textPath 	= document.createElementNS(svgNS, 'textPath');
+	textPath.setAttribute('class', obj.class);
+	if (obj['text-anchor'] == 'middle') {
+		textPath.setAttribute('startOffset', '50%');
+	}
+	else if (obj['text-anchor'] == 'end') {
+		textPath.setAttribute('startOffset', '90%'); // How to put the text exactly to the end?
+	}
+	textPath.setAttributeNS(xlinkNS, 'xlink:href', obj.href);
+	textPath.appendChild(textNode);
+
+	const text 		= document.createElementNS(svgNS, 'text');
+	if (obj['text-anchor']) { text.setAttribute('text-anchor', obj['text-anchor']); }
+	text.appendChild(textPath);
+
+	svg_node.appendChild(text);
+
+	return text;
 }
 
 </script>
@@ -701,19 +747,6 @@ function SvgPanZoom(usedArea) {
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // html page
 
-// Load CSS rules
-/* Not neccessary because we already have modified the SVG CSS
-function getCSSrules() {
-	const rules = {};
-	for (var i=0; i<document.styleSheets.length; ++i) {
-		const cssRules = document.styleSheets[i].cssRules;
-		for (var j=0; j<cssRules.length; ++j)
-			rules[cssRules[j].selectorText] = cssRules[j];
-	}
-	return rules;
-}
-*/
-
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -731,6 +764,18 @@ function toggleMarker(visible) {
 	msg();
 	toggleElements('#center', visible);
 
+	// Modify svg css (nice, but only works in the browser, not during PNG export)
+	/*
+	const cssVariables = document.getElementById('css-marker-colors').sheet.rules[0].style;
+	['Eisenbahn', 'Strassenbahn', 'Strasse', 'Wasserwege', 'Steuerstrecken', 'GBS'].forEach(function(name) {
+		if (visible) {
+			cssVariables.setProperty(`--${name}-marker-color`, `var(--${name}-color)`);
+		} else {
+			cssVariables.setProperty(`--${name}-marker-color`, `none`);
+		}
+	});
+	*/
+	
 	// Modify svg css to use same setting during PNG export
 	if (visible) {
 		document.getElementById('css-marker-colors').textContent =
@@ -752,21 +797,7 @@ function toggleMarker(visible) {
 				--Steuerstrecken-marker-color: none;
 				--GBS-marker-color: none;
 			}`;
-	}
-
-	// Modify CSS rules
-	/* Not neccessary because we already have modified the SVG CSS
-	const CSSrules = getCSSrules();
-	['Eisenbahn', 'Strassenbahn', 'Strasse', 'Wasserwege', 'Steuerstrecken', 'GBS'].forEach(function(name) {
-		if (visible) {
-			CSSrules['#' + name].style['marker-start'] 	= 'url(#' + name + 'MarkerCircle)';
-			CSSrules['#' + name].style['marker-end'] 	= 'url(#' + name + 'MarkerArrow)';
-		} else {
-			CSSrules['#' + name].style['marker-start'] 	= 'url(#)';
-			CSSrules['#' + name].style['marker-end'] 	= 'url(#)';
-		}
-	});
-	*/
+	}	
 }
 
 // save current svg area to png
@@ -842,7 +873,9 @@ function savePNG() {
 		} catch(err){
 			console.log(err);
 			msg('Zu groß: PNG-Export nicht möglich (link.click)');
-			return;
+			document.body.removeChild(link);
+			DOMURL.revokeObjectURL(png);
+			return; 
 		}
 		// Remove temporary data
 		document.body.removeChild(link);
@@ -961,36 +994,22 @@ function changeStrokeWidth(value) {
 	// f = 0.1054 * exp(0.03 * v)
 	const factor = 0.1054 * Math.exp(0.03 * value);
 
-	// I would prefer to set properties instead of replacing textContent, but this code does not have any effect on the graphic:
+	// Modify svg css (nice, but only works in the browser, not during PNG export)
+	// (we maybe could use calc(4 * var(--font-size-factor, 1) * 1px) as well to avoid the constants here)
+	/*
 	const cssVariables = document.getElementById('css-size-variables').sheet.rules[0].style;
 	cssVariables.setProperty('--normal-font-size', `${4 * factor}px`);
 	cssVariables.setProperty('--normal-stroke-width', `${0.5 * factor}px`);
 	cssVariables.setProperty('--narrow-stroke-width', `${0.25 * factor}px`);
-
-console.log(cssVariables.getPropertyValue('--normal-font-size'))			// new value
-console.log(document.getElementById('css-size-variables').style)			// new value	
-console.log(document.getElementById('css-size-variables').style.cssText)	// new value
-console.log(document.getElementById('css-size-variables').textContent)		// old value (but if I change this it works)
-
-	// Modify svg css to use same setting during PNG export (we maybe could use calc() as well to avoid the constants here)
+	*/
+	
+	// Modify svg css to use same setting during PNG export
 	document.getElementById('css-size-variables').textContent =
 		`svg {
 			--normal-font-size: ${4 * factor}px;
 			--normal-stroke-width: ${0.5 * factor}px;
 			--narrow-stroke-width: ${0.25 * factor}px;
-		}`;
-
-	// Modify CSS rules
-	/* Not neccessary because we already have modified the SVG CSS
-	const CSSrules = getCSSrules();
-	CSSrules['#Eisenbahn'].style['stroke-width'] 		= 0.5 * factor;
-	CSSrules['#Strassenbahn'].style['stroke-width'] 	= 0.5 * factor;
-	CSSrules['#Strasse'].style['stroke-width']			= 0.5 * factor;
-	CSSrules['#Wasserwege'].style['stroke-width'] 		= 0.25 * factor;
-	CSSrules['#Steuerstrecken'].style['stroke-width'] 	= 0.25 * factor;
-	CSSrules['#GBS'].style['stroke-width'] 				= 0.25 * factor;
-	(CSSrules['textPath'] || CSSrules['textpath']).style['font-size'] = 4 * factor + 'px'; // Chrome converts this to lower case. SVG on Firefox requires explizit unit
-	*/
+		}`	
 }
 </script>
 
@@ -1212,6 +1231,8 @@ Cursor: <span id="cursor_position"> </span>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('text', this.checked)">Text</label></div>
 	<div class="item"><label class='unsichtbar'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
+	<div class="item"><label class='Signal'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
 	<div class="item"><label class='Marker'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleMarker(this.checked)">Marker</label></div>
 </fieldset>
@@ -1240,7 +1261,7 @@ svg {
 	/* ]]> */
 	</style>
 
-	<style type="text/css" id='css-marker-colors'> /* dynamic update via Javascript to hide/show markers*/
+	<style type="text/css" id='css-marker-colors'> /* dynamic update via Javascript to hide/show markers */
 	/* <![CDATA[ */
 svg {
 	--Eisenbahn-marker-color: var(--Eisenbahn-color);
@@ -1253,7 +1274,7 @@ svg {
 	/* ]]> */
 	</style>
 
-	<style type="text/css" id='css-size-variables'> /* dynamic update via Javascript to ajdust font and line size */
+	<style type="text/css" id='css-size-variables'> /* dynamic update via Javascript to adjust font and line size */
 	/* <![CDATA[ */
 svg {
 	--normal-font-size: 4px;
@@ -1273,16 +1294,22 @@ svg {
 	/* transform: scale(1,-1);     		not useful as it would mirror the text, too */
 }
 
-/* Gleisnummern etc. */
+/* Gleisnummern, Weichen etc. */
 textPath {
 	font-size: var(--normal-font-size);
 	font-family: Arial;
 	stroke-width: 0;
 	dominant-baseline: text-after-edge;	/* kleiner Abstand von der Linie			*/
-	text-anchor: middle;
 }
 /*- textPath {	startOffset: "50%";	}	startOffset is not available in CSS 		*/
 
+
+/* Gleisnummern, Weichen etc. */
+text {
+	font-size: var(--normal-font-size);
+	font-family: Arial;
+	stroke-width: 0;
+}
 
 /* Box zur Anzeige der verwendeten Groesse der Anlage */
 .box {
@@ -1290,6 +1317,10 @@ textPath {
 	stroke: black;
 	fill:   none;
 	stroke-dasharray: 1;
+}
+
+circle .Signal {
+	stroke-width: var(--narrow-stroke-width);
 }
 
 /* Zusätzliche Markierung des Zentrums */
