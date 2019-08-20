@@ -29,8 +29,8 @@ function loadFile(file) {
 
 	// process file (local function to get access to local variable fr)
 	function processFile() {
-	
-		// Create parser				
+
+		// Create parser
 		var parser = new DOMParser();
 		// Parse xml into DOM
 		var xmlDoc = parser.parseFromString(fr.result, "text/xml");
@@ -41,10 +41,10 @@ function loadFile(file) {
 
 		// Show main area
 		document.getElementById('container').classList.remove('hidden');
-		
+
 		// Show file name
 		document.getElementById('filename').textContent = file.name.substring(0, file.name.length -1 -1 -3);
-		
+
 		// Process root node (documentElement always represents the root node)
 		process_node(xmlDoc.documentElement);
 	}
@@ -66,49 +66,49 @@ function process_node(sutrackp) {
 		4 : 'Wasserwege',
 		5 : 'Steuerstrecken',			// nicht in EEP 9
 		6 : 'GBS',						// nicht in EEP 9
-	}
+	};
 
 	const Gleisart = { 					// clsid
 		'2E25C8E2-ADCD-469A-942E-7484556FF932' : 'Normal',
 		'C889EADB-63B5-44A2-AAB9-457424CFF15F' : 'Weiche',
 		'B0818DD8-5DFD-409F-8022-993FD3C90759' : '3-Weg-Weiche',
 		'06D80C90-4E4B-469B-BFE0-509A573EBC99' : 'Prellbock',
-	}
+	};
 
-	/* Gleisstile: 
-	http://up.picr.de/33875489iu.pdf 
+	/* Gleisstile:
+	http://up.picr.de/33875489iu.pdf
 	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
-	*/	
+	*/
 	const unsichtbar = [	// unsichtbare Gleisstile
 		17, 				// Wasser, Steuerstrecke
 		28, 34, 562,		// Gleis
 		35, 				// Strassenbahn
 		36, 				// Strasse
-		5145, 5146, 5147,	// Farm track 
+		5145, 5146, 5147,	// Farm track
 		5602,				// Fence
 		100000,				// Kamerafahrweg
-	]
+	];
 
-	const Version 		= sutrackp.getElementsByTagName('Version')[0]
-	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0]
+	const Version 		= sutrackp.getElementsByTagName('Version')[0];
+	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
 
 	// Groesse der Anlage (alle Positionsangaben in m statt cm)
 	const Area = {
-		min : {	
+		min : {
 			x : Schandlaft.getAttribute('posX') / 100,
 			y : Schandlaft.getAttribute('posY') / 100,
 		},
 		width  	: Math.abs(Schandlaft.getAttribute('posX') * 2 / 100),
 		height 	: Math.abs(Schandlaft.getAttribute('posY') * 2 / 100),
-	}
+	};
 
 	let element;
 	element = divAppend('Intro');
 	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Höhe = 607 m
-	htmlAppend(element, 'p', 
-		`EEP Version = ${Version.getAttribute('EEP')}, 
-		 Anzahl Objekte = ${Version.getAttribute('No3DMs')}, 
-		 Breite = ${Area.width.toFixed(0)} m, 
+	htmlAppend(element, 'p',
+		`EEP Version = ${Version.getAttribute('EEP')},
+		 Anzahl Objekte = ${Version.getAttribute('No3DMs')},
+		 Breite = ${Area.width.toFixed(0)} m,
 		 Höhe = ${Area.height.toFixed(0)} m
 		`
 	);
@@ -116,33 +116,33 @@ function process_node(sutrackp) {
 
 	// Maps for direct access
 	const
-		Gleise		= new Map();	// Verwendung: Gleis = Gleise.get(GleissystemID).get(GleisID))	
+		Gleise		= new Map();	// Verwendung: Gleis = Gleise.get(GleissystemID).get(GleisID))
 
-	// Sortable arrays 
-	const 
+	// Sortable arrays
+	const
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
-		Signale 	= []; 	// ID (des Signals), Name, Meldung, Gleissystem, Gleis 
-		Zugverbaende = []; 	// ID (des Zugverbandes), Name, Gleisort, rollmaterialien  
+		Signale 	= [], 	// ID (des Signals), Name, Meldung, Gleissystem, Gleis
+		Zugverbaende = []; 	// ID (des Zugverbandes), Name, Gleisort, rollmaterialien
 
 	// Extract data from Gleissystem
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
 		const GleissystemID			= Gleissystem.getAttribute('GleissystemID');
-		Gleise.set(GleissystemID, new Map())
+		Gleise.set(GleissystemID, new Map());
 
 		for (const Gleis of Gleissystem.getElementsByTagName('Gleis')) {
 			const GleisID = Gleis.getAttribute('GleisID');
-			Gleise.get(GleissystemID).set(GleisID, Gleis)
-			
+			Gleise.get(GleissystemID).set(GleisID, Gleis);
+
 			const WeicheID	= Gleis.getAttribute('Key_Id');
 			if (WeicheID) {  // Ist das Gleis eine Weiche?
 				Weichen.push({
 					ID			: Number(WeicheID),  // sort field
-					
+
 					GleissystemID : GleissystemID,
 					GleisID 		: GleisID,
 				});
 			}
-			
+
 			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
 				// get potential sort fields
 				const SignalID	= Meldung.getAttribute('Key_Id');
@@ -151,24 +151,24 @@ function process_node(sutrackp) {
 				Signale.push({
 					ID				: Number(SignalID),  // sort fields
 					Name			: Name,
-					
+
 					GleissystemID 	: GleissystemID,
 					GleisID			: GleisID,
 
 					Meldung 		: Meldung,
 				});
-			};
+			}
 		}
 	}
 
 	// Extract data from Fuhrpark
-	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0]
+	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
 	for (const Zugverband of Fuhrpark.getElementsByTagName('Zugverband')) {
 		const ZugID		= Zugverband.getAttribute('ZugID');
 		const Name		= Zugverband.getAttribute('name');
 		const Gleisort	= Zugverband.getElementsByTagName('Gleisort')[0];
 		const Rollmaterialien = [];
-	
+
 		for (const Rollmaterial of Zugverband.getElementsByTagName('Rollmaterial')) {
 			Rollmaterialien.push({
 				Rollmaterial : Rollmaterial,
@@ -178,16 +178,16 @@ function process_node(sutrackp) {
 		Zugverbaende.push({
 			ID				: Number(ZugID),  // sort fields
 			Name			: Name,
-			
+
 			Gleisort 		: Gleisort,
 			Rollmaterialien	: Rollmaterialien,
 		});
 	}
-	
+
 
 	// Anzeige der Weichen
 	element = divAppend('Weiche');
-	htmlAppend(element, 'h4', `Weichen (${Weichen.length})`); 
+	htmlAppend(element, 'h4', `Weichen (${Weichen.length})`);
 	Weichen.sort(orderByID).forEach(Weiche => {
 		const WeicheID		= Weiche.ID;
 		const GleissystemID	= Weiche.GleissystemID;
@@ -196,18 +196,18 @@ function process_node(sutrackp) {
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 
-		htmlAppend(element, 'p', 
-			`Weiche ${WeicheID}, 
+		htmlAppend(element, 'p',
+			`Weiche ${WeicheID},
 			 ${GleissystemText[GleissystemID]} ${GleisID},
 			 x = ${PosX.toFixed(0)} m,
 			 y = ${PosY.toFixed(0)} m
 			`
 		);
 	});
-	
+
 	// Anzeige der Signale
 	element = divAppend('Signal');
-	htmlAppend(element, 'h4', `Signale (${Signale.length})`); 
+	htmlAppend(element, 'h4', `Signale (${Signale.length})`);
 	Signale.sort(orderByID).forEach(Signal => {
 		const SignalID		= Signal.ID;
 		const Name			= Signal.Name;
@@ -218,8 +218,8 @@ function process_node(sutrackp) {
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Signal.Meldung.getAttribute('Position') / 100;
 
-		htmlAppend(element, 'p', 
-			`Signal ${SignalID}, 
+		htmlAppend(element, 'p',
+			`Signal ${SignalID},
 			 ${GleissystemText[GleissystemID]} ${GleisID},
 			 x = ${PosX.toFixed(0)} m,
 			 y = ${PosY.toFixed(0)} m,
@@ -231,27 +231,27 @@ function process_node(sutrackp) {
 
 	// Anzeige der Zugverbände
 	element = divAppend('Zugverband');
-	htmlAppend(element, 'h4', `Zugverbände (${Weichen.length})`); 
+	htmlAppend(element, 'h4', `Zugverbände (${Weichen.length})`);
 	Zugverbaende.sort(orderByID).forEach(Zugverband => {
 		const ZugID			= Zugverband.ID;
 		const Name			= Zugverband.Name;
 		const GleissystemID	= Zugverband.Gleisort.getAttribute('gleissystemID');
 		const GleisID 		= Zugverband.Gleisort.getAttribute('gleisID');
-		const Gleis 		= Gleise.get(GleissystemID).get(GleisID)
+		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
-	
-		htmlAppend(element, 'p', 
-			`Zugverband ${ZugID}, 
+
+		htmlAppend(element, 'p',
+			`Zugverband ${ZugID},
 			 ${GleissystemText[GleissystemID]} ${GleisID},
 			 x = ${PosX.toFixed(0)} m,
 			 y = ${PosY.toFixed(0)} m,
 			 +${Position.toFixed(0)} m
-			 ${Name}, 
+			 ${Name},
 			`
 		);
-		
+
 		// Rollmaterialien anzeigen
 		// ...
 	});
@@ -318,12 +318,12 @@ function toggleElements(selector, visible) {
 	margin-inline-end: 0;
 	padding-block-start: 0;
 	padding-inline-start: 0;
-	padding-inline-end: 0; 
+	padding-inline-end: 0;
 	padding-block-end: 0;
 }
-.fieldset .item { 					
+.fieldset .item {
 	white-space: nowrap;		/* keep checkbox and label together */
-	display:inline;				/* but do no add extra line breaks per item */
+	display: inline;			/* but do no add extra line breaks per item */
 }
 
 </style>
@@ -338,7 +338,7 @@ function toggleElements(selector, visible) {
 <div id='header'> <!-- The header contains the initial selection screen -->
 
 <div id='fileselector'>
-<form action='#' onsubmit='return false;'> <!-- better not to use inline listener, explizit register is better --> 
+<form action='#' onsubmit='return false;'> <!-- better not to use inline listener, explizit register is better -->
 	<label for='fileinput'>Wähle und lade eine EEP-Anlage-Datei (.anl3)</label>
 	<input type='file' id='fileinput' accept='.anl3' onchange='loadFile(this.files && this.files[0])'>
 	<!-- An extra button is not neccessary -->
@@ -350,7 +350,7 @@ Anschließend wird der Inhalt ausgegeben.</small></p>
 <p><small>(c) Frank Buchholz, 2019</small></p>
 </div> <!-- fileselector -->
 
-</div>  <!-- header --> 
+</div>  <!-- header -->
 
 <div id='container' class='hidden'> <!-- The container shows the result -->
 
@@ -360,7 +360,7 @@ Anschließend wird der Inhalt ausgegeben.</small></p>
 	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Weiche', this.checked)">Weiche</label></div>
 	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Signal', this.checked)">Signal</label></div>
 	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Zugverband', this.checked)">Zugverband</label></div>
-</fieldset> 
+</fieldset>
 </div>
 
 </div> <!-- container -->
