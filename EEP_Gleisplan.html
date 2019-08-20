@@ -325,39 +325,37 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					const SignalID	= Meldung.getAttribute('Key_Id');
 					const Position	= Meldung.getAttribute('Position') / 100;
 					// const Name		= Meldung.getAttribute('name');
-					let x, y;
+					let DeltaX, DeltaY, Winkel;
 					
 					if (Kruemmung == '0') {
-						x = Position;
-						y = 0; 
+						DeltaX			= Position;
+						DeltaY			= 0; 
+						Winkel 			= 0;
 					} else { // Kruemmung != 0
-						const Winkel 	= Kruemmung * Position;
+						Winkel 			= Kruemmung * Position;
 						const Radius 	= 1 / Kruemmung;
-						const DeltaX 	= Math.sin(Winkel) * Radius;
-						const DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
-						x = DeltaX;
-						y = DeltaY; 
+						DeltaX 	= Math.sin(Winkel) * Radius;
+						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
 					}
 
 					svgAppend(svg_group_node, {
 						svg_tag		: `circle`,
 						id			: `S${SignalID}`,
 						class		: `${Gleisart[clsid]} Signal`,
-						cx			: x,
-						cy			: y,
+						cx			: DeltaX,
+						cy			: DeltaY,
 						r			: 1,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
 					svgAppend(svg_group_node, {
 						svg_tag		: `text`,
 						text		: `S${SignalID}`,
-						class		: `${Gleisart[clsid]} Signal`,
-						'text-anchor'	: `middle`,
-						x			: x,
-						y			: -y,
-						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) scale(1,-1)`,
+						class		: `_${Gleisart[clsid]} Signal`,
+						x			: DeltaX,
+						y			: -DeltaY,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) scale(1 -1)`,
 					});
-
+ 
 				} // Signale
 
 			} // Gleise
@@ -1311,16 +1309,21 @@ text {
 	stroke-width: 0;
 }
 
+circle .Signal {
+	stroke-width: var(--narrow-stroke-width);
+}
+
+text, .Signal {
+	text-anchor	: middle;
+	baseline-shift : super;
+}
+
 /* Box zur Anzeige der verwendeten Groesse der Anlage */
 .box {
 	stroke-width: 0.1;
 	stroke: black;
 	fill:   none;
 	stroke-dasharray: 1;
-}
-
-circle .Signal {
-	stroke-width: var(--narrow-stroke-width);
 }
 
 /* Zusätzliche Markierung des Zentrums */
