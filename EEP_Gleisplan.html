@@ -234,6 +234,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge )
 
 				let pathElement;
+				let Winkel, DeltaX, DeltaY;
 				if (Kruemmung == '0') {
 			/*
 			SVG: Gerades Gleis
@@ -243,6 +244,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			b) <line x1="0" y1="0" x2="Laenge" y2="0" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
 			b) <path d="M 0 0 H Laenge" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
 			*/
+					Winkel 			= 0;
+					DeltaX			= Laenge;
+					DeltaY			= 0; 
 
 					pathElement = svgAppend(svg_group_node, {
 						svg_tag		: `path`,
@@ -279,12 +283,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			Dies ergibt folgende vereinfachte Form:
 			<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
 			*/
-					const Winkel 	= Kruemmung * Laenge;
+					Winkel 	= Kruemmung * Laenge;
 					const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1);
 					const SweepFlag = ( Winkel >= 0 ? 1 : 0);
 					const Radius 	= 1 / Kruemmung;
-					const DeltaX 	= Math.sin(Winkel) * Radius;
-					const DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+					DeltaX 	= Math.sin(Winkel) * Radius;
+					DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
 
 					pathElement = svgAppend(svg_group_node, {
 						svg_tag		: `path`,
@@ -302,21 +306,20 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					href			: `#G${GleissystemID}-${GleisID}`,
 					class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 					'text-anchor'	: `middle`,
-					//x 				: pathElement.getTotalLength() / 2,
-					//y 				: 0,
 					text 			: `${GleisID}`
 				});
 
 				if (Key_Id) {
-					// special text/textPath element to show Key_Id at the end of the track
-					svgAppendTextPath(svg_group_node, {
-						//svg_tag			: `text`,
-						href			: `#G${GleissystemID}-${GleisID}`,
-						class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
-						'text-anchor'	: `end`,
-						//x 				: pathElement.getTotalLength(),
-						//y 				: 0,
-						text 			: `W${Key_Id}`
+					// Show text of Weiche
+					svgAppend(svg_group_node, {
+						svg_tag		: `text`,
+						text		: `W${Key_Id}`,
+						class		: `${Gleisart[clsid]} Weiche ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						x			: DeltaX,
+						y			: -DeltaY,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+									   scale(1 -1)`,
 					});
 				}
 
@@ -325,12 +328,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					const SignalID	= Meldung.getAttribute('Key_Id');
 					const Position	= Meldung.getAttribute('Position') / 100;
 					// const Name		= Meldung.getAttribute('name');
-					let DeltaX, DeltaY, Winkel;
+					let Winkel, DeltaX, DeltaY;
 					
 					if (Kruemmung == '0') {
+						Winkel 			= 0;
 						DeltaX			= Position;
 						DeltaY			= 0; 
-						Winkel 			= 0;
 					} else { // Kruemmung != 0
 						Winkel 			= Kruemmung * Position;
 						const Radius 	= 1 / Kruemmung;
@@ -338,22 +341,26 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
 					}
 
+					// Show marker for Signal
 					svgAppend(svg_group_node, {
 						svg_tag		: `circle`,
 						id			: `S${SignalID}`,
-						class		: `${Gleisart[clsid]} Signal`,
+						class		: `${Gleisart[clsid]} Signal ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						cx			: DeltaX,
 						cy			: DeltaY,
 						r			: 1,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
+					// Show text of Signal
 					svgAppend(svg_group_node, {
 						svg_tag		: `text`,
 						text		: `S${SignalID}`,
-						class		: `_${Gleisart[clsid]} Signal`,
+						class		: `${Gleisart[clsid]} Signal ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						x			: DeltaX,
 						y			: -DeltaY,
-						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) scale(1 -1)`,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+									   scale(1 -1)`,
 					});
  
 				} // Signale
@@ -440,18 +447,17 @@ function svgAppend(svg_node, obj) {
 	let element = document.createElementNS(svgNS, obj.svg_tag);
 
 	// copy all attributes except the tag and the text
-	const entries = Object.entries(obj);
-	for (const [key, value] of entries) {
+	for (const [key, value] of Object.entries(obj)) {
 		if (key != 'svg_tag' && key != 'text') { element.setAttribute(key, value); }
 	}
 
-	if (obj.svg_tag = 'text') {
+	if (obj.svg_tag == 'text') {
 		const textNode 	= document.createTextNode(obj.text);
 		element.appendChild(textNode);
+		element.setAttribute('dy', '1em'); // Shift text below the track
 	}
 
 	svg_node.appendChild(element);
-
 	return element;
 }
 
@@ -479,6 +485,7 @@ function svgAppendTextPath(svg_node, obj) {
 	const text 		= document.createElementNS(svgNS, 'text');
 	if (obj['text-anchor']) { text.setAttribute('text-anchor', obj['text-anchor']); }
 	text.appendChild(textPath);
+	text.setAttribute('dy', '-0.1em'); // Shift text up the track
 
 	svg_node.appendChild(text);
 
@@ -1292,30 +1299,33 @@ svg {
 	/* transform: scale(1,-1);     		not useful as it would mirror the text, too */
 }
 
-/* Gleisnummern, Weichen etc. */
-textPath {
-	font-size: var(--normal-font-size);
-	font-family: Arial;
-	stroke-width: 0;
-	dominant-baseline: text-after-edge;	/* kleiner Abstand von der Linie			*/
+/* unsichtbare Gleisstile */
+.unsichtbar {
+	stroke-dasharray: 1;
 }
-/*- textPath {	startOffset: "50%";	}	startOffset is not available in CSS 		*/
 
-
-/* Gleisnummern, Weichen etc. */
+/* Texte für Signale, Weichen etc. */
 text {
 	font-size: var(--normal-font-size);
 	font-family: Arial;
 	stroke-width: 0;
-}
-
-circle .Signal {
-	stroke-width: var(--narrow-stroke-width);
-}
-
-text, .Signal {
 	text-anchor	: middle;
-	baseline-shift : super;
+}
+
+/* Gleisnummern in der Mitte des Gleises */
+textPath {
+}
+
+text.Weiche {
+	text-anchor	: end;
+}
+
+text.Signal {
+}
+
+circle.Signal {
+	stroke-width: var(--narrow-stroke-width);
+	stroke-dasharray: 0;
 }
 
 /* Box zur Anzeige der verwendeten Groesse der Anlage */
@@ -1420,10 +1430,6 @@ text, .Signal {
 }
 
 /* Individuelle Formatierung je Gleisstil */
-
-.unsichtbar {
-	stroke-dasharray: 1;
-}
 
 .Prellbock {
 	marker-end:   url(#Prellbock);
