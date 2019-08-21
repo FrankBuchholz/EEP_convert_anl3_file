@@ -234,6 +234,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge )
 
 				let pathElement;
+				let Winkel, DeltaX, DeltaY;
 				if (Kruemmung == '0') {
 			/*
 			SVG: Gerades Gleis
@@ -243,6 +244,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			b) <line x1="0" y1="0" x2="Laenge" y2="0" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
 			b) <path d="M 0 0 H Laenge" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
 			*/
+					Winkel 			= 0;
+					DeltaX			= Laenge;
+					DeltaY			= 0; 
 
 					pathElement = svgAppend(svg_group_node, {
 						svg_tag		: `path`,
@@ -279,12 +283,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			Dies ergibt folgende vereinfachte Form:
 			<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
 			*/
-					const Winkel 	= Kruemmung * Laenge;
+					Winkel 	= Kruemmung * Laenge;
 					const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1);
 					const SweepFlag = ( Winkel >= 0 ? 1 : 0);
 					const Radius 	= 1 / Kruemmung;
-					const DeltaX 	= Math.sin(Winkel) * Radius;
-					const DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+					DeltaX 	= Math.sin(Winkel) * Radius;
+					DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
 
 					pathElement = svgAppend(svg_group_node, {
 						svg_tag		: `path`,
@@ -297,28 +301,99 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				}
 
 				// special text/textPath element to show GleisID in the middle of the track
-				svgAppend(svg_group_node, {
-					svg_tag			: `text`,
+				svgAppendTextPath(svg_group_node, {
+					//svg_tag			: `text`,
 					href			: `#G${GleissystemID}-${GleisID}`,
 					class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 					'text-anchor'	: `middle`,
-					//x 				: pathElement.getTotalLength() / 2,
-					//y 				: 0,
 					text 			: `${GleisID}`
 				});
 
 				if (Key_Id) {
-					// special text/textPath element to show Key_Id at the end of the track
+					// Show text of Weiche
 					svgAppend(svg_group_node, {
-						svg_tag			: `text`,
-						href			: `#G${GleissystemID}-${GleisID}`,
-						class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
-						'text-anchor'	: `end`,
-						//x 				: pathElement.getTotalLength(),
-						//y 				: 0,
-						text 			: `W${Key_Id}`
+						svg_tag		: `text`,
+						text		: `W${Key_Id}`,
+						class		: `${Gleisart[clsid]} Weiche ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						x			: DeltaX,
+						y			: -DeltaY,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+									   scale(1 -1)`,
 					});
 				}
+
+				// Signale
+				for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
+					const SignalID	= Meldung.getAttribute('Key_Id');
+					const Position	= Meldung.getAttribute('Position') / 100;
+					// const Name		= Meldung.getAttribute('name');
+					let Winkel, DeltaX, DeltaY;
+					
+					if (Kruemmung == '0') {
+						Winkel 			= 0;
+						DeltaX			= Position;
+						DeltaY			= 0; 
+					} else { // Kruemmung != 0
+						Winkel 			= Kruemmung * Position;
+						const Radius 	= 1 / Kruemmung;
+						DeltaX 	= Math.sin(Winkel) * Radius;
+						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+					}
+
+					// Show marker for Signal
+					svgAppend(svg_group_node, {
+						svg_tag		: `circle`,
+						id			: `S${SignalID}`,
+						class		: `${Gleisart[clsid]} Signal ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						cx			: DeltaX,
+						cy			: DeltaY,
+						r			: 1,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+					// Show text of Signal
+					svgAppend(svg_group_node, {
+						svg_tag		: `text`,
+						text		: `S${SignalID}`,
+						class		: `${Gleisart[clsid]} Signal ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						x			: DeltaX,
+						y			: -DeltaY,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+									   scale(1 -1)`,
+					});
+ 
+				} // Signale
+
+				// Kontakte
+				for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
+					const Position	= Kontakt.getAttribute('Position') / 100;
+					let Winkel, DeltaX, DeltaY;
+					
+					if (Kruemmung == '0') {
+						Winkel 			= 0;
+						DeltaX			= Position;
+						DeltaY			= 0; 
+					} else { // Kruemmung != 0
+						Winkel 			= Kruemmung * Position;
+						const Radius 	= 1 / Kruemmung;
+						DeltaX 	= Math.sin(Winkel) * Radius;
+						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+					}
+
+					// Show marker for Kontakt
+					svgAppend(svg_group_node, {
+						svg_tag		: `rect`,
+						class		: `${Gleisart[clsid]} Kontakt ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						x			: DeltaX,
+						y			: DeltaY,
+						width		: 0.2,
+						height		: 1,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+					});
+ 
+				} // Kontakte
 
 			} // Gleise
 
@@ -397,48 +472,54 @@ function bodyAppend(tagName, innerHTML) {
 
 function svgAppend(svg_node, obj) {
 	const svgNS 	= "http://www.w3.org/2000/svg";
-	const xlinkNS	= "http://www.w3.org/1999/xlink";
-	let element;
+	//const xlinkNS	= "http://www.w3.org/1999/xlink";
 
-	if (obj.svg_tag != 'text') {
+	let element = document.createElementNS(svgNS, obj.svg_tag);
 
-		element = document.createElementNS(svgNS, obj.svg_tag);
+	// copy all attributes except the tag and the text
+	for (const [key, value] of Object.entries(obj)) {
+		if (key != 'svg_tag' && key != 'text') { element.setAttribute(key, value); }
+	}
 
-		// copy all attributes except the tag (an alternate approach would be to construct a string and use innerHTML)
-		const entries = Object.entries(obj);
-		for (const [key, value] of entries) {
-			if (key != 'svg_tag') { element.setAttribute(key, value); }
-		}
-
-	} else { // text
-
-		// Create special element using attributes href, text, text-anchor (optional)
-		// Example:
-		// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
-
+	if (obj.svg_tag == 'text') {
 		const textNode 	= document.createTextNode(obj.text);
-
-		const textPath 	= document.createElementNS(svgNS, 'textPath');
-		textPath.setAttribute('class', obj.class);
-		if (obj['text-anchor'] == 'middle') {
-			textPath.setAttribute('startOffset', '50%');
-		}
-		else if (obj['text-anchor'] == 'end') {
-			textPath.setAttribute('startOffset', '90%'); // How to put the text exactly to the end?
-		}
-		textPath.setAttributeNS(xlinkNS, 'xlink:href', obj.href);
-		textPath.appendChild(textNode);
-
-		const text 		= document.createElementNS(svgNS, 'text');
-		if (obj['text-anchor']) { text.setAttribute('text-anchor', obj['text-anchor']); }
-		text.appendChild(textPath);
-		element = text;
-	};
+		element.appendChild(textNode);
+		element.setAttribute('dy', '1em'); // Shift text below the track
+	}
 
 	svg_node.appendChild(element);
-
-//console.log(element)
 	return element;
+}
+
+function svgAppendTextPath(svg_node, obj) {
+	const svgNS 	= "http://www.w3.org/2000/svg";
+	const xlinkNS	= "http://www.w3.org/1999/xlink";
+
+	// Create special element using attributes href, text, text-anchor (optional)
+	// Example:
+	// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
+
+	const textNode 	= document.createTextNode(obj.text);
+
+	const textPath 	= document.createElementNS(svgNS, 'textPath');
+	textPath.setAttribute('class', obj.class);
+	if (obj['text-anchor'] == 'middle') {
+		textPath.setAttribute('startOffset', '50%');
+	}
+	else if (obj['text-anchor'] == 'end') {
+		textPath.setAttribute('startOffset', '90%'); // How to put the text exactly to the end?
+	}
+	textPath.setAttributeNS(xlinkNS, 'xlink:href', obj.href);
+	textPath.appendChild(textNode);
+
+	const text 		= document.createElementNS(svgNS, 'text');
+	if (obj['text-anchor']) { text.setAttribute('text-anchor', obj['text-anchor']); }
+	text.appendChild(textPath);
+	text.setAttribute('dy', '-0.1em'); // Shift text up the track
+
+	svg_node.appendChild(text);
+
+	return text;
 }
 
 </script>
@@ -701,19 +782,6 @@ function SvgPanZoom(usedArea) {
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // html page
 
-// Load CSS rules
-/* Not neccessary because we already have modified the SVG CSS
-function getCSSrules() {
-	const rules = {};
-	for (var i=0; i<document.styleSheets.length; ++i) {
-		const cssRules = document.styleSheets[i].cssRules;
-		for (var j=0; j<cssRules.length; ++j)
-			rules[cssRules[j].selectorText] = cssRules[j];
-	}
-	return rules;
-}
-*/
-
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -731,6 +799,18 @@ function toggleMarker(visible) {
 	msg();
 	toggleElements('#center', visible);
 
+	// Modify svg css (nice, but only works in the browser, not during PNG export)
+	/*
+	const cssVariables = document.getElementById('css-marker-colors').sheet.rules[0].style;
+	['Eisenbahn', 'Strassenbahn', 'Strasse', 'Wasserwege', 'Steuerstrecken', 'GBS'].forEach(function(name) {
+		if (visible) {
+			cssVariables.setProperty(`--${name}-marker-color`, `var(--${name}-color)`);
+		} else {
+			cssVariables.setProperty(`--${name}-marker-color`, `none`);
+		}
+	});
+	*/
+	
 	// Modify svg css to use same setting during PNG export
 	if (visible) {
 		document.getElementById('css-marker-colors').textContent =
@@ -752,21 +832,7 @@ function toggleMarker(visible) {
 				--Steuerstrecken-marker-color: none;
 				--GBS-marker-color: none;
 			}`;
-	}
-
-	// Modify CSS rules
-	/* Not neccessary because we already have modified the SVG CSS
-	const CSSrules = getCSSrules();
-	['Eisenbahn', 'Strassenbahn', 'Strasse', 'Wasserwege', 'Steuerstrecken', 'GBS'].forEach(function(name) {
-		if (visible) {
-			CSSrules['#' + name].style['marker-start'] 	= 'url(#' + name + 'MarkerCircle)';
-			CSSrules['#' + name].style['marker-end'] 	= 'url(#' + name + 'MarkerArrow)';
-		} else {
-			CSSrules['#' + name].style['marker-start'] 	= 'url(#)';
-			CSSrules['#' + name].style['marker-end'] 	= 'url(#)';
-		}
-	});
-	*/
+	}	
 }
 
 // save current svg area to png
@@ -842,7 +908,9 @@ function savePNG() {
 		} catch(err){
 			console.log(err);
 			msg('Zu groß: PNG-Export nicht möglich (link.click)');
-			return;
+			document.body.removeChild(link);
+			DOMURL.revokeObjectURL(png);
+			return; 
 		}
 		// Remove temporary data
 		document.body.removeChild(link);
@@ -961,25 +1029,22 @@ function changeStrokeWidth(value) {
 	// f = 0.1054 * exp(0.03 * v)
 	const factor = 0.1054 * Math.exp(0.03 * value);
 
+	// Modify svg css (nice, but only works in the browser, not during PNG export)
+	// (we maybe could use calc(4 * var(--font-size-factor, 1) * 1px) as well to avoid the constants here)
+	/*
+	const cssVariables = document.getElementById('css-size-variables').sheet.rules[0].style;
+	cssVariables.setProperty('--normal-font-size', `${4 * factor}px`);
+	cssVariables.setProperty('--normal-stroke-width', `${0.5 * factor}px`);
+	cssVariables.setProperty('--narrow-stroke-width', `${0.25 * factor}px`);
+	*/
+	
 	// Modify svg css to use same setting during PNG export
 	document.getElementById('css-size-variables').textContent =
 		`svg {
 			--normal-font-size: ${4 * factor}px;
 			--normal-stroke-width: ${0.5 * factor}px;
 			--narrow-stroke-width: ${0.25 * factor}px;
-		}`;
-
-	// Modify CSS rules
-	/* Not neccessary because we already have modified the SVG CSS
-	const CSSrules = getCSSrules();
-	CSSrules['#Eisenbahn'].style['stroke-width'] 		= 0.5 * factor;
-	CSSrules['#Strassenbahn'].style['stroke-width'] 	= 0.5 * factor;
-	CSSrules['#Strasse'].style['stroke-width']			= 0.5 * factor;
-	CSSrules['#Wasserwege'].style['stroke-width'] 		= 0.25 * factor;
-	CSSrules['#Steuerstrecken'].style['stroke-width'] 	= 0.25 * factor;
-	CSSrules['#GBS'].style['stroke-width'] 				= 0.25 * factor;
-	(CSSrules['textPath'] || CSSrules['textpath']).style['font-size'] = 4 * factor + 'px'; // Chrome converts this to lower case. SVG on Firefox requires explizit unit
-	*/
+		}`	
 }
 </script>
 
@@ -1201,6 +1266,8 @@ Cursor: <span id="cursor_position"> </span>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('text', this.checked)">Text</label></div>
 	<div class="item"><label class='unsichtbar'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
+	<div class="item"><label class='Signal'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
 	<div class="item"><label class='Marker'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleMarker(this.checked)">Marker</label></div>
 </fieldset>
@@ -1229,7 +1296,7 @@ svg {
 	/* ]]> */
 	</style>
 
-	<style type="text/css" id='css-marker-colors'> /* dynamic update via Javascript to hide/show markers*/
+	<style type="text/css" id='css-marker-colors'> /* dynamic update via Javascript to hide/show markers */
 	/* <![CDATA[ */
 svg {
 	--Eisenbahn-marker-color: var(--Eisenbahn-color);
@@ -1242,7 +1309,7 @@ svg {
 	/* ]]> */
 	</style>
 
-	<style type="text/css" id='css-size-variables'> /* dynamic update via Javascript to ajdust font and line size */
+	<style type="text/css" id='css-size-variables'> /* dynamic update via Javascript to adjust font and line size */
 	/* <![CDATA[ */
 svg {
 	--normal-font-size: 4px;
@@ -1262,16 +1329,39 @@ svg {
 	/* transform: scale(1,-1);     		not useful as it would mirror the text, too */
 }
 
-/* Gleisnummern etc. */
-textPath {
+/* unsichtbare Gleisstile */
+.unsichtbar {
+	stroke-dasharray: 1;
+}
+
+/* Texte für Signale, Weichen etc. */
+text {
 	font-size: var(--normal-font-size);
 	font-family: Arial;
 	stroke-width: 0;
-	dominant-baseline: text-after-edge;	/* kleiner Abstand von der Linie			*/
-	text-anchor: middle;
+	text-anchor	: middle;
 }
-/*- textPath {	startOffset: "50%";	}	startOffset is not available in CSS 		*/
 
+/* Gleisnummern in der Mitte des Gleises */
+textPath {
+}
+
+text.Weiche {
+	text-anchor	: end;
+}
+
+text.Signal {
+}
+
+circle.Signal {
+	stroke-width: var(--narrow-stroke-width);
+	stroke-dasharray: 0;
+}
+
+rect.Kontakt {
+	stroke-width: 0; /* var(--narrow-stroke-width); */
+	stroke-dasharray: 0;
+}
 
 /* Box zur Anzeige der verwendeten Groesse der Anlage */
 .box {
@@ -1375,10 +1465,6 @@ textPath {
 }
 
 /* Individuelle Formatierung je Gleisstil */
-
-.unsichtbar {
-	stroke-dasharray: 1;
-}
 
 .Prellbock {
 	marker-end:   url(#Prellbock);
