@@ -365,6 +365,36 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
  
 				} // Signale
 
+				// Kontakte
+				for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
+					const Position	= Kontakt.getAttribute('Position') / 100;
+					let Winkel, DeltaX, DeltaY;
+					
+					if (Kruemmung == '0') {
+						Winkel 			= 0;
+						DeltaX			= Position;
+						DeltaY			= 0; 
+					} else { // Kruemmung != 0
+						Winkel 			= Kruemmung * Position;
+						const Radius 	= 1 / Kruemmung;
+						DeltaX 	= Math.sin(Winkel) * Radius;
+						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+					}
+
+					// Show marker for Kontakt
+					svgAppend(svg_group_node, {
+						svg_tag		: `rect`,
+						class		: `${Gleisart[clsid]} Kontakt ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						x			: DeltaX,
+						y			: DeltaY,
+						width		: 0.2,
+						height		: 1,
+						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+					});
+ 
+				} // Kontakte
+
 			} // Gleise
 
 			return incrementProgress();
@@ -1325,6 +1355,11 @@ text.Signal {
 
 circle.Signal {
 	stroke-width: var(--narrow-stroke-width);
+	stroke-dasharray: 0;
+}
+
+rect.Kontakt {
+	stroke-width: 0; /* var(--narrow-stroke-width); */
 	stroke-dasharray: 0;
 }
 
