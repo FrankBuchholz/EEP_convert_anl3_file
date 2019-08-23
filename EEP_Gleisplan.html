@@ -131,7 +131,16 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		100000,				// Kamerafahrweg
 	];
 
-	//var version 	= sutrackp.getElementsByTagName('Version')[0]
+	const Version 		= sutrackp.getElementsByTagName('Version')[0];
+	const EEPversion 	= Version.getAttribute('EEP');	
+	if (EEPversion >= 16) {
+		bodyAppend('p',
+			`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
+			`
+		);	
+		return;
+	}
+	
 	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
 
 	// Groesse der Anlage (alle Positionsangaben in m statt cm)
@@ -149,6 +158,15 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		min : {x : 0, y : 0},
 		max : {x : 0, y : 0},
 	};
+
+	// Maps for direct access (Preparation to separate analysis of the file from creating the output.)
+	const // Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
+		GleissystemMap = new Map();	// Informationen zu Gleisen, die für die Ausgabe benötigt werden
+
+	// Arrays to store intermediate data
+		activeTracks = [],			// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
+									// oder die mit solchen Gleisen verbunden sind
+		trackConnections = []; 		// Gleisverbindungen
 
 	// Append new svg elements to this root node which we apend to the svg node later
 	let fragment = document.createDocumentFragment();
@@ -169,7 +187,13 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		function process(Gleissystem) {
 			//console.log(Gleissystem)
 
-			const GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+			// Use attribute TrackSystemNumber instead of GleissystemID if available
+			let GleissystemID 	= Gleissystem.getAttribute('TrackSystemNumber');
+			if (!GleissystemID) {
+				GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+			}
+			GleissystemMap.set(GleissystemID, new Map());
+			activeTracks[GleissystemID] = [];
 
 			// Append groups to the root node; append other elements to these group nodes
 			let svg_group_node = svgAppend(fragment, {
@@ -213,6 +237,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			*/
 
 				const GleisID 	= Gleis.getAttribute('GleisID');
+				GleissystemMap.get(GleissystemID).set(GleisID, Gleis);
+				
 				const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
 				const stil 		= Gleis.getAttribute('stil');		// Gleisstil
 				const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
@@ -325,6 +351,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 				// Signale
 				for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
+				
+					// A track having a Signal is an "active" track
+					if (!activeTracks[GleissystemID].includes(GleisID)) {
+						 activeTracks[GleissystemID].push(GleisID);
+					}
+				
 					const SignalID	= Meldung.getAttribute('Key_Id');
 					const Position	= Meldung.getAttribute('Position') / 100;
 					// const Name		= Meldung.getAttribute('name');
@@ -367,6 +399,11 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 				// Kontakte
 				for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
+					// A track having a Kontakt is an "active" track
+					if (!activeTracks[GleissystemID].includes(GleisID)) {
+						 activeTracks[GleissystemID].push(GleisID);
+					}
+					
 					const Position	= Kontakt.getAttribute('Position') / 100;
 					let Winkel, DeltaX, DeltaY;
 					
@@ -397,10 +434,69 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 			} // Gleise
 
+			// Gleisverbindungen 
+			trackConnections[GleissystemID] = [];
+			const Gleisverbindungen = Gleissystem.getElementsByTagName('Gleisverbindung');
+			for (const Gleisverbindung of Gleisverbindungen) {
+				// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang"/>
+				const GleisID1 		= Gleisverbindung.getAttribute('GleisID1');
+				const GleisID2 		= Gleisverbindung.getAttribute('GleisID2');
+
+				// Store relation GleisID1 -> GleisID2
+				if (!trackConnections[GleissystemID][GleisID1]) {
+					 trackConnections[GleissystemID][GleisID1] = [];
+				}
+				trackConnections[GleissystemID][GleisID1].push(GleisID2);
+
+				// Store relation GleisID2 -> GleisID1
+				if (!trackConnections[GleissystemID][GleisID2]) {
+					 trackConnections[GleissystemID][GleisID2] = [];
+				}
+				trackConnections[GleissystemID][GleisID2].push(GleisID1);
+			}
 			return incrementProgress();
 		}
 
 	}).then(function() {
+	
+		// Analyse Fuhrpark to identify "active" tracks
+		const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
+		for (const Zugverband of Fuhrpark.getElementsByTagName('Zugverband')) {
+			// <Gleisort gleissystemID="3" gleisID="41" parameter="1177.944" ausrichtung="0"/>
+			const Gleisort		= Zugverband.getElementsByTagName('Gleisort')[0];
+			const GleissystemID	= Gleisort.getAttribute('gleissystemID');
+			const GleisID		= Gleisort.getAttribute('gleisID');
+
+			// A track with a Zugverband is an "active" track
+			if (!activeTracks[GleissystemID].includes(GleisID)) {
+				 activeTracks[GleissystemID].push(GleisID);
+			}
+		}
+	
+		// Add connected tracks as "active" tracks because they can be reached by trains as well 
+		for (const GleissystemID in activeTracks) {
+			const usedGleiseArray = activeTracks[GleissystemID];
+			
+			// Extend "active" tracks
+			for (let i = 0; i < usedGleiseArray.length; i++){ // old-fashioned for statement because we need to extend the array within the loop
+				const GleisID1 = usedGleiseArray[i];
+
+				// Get connected tracks of "active" tracks
+				const connectedTracks = trackConnections[GleissystemID][GleisID1]
+				if (!connectedTracks) { continue; }
+				for (const GleisID2 of connectedTracks) {
+					// Add new connected tracks
+					// These tracks will be processed, too
+					if (!activeTracks[GleissystemID].includes(GleisID2)) {
+						 activeTracks[GleissystemID].push(GleisID2);
+					}
+				}
+			}
+			
+		}
+		// Now we could mark all "active" tracks in the svg-output
+		//...
+	
 		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
 		usedArea.min.x = Math.max( usedArea.min.x, Area.min.x );
 		usedArea.min.y = Math.max( usedArea.min.y, Area.min.y );
