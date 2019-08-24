@@ -162,15 +162,16 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	};
 
 	// Maps for direct access (Preparation to separate analysis of the file from creating the output.)
-	const // Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
-		GleissystemMap = new Map();	// Informationen zu Gleisen, die für die Ausgabe benötigt werden
+	// Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
+	global.GleissystemMap = new Map();
 
 	// Append new svg elements to this root node which we apend to the svg node later
 	let fragment = document.createDocumentFragment();
 
-	const activeTracks = [];	// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
-								// oder die mit solchen Gleisen verbunden sind
-	trackConnections = []; 		// Gleisverbindungen
+	// Preparation: Collect "active" tracks 
+	const activeTracks = [];		// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
+									// oder die mit solchen Gleisen verbunden sind
+	const trackConnections = [];	// Gleisverbindungen
 
 	const Gleissysteme 	= sutrackp.getElementsByTagName('Gleissystem');
 	for (const Gleissystem of Gleissysteme) {
@@ -180,27 +181,29 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		if (!GleissystemID) {
 			GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
 		}
+		global.GleissystemMap.set(GleissystemID, new Map());
 		activeTracks[GleissystemID] = [];
 
 		const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
 		for (const Gleis of Gleise) {
 			const GleisID 	= Gleis.getAttribute('GleisID');
+			global.GleissystemMap.get(GleissystemID).set(GleisID, Gleis);
+			
 			// Signale
 			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
-			
 				// A track having a Signal is an "active" track
 				if (!activeTracks[GleissystemID].includes(GleisID)) {
 					 activeTracks[GleissystemID].push(GleisID);
 				}
-			} // Signale
+			}
+
 			// Kontakte
 			for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
 				// A track having a Kontakt is an "active" track
 				if (!activeTracks[GleissystemID].includes(GleisID)) {
 					 activeTracks[GleissystemID].push(GleisID);
 				}
-			} // Kontakte
-
+			}
 		} // Gleise
 
 		// Gleisverbindungen 
@@ -226,8 +229,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	}
 
 	// Analyse Fuhrpark to identify "active" tracks
-	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
-	for (const Zugverband of Fuhrpark.getElementsByTagName('Zugverband')) {
+	global.Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
+	for (const Zugverband of global.Fuhrpark.getElementsByTagName('Zugverband')) {
 		// <Gleisort gleissystemID="3" gleisID="41" parameter="1177.944" ausrichtung="0"/>
 		const Gleisort		= Zugverband.getElementsByTagName('Gleisort')[0];
 		const GleissystemID	= Gleisort.getAttribute('gleissystemID');
@@ -282,7 +285,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			if (!GleissystemID) {
 				GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
 			}
-			GleissystemMap.set(GleissystemID, new Map());
 
 			// Append groups to the root node; append other elements to these group nodes
 			let svg_group_node = svgAppend(fragment, {
@@ -326,8 +328,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			*/
 
 				const GleisID 	= Gleis.getAttribute('GleisID');
-				GleissystemMap.get(GleissystemID).set(GleisID, Gleis);
-				
 				const clsid 	= Gleis.getAttribute('clsid');		// Gleisart
 				const stil 		= Gleis.getAttribute('stil');		// Gleisstil
 				const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
