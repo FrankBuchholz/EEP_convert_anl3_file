@@ -10,7 +10,9 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // Load and process file
-let global_sutrackp; // global variable because it's used later with interactive elements as well
+
+const global = {}; // Collection of all global valriables
+
 function loadFile(file) {
 	var fr;
 	if (typeof window.FileReader !== 'function') {
@@ -49,7 +51,7 @@ function loadFile(file) {
 
 			// Process root node (documentElement always represents the root node)
 			const sutrackp = xmlDoc.documentElement;
-			global_sutrackp = sutrackp;
+			global.sutrackp = sutrackp;
 			return svgCreate(sutrackp, initProgress, incrementProgress);
 
 			function initProgress(progressMax) {
@@ -163,15 +165,103 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	const // Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
 		GleissystemMap = new Map();	// Informationen zu Gleisen, die für die Ausgabe benötigt werden
 
-	// Arrays to store intermediate data
-		activeTracks = [],			// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
-									// oder die mit solchen Gleisen verbunden sind
-		trackConnections = []; 		// Gleisverbindungen
-
 	// Append new svg elements to this root node which we apend to the svg node later
 	let fragment = document.createDocumentFragment();
 
+	const activeTracks = [];	// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
+								// oder die mit solchen Gleisen verbunden sind
+	trackConnections = []; 		// Gleisverbindungen
+
 	const Gleissysteme 	= sutrackp.getElementsByTagName('Gleissystem');
+	for (const Gleissystem of Gleissysteme) {
+
+		// Use attribute TrackSystemNumber instead of GleissystemID if available
+		let GleissystemID 	= Gleissystem.getAttribute('TrackSystemNumber');
+		if (!GleissystemID) {
+			GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+		}
+		activeTracks[GleissystemID] = [];
+
+		const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
+		for (const Gleis of Gleise) {
+			const GleisID 	= Gleis.getAttribute('GleisID');
+			// Signale
+			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
+			
+				// A track having a Signal is an "active" track
+				if (!activeTracks[GleissystemID].includes(GleisID)) {
+					 activeTracks[GleissystemID].push(GleisID);
+				}
+			} // Signale
+			// Kontakte
+			for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
+				// A track having a Kontakt is an "active" track
+				if (!activeTracks[GleissystemID].includes(GleisID)) {
+					 activeTracks[GleissystemID].push(GleisID);
+				}
+			} // Kontakte
+
+		} // Gleise
+
+		// Gleisverbindungen 
+		trackConnections[GleissystemID] = [];
+		const Gleisverbindungen = Gleissystem.getElementsByTagName('Gleisverbindung');
+		for (const Gleisverbindung of Gleisverbindungen) {
+			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang"/>
+			const GleisID1 		= Gleisverbindung.getAttribute('GleisID1');
+			const GleisID2 		= Gleisverbindung.getAttribute('GleisID2');
+
+			// Store relation GleisID1 -> GleisID2
+			if (!trackConnections[GleissystemID][GleisID1]) {
+				 trackConnections[GleissystemID][GleisID1] = [];
+			}
+			trackConnections[GleissystemID][GleisID1].push(GleisID2);
+
+			// Store relation GleisID2 -> GleisID1
+			if (!trackConnections[GleissystemID][GleisID2]) {
+				 trackConnections[GleissystemID][GleisID2] = [];
+			}
+			trackConnections[GleissystemID][GleisID2].push(GleisID1);
+		}
+	}
+
+	// Analyse Fuhrpark to identify "active" tracks
+	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
+	for (const Zugverband of Fuhrpark.getElementsByTagName('Zugverband')) {
+		// <Gleisort gleissystemID="3" gleisID="41" parameter="1177.944" ausrichtung="0"/>
+		const Gleisort		= Zugverband.getElementsByTagName('Gleisort')[0];
+		const GleissystemID	= Gleisort.getAttribute('gleissystemID');
+		const GleisID		= Gleisort.getAttribute('gleisID');
+
+		// A track with a Zugverband is an "active" track
+		if (!activeTracks[GleissystemID].includes(GleisID)) {
+			 activeTracks[GleissystemID].push(GleisID);
+		}
+	}
+
+	// Add connected tracks as "active" tracks because they can be reached by trains as well 
+	for (const GleissystemID in activeTracks) {
+		const usedGleiseArray = activeTracks[GleissystemID];
+		
+		// Extend "active" tracks
+		for (let i = 0; i < usedGleiseArray.length; i++){ // old-fashioned for statement because we need to extend the array within the loop
+			const GleisID1 = usedGleiseArray[i];
+
+			// Get connected tracks of "active" tracks
+			const connectedTracks = trackConnections[GleissystemID][GleisID1]
+			if (!connectedTracks) { continue; }
+			for (const GleisID2 of connectedTracks) {
+				// Add new connected tracks
+				// These tracks will be processed, too
+				if (!activeTracks[GleissystemID].includes(GleisID2)) {
+					 activeTracks[GleissystemID].push(GleisID2);
+				}
+			}
+		}
+		
+	}
+	// Now we are able to mark all "active" tracks in the svg-output
+	global.activeTracks = activeTracks;
 
 	return initProgress(Gleissysteme.length).then(function() {
 		let promise = null;
@@ -193,7 +283,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
 			}
 			GleissystemMap.set(GleissystemID, new Map());
-			activeTracks[GleissystemID] = [];
 
 			// Append groups to the root node; append other elements to these group nodes
 			let svg_group_node = svgAppend(fragment, {
@@ -277,7 +366,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					pathElement = svgAppend(svg_group_node, {
 						svg_tag		: `path`,
 						id			: `G${GleissystemID}-${GleisID}`,
-						class		: `stil-${stil} ${Gleisart[clsid]}${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `stil-${stil} ${Gleisart[clsid]}
+										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
+										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						d 			: `M 0 0 H ${Laenge}`,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
@@ -319,7 +410,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					pathElement = svgAppend(svg_group_node, {
 						svg_tag		: `path`,
 						id			: `G${GleissystemID}-${GleisID}`,
-						class		: `stil-${stil} ${Gleisart[clsid]}${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `stil-${stil} 
+										${Gleisart[clsid]}
+										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
+										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						d 			: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
@@ -330,7 +424,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				svgAppendTextPath(svg_group_node, {
 					//svg_tag			: `text`,
 					href			: `#G${GleissystemID}-${GleisID}`,
-					class			: `${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+					class			: `	${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
+										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 					'text-anchor'	: `middle`,
 					text 			: `${GleisID}`
 				});
@@ -340,7 +435,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					svgAppend(svg_group_node, {
 						svg_tag		: `text`,
 						text		: `W${Key_Id}`,
-						class		: `${Gleisart[clsid]} Weiche ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `	${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
+										${Gleisart[clsid]} Weiche ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						x			: DeltaX,
 						y			: -DeltaY,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
@@ -351,12 +447,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 				// Signale
 				for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
-				
-					// A track having a Signal is an "active" track
-					if (!activeTracks[GleissystemID].includes(GleisID)) {
-						 activeTracks[GleissystemID].push(GleisID);
-					}
-				
 					const SignalID	= Meldung.getAttribute('Key_Id');
 					const Position	= Meldung.getAttribute('Position') / 100;
 					// const Name		= Meldung.getAttribute('name');
@@ -377,7 +467,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					svgAppend(svg_group_node, {
 						svg_tag		: `circle`,
 						id			: `S${SignalID}`,
-						class		: `${Gleisart[clsid]} Signal ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `${Gleisart[clsid]} Signal 
+										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
+										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						cx			: DeltaX,
 						cy			: DeltaY,
 						r			: 1,
@@ -387,7 +479,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					svgAppend(svg_group_node, {
 						svg_tag		: `text`,
 						text		: `S${SignalID}`,
-						class		: `${Gleisart[clsid]} Signal ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `${Gleisart[clsid]} Signal 
+										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
+										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						x			: DeltaX,
 						y			: -DeltaY,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
@@ -399,11 +493,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 				// Kontakte
 				for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
-					// A track having a Kontakt is an "active" track
-					if (!activeTracks[GleissystemID].includes(GleisID)) {
-						 activeTracks[GleissystemID].push(GleisID);
-					}
-					
 					const Position	= Kontakt.getAttribute('Position') / 100;
 					let Winkel, DeltaX, DeltaY;
 					
@@ -421,7 +510,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					// Show marker for Kontakt
 					svgAppend(svg_group_node, {
 						svg_tag		: `rect`,
-						class		: `${Gleisart[clsid]} Kontakt ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `${Gleisart[clsid]} Kontakt 
+										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
+										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						x			: DeltaX,
 						y			: DeltaY,
 						width		: 0.2,
@@ -434,68 +525,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 			} // Gleise
 
-			// Gleisverbindungen 
-			trackConnections[GleissystemID] = [];
-			const Gleisverbindungen = Gleissystem.getElementsByTagName('Gleisverbindung');
-			for (const Gleisverbindung of Gleisverbindungen) {
-				// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang"/>
-				const GleisID1 		= Gleisverbindung.getAttribute('GleisID1');
-				const GleisID2 		= Gleisverbindung.getAttribute('GleisID2');
-
-				// Store relation GleisID1 -> GleisID2
-				if (!trackConnections[GleissystemID][GleisID1]) {
-					 trackConnections[GleissystemID][GleisID1] = [];
-				}
-				trackConnections[GleissystemID][GleisID1].push(GleisID2);
-
-				// Store relation GleisID2 -> GleisID1
-				if (!trackConnections[GleissystemID][GleisID2]) {
-					 trackConnections[GleissystemID][GleisID2] = [];
-				}
-				trackConnections[GleissystemID][GleisID2].push(GleisID1);
-			}
 			return incrementProgress();
 		}
 
 	}).then(function() {
-	
-		// Analyse Fuhrpark to identify "active" tracks
-		const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
-		for (const Zugverband of Fuhrpark.getElementsByTagName('Zugverband')) {
-			// <Gleisort gleissystemID="3" gleisID="41" parameter="1177.944" ausrichtung="0"/>
-			const Gleisort		= Zugverband.getElementsByTagName('Gleisort')[0];
-			const GleissystemID	= Gleisort.getAttribute('gleissystemID');
-			const GleisID		= Gleisort.getAttribute('gleisID');
-
-			// A track with a Zugverband is an "active" track
-			if (!activeTracks[GleissystemID].includes(GleisID)) {
-				 activeTracks[GleissystemID].push(GleisID);
-			}
-		}
-	
-		// Add connected tracks as "active" tracks because they can be reached by trains as well 
-		for (const GleissystemID in activeTracks) {
-			const usedGleiseArray = activeTracks[GleissystemID];
-			
-			// Extend "active" tracks
-			for (let i = 0; i < usedGleiseArray.length; i++){ // old-fashioned for statement because we need to extend the array within the loop
-				const GleisID1 = usedGleiseArray[i];
-
-				// Get connected tracks of "active" tracks
-				const connectedTracks = trackConnections[GleissystemID][GleisID1]
-				if (!connectedTracks) { continue; }
-				for (const GleisID2 of connectedTracks) {
-					// Add new connected tracks
-					// These tracks will be processed, too
-					if (!activeTracks[GleissystemID].includes(GleisID2)) {
-						 activeTracks[GleissystemID].push(GleisID2);
-					}
-				}
-			}
-			
-		}
-		// Now we could mark all "active" tracks in the svg-output
-		//...
 	
 		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
 		usedArea.min.x = Math.max( usedArea.min.x, Area.min.x );
@@ -624,7 +657,6 @@ function svgAppendTextPath(svg_node, obj) {
 <script src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <script> // svg-pan-zoom
 // https://github.com/ariutta/svg-pan-zoom
-let global_panZoom;
 function SvgPanZoom(usedArea) {
 
 	const beforePan = function(oldPan, newPan) {
@@ -711,7 +743,7 @@ function SvgPanZoom(usedArea) {
 		// , eventsListenerElement: SVGElement
 		, onUpdatedCTM: null
 	});
-	global_panZoom = panZoom;
+	global.panZoom = panZoom;
 
 	// Pan and zoom to used area
 	showUsedArea(true);
@@ -1035,7 +1067,7 @@ function centerItem() {
 
 		const GleissystemID = Number(sel);
 		const GleisID 		= val;
-		const Gleissystem	= getElement(global_sutrackp.getElementsByTagName('Gleissystem'), 'GleissystemID', GleissystemID);
+		const Gleissystem	= getElement(global.sutrackp.getElementsByTagName('Gleissystem'), 'GleissystemID', GleissystemID);
 		if (!Gleissystem) {
 			msg(`Gleissystem ${GleissystemID} existiert nicht`);
 			return false;
@@ -1057,7 +1089,7 @@ function centerItem() {
 		const ID 		= val;
 
 		// Suche das Signal bzw. die Weiche auf allen Gleisen
-		const Gleissysteme 	= global_sutrackp.getElementsByTagName('Gleissystem');
+		const Gleissysteme 	= global.sutrackp.getElementsByTagName('Gleissystem');
 		for (const Gleissystem of Gleissysteme) {
 
 			const Gleise = Gleissystem.getElementsByTagName('Gleis');
@@ -1102,14 +1134,14 @@ function centerGleis(Gleis) {
 	const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 	const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 
-	const width 	= global_panZoom.getSizes().width;
-	const height	= global_panZoom.getSizes().height;
-	const realZoom	= global_panZoom.getSizes().realZoom;
+	const width 	= global.panZoom.getSizes().width;
+	const height	= global.panZoom.getSizes().height;
+	const realZoom	= global.panZoom.getSizes().realZoom;
 
 	const panX 		= width/2	- PosX * realZoom;
 	const panY 		= height/2	- PosY * realZoom;
 
-	global_panZoom.pan({x: panX, y: panY});
+	global.panZoom.pan({x: panX, y: panY});
 }
 
 function msg(text) {
@@ -1360,6 +1392,10 @@ Cursor: <span id="cursor_position"> </span>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
 	<div class="item"><label class='Text'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('text', this.checked)">Text</label></div>
+	<div class="item"><label class='active'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.active', this.checked)">aktiv</label></div>
+	<div class="item"><label class='inactive'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.inactive', this.checked)">inaktiv</label></div>
 	<div class="item"><label class='unsichtbar'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
 	<div class="item"><label class='Signal'>
