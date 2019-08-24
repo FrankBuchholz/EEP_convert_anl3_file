@@ -90,6 +90,7 @@ function process_node(sutrackp) {
 	];
 
 	const Version 		= sutrackp.getElementsByTagName('Version')[0];
+	const EEPversion 	= Version.getAttribute('EEP');
 	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
 
 	// Groesse der Anlage (alle Positionsangaben in m statt cm)
@@ -106,17 +107,23 @@ function process_node(sutrackp) {
 	element = divAppend('Intro');
 	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Höhe = 607 m
 	htmlAppend(element, 'p',
-		`EEP Version = ${Version.getAttribute('EEP')},
+		`EEP Version = ${EEPversion},
 		 Anzahl Objekte = ${Version.getAttribute('No3DMs')},
 		 Breite = ${Area.width.toFixed(0)} m,
 		 Höhe = ${Area.height.toFixed(0)} m
 		`
 	);
-
+	if (EEPversion >= 16) {
+		toggleElements('.fieldset', false);
+		htmlAppend(element, 'p',
+			`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
+			`
+		);	
+		return;
+	}
 
 	// Maps for direct access
-	const
-		Gleise		= new Map();	// Verwendung: Gleis = Gleise.get(GleissystemID).get(GleisID))
+	const GleisMap = new Map();	// Verwendung: Gleis = GleisMap.get(GleissystemID).get(GleisID))
 
 	// Sortable arrays
 	const
@@ -126,12 +133,98 @@ function process_node(sutrackp) {
 
 	// Extract data from Gleissystem
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
-		const GleissystemID			= Gleissystem.getAttribute('GleissystemID');
-		Gleise.set(GleissystemID, new Map());
+		// Check new field first
+		let GleissystemID 	= Gleissystem.getAttribute('TrackSystemNumber');
+		if (!GleissystemID) {
+			GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+		}
+		GleisMap.set(GleissystemID, new Map());
 
 		for (const Gleis of Gleissystem.getElementsByTagName('Gleis')) {
+		
+/* Beispiel bis Version EEP 15:
+https://www.trendverlag.com/Schema/EEP.xsd 
+https://www.trendverlag.com/Schema/Common.xsd
+https://www.trendverlag.com/Schema/traxML.xsd 
+https://www.trendverlag.com/Schema/Train.xsd
+
+
+<Gleis GleisID="1" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm" LockEd="0">
+	<Dreibein>
+		<Vektor x="-12359.88" y="-1854.389" z="30">Pos</Vektor>
+		<Vektor x="0.699066" y="-0.715057" z="0">Dir</Vektor>
+		<Vektor x="0.715057" y="0.699066" z="0">Nor</Vektor>
+		<Vektor x="-0" y="0" z="1">Bin</Vektor>
+	</Dreibein>
+	<Anfangsfuehrungsverdrehung Wert="0"/>
+	<Charakteristik Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Kurve="0" Laenge="2580"/>
+</Gleis>
+
+Beispiel ab Version EEP 16: 
+
+<Gleis GleisID="314" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="0.6" ElectSideS="0" ElectSideE="0" OneWay="1" stil="2263" gsbname="\Gleisstile\Strassen\Asphaltstrasse_01_RE1.3dm" LockEd="0">
+	<Frame>...</Frame>
+	<Interval near="0" far="20.34561"/>
+
+gefolgt von einer der Varianten:
+
+	<Curve>
+		<EEPCurve Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Laenge="1768" Kurve="0" Anfangsfuehrungsverdrehung="0">
+			<Frame>...</Frame>
+		</EEPCurve>
+	</Curve>
+	
+	<Curve>
+		<Line>
+			<VectorBundle>
+				<Position x="0" y="0" z="0"/>
+				<Vector dx="1" dy="0" dz="0"/>
+			</VectorBundle>
+			<Vector dx="0" dy="0" dz="1"/>
+		</Line>
+	</Curve>
+	
+	<Curve>
+		<Arc>
+			<VectorBundle2>
+				<Position x="0" y="16.40503" z="0"/>
+				<Vector dx="1" dy="0" dz="0"/>
+				<Vector dx="0" dy="16.40503" dz="0"/>
+			</VectorBundle2>
+		</Arc>
+	</Curve>
+	
+	<Curve>
+		<Helix a="100.4987" b="2.017408">
+			<VectorBundle2>
+				<Position x="0" y="0" z="0"/>
+				<Vector dx="1" dy="0" dz="0"/>
+				<Vector dx="0" dy="1" dz="0"/>
+			</VectorBundle2>
+		</Helix>
+	</Curve>
+	
+	<Curve>
+		<Rotator a="7.933316E-02" b="-0"/>
+	</Curve>
+
+und abgeschlossen mit
+	
+	<Twist>...</Twist>
+</Gleis>
+		
+mit
+
+<Frame>
+	<Position x="268582" y="-155050" z="29.99999"/>
+	<Vector dx="1" dy="0" dz="0"/>
+	<Vector dx="0" dy="1" dz="0"/>
+	<Vector dx="0" dy="0" dz="1"/>
+</Frame>
+			
+*/
 			const GleisID = Gleis.getAttribute('GleisID');
-			Gleise.get(GleissystemID).set(GleisID, Gleis);
+			GleisMap.get(GleissystemID).set(GleisID, Gleis);
 
 			const WeicheID	= Gleis.getAttribute('Key_Id');
 			if (WeicheID) {  // Ist das Gleis eine Weiche?
@@ -192,7 +285,7 @@ function process_node(sutrackp) {
 		const WeicheID		= Weiche.ID;
 		const GleissystemID	= Weiche.GleissystemID;
 		const GleisID 		= Weiche.GleisID;
-		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
+		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 
@@ -213,7 +306,7 @@ function process_node(sutrackp) {
 		const Name			= Signal.Name;
 		const GleissystemID	= Signal.GleissystemID;
 		const GleisID 		= Signal.GleisID;
-		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
+		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Signal.Meldung.getAttribute('Position') / 100;
@@ -237,7 +330,7 @@ function process_node(sutrackp) {
 		const Name			= Zugverband.Name;
 		const GleissystemID	= Zugverband.Gleisort.getAttribute('gleissystemID');
 		const GleisID 		= Zugverband.Gleisort.getAttribute('gleisID');
-		const Gleis 		= Gleise.get(GleissystemID).get(GleisID);
+		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
