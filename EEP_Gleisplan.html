@@ -78,6 +78,8 @@ function loadFile(file) {
 
 			// Activate Pan and Zoom
 			SvgPanZoom(usedArea);
+		}, function(err) {
+			console.log(err);
 		});
 	}
 
