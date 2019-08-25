@@ -189,17 +189,20 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			const GleisID 	= Gleis.getAttribute('GleisID');
 			global.GleissystemMap.get(GleissystemID).set(GleisID, Gleis);
 			
-			// Signale
+			// Signale, die nur zur Anzeige dienen und keine Züge beeinflussen sollen werden gerne auf "inaktive" Gleise gesetzt.
+			// Alternativ könnte man nicht-verbundene Einzelgleise als "inaktive" interpretieren.
+			// A track having a Signal is an "active" track
+			/*
 			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
-				// A track having a Signal is an "active" track
 				if (!activeTracks[GleissystemID].includes(GleisID)) {
 					 activeTracks[GleissystemID].push(GleisID);
 				}
 			}
-
+			*/
+			
 			// Kontakte
+			// A track having a Kontakt is an "active" track
 			for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
-				// A track having a Kontakt is an "active" track
 				if (!activeTracks[GleissystemID].includes(GleisID)) {
 					 activeTracks[GleissystemID].push(GleisID);
 				}
@@ -287,11 +290,11 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			}
 
 			// Append groups to the root node; append other elements to these group nodes
-			let svg_group_node = svgAppend(fragment, {
+			const svgGleissystem_Group = svgAppend(fragment, {
 				svg_tag	: `g`,
 				id		: `${GleissystemText[GleissystemID]}`,
 			});
-			//console.log(svg_group_node)
+			//console.log(svgGleissystem_Group)
 
 			const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
 
@@ -348,6 +351,15 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge )
 				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge )
 
+				// Group node for Gleis
+				const svgGleisGroup = svgAppend(svgGleissystem_Group, {
+					svg_tag	: `g`,
+					id		: `G${GleissystemID}-${GleisID}`,
+					class	: Gleisart[clsid] + 
+								' ' + (global.activeTracks[GleissystemID].includes(GleisID) ? 'active' : 'inactive') + 
+								(unsichtbar.includes(parseInt(stil)) ? ' ' + 'unsichtbar' : ''),
+				});
+
 				let pathElement;
 				let Winkel, DeltaX, DeltaY;
 				if (Kruemmung == '0') {
@@ -363,16 +375,25 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					DeltaX			= Laenge;
 					DeltaY			= 0; 
 
-					pathElement = svgAppend(svg_group_node, {
+					pathElement = svgAppend(svgGleisGroup, {
 						svg_tag		: `path`,
-						id			: `G${GleissystemID}-${GleisID}`,
-						class		: `stil-${stil} ${Gleisart[clsid]}
-										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
-										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `stil-${stil}`,
 						d 			: `M 0 0 H ${Laenge}`,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
-
+					
+					// show GleisID in the middle of the track
+					DeltaX			= Laenge / 2;
+					svgAppend(svgGleisGroup, {
+						svg_tag			: `text`,
+						text			: `${GleisID}`,
+						'text-anchor'	: `middle`,
+						x				: DeltaX,
+						y				: -DeltaY,
+						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+					});
 
 				} else { // Kruemmung != 0
 			/*
@@ -403,40 +424,39 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					Winkel 	= Kruemmung * Laenge;
 					const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1);
 					const SweepFlag = ( Winkel >= 0 ? 1 : 0);
-					const Radius 	= 1 / Kruemmung;
-					DeltaX 	= Math.sin(Winkel) * Radius;
-					DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+					const Radius	= 1 / Kruemmung;
+					DeltaX 			= Math.sin(Winkel) * Radius;
+					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 
-					pathElement = svgAppend(svg_group_node, {
+					pathElement = svgAppend(svgGleisGroup, {
 						svg_tag		: `path`,
-						id			: `G${GleissystemID}-${GleisID}`,
-						class		: `stil-${stil} 
-										${Gleisart[clsid]}
-										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
-										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `stil-${stil}`,
 						d 			: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
 
+					// show GleisID in the middle of the track
+					Winkel 			= Kruemmung * Laenge / 2;
+					DeltaX 			= Math.sin(Winkel) * Radius;
+					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+					svgAppend(svgGleisGroup, {
+						svg_tag			: `text`,
+						text			: `${GleisID}`,
+						'text-anchor'	: `middle`,
+						x				: DeltaX,
+						y				: -DeltaY,
+						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+					});
 				}
-
-				// special text/textPath element to show GleisID in the middle of the track
-				svgAppendTextPath(svg_group_node, {
-					//svg_tag			: `text`,
-					href			: `#G${GleissystemID}-${GleisID}`,
-					class			: `	${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
-										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
-					'text-anchor'	: `middle`,
-					text 			: `${GleisID}`
-				});
 
 				if (Key_Id) {
 					// Show text of Weiche
-					svgAppend(svg_group_node, {
+					svgAppend(svgGleisGroup, {
 						svg_tag		: `text`,
 						text		: `W${Key_Id}`,
-						class		: `	${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
-										${Gleisart[clsid]} Weiche ${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `Weiche`,
 						x			: DeltaX,
 						y			: -DeltaY,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
@@ -464,24 +484,20 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					}
 
 					// Show marker for Signal
-					svgAppend(svg_group_node, {
+					svgAppend(svgGleisGroup, {
 						svg_tag		: `circle`,
 						id			: `S${SignalID}`,
-						class		: `${Gleisart[clsid]} Signal 
-										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
-										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `Signal`,
 						cx			: DeltaX,
 						cy			: DeltaY,
 						r			: 1,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
 					// Show text of Signal
-					svgAppend(svg_group_node, {
+					svgAppend(svgGleisGroup, {
 						svg_tag		: `text`,
 						text		: `S${SignalID}`,
-						class		: `${Gleisart[clsid]} Signal 
-										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
-										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `Signal`,
 						x			: DeltaX,
 						y			: -DeltaY,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
@@ -508,11 +524,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					}
 
 					// Show marker for Kontakt
-					svgAppend(svg_group_node, {
+					svgAppend(svgGleisGroup, {
 						svg_tag		: `rect`,
-						class		: `${Gleisart[clsid]} Kontakt 
-										${global.activeTracks[GleissystemID].includes(GleisID) ? ' active' : ' inactive'}
-										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
+						class		: `Kontakt`,
 						x			: DeltaX,
 						y			: DeltaY,
 						width		: 0.2,
@@ -537,14 +551,14 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height );
 
 		// Group for additional general elements
-		let svg_group_node = svgAppend(fragment, {
+		let svg_general_group = svgAppend(fragment, {
 			svg_tag	: `g`,
 			id		: `general`,
 		});
 
 		// Box zur Anzeige der Groesse der Anlage
 		// <rect class="box" x="-503" y="-303" width="1006" height="606" />
-		svgAppend(svg_group_node, {
+		svgAppend(svg_general_group, {
 			svg_tag	: `rect`,
 			class	: `box`,
 			x		:  Area.min.x,
@@ -554,7 +568,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		});
 		// Box zur Anzeige des verwendeten Teils der Anlage
 		// <rect class="box" x="-175" y="-140" width="382" height="305" />
-		svgAppend(svg_group_node, {
+		svgAppend(svg_general_group, {
 			svg_tag	: `rect`,
 			class	: `box`,
 			x		:  usedArea.min.x,
@@ -564,7 +578,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		});
 		// Zusätzliche Markierung des Zentrums
 		// <circle id="center" cx="0" cy="0" r="1" />
-		svgAppend(svg_group_node, {
+		svgAppend(svg_general_group, {
 			svg_tag	: `circle`,
 			id		: `center`,
 			cx		:  `0`,
@@ -926,6 +940,7 @@ function toggleElements(selector, visible) {
 function toggleMarker(visible) {
 	msg();
 	toggleElements('#center', visible);
+	toggleElements('.box', visible);
 
 	// Modify svg css (nice, but only works in the browser, not during PNG export)
 	/*
@@ -1464,6 +1479,11 @@ svg {
 /* unsichtbare Gleisstile */
 .unsichtbar {
 	stroke-dasharray: 1;
+}
+
+/* inactiv Gleisstile */
+.inactive {
+	stroke-opacity: 0.5;
 }
 
 /* Texte für Signale, Weichen etc. */
