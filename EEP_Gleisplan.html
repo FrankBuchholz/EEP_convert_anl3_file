@@ -376,23 +376,40 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					DeltaY			= 0; 
 
 					pathElement = svgAppend(svgGleisGroup, {
-						svg_tag		: `path`,
-						class		: `stil-${stil}`,
-						d 			: `M 0 0 H ${Laenge}`,
-						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+						svg_tag				: `path`,
+						class				: `stil-${stil}`,
+						d 					: `M 0 0 H ${Laenge}`,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
+
+					if (Key_Id) {
+						// Show text of Weiche at the end of the track
+						svgAppend(svgGleisGroup, {
+							svg_tag			: `text`,
+							text			: `W${Key_Id}`,
+							'text-anchor'	: `end`,
+							'dy'			: '1em', 		// Shift text below the track
+							class			: `Weiche`,
+							x				: DeltaX,
+							y				: -DeltaY,
+							transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+											   scale(1 -1)`,
+						});
+					}
 					
 					// show GleisID in the middle of the track
 					DeltaX			= Laenge / 2;
 					svgAppend(svgGleisGroup, {
-						svg_tag			: `text`,
-						text			: `${GleisID}`,
-						'text-anchor'	: `middle`,
-						x				: DeltaX,
-						y				: -DeltaY,
-						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-										   scale(1 -1)`,
+						svg_tag				: `text`,
+						text				: `${GleisID}`,
+						'text-anchor'		: `middle`,
+						'dy'				: '-0.1em', 	// Shift text up
+						x					: DeltaX,
+						y					: -DeltaY,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+											   scale(1 -1)`,
 					});
 
 				} else { // Kruemmung != 0
@@ -429,39 +446,42 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 
 					pathElement = svgAppend(svgGleisGroup, {
-						svg_tag		: `path`,
-						class		: `stil-${stil}`,
-						d 			: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
-						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+						svg_tag				: `path`,
+						class				: `stil-${stil}`,
+						d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
+					
+					if (Key_Id) {
+						// Show text of Weiche at the end of the track
+						svgAppend(svgGleisGroup, {
+							svg_tag			: `text`,
+							text			: `W${Key_Id}`,
+							'text-anchor'	: `end`,
+							'dy'			: '1em', 		// Shift text below the track
+							class			: `Weiche`,
+							x				: DeltaX,
+							y				: -DeltaY,
+							transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+											   scale(1 -1)`,
+						});
+					}
 
 					// show GleisID in the middle of the track
 					Winkel 			= Kruemmung * Laenge / 2;
 					DeltaX 			= Math.sin(Winkel) * Radius;
 					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 					svgAppend(svgGleisGroup, {
-						svg_tag			: `text`,
-						text			: `${GleisID}`,
-						'text-anchor'	: `middle`,
-						x				: DeltaX,
-						y				: -DeltaY,
-						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-										   scale(1 -1)`,
-					});
-				}
-
-				if (Key_Id) {
-					// Show text of Weiche
-					svgAppend(svgGleisGroup, {
-						svg_tag		: `text`,
-						text		: `W${Key_Id}`,
-						class		: `Weiche`,
-						x			: DeltaX,
-						y			: -DeltaY,
-						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-									   scale(1 -1)`,
+						svg_tag				: `text`,
+						text				: `${GleisID}`,
+						'text-anchor'		: `middle`,
+						'dy'				: '-0.1em', 	// Shift text up
+						x					: DeltaX,
+						y					: -DeltaY,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+											   scale(1 -1)`,
 					});
 				}
 
@@ -479,30 +499,31 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					} else { // Kruemmung != 0
 						Winkel 			= Kruemmung * Position;
 						const Radius 	= 1 / Kruemmung;
-						DeltaX 	= Math.sin(Winkel) * Radius;
-						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+						DeltaX 			= Math.sin(Winkel) * Radius;
+						DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 					}
 
 					// Show marker for Signal
 					svgAppend(svgGleisGroup, {
-						svg_tag		: `circle`,
-						id			: `S${SignalID}`,
-						class		: `Signal`,
-						cx			: DeltaX,
-						cy			: DeltaY,
-						r			: 1,
-						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+						svg_tag				: `circle`,
+						id					: `S${SignalID}`,
+						class				: `Signal`,
+						cx					: DeltaX,
+						cy					: DeltaY,
+						r					: 1,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
 					// Show text of Signal
 					svgAppend(svgGleisGroup, {
-						svg_tag		: `text`,
-						text		: `S${SignalID}`,
-						class		: `Signal`,
-						x			: DeltaX,
-						y			: -DeltaY,
-						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-									   scale(1 -1)`,
+						svg_tag				: `text`,
+						text				: `S${SignalID}`,
+						'dy'				: '1em', 	// // Shift text below the track
+						class				: `Signal`,
+						x					: DeltaX,
+						y					: -DeltaY,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+											   scale(1 -1)`,
 					});
  
 				} // Signale
@@ -519,20 +540,20 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					} else { // Kruemmung != 0
 						Winkel 			= Kruemmung * Position;
 						const Radius 	= 1 / Kruemmung;
-						DeltaX 	= Math.sin(Winkel) * Radius;
-						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+						DeltaX 			= Math.sin(Winkel) * Radius;
+						DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 					}
 
 					// Show marker for Kontakt
 					svgAppend(svgGleisGroup, {
-						svg_tag		: `rect`,
-						class		: `Kontakt`,
-						x			: DeltaX,
-						y			: DeltaY,
-						width		: 0.2,
-						height		: 1,
-						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+						svg_tag				: `rect`,
+						class				: `Kontakt`,
+						x					: DeltaX,
+						y					: DeltaY,
+						width				: 0.2,
+						height				: 1,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
 					});
  
 				} // Kontakte
@@ -627,7 +648,6 @@ function svgAppend(svg_node, obj) {
 	if (obj.svg_tag == 'text') {
 		const textNode 	= document.createTextNode(obj.text);
 		element.appendChild(textNode);
-		element.setAttribute('dy', '1em'); // Shift text below the track
 	}
 
 	svg_node.appendChild(element);
