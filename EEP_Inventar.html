@@ -133,7 +133,7 @@ function process_node(sutrackp) {
 
 	// Extract data from Gleissystem
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
-		// Check new field first
+		// Use attribute TrackSystemNumber instead of GleissystemID if available
 		let GleissystemID 	= Gleissystem.getAttribute('TrackSystemNumber');
 		if (!GleissystemID) {
 			GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
