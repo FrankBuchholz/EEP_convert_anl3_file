@@ -89,11 +89,8 @@ function process_node(sutrackp) {
 		100000,				// Kamerafahrweg
 	];
 
-	const Version 		= sutrackp.getElementsByTagName('Version')[0];
-	const EEPversion 	= Version.getAttribute('EEP');
-	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
-
 	// Groesse der Anlage (alle Positionsangaben in m statt cm)
+	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
 	const Area = {
 		min : {
 			x : Schandlaft.getAttribute('posX') / 100,
@@ -105,21 +102,26 @@ function process_node(sutrackp) {
 
 	let element;
 	element = divAppend('Intro');
-	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Höhe = 607 m
-	htmlAppend(element, 'p',
-		`EEP Version = ${EEPversion},
-		 Anzahl Objekte = ${Version.getAttribute('No3DMs')},
-		 Breite = ${Area.width.toFixed(0)} m,
-		 Höhe = ${Area.height.toFixed(0)} m
-		`
-	);
-	if (EEPversion >= 16) {
-		toggleElements('.fieldset', false);
+	const Version = sutrackp.getElementsByTagName('Version')[0];
+	if (Version) {
+		const EEPversion = Version.getAttribute('EEP');
+		if (EEPversion && EEPversion >= 16) {
 		htmlAppend(element, 'p',
-			`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
+				`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
+				`
+			);	
+			return;
+		}
+	}
+	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Höhe = 607 m
+	if (Version) {
+		htmlAppend(element, 'p',
+			`EEP Version = ${Version.getAttribute('EEP')},
+			 Anzahl Objekte = ${Version.getAttribute('No3DMs')},
+			 Breite = ${Area.width.toFixed(0)} m,
+			 Höhe = ${Area.height.toFixed(0)} m
 			`
-		);	
-		return;
+		);
 	}
 
 	// Maps for direct access
