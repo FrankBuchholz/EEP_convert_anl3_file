@@ -133,14 +133,16 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		100000,				// Kamerafahrweg
 	];
 
-	const Version 		= sutrackp.getElementsByTagName('Version')[0];
-	const EEPversion 	= Version.getAttribute('EEP');	
-	if (EEPversion >= 16) {
-		bodyAppend('p',
-			`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
-			`
-		);	
-		return;
+	const Version = sutrackp.getElementsByTagName('Version')[0];
+	if (Version) {
+		const EEPversion = Version.getAttribute('EEP');	
+		if (EEPversion && EEPversion >= 16) {
+			bodyAppend('p',
+				`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
+				`
+			);	
+			return;
+		}
 	}
 	
 	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
