@@ -286,7 +286,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			//console.log(Gleissystem)
 
 			// Use attribute TrackSystemNumber instead of GleissystemID if available
-			const GleissystemID 	= Gleissystem.getAttribute('TrackSystemNumber');
+			let GleissystemID 	= Gleissystem.getAttribute('TrackSystemNumber');
 			if (!GleissystemID) {
 				GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
 			}
