@@ -123,15 +123,15 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	http://up.picr.de/33875489iu.pdf
 	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
 	*/
-	const unsichtbar = [	// unsichtbare Gleisstile
-		17, 				// Wasser, Steuerstrecke
-		28, 34, 562,		// Gleis
-		35, 				// Strassenbahn
-		36, 				// Strasse
-		5145, 5146, 5147,	// Farm track
-		5602,				// Fence
-		100000,				// Kamerafahrweg
-	];
+	const unsichtbar = [			// unsichtbare Gleisstile
+		17, 						// Wasser, Steuerstrecke
+		28, 34, 562, 1346, 5100,	// Gleis
+		35, 						// Strassenbahn
+		36, 						// Strasse
+		5145, 5146, 5147,			// Farm track
+		5602,						// Fence
+		100000,						// Kamerafahrweg
+	]
 
 	const Version 		= sutrackp.getElementsByTagName('Version')[0];
 	const EEPversion 	= Version.getAttribute('EEP');	
@@ -157,8 +157,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 	// Verwendeter Bereich der Anlage
 	let usedArea = {
-		min : {x : 0, y : 0},
-		max : {x : 0, y : 0},
+		min : {x : 0, y : 0, z : 0},
+		max : {x : 0, y : 0, z : 0},
 	};
 
 	// Maps for direct access (Preparation to separate analysis of the file from creating the output.)
@@ -287,11 +287,19 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			}
 
 			// Append groups to the root node; append other elements to these group nodes
+<<<<<<< Updated upstream
 			let svg_group_node = svgAppend(fragment, {
 				svg_tag	: `g`,
 				id		: `${GleissystemText[GleissystemID]}`,
 			});
 			//console.log(svg_group_node)
+=======
+			const svgGleissystemGroup = svgAppend(fragment, {
+				svg_tag	: `g`,
+				id		: `${GleissystemText[GleissystemID]}`,
+			});
+			//console.log(svgGleissystemGroup)
+>>>>>>> Stashed changes
 
 			const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
 
@@ -332,23 +340,44 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				const stil 		= Gleis.getAttribute('stil');		// Gleisstil
 				const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
 				const Key_Id	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
+				const GleisData	= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche 
+																	// 1: Oberleitung
+																	// 18: DKW (Weichen und zentrale Gleise)
+																	// 16: Zentrale Strecken einer Straßen-T-Kreuzung
+																	// 20: Weichen einer Straßen-T-Kreuzung
 
 				const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
 				const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
 				const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 				const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+				const PosZ		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('z') / 100;
 				const DirX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('x');
 				const DirY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('y');
 				const NorX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('x');
 				const NorY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('y');
 
-				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz für die Position der Endpunkte)
-				usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge )
-				usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge )
-				usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge )
-				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge )
+				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
+				usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge );
+				usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge );
+				usedArea.min.z = Math.min( usedArea.min.z, PosZ );
 
+				usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge );
+				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge );
+				usedArea.max.z = Math.max( usedArea.max.z, PosZ );
+
+<<<<<<< Updated upstream
 				let pathElement;
+=======
+				// Group node for Gleis
+				const svgGleisGroup = svgAppend(svgGleissystemGroup, {
+					svg_tag	: `g`,
+					id		: `G${GleissystemID}-${GleisID}`,
+					class	: Gleisart[clsid] + 
+								' ' + (global.activeTracks[GleissystemID].includes(GleisID) ? 'active' : 'inactive') + 
+								(unsichtbar.includes(parseInt(stil) && GleisData != 16) ? ' ' + 'unsichtbar' : ''),
+				});
+
+>>>>>>> Stashed changes
 				let Winkel, DeltaX, DeltaY;
 				if (Kruemmung == '0') {
 			/*
@@ -363,6 +392,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					DeltaX			= Laenge;
 					DeltaY			= 0; 
 
+<<<<<<< Updated upstream
 					pathElement = svgAppend(svg_group_node, {
 						svg_tag		: `path`,
 						id			: `G${GleissystemID}-${GleisID}`,
@@ -374,6 +404,15 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					});
 
 
+=======
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `path`,
+						class				: `stil-${stil}`,
+						d 					: `M 0 0 H ${Laenge}`,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+
+>>>>>>> Stashed changes
 				} else { // Kruemmung != 0
 			/*
 			SVG: Gebogenes Gleis
@@ -400,9 +439,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			Dies ergibt folgende vereinfachte Form:
 			<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
 			*/
-					Winkel 	= Kruemmung * Laenge;
+					Winkel 			= Kruemmung * Laenge;
 					const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1);
 					const SweepFlag = ( Winkel >= 0 ? 1 : 0);
+<<<<<<< Updated upstream
 					const Radius 	= 1 / Kruemmung;
 					DeltaX 	= Math.sin(Winkel) * Radius;
 					DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
@@ -416,10 +456,22 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 										${unsichtbar.includes(parseInt(stil)) ? ' unsichtbar' : ''}`,
 						d 			: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+=======
+					const Radius	= 1 / Kruemmung;
+					DeltaX 			= Math.sin(Winkel) * Radius;
+					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `path`,
+						class				: `stil-${stil}`,
+						d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+>>>>>>> Stashed changes
 					});
 
 				}
 
+<<<<<<< Updated upstream
 				// special text/textPath element to show GleisID in the middle of the track
 				svgAppendTextPath(svg_group_node, {
 					//svg_tag			: `text`,
@@ -443,15 +495,85 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
 									   scale(1 -1)`,
 					});
+=======
+				if (Key_Id) {
+					// Show text of Weiche at the end of the track
+					let Code = 'W';
+					if (GleisData == 18 || GleisData == 19) { Code = 'DWK' };
+					if (GleisData == 20 || GleisData == 21) { Code = 'T-W' };
+					svgAppend(svgGleisGroup, {
+						svg_tag			: `text`,
+						id				: `W${Key_Id}`,
+						text			: `${Code}${Key_Id}`,
+						'dy'			: '1em', 		// Shift text below the track
+						class			: `WeicheText`,
+						x				: DeltaX,
+						y				: -DeltaY,
+						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+					});
 				}
+					
+				// show GleisID in the middle above the track
+				if (Kruemmung == '0') {
+					Winkel 			= 0;
+					DeltaX			= Laenge / 2;
+					DeltaY			= 0; 
+				} else {
+					Winkel 			= Kruemmung * Laenge / 2;
+					const Radius	= 1 / Kruemmung;
+					DeltaX 			= Math.sin(Winkel) * Radius;
+					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+>>>>>>> Stashed changes
+				}
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `${GleisID}`,
+					'dy'				: '-0.1em', 	// Shift text up
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+				});
+				// show Gleisstil in the middle below the track (right-adjusted)
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `${stil}`,
+					'dy'				: '1em', 		// Shift text below the track
+					class				: `Stil`,
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+				});					
+				// show Hoehe in the middle below the track (left-adjusted)
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `[${PosZ.toFixed(2)}m]`,
+					'dy'				: '1em', 		// Shift text below the track
+					class				: `Hoehe`,
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+				});					
 
 				// Signale
+				// <Meldung Position="3449.492" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" name="PI5_HP02_Form_oVSig" Key_Id="5" >
+				//     <KontaktZiel>6</KontaktZiel>
+				//     <Signal stellung="1" wirkungsdistanz="10856.51"/>
+				// </Meldung>
 				for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
-					const SignalID	= Meldung.getAttribute('Key_Id');
-					const Position	= Meldung.getAttribute('Position') / 100;
-					// const Name		= Meldung.getAttribute('name');
+					const SignalID		= Meldung.getAttribute('Key_Id');
+					const Position		= Meldung.getAttribute('Position') / 100;
+					const Distanz		= Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
+					const ParaOderAnti 	= Meldung.getAttribute('ParaOderAnti'); //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende 
+
 					let Winkel, DeltaX, DeltaY;
-					
 					if (Kruemmung == '0') {
 						Winkel 			= 0;
 						DeltaX			= Position;
@@ -463,6 +585,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
 					}
 
+<<<<<<< Updated upstream
 					// Show marker for Signal
 					svgAppend(svg_group_node, {
 						svg_tag		: `circle`,
@@ -474,8 +597,43 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						cy			: DeltaY,
 						r			: 1,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+=======
+					// Group node for Signal
+					const svgSignalGroup = svgAppend(svgGleisGroup, {
+						svg_tag	: `g`,
+						id		: `S${SignalID}`,
+						class	: `Signal`,
 					});
+
+					// Show circle at Signal
+					/*
+					svgAppend(svgSignalGroup, {
+						svg_tag				: `circle`,
+						//class				: `Signal`,
+						cx					: DeltaX,
+						cy					: DeltaY,
+						r					: 3,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+>>>>>>> Stashed changes
+					});
+					*/
+					
+					// Show symbol for Signal
+					svgAppend(svgSignalGroup, {
+						svg_tag				: `use`,
+						//class				: `Signal`,
+						'href'				: `#SymbolSignal`,
+						x					: DeltaX,
+						y					: -DeltaY,
+						transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
+												+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+												+ ` translate(-10 0)` // required to move the origin to the signal position  
+												,
+					});
+	
 					// Show text of Signal
+<<<<<<< Updated upstream
 					svgAppend(svg_group_node, {
 						svg_tag		: `text`,
 						text		: `S${SignalID}`,
@@ -487,15 +645,32 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
 									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
 									   scale(1 -1)`,
+=======
+					svgAppend(svgSignalGroup, {
+						svg_tag				: `text`,
+						text				: `S${SignalID} ${Distanz.toFixed(0)}m`,
+						//'dy'				: `${(ParaOderAnti == 0 ? '-2.3' : '1.3em')}`, 	// Shift text if not rotated to the side of the symbol
+						'dy'				: `-2.3`, 										// Shift text if rotated to the side of the symbol
+						class				: `Signal`,
+						x					: DeltaX,
+						y					: -DeltaY,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`	// Rotate text to the side of the symbol
+												+ ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+												+ ` scale(1 -1)`,
+>>>>>>> Stashed changes
 					});
  
 				} // Signale
 
 				// Kontakte
 				for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
-					const Position	= Kontakt.getAttribute('Position') / 100;
-					let Winkel, DeltaX, DeltaY;
+					const Position		= Kontakt.getAttribute('Position') / 100;
+					const ParaOderAnti 	= Kontakt.getAttribute('ParaOderAnti'); // Gleisrichtung 1: 0 = Ende -> Anfang, 1 = Anfang -> Ende  
+					const fireOnPara  	= Kontakt.getAttribute('fireOnPara'); 	// Kontakt aktiv für Gleisrichtung 1
+					const fireOnAnti  	= Kontakt.getAttribute('fireOnAnti'); 	// Kontakt aktiv für Gleisrichtung 2
 					
+					let Winkel, DeltaX, DeltaY;
 					if (Kruemmung == '0') {
 						Winkel 			= 0;
 						DeltaX			= Position;
@@ -507,6 +682,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
 					}
 
+<<<<<<< Updated upstream
 					// Show marker for Kontakt
 					svgAppend(svg_group_node, {
 						svg_tag		: `rect`,
@@ -519,8 +695,57 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						height		: 1,
 						transform 	: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
 									   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+=======
+					// Group node for Kontakt
+					const svgKontaktGroup = svgAppend(svgGleisGroup, {
+						svg_tag	: `g`,
+						//id		: `???`,
+						class	: `Kontakt`,
+>>>>>>> Stashed changes
 					});
  
+					// Show circle at Kontakt
+					/*
+					svgAppend(svgKontaktGroup, {
+						svg_tag				: `circle`,
+						//class				: `Kontakt`,
+						cx					: DeltaX,
+						cy					: DeltaY,
+						r					: 3,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+					*/
+					
+					// Show symbol for Kontakt
+					if (fireOnPara == 1) {
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `use`,
+							//class				: `Kontakt`,
+							'href'				: `#SymbolKontakt`,
+							x					: DeltaX,
+							y					: -DeltaY,
+							transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+													+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
+													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+													+ ` translate(-10 0)` // required to move the origin to the signal position  
+													,
+						});
+					}
+					if (fireOnAnti == 1) {
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `use`,
+							//class				: `Kontakt`,
+							'href'				: `#SymbolKontakt`,
+							x					: DeltaX,
+							y					: -DeltaY,
+							transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+													+ ` rotate(${(1-ParaOderAnti) * 180} ${DeltaX} ${DeltaY})`
+													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+													+ ` translate(-10 0)` // required to move the origin to the signal position  
+													,
+						});
+					}
+
 				} // Kontakte
 
 			} // Gleise
@@ -529,6 +754,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		}
 
 	}).then(function() {
+	
+		// Show min/max height
+		const text = (usedArea.min.z).toFixed(0) + ' .. ' + (usedArea.max.z).toFixed(0);
+		document.getElementById('height_area').textContent = text;
 	
 		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
 		usedArea.min.x = Math.max( usedArea.min.x, Area.min.x );
@@ -722,6 +951,7 @@ function SvgPanZoom(usedArea) {
 					},
 					click: function(ev) {
 						show_area(options.instance, ev);
+						show_element(options.instance, ev);
 					},
 					mousemove: function(ev) {
 						show_position(options.instance, ev);
@@ -902,6 +1132,126 @@ function SvgPanZoom(usedArea) {
 		/* Show center position */
 		text = '(' + (centerX).toFixed(0) + ' ' + (-centerY).toFixed(0) + ')';
 		document.getElementById('center_position').textContent = text;
+	}
+
+	// Show element
+	function show_element(t, event) {
+		if (!event || event.target.id == 'svg') { return; };
+/*
+console.log('');
+
+console.log( 
+'target|' +
+event.target.tagName + ':' + 
+event.target.id + ':' + 
+event.target.classList[0]
+)
+if (event.target.parentElement) {
+	console.log( 
+	'target.parentElement|' +
+	event.target.parentElement.tagName + ':' + 
+	event.target.parentElement.id  + ':' +
+	event.target.parentElement.classList[0]
+	)
+}
+if (event.rangeParent) {
+	console.log( 
+	'rangeParent|' +
+	event.rangeParent.tagName + ':' + 
+	event.rangeParent.id  + ':' +
+	event.rangeParent.classList[0]
+	)
+	if (event.rangeParent.parentElement) {
+		console.log( 
+		'rangeParent.parentElement|' +
+		event.rangeParent.parentElement.tagName + ':' + 
+		event.rangeParent.parentElement.id  + ':' +
+		event.rangeParent.parentElement.classList[0]
+		)
+	}
+}
+*/
+/*
+Track
+target						|path::stil-1353
+target.parentElement		|g:G1-3:Weiche
+rangeParent					|g:G1-3:Weiche
+rangeParent.parentElement	|g:Eisenbahn:undefined
+
+Track text
+target						|text::undefined
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::undefined
+rangeParent.parentElement	|g:G1-51:Normal
+
+Track stil
+target|text::Stil
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::Stil
+rangeParent.parentElement	|g:G1-51:Normal
+
+Track Hoehe
+target|text::Hoehe
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::Hoehe
+rangeParent.parentElement	|g:G1-51:Normal
+
+Weiche text
+target						|text:W2:WeicheText
+target.parentElement		|g:G1-17:Weiche
+rangeParent					|text:W2:WeicheText
+rangeParent.parentElement	|g:G1-17:Weiche
+
+
+Signal text
+target						|text::Signal
+target.parentElement		|g:S39:Signal
+rangeParent					|text::Signal
+rangeParent.parentElement	|g:S39:Signal
+
+Signal symbol
+target						|use::undefined
+target.parentElement		|g:S39:Signal
+rangeParent					|symbol:SymbolSignal:undefined
+
+Signal circle
+target						|circle::undefined 
+target.parentElement		|g:S39:Signal 
+rangeParent					|g:S39:Signal 
+rangeParent.parentElement	|g:G1-47:Normal
+
+
+Kontakt symbol
+target						|use::undefined
+target.parentElement		|g::Kontakt
+
+Kontakt circle
+target						|circle::undefined
+target.parentElement		|g:G1-47:Normal
+rangeParent					|g:G1-47:Normal
+rangeParent.parentElement	|g:Eisenbahn:undefined
+*/
+		
+		if (event.target.parentElement.classList[0] == 'Signal') {	// Signal
+			const SignalCode = event.target.parentElement.id;
+			const SignalID = SignalCode.substring(1)
+			msg('Signal ' + SignalID);
+			
+		} else if (event.target.parentElement.classList[0] == 'Kontakt') {	// Kontakt
+			msg('Kontakt');
+			
+		} else if (event.target.classList[0] == 'WeicheText') { 	// Weiche
+			const WeicheCode 	= event.target.id;
+			const WeicheID 		= WeicheCode.substring(1)
+			msg('Weiche ' + WeicheID);
+
+		} else{ 													// Gleis
+			const GleisCode = event.target.parentElement.id;
+			const GleisTextArray 	= GleisCode.substring(1).split('-');
+			const GleissystemID 	= GleisTextArray[0];
+			const GleisID 			= GleisTextArray[1];
+			msg(`${GleissystemText[GleissystemID]} ${GleisID}`);
+		}
 
 	}
 }
@@ -1370,6 +1720,7 @@ Stärke <input type='range' min='1' max='100' value='75' name='strokeWidth' id='
 </div>
 
 <div class='group'> <!-- Status line -->
+Min/Max Höhe der Anlage: <span id="height_area"> </span><br/>
 Sichtbarer Bereich: <span id="visible_area"> </span><br/>
 Zentrum des Bereichs: <span id="center_position"> </span><br/>
 Cursor: <span id="cursor_position"> </span>
@@ -1379,7 +1730,7 @@ Cursor: <span id="cursor_position"> </span>
 <fieldset class='fieldset'>
 	<!-- Firefox keeps the status of the checkbox between page loadsby default. -->
 	<div class="item"><label class='Eisenbahn hidden'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off'  onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
 	<div class="item"><label class='Strassenbahn hidden'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
 	<div class="item"><label class='Strasse hidden'>
@@ -1392,14 +1743,22 @@ Cursor: <span id="cursor_position"> </span>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
 	<div class="item"><label class='Text'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('text', this.checked)">Text</label></div>
+	<div class="item"><label class='Stil'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.Stil', this.checked)">Stil</label></div>
+	<div class="item"><label class='Hoehe'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.Hoehe', this.checked)">Hoehe</label></div>
+	<div class="item"><label class='WeicheText'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.WeicheText', this.checked)">Weichen</label></div>
+	<div class="item"><label class='Signal'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
+	<div class="item"><label class='Kontakt'>
+	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)">Kontakte</label></div>
 	<div class="item"><label class='active'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.active', this.checked)">aktiv</label></div>
 	<div class="item"><label class='inactive'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.inactive', this.checked)">inaktiv</label></div>
 	<div class="item"><label class='unsichtbar'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
-	<div class="item"><label class='Signal'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
 	<div class="item"><label class='Marker'>
 	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleMarker(this.checked)">Marker</label></div>
 </fieldset>
@@ -1410,7 +1769,7 @@ Cursor: <span id="cursor_position"> </span>
 </div>  <!-- header -->
 
 <div id='container' class='hidden'> <!-- The container takes the remainig part of the screen to show the graphic -->
-<svg id='svg' xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg id='svg' xmlns='http://www.w3.org/2000/svg' version='1.1'>
 
 <title>EEP Gleisplan</title>
 <desc>EEP Gleisplan</desc>
@@ -1461,11 +1820,14 @@ svg {
 	/* transform: scale(1,-1);     		not useful as it would mirror the text, too */
 }
 
+<<<<<<< Updated upstream
 /* unsichtbare Gleisstile */
 .unsichtbar {
 	stroke-dasharray: 1;
 }
 
+=======
+>>>>>>> Stashed changes
 /* Texte für Signale, Weichen etc. */
 text {
 	font-size: var(--normal-font-size);
@@ -1478,21 +1840,21 @@ text {
 textPath {
 }
 
-text.Weiche {
+text.WeicheText {
 	text-anchor	: end;
 }
 
-text.Signal {
+text.Signal  {
 }
 
-circle.Signal {
-	stroke-width: var(--narrow-stroke-width);
-	stroke-dasharray: 0;
+text.Stil {
+	text-anchor	: end;
+	font-style: italic;
 }
 
-rect.Kontakt {
-	stroke-width: 0; /* var(--narrow-stroke-width); */
-	stroke-dasharray: 0;
+text.Hoehe {
+	text-anchor	: start;
+	font-style: italic;
 }
 
 /* Box zur Anzeige der verwendeten Groesse der Anlage */
@@ -1596,11 +1958,20 @@ rect.Kontakt {
 	fill: var(--GBS-color);
 }
 
-/* Individuelle Formatierung je Gleisstil */
-
 .Prellbock {
 	marker-end:   url(#Prellbock);
 }
+
+/* Symbole */
+
+#SymbolSignal, #SymbolKontakt {
+	marker-start: none;
+	marker-end:   none;
+	stroke-width: var(--narrow-stroke-width);
+	fill:   none;
+}
+
+/* Individuelle Formatierung je Gleisstil */
 
 .stil-1353 { 	/* Gleis mit Betonschwellen */
 }
@@ -1609,54 +1980,73 @@ rect.Kontakt {
 	stroke: brown;
 }
 
-.hidden {
+.unsichtbar {	/* unsichtbare Gleisstile */
+	stroke-dasharray: 1;
+}
+
+.inactive {		/* inaktive Gleisstile */
+	stroke-opacity: 0.5;
+}
+
+.hidden {		/* versteckte Elemente */
 	display: none !important;
 }
 	/* ]]> */
 	</style>
 </defs>
 
-<defs> <!-- marker -->
-	<marker id="Prellbock" 	markerWidth="2" markerHeight="5" refX="2" refY="2" orient="auto">
+<defs> <!-- Symbols and Markers -->
+	<!-- Use of symbols requires translate(-10 0) to move the origin M 0 0 to the correct position --> 
+	<symbol id='SymbolSignal' width='20' height='10' viewBox='-10 0 20 10'>
+		<!-- <path d='M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z' /> 								<!-- Kreissegment --> 
+		<!-- <path d='M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2' /> 	<!-- Box --> 
+		<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.5' r='0.6' />  						<!-- Linie mit Kreis --> 
+	</symbol>
+		<symbol id='SymbolKontakt' width='20' height='10' viewBox='-10 0 20 10'>
+		<path d='M 0 0 L 0 0.9 L 0.7 2 L -0.7 2 L 0 0.9' />									<!-- Linie mit Dreieck --> 
+	</symbol>
+
+	<!-- Prellbock: Querbalken --> 
+	<marker id="Prellbock" 	markerWidth="2" markerHeight="4" refX="2" refY="2" orient="auto">
 		<rect x="0" y="0" width="2" height="4"/>
 	</marker>
 
 	<!-- We need individual markers to be able to apply CSS -->
-	<marker id="EisenbahnMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="EisenbahnMarkerCircle" 		markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="StrassenbahnMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="StrassenbahnMarkerCircle"	markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="StrasseMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="StrasseMarkerCircle" 		markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="WasserwegeMarkerCircle" markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="WasserwegeMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="SteuerstreckenMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="SteuerstreckenMarkerCircle" markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="GBSMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="GBSMarkerCircle" 			markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
 
-	<marker id="EisenbahnMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+	<marker id="EisenbahnMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
 	<marker id="StrassenbahnMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
-	<marker id="StrasseMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+	<marker id="StrasseMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
-	<marker id="WasserwegeMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+	<marker id="WasserwegeMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
 	<marker id="SteuerstreckenMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
-	<marker id="GBSMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+	<marker id="GBSMarkerArrow" 			markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
 
