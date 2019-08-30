@@ -115,22 +115,31 @@ function process_node(sutrackp) {
 		height 	: Math.abs(Schandlaft.getAttribute('posY') * 2 / 100),
 	};
 
-	let element;
-	element = divAppend('Intro');
+	// Verwendeter Bereich der Anlage
+	const usedArea = {
+		min : {x : 0, y : 0, z : 0},
+		max : {x : 0, y : 0, z : 0},
+	};
+
+	// Variablen für die Ausgabe
+	let div, table, thead, tbody, tr;
+
+	div = divAppend('Intro');
 	const Version = sutrackp.getElementsByTagName('Version')[0];
 	if (Version) {
 		const EEPversion = Version.getAttribute('EEP');
 		if (EEPversion && EEPversion >= 16) {
-		e(element, 'p',
+		e(div, 'p',
 				`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
 				`
 			);	
 			return;
 		}
 	}
+
 	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Tiefe = 607 m
 	if (Version) {
-		e(element, 'p',
+		e(div, 'p',
 			`EEP Version = ${Version.getAttribute('EEP')},
 			 Anzahl Objekte = ${Version.getAttribute('No3DMs')},
 			 Breite = ${Area.width.toFixed(0)} m,
@@ -242,6 +251,20 @@ mit
 			const GleisID = Gleis.getAttribute('GleisID');
 			GleisMap.get(GleissystemID).set(GleisID, Gleis);
 
+			const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
+			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+			const PosY		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+			const PosZ		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('z') / 100;
+
+			// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
+			usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge );
+			usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge );
+			usedArea.min.z = Math.min( usedArea.min.z, PosZ );
+
+			usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge );
+			usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge );
+			usedArea.max.z = Math.max( usedArea.max.z, PosZ );
+
 			// Weichen
 			const WeicheID	= Gleis.getAttribute('Key_Id');
 			if (WeicheID) {  // Ist das Gleis eine Weiche?
@@ -293,6 +316,12 @@ mit
 
 		}
 	}
+	
+	// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
+	usedArea.min.x = Math.max( usedArea.min.x, Area.min.x );
+	usedArea.min.y = Math.max( usedArea.min.y, Area.min.y );
+	usedArea.max.x = Math.min( usedArea.max.x, Area.min.x + Area.width  );
+	usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height );
 
 	// Extract data from Fuhrpark
 	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
@@ -319,8 +348,11 @@ mit
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --> 
 
-	let div, table, thead, tbody, tr;
-
+	// Anzeige des verwendeten Bereichs
+	e(div, 'p', 
+		 `Verwendeter Bereich: (${(usedArea.min.x).toFixed(0)} m, ${(usedArea.min.y).toFixed(0)} m) .. (${(usedArea.max.x).toFixed(0)} m, ${(usedArea.max.y).toFixed(0)} m)<br>`
+		+`Min./max Höhe: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) }m`
+	);
 
 	// Anzeige der Weichen
 	div = divAppend('Weiche');
@@ -587,6 +619,7 @@ Anschließend wird der Inhalt ausgegeben.</small></p>
 <div class='group'>
 <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset class='fieldset'>
+	<div class="item"><label><input type='checkbox' name='Abschnitt' checked autocomplete='off' onchange="toggleElements('.Intro', this.checked)">Intro</label></div>
 	<div class="item"><label><input type='checkbox' name='Abschnitt' checked autocomplete='off' onchange="toggleElements('.Weiche', this.checked)">Weiche</label></div>
 	<div class="item"><label><input type='checkbox' name='Abschnitt' checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signal</label></div>
 	<div class="item"><label><input type='checkbox' name='Abschnitt' checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)">Zugverband</label></div>
