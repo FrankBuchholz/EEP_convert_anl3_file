@@ -78,8 +78,9 @@ function loadFile(file) {
 
 			// Activate Pan and Zoom
 			SvgPanZoom(usedArea);
-		}, function(err) {
-			document.getElementById('loading').innerHTML = `Fehler beim lesen der Datei: ${err.message}<br><pre>${err.stack}</pre>`;
+		}, function(err) { 
+			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use '</pre>'
+			document.getElementById('loading').innerHTML = `Fehler beim Lesen der Datei: ${err.name}: ${err.message}<br><pre>${err.stack}` + '</pre>';
 			console.log(err);
 		});
 	}
@@ -161,7 +162,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	};
 
 	// Verwendeter Bereich der Anlage
-	let usedArea = {
+	const usedArea = {
 		min : {x : 0, y : 0, z : 0},
 		max : {x : 0, y : 0, z : 0},
 	};
@@ -214,26 +215,35 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			}
 		} // Gleise
 
-		// Gleisverbindungen 
+		// Gleisverbindungen
 		trackConnections[GleissystemID] = [];
 		const Gleisverbindungen = Gleissystem.getElementsByTagName('Gleisverbindung');
 		for (const Gleisverbindung of Gleisverbindungen) {
 			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang"/>
+			// Verwendung:
+			// prevGleisID   		= trackConnections[GleissystemID][GleisID].Anfang.GleisID
+			// prevGleisAnschluss 	= trackConnections[GleissystemID][GleisID].Anfang.Anschluss
+			// nextGleisID   		= trackConnections[GleissystemID][GleisID].Ende.GleisID
+			// nextGleisAnschluss	= trackConnections[GleissystemID][GleisID].Ende.Anschluss
+			// ..
 			const GleisID1 		= Gleisverbindung.getAttribute('GleisID1');
+			const Anschluss1 	= Gleisverbindung.getAttribute('Anschluss1');
 			const GleisID2 		= Gleisverbindung.getAttribute('GleisID2');
+			const Anschluss2 	= Gleisverbindung.getAttribute('Anschluss2');
 
 			// Store relation GleisID1 -> GleisID2
-			if (!trackConnections[GleissystemID][GleisID1]) {
-				 trackConnections[GleissystemID][GleisID1] = [];
+			if (!trackConnections[GleissystemID][GleisID1]) { 
+				 trackConnections[GleissystemID][GleisID1] = {};
 			}
-			trackConnections[GleissystemID][GleisID1].push(GleisID2);
+			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2 };
 
 			// Store relation GleisID2 -> GleisID1
-			if (!trackConnections[GleissystemID][GleisID2]) {
-				 trackConnections[GleissystemID][GleisID2] = [];
+			if (!trackConnections[GleissystemID][GleisID2]) { 
+				 trackConnections[GleissystemID][GleisID2] = {};
 			}
-			trackConnections[GleissystemID][GleisID2].push(GleisID1);
+			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1 };
 		}
+		debugger
 	}
 
 	// Analyse Fuhrpark to identify "active" tracks
@@ -261,11 +271,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			// Get connected tracks of "active" tracks
 			const connectedTracks = trackConnections[GleissystemID][GleisID1]
 			if (!connectedTracks) { continue; }
-			for (const GleisID2 of connectedTracks) {
+			
+			for (const Anschluss in connectedTracks) {
 				// Add new connected tracks
 				// These tracks will be processed, too
-				if (!activeTracks[GleissystemID].includes(GleisID2)) {
-					 activeTracks[GleissystemID].push(GleisID2);
+				if (!activeTracks[GleissystemID].includes(connectedTracks[Anschluss].GleisID)) {
+					 activeTracks[GleissystemID].push(connectedTracks[Anschluss].GleisID);
 				}
 			}
 		}
@@ -554,7 +565,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
 												+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
-												+ ` translate(-10 0)` // required to move the origin to the signal position  
+												+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position  
 												,
 					});
 	
@@ -624,7 +635,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 							transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 													+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
 													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
-													+ ` translate(-10 0)` // required to move the origin to the signal position  
+													+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position  
 													,
 						});
 					}
@@ -638,7 +649,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 							transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 													+ ` rotate(${(1-ParaOderAnti) * 180} ${DeltaX} ${DeltaY})`
 													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
-													+ ` translate(-10 0)` // required to move the origin to the signal position  
+													+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position 
 													,
 						});
 					}
@@ -783,8 +794,7 @@ function svgAppendTextPath(svg_node, obj) {
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <script> // svg-pan-zoom
-// https://github.com/ariutta/svg-pan-zoom
-function SvgPanZoom(usedArea) {
+function SvgPanZoom(usedArea) { // <!-- https://github.com/ariutta/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
 		msg();
@@ -1057,6 +1067,14 @@ if (event.target.parentElement) {
 	event.target.parentElement.id  + ':' +
 	event.target.parentElement.classList[0]
 	)
+	if (event.target.parentElement.parentElement) {
+		console.log( 
+		'target.parentElement.parentElement|' +
+		event.target.parentElement.parentElement.tagName + ':' + 
+		event.target.parentElement.parentElement.id  + ':' +
+		event.target.parentElement.parentElement.classList[0]
+		)
+	}
 }
 if (event.rangeParent) {
 	console.log( 
@@ -1106,16 +1124,17 @@ target.parentElement		|g:G1-17:Weiche
 rangeParent					|text:W2:WeicheText
 rangeParent.parentElement	|g:G1-17:Weiche
 
-
 Signal text
 target						|text::Signal
 target.parentElement		|g:S39:Signal
+target.parentElement.parentElement|g:G1-47:Normal
 rangeParent					|text::Signal
 rangeParent.parentElement	|g:S39:Signal
 
 Signal symbol
 target						|use::undefined
 target.parentElement		|g:S39:Signal
+target.parentElement.parentElement|g:G1-47:Normal
 rangeParent					|symbol:SymbolSignal:undefined
 
 Signal circle
@@ -1128,6 +1147,7 @@ rangeParent.parentElement	|g:G1-47:Normal
 Kontakt symbol
 target						|use::undefined
 target.parentElement		|g::Kontakt
+target.parentElement.parentElement|g:G1-47:Normal
 
 Kontakt circle
 target						|circle::undefined
@@ -1139,25 +1159,60 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 		if (event.target.parentElement.classList[0] == 'Signal') {	// Signal
 			const SignalCode = event.target.parentElement.id;
 			const SignalID = SignalCode.substring(1)
-			msg('Signal ' + SignalID);
+
+			const GleisCode = event.target.parentElement.parentElement.id;
+			const GleisTextArray 	= GleisCode.substring(1).split('-');
+			const GleissystemID 	= GleisTextArray[0];
+			const GleisID 			= GleisTextArray[1];
+
+			showSignalInfo(SignalID, GleissystemID, GleisID);
 			
 		} else if (event.target.parentElement.classList[0] == 'Kontakt') {	// Kontakt
-			msg('Kontakt');
+
+			const GleisCode = event.target.parentElement.parentElement.id;
+			const GleisTextArray 	= GleisCode.substring(1).split('-');
+			const GleissystemID 	= GleisTextArray[0];
+			const GleisID 			= GleisTextArray[1];
+
+			showKontaktInfo(GleissystemID, GleisID);
 			
 		} else if (event.target.classList[0] == 'WeicheText') { 	// Weiche
 			const WeicheCode 	= event.target.id;
 			const WeicheID 		= WeicheCode.substring(1)
-			msg('Weiche ' + WeicheID);
+
+			const GleisCode = event.target.parentElement.id;
+			const GleisTextArray 	= GleisCode.substring(1).split('-');
+			const GleissystemID 	= GleisTextArray[0];
+			const GleisID 			= GleisTextArray[1];
+
+			showWeicheInfo(WeicheID, GleissystemID, GleisID);
 
 		} else{ 													// Gleis
 			const GleisCode = event.target.parentElement.id;
 			const GleisTextArray 	= GleisCode.substring(1).split('-');
 			const GleissystemID 	= GleisTextArray[0];
 			const GleisID 			= GleisTextArray[1];
-			msg(`${GleissystemText[GleissystemID]} ${GleisID}`);
+			showGleisInfo(GleissystemID, GleisID);
 		}
 
 	}
+
+}
+
+function showGleisInfo(GleissystemID, GleisID) {
+	msg(`${GleissystemText[GleissystemID]} ${GleisID}`);
+}
+
+function showSignalInfo(SignalID, GleissystemID, GleisID) {
+	msg(`Signal ${SignalID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+}
+
+function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
+	msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+}
+
+function showKontaktInfo(GleissystemID, GleisID) {
+	msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 }
 </script>
 
