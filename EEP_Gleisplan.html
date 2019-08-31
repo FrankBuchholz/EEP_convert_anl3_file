@@ -76,6 +76,21 @@ function loadFile(file) {
 			// Show file name
 			document.getElementById('filename').textContent = file.name.substring(0, file.name.length -1 -1 -3);
 
+			// Read settings from localStorage
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (key.indexOf('checkbox_') == 0) {
+					const checkbox = document.querySelector(`input[type="checkbox"][name="${key.substring(9)}"]`);
+					if (checkbox) {
+						const value = localStorage.getItem(key) == "true";
+						if (checkbox.checked != value) {
+							checkbox.checked = value;
+							checkbox.dispatchEvent(new Event('change'));
+						}
+					}
+				}
+			}
+
 			// Activate Pan and Zoom
 			SvgPanZoom(usedArea);
 		}, function(err) {
@@ -1632,9 +1647,18 @@ function changefontSize(value) {
 	// Modify svg css to use same setting during PNG export
 	document.getElementById('css-fontSize-variables').textContent =
 		`svg {
-			--normal-font-size: ${3 * factor}px;
-		}`	
-}</script>
+			--normal-font-size: ${4 * factor}px;
+		}`;
+}
+
+// Listen for checkbox change events
+document.addEventListener('DOMContentLoaded', function() {
+	document.querySelector('.fieldset').addEventListener('change', function(ev) {
+		const target = ev.target;
+		localStorage.setItem(`checkbox_${target.name}`, target.checked);
+	});
+});
+</script>
 
 <style> /* html page */
 
@@ -1845,7 +1869,7 @@ Cursor: <span id="cursor_position"> </span>
 	<input type='checkbox' name='Eisenbahn' 	checked autocomplete='off' onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
 	<div class="item"><label class='Strassenbahn hidden'>
 	<input type='checkbox' name='Strassenbahn' 	checked autocomplete='off' onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
-	<div class="item"><label class='Gleissystem hidden'>
+	<div class="item"><label class='Strasse hidden'>
 	<input type='checkbox' name='Strasse' 		checked autocomplete='off' onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
 	<div class="item"><label class='Wasserwege hidden'>
 	<input type='checkbox' name='Wasserwege' 	checked autocomplete='off' onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
