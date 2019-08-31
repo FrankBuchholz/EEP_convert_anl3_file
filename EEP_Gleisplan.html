@@ -278,7 +278,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					entry.ParaOderAnti 	= ParaOderAnti;
 					continue; 
 				}
-if (SignalID == 113) debugger				
+			
 				// Store pre-signal 
 				entry.SignalID		= SignalID;
 				entry.signalType 	= 'pre';
@@ -577,20 +577,6 @@ if (SignalID == 113) debugger
 						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
 					
-					if (Key_Id) {
-						// Show text of Weiche at the end of the track
-						svgAppend(svgGleisGroup, {
-							svg_tag			: `text`,
-							text			: `W${Key_Id}`,
-							'dy'			: '1em', 		// Shift text below the track
-							class			: `Weiche`,
-							x				: DeltaX,
-							y				: -DeltaY,
-							transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-											   scale(1 -1)`,
-						});
-					}
 				}
 
 				if (Key_Id) {
