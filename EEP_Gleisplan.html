@@ -79,7 +79,8 @@ function loadFile(file) {
 			// Activate Pan and Zoom
 			SvgPanZoom(usedArea);
 		}, function(err) {
-			document.getElementById('loading').innerHTML = `Fehler beim lesen der Datei: ${err.message}<br><pre>${err.stack}</pre>`;
+			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use '</pre>'
+			document.getElementById('loading').innerHTML = `Fehler beim Lesen der Datei:<br>${err.name}: "${err.message}" in line ${err.lineNumber}<br><pre>${err.stack}` + '</pre>';
 			console.log(err);
 		});
 	}
@@ -126,14 +127,14 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	http://up.picr.de/33875489iu.pdf
 	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
 	*/
-	const unsichtbar = [	// unsichtbare Gleisstile
-		17, 				// Wasser, Steuerstrecke
-		28, 34, 562,		// Gleis
-		35, 				// Strassenbahn
-		36, 				// Strasse
-		5145, 5146, 5147,	// Farm track
-		5602,				// Fence
-		100000,				// Kamerafahrweg
+	const unsichtbar = [			// unsichtbare Gleisstile
+		17, 						// Wasser, Steuerstrecke
+		28, 34, 562, 1346, 5100,	// Gleis
+		35, 						// Strassenbahn
+		36, 						// Strasse
+		5145, 5146, 5147,			// Farm track
+		5602,						// Fence
+		100000,						// Kamerafahrweg
 	];
 
 	const Version = sutrackp.getElementsByTagName('Version')[0];
@@ -161,9 +162,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	};
 
 	// Verwendeter Bereich der Anlage
-	let usedArea = {
-		min : {x : 0, y : 0},
-		max : {x : 0, y : 0},
+	const usedArea = {
+		min : {x : 0, y : 0, z : 0},
+		max : {x : 0, y : 0, z : 0},
 	};
 
 	// Maps for direct access (Preparation to separate analysis of the file from creating the output.)
@@ -176,7 +177,11 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	// Preparation: Collect "active" tracks 
 	const activeTracks = [];		// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
 									// oder die mit solchen Gleisen verbunden sind
+	// Preparation: Collect connected tracks 
 	const trackConnections = [];	// Gleisverbindungen
+
+	// Preparation: Collect signals on tracks 
+	const trackSignals = [];		// Vor- und Hauptsignale
 
 	const Gleissysteme 	= sutrackp.getElementsByTagName('Gleissystem');
 	for (const Gleissystem of Gleissysteme) {
@@ -188,11 +193,20 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		}
 		global.GleissystemMap.set(GleissystemID, new Map());
 		activeTracks[GleissystemID] = [];
+		trackSignals[GleissystemID] = [];
 
 		const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
 		for (const Gleis of Gleise) {
 			const GleisID 	= Gleis.getAttribute('GleisID');
 			global.GleissystemMap.get(GleissystemID).set(GleisID, Gleis);
+
+			// Collect Meldungen to be able to create individual symbols for Vor- and Hauptsignal 
+			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
+				if (!trackSignals[GleissystemID][GleisID]) { 
+					 trackSignals[GleissystemID][GleisID] = [];
+				}
+				trackSignals[GleissystemID][GleisID].push({Meldung : Meldung});
+			}
 			
 			// Signale, die nur zur Anzeige dienen und keine Züge beeinflussen sollen werden gerne auf "inaktive" Gleise gesetzt.
 			// Alternativ könnte man nicht-verbundene Einzelgleise als "inaktive" interpretieren.
@@ -214,28 +228,155 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			}
 		} // Gleise
 
-		// Gleisverbindungen 
+		// Gleisverbindungen
 		trackConnections[GleissystemID] = [];
 		const Gleisverbindungen = Gleissystem.getElementsByTagName('Gleisverbindung');
 		for (const Gleisverbindung of Gleisverbindungen) {
 			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang"/>
+			// Verwendung:
+			// prevGleisID   		= trackConnections[GleissystemID][GleisID].Anfang.GleisID
+			// prevGleisAnschluss 	= trackConnections[GleissystemID][GleisID].Anfang.Anschluss
+			// nextGleisID   		= trackConnections[GleissystemID][GleisID].Ende.GleisID
+			// nextGleisAnschluss	= trackConnections[GleissystemID][GleisID].Ende.Anschluss
+			// ..
 			const GleisID1 		= Gleisverbindung.getAttribute('GleisID1');
+			const Anschluss1 	= Gleisverbindung.getAttribute('Anschluss1');
 			const GleisID2 		= Gleisverbindung.getAttribute('GleisID2');
+			const Anschluss2 	= Gleisverbindung.getAttribute('Anschluss2');
 
 			// Store relation GleisID1 -> GleisID2
-			if (!trackConnections[GleissystemID][GleisID1]) {
-				 trackConnections[GleissystemID][GleisID1] = [];
+			if (!trackConnections[GleissystemID][GleisID1]) { 
+				 trackConnections[GleissystemID][GleisID1] = {};
 			}
-			trackConnections[GleissystemID][GleisID1].push(GleisID2);
+			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2 };
 
 			// Store relation GleisID2 -> GleisID1
-			if (!trackConnections[GleissystemID][GleisID2]) {
-				 trackConnections[GleissystemID][GleisID2] = [];
+			if (!trackConnections[GleissystemID][GleisID2]) { 
+				 trackConnections[GleissystemID][GleisID2] = {};
 			}
-			trackConnections[GleissystemID][GleisID2].push(GleisID1);
+			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1 };
 		}
 	}
 
+	// Meldungen analysieren um Vor- zu Hauptsignele zu separieren 
+	for (const GleissystemID in trackSignals) {
+		for (const GleisID in trackSignals[GleissystemID]) {
+			for (const entry of trackSignals[GleissystemID][GleisID]) {
+				if (entry.signalType) { continue; } // we have added the entry during the loop, however, for..of does not process new entries anyway
+
+				let currentGleisID 	= GleisID;	// Let's start with the current track 
+				
+				const SignalID		= entry.Meldung.getAttribute('Key_Id');
+				let   Position		= entry.Meldung.getAttribute('Position') / 100; 	// Wert zwischen 0 und Gleis.Laenge
+				let   ParaOderAnti 	= entry.Meldung.getAttribute('ParaOderAnti'); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende 
+				const Distanz		= entry.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100; // immmer positiv
+				if (Distanz == 0) {  // Store unitary signal 
+				// Store unitary signal
+					entry.SignalID		= SignalID;
+					entry.signalType 	= 'unitary';
+					entry.Position 		= Position;
+					entry.ParaOderAnti 	= ParaOderAnti;
+					continue; 
+				}
+			
+				// Store pre-signal 
+				entry.SignalID		= SignalID;
+				entry.signalType 	= 'pre';
+				entry.Position 		= Position;
+				entry.ParaOderAnti 	= ParaOderAnti;
+				
+				// Now we can follow the tracks to find the position of the main signal on the track
+				let Gleis 	= global.GleissystemMap.get(GleissystemID).get(currentGleisID);	// current track
+				let Laenge 	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
+				
+				// Do we find the main signal on the same track?
+				Position = Position + Distanz * (ParaOderAnti == 1 ? 1 : -1);
+				if (Position >= 0 && Position <= Laenge) {
+					// The main signal is on the same track
+					trackSignals[GleissystemID][currentGleisID].push({
+						Meldung 		: entry.Meldung, 
+						SignalID		: SignalID,
+						signalType 		:'main',
+						Position 		: Position,
+						ParaOderAnti	: ParaOderAnti,
+					})
+					continue; 
+				}
+
+				if (Position > Laenge) { 					// look forward
+					Position	= Position - Laenge;		// remaining position on next track
+				} else {									// look backward
+					Position	= -Position;				// remaining position on previous track
+				}
+				
+				// The main signal is on a different track
+				while (Position > 0) {
+					let nextGleisID, Anschluss;
+
+					if (!trackConnections[GleissystemID][currentGleisID]) { // should not happen
+						console.log(`Error: Signal ${SignalID} no connected track for ${GleissystemID}-${currentGleisID}`);
+						break;
+					}
+					
+					if (ParaOderAnti == 1) { // look forward
+				
+						if (!trackConnections[GleissystemID][currentGleisID].Ende) { // should not happen
+							console.log(`Error: no connected track for ${GleissystemID}-${currentGleisID}.Ende`);
+							break;
+						}
+						
+						nextGleisID		= trackConnections[GleissystemID][currentGleisID].Ende.GleisID;
+						Anschluss		= trackConnections[GleissystemID][currentGleisID].Ende.Anschluss;
+						ParaOderAnti	= (Anschluss == 'Anfang' ? ParaOderAnti : 1-ParaOderAnti);
+						
+					} else {					// look backward
+
+						if (!trackConnections[GleissystemID][currentGleisID].Anfang) { // should not happen
+							console.log(`Error: Signal ${SignalID} no connected track for ${GleissystemID}-${currentGleisID}.Anfang`);
+							break;
+						}					
+
+						nextGleisID		= trackConnections[GleissystemID][currentGleisID].Anfang.GleisID;
+						Anschluss		= trackConnections[GleissystemID][currentGleisID].Anfang.Anschluss;
+						ParaOderAnti	= (Anschluss != 'Anfang' ? ParaOderAnti : 1-ParaOderAnti);
+					}
+					
+					Gleis 	= global.GleissystemMap.get(GleissystemID).get(nextGleisID);
+					if (!Gleis) { // should not happen
+						console.log(`Error: Signal ${SignalID} no track for ${GleissystemID}-${nextGleisID}`);
+						break;
+					}
+					
+					Laenge 	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
+
+					if (Position <= Laenge) {
+						// The main signal is on the this track
+						if (!trackSignals[GleissystemID][nextGleisID]) { 
+							 trackSignals[GleissystemID][nextGleisID] = [];
+						}
+						trackSignals[GleissystemID][nextGleisID].push({
+							Meldung 		: entry.Meldung, 
+							SignalID		: SignalID,
+							signalType 		:'main',
+							Position 		: (Anschluss == 'Anfang' ? Position : Laenge - Position),
+							ParaOderAnti	: ParaOderAnti,
+						})
+						break;
+
+					} else {
+						// keep going
+						currentGleisID 	= nextGleisID;
+						Position 		= Position - Laenge;
+					}
+				} // while searching for tracks
+				
+			} // Signale
+		} // Gleise
+	} // Gleissysteme
+
+	// Now we are able to show all signals in the svg-output
+	global.trackSignals = trackSignals;
+	
 	// Analyse Fuhrpark to identify "active" tracks
 	global.Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
 	for (const Zugverband of global.Fuhrpark.getElementsByTagName('Zugverband')) {
@@ -261,11 +402,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			// Get connected tracks of "active" tracks
 			const connectedTracks = trackConnections[GleissystemID][GleisID1]
 			if (!connectedTracks) { continue; }
-			for (const GleisID2 of connectedTracks) {
+			
+			for (const Anschluss in connectedTracks) {
 				// Add new connected tracks
 				// These tracks will be processed, too
-				if (!activeTracks[GleissystemID].includes(GleisID2)) {
-					 activeTracks[GleissystemID].push(GleisID2);
+				if (!activeTracks[GleissystemID].includes(connectedTracks[Anschluss].GleisID)) {
+					 activeTracks[GleissystemID].push(connectedTracks[Anschluss].GleisID);
 				}
 			}
 		}
@@ -295,13 +437,13 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			}
 
 			// Append groups to the root node; append other elements to these group nodes
-			const svgGleissystem_Group = svgAppend(fragment, {
+			const svgGleissystemGroup = svgAppend(fragment, {
 				svg_tag	: `g`,
 				id		: `${GleissystemText[GleissystemID]}`,
 			});
-			//console.log(svgGleissystem_Group)
+			//console.log(svgGleissystemGroup)
 
-			const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
+      const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
 
 			// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
 			if (Gleise.length > 0) {
@@ -340,32 +482,40 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				const stil 		= Gleis.getAttribute('stil');		// Gleisstil
 				const gsbname 	= Gleis.getAttribute('gsbname');	// Dateiname
 				const Key_Id	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
+				const GleisData	= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche 
+																	// 1: Oberleitung
+																	// 18: DKW (Weichen und zentrale Gleise)
+																	// 16: Zentrale Strecken einer Straßen-T-Kreuzung
+																	// 20: Weichen einer Straßen-T-Kreuzung
 
 				const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
 				const Kruemmung	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Kruemmung') * 100;
 				const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 				const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+				const PosZ		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('z') / 100;
 				const DirX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('x');
 				const DirY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[1].getAttribute('y');
 				const NorX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('x');
 				const NorY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('y');
 
-				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz für die Position der Endpunkte)
-				usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge )
-				usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge )
-				usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge )
-				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge )
+				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
+				usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge );
+				usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge );
+				usedArea.min.z = Math.min( usedArea.min.z, PosZ );
+
+				usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge );
+				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge );
+				usedArea.max.z = Math.max( usedArea.max.z, PosZ );
 
 				// Group node for Gleis
-				const svgGleisGroup = svgAppend(svgGleissystem_Group, {
+				const svgGleisGroup = svgAppend(svgGleissystemGroup, {
 					svg_tag	: `g`,
 					id		: `G${GleissystemID}-${GleisID}`,
 					class	: Gleisart[clsid] + 
 								' ' + (global.activeTracks[GleissystemID].includes(GleisID) ? 'active' : 'inactive') + 
-								(unsichtbar.includes(parseInt(stil)) ? ' ' + 'unsichtbar' : ''),
+								(unsichtbar.includes(parseInt(stil) && GleisData != 16) ? ' ' + 'unsichtbar' : ''),
 				});
 
-				let pathElement;
 				let Winkel, DeltaX, DeltaY;
 				if (Kruemmung == '0') {
 			/*
@@ -380,39 +530,11 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					DeltaX			= Laenge;
 					DeltaY			= 0; 
 
-					pathElement = svgAppend(svgGleisGroup, {
+					svgAppend(svgGleisGroup, {
 						svg_tag				: `path`,
 						class				: `stil-${stil}`,
 						d 					: `M 0 0 H ${Laenge}`,
 						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
-					});
-
-					if (Key_Id) {
-						// Show text of Weiche at the end of the track
-						svgAppend(svgGleisGroup, {
-							svg_tag			: `text`,
-							text			: `W${Key_Id}`,
-							'dy'			: '1em', 		// Shift text below the track
-							class			: `Weiche`,
-							x				: DeltaX,
-							y				: -DeltaY,
-							transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-											   scale(1 -1)`,
-						});
-					}
-					
-					// show GleisID in the middle of the track
-					DeltaX			= Laenge / 2;
-					svgAppend(svgGleisGroup, {
-						svg_tag				: `text`,
-						text				: `${GleisID}`,
-						'dy'				: '-0.1em', 	// Shift text up
-						x					: DeltaX,
-						y					: -DeltaY,
-						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-											   scale(1 -1)`,
 					});
 
 				} else { // Kruemmung != 0
@@ -441,58 +563,103 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			Dies ergibt folgende vereinfachte Form:
 			<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
 			*/
-					Winkel 	= Kruemmung * Laenge;
+					Winkel 			= Kruemmung * Laenge;
 					const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1);
 					const SweepFlag = ( Winkel >= 0 ? 1 : 0);
 					const Radius	= 1 / Kruemmung;
 					DeltaX 			= Math.sin(Winkel) * Radius;
 					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 
-					pathElement = svgAppend(svgGleisGroup, {
+					svgAppend(svgGleisGroup, {
 						svg_tag				: `path`,
 						class				: `stil-${stil}`,
 						d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
 						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
 					
-					if (Key_Id) {
-						// Show text of Weiche at the end of the track
-						svgAppend(svgGleisGroup, {
-							svg_tag			: `text`,
-							text			: `W${Key_Id}`,
-							'dy'			: '1em', 		// Shift text below the track
-							class			: `Weiche`,
-							x				: DeltaX,
-							y				: -DeltaY,
-							transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-											   scale(1 -1)`,
-						});
-					}
-
-					// show GleisID in the middle of the track
-					Winkel 			= Kruemmung * Laenge / 2;
-					DeltaX 			= Math.sin(Winkel) * Radius;
-					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
-					svgAppend(svgGleisGroup, {
-						svg_tag				: `text`,
-						text				: `${GleisID}`,
-						'dy'				: '-0.1em', 	// Shift text up
-						x					: DeltaX,
-						y					: -DeltaY,
-						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-											   scale(1 -1)`,
-					});
 				}
 
-				// Signale
-				for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
-					const SignalID	= Meldung.getAttribute('Key_Id');
-					const Position	= Meldung.getAttribute('Position') / 100;
-					// const Name		= Meldung.getAttribute('name');
-					let Winkel, DeltaX, DeltaY;
+				if (Key_Id) {
+					// Show text of Weiche at the end of the track
+					let Code = 'W';
+					if (GleisData == 18 || GleisData == 19) { Code = 'DWK' };
+					if (GleisData == 20 || GleisData == 21) { Code = 'T-W' };
+					svgAppend(svgGleisGroup, {
+						svg_tag			: `text`,
+						id				: `W${Key_Id}`,
+						text			: `${Code}${Key_Id}`,
+						'dy'			: '1em', 		// Shift text below the track
+						class			: `WeicheText`,
+						x				: DeltaX,
+						y				: -DeltaY,
+						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+					});
+				}
 					
+				// show GleisID in the middle above the track
+				if (Kruemmung == '0') {
+					Winkel 			= 0;
+					DeltaX			= Laenge / 2;
+					DeltaY			= 0; 
+				} else {
+					Winkel 			= Kruemmung * Laenge / 2;
+					const Radius	= 1 / Kruemmung;
+					DeltaX 			= Math.sin(Winkel) * Radius;
+					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+				}
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `${GleisID}`,
+					'dy'				: '-0.1em', 	// Shift text up
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+				});
+				// show Gleisstil in the middle below the track (right-adjusted)
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `${stil}`,
+					'dy'				: '1em', 		// Shift text below the track
+					class				: `Stil`,
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+				});					
+				// show Hoehe in the middle below the track (left-adjusted)
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `[${PosZ.toFixed(2)}m]`,
+					'dy'				: '1em', 		// Shift text below the track
+					class				: `Hoehe`,
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+										   scale(1 -1)`,
+				});					
+
+				// Signale
+				// <Meldung Position="3449.492" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" name="PI5_HP02_Form_oVSig" Key_Id="5" >
+				//     <KontaktZiel>6</KontaktZiel>
+				//     <Signal stellung="1" wirkungsdistanz="10856.51"/>
+				// </Meldung>
+
+				const trackSignalEntries = global.trackSignals[GleissystemID][GleisID];
+				if (trackSignalEntries) for (const trackSignalEntry of trackSignalEntries) {
+					const Meldung		= trackSignalEntry.Meldung;
+					const SignalID		= Meldung.getAttribute('Key_Id');
+					const signalType	= trackSignalEntry.signalType;
+					const Position		= trackSignalEntry.Position;
+					const Distanz		= Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
+					const ParaOderAnti 	= trackSignalEntry.ParaOderAnti; //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende 
+
+					let Winkel, DeltaX, DeltaY;
 					if (Kruemmung == '0') {
 						Winkel 			= 0;
 						DeltaX			= Position;
@@ -504,36 +671,64 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 					}
 
-					// Show marker for Signal
-					svgAppend(svgGleisGroup, {
+					// Group node for Signal
+					const svgSignalGroup = svgAppend(svgGleisGroup, {
+						svg_tag	: `g`,
+						id		: `S${SignalID}`,
+						class	: `Signal`,
+					});
+
+					// Show circle at Signal
+					/*
+					svgAppend(svgSignalGroup, {
 						svg_tag				: `circle`,
-						id					: `S${SignalID}`,
-						class				: `Signal`,
+						//class				: `Signal`,
 						cx					: DeltaX,
 						cy					: DeltaY,
-						r					: 1,
+						r					: 3,
 						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
+					*/
+					
+					// Show symbol for Signal
+					svgAppend(svgSignalGroup, {
+						svg_tag				: `use`,
+						//class				: `Signal`,
+						'href'				: (signalType == 'pre' ? '#SymbolPreSignal' : '#SymbolSignal'),
+						x					: DeltaX,
+						y					: -DeltaY,
+						transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
+												+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+												+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position  
+												,
+					});
+	
 					// Show text of Signal
-					svgAppend(svgGleisGroup, {
+					svgAppend(svgSignalGroup, {
 						svg_tag				: `text`,
-						text				: `S${SignalID}`,
-						'dy'				: '1em', 	// // Shift text below the track
+						text				: `S${SignalID}` + (signalType == 'pre' ? ` ${Distanz.toFixed(0)}m` : ``),
+						//'dy'				: `${(ParaOderAnti == 0 ? '-2.3' : '1.3em')}`, 	// Shift text if not rotated to the side of the symbol
+						'dy'				: `-2.3`, 										// Shift text if rotated to the side of the symbol
 						class				: `Signal`,
 						x					: DeltaX,
 						y					: -DeltaY,
-						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
-											   scale(1 -1)`,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`	// Rotate text to the side of the symbol
+												+ ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+												+ ` scale(1 -1)`,
 					});
  
 				} // Signale
 
 				// Kontakte
 				for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
-					const Position	= Kontakt.getAttribute('Position') / 100;
-					let Winkel, DeltaX, DeltaY;
+					const Position		= Kontakt.getAttribute('Position') / 100;
+					const ParaOderAnti 	= Kontakt.getAttribute('ParaOderAnti'); // Gleisrichtung 1: 0 = Ende -> Anfang, 1 = Anfang -> Ende  
+					const fireOnPara  	= Kontakt.getAttribute('fireOnPara'); 	// Kontakt aktiv für Gleisrichtung 1
+					const fireOnAnti  	= Kontakt.getAttribute('fireOnAnti'); 	// Kontakt aktiv für Gleisrichtung 2
 					
+					let Winkel, DeltaX, DeltaY;
 					if (Kruemmung == '0') {
 						Winkel 			= 0;
 						DeltaX			= Position;
@@ -545,18 +740,55 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 					}
 
-					// Show marker for Kontakt
-					svgAppend(svgGleisGroup, {
-						svg_tag				: `rect`,
-						class				: `Kontakt`,
-						x					: DeltaX,
-						y					: DeltaY,
-						width				: 0.2,
-						height				: 1,
-						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
-											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+					// Group node for Kontakt
+					const svgKontaktGroup = svgAppend(svgGleisGroup, {
+						svg_tag	: `g`,
+						//id		: `???`,
+						class	: `Kontakt`,
 					});
  
+					// Show circle at Kontakt
+					/*
+					svgAppend(svgKontaktGroup, {
+						svg_tag				: `circle`,
+						//class				: `Kontakt`,
+						cx					: DeltaX,
+						cy					: DeltaY,
+						r					: 3,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+					*/
+					
+					// Show symbol for Kontakt
+					if (fireOnPara == 1) {
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `use`,
+							//class				: `Kontakt`,
+							'href'				: `#SymbolKontakt`,
+							x					: DeltaX,
+							y					: -DeltaY,
+							transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+													+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
+													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+													+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position  
+													,
+						});
+					}
+					if (fireOnAnti == 1) {
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `use`,
+							//class				: `Kontakt`,
+							'href'				: `#SymbolKontakt`,
+							x					: DeltaX,
+							y					: -DeltaY,
+							transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+													+ ` rotate(${(1-ParaOderAnti) * 180} ${DeltaX} ${DeltaY})`
+													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+													+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position 
+													,
+						});
+					}
+
 				} // Kontakte
 
 			} // Gleise
@@ -565,6 +797,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		}
 
 	}).then(function() {
+	
+		// Show min/max height
+		const text = (usedArea.min.z).toFixed(0) + ' .. ' + (usedArea.max.z).toFixed(0);
+		document.getElementById('height_area').textContent = text;
 	
 		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
 		usedArea.min.x = Math.max( usedArea.min.x, Area.min.x );
@@ -693,8 +929,7 @@ function svgAppendTextPath(svg_node, obj) {
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <script> // svg-pan-zoom
-// https://github.com/ariutta/svg-pan-zoom
-function SvgPanZoom(usedArea) {
+function SvgPanZoom(usedArea) { // <!-- https://github.com/ariutta/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
 		msg();
@@ -759,6 +994,7 @@ function SvgPanZoom(usedArea) {
 					},
 					click: function(ev) {
 						show_area(options.instance, ev);
+						show_element(options.instance, ev);
 					},
 					mousemove: function(ev) {
 						show_position(options.instance, ev);
@@ -945,8 +1181,173 @@ function SvgPanZoom(usedArea) {
 		/* Show center position */
 		text = '(' + (centerX).toFixed(0) + ' ' + (-centerY).toFixed(0) + ')';
 		document.getElementById('center_position').textContent = text;
+	}
+
+	// Show element
+	function show_element(t, event) {
+		if (!event || event.target.id == 'svg') { return; };
+/*
+console.log('');
+
+console.log( 
+'target|' +
+event.target.tagName + ':' + 
+event.target.id + ':' + 
+event.target.classList[0]
+)
+if (event.target.parentElement) {
+	console.log( 
+	'target.parentElement|' +
+	event.target.parentElement.tagName + ':' + 
+	event.target.parentElement.id  + ':' +
+	event.target.parentElement.classList[0]
+	)
+	if (event.target.parentElement.parentElement) {
+		console.log( 
+		'target.parentElement.parentElement|' +
+		event.target.parentElement.parentElement.tagName + ':' + 
+		event.target.parentElement.parentElement.id  + ':' +
+		event.target.parentElement.parentElement.classList[0]
+		)
+	}
+}
+if (event.rangeParent) {
+	console.log( 
+	'rangeParent|' +
+	event.rangeParent.tagName + ':' + 
+	event.rangeParent.id  + ':' +
+	event.rangeParent.classList[0]
+	)
+	if (event.rangeParent.parentElement) {
+		console.log( 
+		'rangeParent.parentElement|' +
+		event.rangeParent.parentElement.tagName + ':' + 
+		event.rangeParent.parentElement.id  + ':' +
+		event.rangeParent.parentElement.classList[0]
+		)
+	}
+}
+*/
+/*
+Track
+target						|path::stil-1353
+target.parentElement		|g:G1-3:Weiche
+rangeParent					|g:G1-3:Weiche
+rangeParent.parentElement	|g:Eisenbahn:undefined
+
+Track text
+target						|text::undefined
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::undefined
+rangeParent.parentElement	|g:G1-51:Normal
+
+Track stil
+target|text::Stil
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::Stil
+rangeParent.parentElement	|g:G1-51:Normal
+
+Track Hoehe
+target|text::Hoehe
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::Hoehe
+rangeParent.parentElement	|g:G1-51:Normal
+
+Weiche text
+target						|text:W2:WeicheText
+target.parentElement		|g:G1-17:Weiche
+rangeParent					|text:W2:WeicheText
+rangeParent.parentElement	|g:G1-17:Weiche
+
+Signal text
+target						|text::Signal
+target.parentElement		|g:S39:Signal
+target.parentElement.parentElement|g:G1-47:Normal
+rangeParent					|text::Signal
+rangeParent.parentElement	|g:S39:Signal
+
+Signal symbol
+target						|use::undefined
+target.parentElement		|g:S39:Signal
+target.parentElement.parentElement|g:G1-47:Normal
+rangeParent					|symbol:SymbolSignal:undefined
+
+Signal circle
+target						|circle::undefined 
+target.parentElement		|g:S39:Signal 
+rangeParent					|g:S39:Signal 
+rangeParent.parentElement	|g:G1-47:Normal
+
+
+Kontakt symbol
+target						|use::undefined
+target.parentElement		|g::Kontakt
+target.parentElement.parentElement|g:G1-47:Normal
+
+Kontakt circle
+target						|circle::undefined
+target.parentElement		|g:G1-47:Normal
+rangeParent					|g:G1-47:Normal
+rangeParent.parentElement	|g:Eisenbahn:undefined
+*/
+		
+		if (event.target.parentElement.classList[0] == 'Signal') {	// Signal
+			const SignalCode = event.target.parentElement.id;
+			const SignalID = SignalCode.substring(1)
+
+			const GleisCode = event.target.parentElement.parentElement.id;
+			const GleisTextArray 	= GleisCode.substring(1).split('-');
+			const GleissystemID 	= GleisTextArray[0];
+			const GleisID 			= GleisTextArray[1];
+
+			showSignalInfo(SignalID, GleissystemID, GleisID);
+			
+		} else if (event.target.parentElement.classList[0] == 'Kontakt') {	// Kontakt
+
+			const GleisCode = event.target.parentElement.parentElement.id;
+			const GleisTextArray 	= GleisCode.substring(1).split('-');
+			const GleissystemID 	= GleisTextArray[0];
+			const GleisID 			= GleisTextArray[1];
+
+			showKontaktInfo(GleissystemID, GleisID);
+			
+		} else if (event.target.classList[0] == 'WeicheText') { 	// Weiche
+			const WeicheCode 	= event.target.id;
+			const WeicheID 		= WeicheCode.substring(1)
+
+			const GleisCode = event.target.parentElement.id;
+			const GleisTextArray 	= GleisCode.substring(1).split('-');
+			const GleissystemID 	= GleisTextArray[0];
+			const GleisID 			= GleisTextArray[1];
+
+			showWeicheInfo(WeicheID, GleissystemID, GleisID);
+
+		} else{ 													// Gleis
+			const GleisCode = event.target.parentElement.id;
+			const GleisTextArray 	= GleisCode.substring(1).split('-');
+			const GleissystemID 	= GleisTextArray[0];
+			const GleisID 			= GleisTextArray[1];
+			showGleisInfo(GleissystemID, GleisID);
+		}
 
 	}
+
+}
+
+function showGleisInfo(GleissystemID, GleisID) {
+	msg(`${GleissystemText[GleissystemID]} ${GleisID}`);
+}
+
+function showSignalInfo(SignalID, GleissystemID, GleisID) {
+	msg(`Signal ${SignalID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+}
+
+function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
+	msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+}
+
+function showKontaktInfo(GleissystemID, GleisID) {
+	msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 }
 </script>
 
@@ -1222,16 +1623,16 @@ function changefontSize(value) {
 	const factor = 0.1054 * Math.exp(0.03 * value);
 
 	// Modify svg css (nice, but only works in the browser, not during PNG export)
-	// (we maybe could use calc(4 * var(--font-size-factor, 1) * 1px) as well to avoid the constants here)
+	// (we maybe could use calc(3 * var(--font-size-factor, 1) * 1px) as well to avoid the constants here)
 	/*
 	const cssVariables = document.getElementById('css-fontSize-variables').sheet.rules[0].style;
-	cssVariables.setProperty('--normal-font-size', `${4 * factor}px`);
+	cssVariables.setProperty('--normal-font-size', `${3 * factor}px`);
 	*/
 	
 	// Modify svg css to use same setting during PNG export
 	document.getElementById('css-fontSize-variables').textContent =
 		`svg {
-			--normal-font-size: ${4 * factor}px;
+			--normal-font-size: ${3 * factor}px;
 		}`	
 }</script>
 
@@ -1431,6 +1832,7 @@ Font <input type='range' min='1' max='100' value='75' name='fontSize' id='fontSi
 </div>
 
 <div class='group'> <!-- Status line -->
+Min/Max Höhe der Anlage: <span id="height_area"> </span><br/>
 Sichtbarer Bereich: <span id="visible_area"> </span><br/>
 Zentrum des Bereichs: <span id="center_position"> </span><br/>
 Cursor: <span id="cursor_position"> </span>
@@ -1440,29 +1842,37 @@ Cursor: <span id="cursor_position"> </span>
 <fieldset class='fieldset'>
 	<!-- Firefox keeps the status of the checkbox between page loadsby default. -->
 	<div class="item"><label class='Eisenbahn hidden'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off'  onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
+	<input type='checkbox' name='Eisenbahn' 	checked autocomplete='off' onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
 	<div class="item"><label class='Strassenbahn hidden'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
-	<div class="item"><label class='Strasse hidden'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
+	<input type='checkbox' name='Strassenbahn' 	checked autocomplete='off' onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
+	<div class="item"><label class='Gleissystem hidden'>
+	<input type='checkbox' name='Strasse' 		checked autocomplete='off' onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
 	<div class="item"><label class='Wasserwege hidden'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
+	<input type='checkbox' name='Wasserwege' 	checked autocomplete='off' onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
 	<div class="item"><label class='Steuerstrecken hidden'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
+	<input type='checkbox' name='Steuerstrecken' checked autocomplete='off' onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
 	<div class="item"><label class='GBS hidden'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
+	<input type='checkbox' name='GBS' 			checked autocomplete='off' onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
 	<div class="item"><label class='Text'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('text', this.checked)">Text</label></div>
-	<div class="item"><label class='active'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.active', this.checked)">aktiv</label></div>
-	<div class="item"><label class='inactive'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.inactive', this.checked)">inaktiv</label></div>
-	<div class="item"><label class='unsichtbar'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
+	<input type='checkbox' name='Text' 			checked autocomplete='off' onchange="toggleElements('text', this.checked)">Text</label></div>
+	<div class="item"><label class='Stil'>
+	<input type='checkbox' name='Stil' 			checked autocomplete='off' onchange="toggleElements('.Stil', this.checked)">Stil</label></div>
+	<div class="item"><label class='Hoehe'>
+	<input type='checkbox' name='Hoehe' 		checked autocomplete='off' onchange="toggleElements('.Hoehe', this.checked)">Hoehe</label></div>
+	<div class="item"><label class='WeicheText'>
+	<input type='checkbox' name='WeicheText' 	checked autocomplete='off' onchange="toggleElements('.WeicheText', this.checked)">Weichen</label></div>
 	<div class="item"><label class='Signal'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
+	<input type='checkbox' name='Signal' 		checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
+	<div class="item"><label class='Kontakt'>
+	<input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)">Kontakte</label></div>
+	<div class="item"><label class='active'>
+	<input type='checkbox' name='active' 		checked autocomplete='off' onchange="toggleElements('.active', this.checked)">aktiv</label></div>
+	<div class="item"><label class='inactive'>
+	<input type='checkbox' name='inactive' 		checked autocomplete='off' onchange="toggleElements('.inactive', this.checked)">inaktiv</label></div>
+	<div class="item"><label class='unsichtbar'>
+	<input type='checkbox' name='unsichtbar' 	checked autocomplete='off' onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
 	<div class="item"><label class='Marker'>
-	<input type='checkbox' name='Gleissystem' checked autocomplete='off' onchange="toggleMarker(this.checked)">Marker</label></div>
+	<input type='checkbox' name='Marker' 		checked autocomplete='off' onchange="toggleMarker(this.checked)">Marker</label></div>
 </fieldset>
 </div>
 
@@ -1471,7 +1881,7 @@ Cursor: <span id="cursor_position"> </span>
 </div>  <!-- header -->
 
 <div id='container' class='hidden'> <!-- The container takes the remainig part of the screen to show the graphic -->
-<svg id='svg' xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg id='svg' xmlns='http://www.w3.org/2000/svg' version='1.1'>
 
 <title>EEP Gleisplan</title>
 <desc>EEP Gleisplan</desc>
@@ -1514,7 +1924,7 @@ svg {
 	<style type="text/css" id='css-fontSize-variables'> /* dynamic update via Javascript to adjust font size */
 	/* <![CDATA[ */
 svg {
-	--normal-font-size: 4px;
+	--normal-font-size: 3px;
 }
 	/* ]]> */
 	</style>
@@ -1529,16 +1939,6 @@ svg {
 	/* transform: scale(1,-1);     		not useful as it would mirror the text, too */
 }
 
-/* unsichtbare Gleisstile */
-.unsichtbar {
-	stroke-dasharray: 1;
-}
-
-/* inaktive Gleisstile */
-.inactive {
-	stroke-opacity: 0.5;
-}
-
 /* Texte für Signale, Weichen etc. */
 text {
 	font-size: var(--normal-font-size);
@@ -1551,21 +1951,21 @@ text {
 textPath {
 }
 
-text.Weiche {
+text.WeicheText {
 	text-anchor	: end;
 }
 
-text.Signal {
+text.Signal  {
 }
 
-circle.Signal {
-	stroke-width: var(--narrow-stroke-width);
-	stroke-dasharray: 0;
+text.Stil {
+	text-anchor	: end;
+	font-style: italic;
 }
 
-rect.Kontakt {
-	stroke-width: 0; /* var(--narrow-stroke-width); */
-	stroke-dasharray: 0;
+text.Hoehe {
+	text-anchor	: start;
+	font-style: italic;
 }
 
 /* Box zur Anzeige der verwendeten Groesse der Anlage */
@@ -1669,11 +2069,20 @@ rect.Kontakt {
 	fill: var(--GBS-color);
 }
 
-/* Individuelle Formatierung je Gleisstil */
-
 .Prellbock {
 	marker-end:   url(#Prellbock);
 }
+
+/* Symbole */
+
+#SymbolSignal, #SymbolPreSignal, #SymbolKontakt {
+	marker-start: none;
+	marker-end:   none;
+	stroke-width: var(--narrow-stroke-width);
+	fill:   none;
+}
+
+/* Individuelle Formatierung je Gleisstil */
 
 .stil-1353 { 	/* Gleis mit Betonschwellen */
 }
@@ -1682,54 +2091,77 @@ rect.Kontakt {
 	stroke: brown;
 }
 
-.hidden {
+.unsichtbar {	/* unsichtbare Gleisstile */
+	stroke-dasharray: 1;
+}
+
+.inactive {		/* inaktive Gleisstile */
+	stroke-opacity: 0.5;
+}
+
+.hidden {		/* versteckte Elemente */
 	display: none !important;
 }
 	/* ]]> */
 	</style>
 </defs>
 
-<defs> <!-- marker -->
-	<marker id="Prellbock" 	markerWidth="2" markerHeight="5" refX="2" refY="2" orient="auto">
+<defs> <!-- Symbols and Markers -->
+	<!-- Use of symbols requires translate(-10 0) to move the origin M 0 0 to the correct position --> 
+	<!-- <path d='M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z' /> 								<!-- Kreissegment --> 
+	<!-- <path d='M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2' /> 	<!-- Box --> 
+	<symbol id='SymbolSignal' width='20' height='10' viewBox='-10 0 20 10'>
+		<path d='M 0 0 L 0 0.9 L 0.3 0.9 L 0.6 1.2 L 0.6 1.8 L 0.3 2.1   L -0.3 2.1 L -0.6 1.8 L -0.6 1.2 L -0.3 0.9 L -0 0.9' /> <!-- Linie mit Achteck --> 
+	</symbol>
+	<symbol id='SymbolPreSignal' width='20' height='10' viewBox='-10 0 20 10'>
+	<!--<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.5' r='0.6' />  						<!-- Linie mit Kreis --> 
+		<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.3' r='0.4' />  						<!-- Linie mit kleinem Kreis --> 
+	</symbol>
+	<symbol id='SymbolKontakt' width='20' height='10' viewBox='-10 0 20 10'>
+		<path d='M 0 0 L 0 0.9 L 0.7 2.1 L -0.7 2.1 L 0 0.9' />									<!-- Linie mit Dreieck --> 
+	</symbol>
+
+	<!-- Prellbock: Querbalken --> 
+	<marker id="Prellbock" 	markerWidth="2" markerHeight="4" refX="2" refY="2" orient="auto">
 		<rect x="0" y="0" width="2" height="4"/>
 	</marker>
 
 	<!-- We need individual markers to be able to apply CSS -->
-	<marker id="EisenbahnMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="EisenbahnMarkerCircle" 		markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="StrassenbahnMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="StrassenbahnMarkerCircle"	markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="StrasseMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="StrasseMarkerCircle" 		markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="WasserwegeMarkerCircle" markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="WasserwegeMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="SteuerstreckenMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="SteuerstreckenMarkerCircle" markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
-	<marker id="GBSMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+	<marker id="GBSMarkerCircle" 			markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
 
-	<marker id="EisenbahnMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+	<marker id="EisenbahnMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
 	<marker id="StrassenbahnMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
-	<marker id="StrasseMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+	<marker id="StrasseMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
-	<marker id="WasserwegeMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+	<marker id="WasserwegeMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
 	<marker id="SteuerstreckenMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
-	<marker id="GBSMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+	<marker id="GBSMarkerArrow" 			markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
 

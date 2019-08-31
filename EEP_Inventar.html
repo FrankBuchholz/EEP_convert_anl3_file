@@ -13,12 +13,12 @@
 function loadFile(file) {
 	var fr;
 	if (typeof window.FileReader !== 'function') {
-		htmlAppend(null, "p", "The file API isn't supported on this browser yet.");
+		e(null, "p", "The file API isn't supported on this browser yet.");
 		return;
 	};
 
 	if (!file) {
-		htmlAppend(null, "p", "Please select a file before clicking 'Load'");
+		e(null, "p", "Please select a file before clicking 'Load'");
 	}
 	else {
 		fr = new FileReader();
@@ -79,16 +79,31 @@ function process_node(sutrackp) {
 	http://up.picr.de/33875489iu.pdf
 	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
 	*/
-	const unsichtbar = [	// unsichtbare Gleisstile
-		17, 				// Wasser, Steuerstrecke
-		28, 34, 562,		// Gleis
-		35, 				// Strassenbahn
-		36, 				// Strasse
-		5145, 5146, 5147,	// Farm track
-		5602,				// Fence
-		100000,				// Kamerafahrweg
+	const unsichtbar = [			// unsichtbare Gleisstile
+		17, 						// Wasser, Steuerstrecke
+		28, 34, 562, 1346, 5100,	// Gleis
+		35, 						// Strassenbahn
+		36, 						// Strasse
+		5145, 5146, 5147,			// Farm track
+		5602,						// Fence
+		100000,						// Kamerafahrweg
 	];
 
+	// GleisData
+	const GleisDataText = {
+		1	: 'Oberleitung',
+		2	: 'Weichenlaterne verstecken ',
+		3	: 'Oberleitung, Weichenlaterne verstecken ',
+		4	: 'Weichenlaterne rechts',
+		5	: 'Oberleitung, Weichenlaterne rechts',
+		8	: 'Weichenlaterne links',
+		9	: 'Oberleitung, Weichenlaterne links',
+		16	: 'Weichenlaterne als Immobilie/Straßen-T-Kreuzung',
+		18	: 'Doppelkreuzungsweiche',
+		19	: 'Oberleitung, Doppelkreuzungsweiche',
+		20	: 'Straßen-T-Kreuzung',
+	};
+	
 	// Groesse der Anlage (alle Positionsangaben in m statt cm)
 	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
 	const Area = {
@@ -100,27 +115,36 @@ function process_node(sutrackp) {
 		height 	: Math.abs(Schandlaft.getAttribute('posY') * 2 / 100),
 	};
 
-	let element;
-	element = divAppend('Intro');
+	// Verwendeter Bereich der Anlage
+	const usedArea = {
+		min : {x : 0, y : 0, z : 0},
+		max : {x : 0, y : 0, z : 0},
+	};
+
+	// Variablen für die Ausgabe
+	let div, table, thead, tbody, tr;
+
+	div = divAppend('Intro');
 	const Version = sutrackp.getElementsByTagName('Version')[0];
 	if (Version) {
 		const EEPversion = Version.getAttribute('EEP');
 		if (EEPversion && EEPversion >= 16) {
-		htmlAppend(element, 'p',
+		e(div, 'p',
 				`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
 				`
 			);	
 			return;
 		}
 	}
-	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Höhe = 607 m
+
+	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Tiefe = 607 m
 	if (Version) {
-		htmlAppend(element, 'p',
+		e(div, 'p',
 			`EEP Version = ${Version.getAttribute('EEP')},
 			 Anzahl Objekte = ${Version.getAttribute('No3DMs')},
 			 Breite = ${Area.width.toFixed(0)} m,
-			 Höhe = ${Area.height.toFixed(0)} m
-			`
+			 Tiefe = ${Area.height.toFixed(0)} m
+  		`
 		);
 	}
 
@@ -131,7 +155,8 @@ function process_node(sutrackp) {
 	const
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
 		Signale 	= [], 	// ID (des Signals), Name, Meldung, Gleissystem, Gleis
-		Zugverbaende = []; 	// ID (des Zugverbandes), Name, Gleisort, rollmaterialien
+		Zugverbaende = [], 	// ID (des Zugverbandes), Name, Gleisort, rollmaterialien
+		Gleisstile	= [];	// Gleisstil, Datei, Anzahl
 
 	// Extract data from Gleissystem
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
@@ -145,12 +170,6 @@ function process_node(sutrackp) {
 		for (const Gleis of Gleissystem.getElementsByTagName('Gleis')) {
 		
 /* Beispiel bis Version EEP 15:
-https://www.trendverlag.com/Schema/EEP.xsd 
-https://www.trendverlag.com/Schema/Common.xsd
-https://www.trendverlag.com/Schema/traxML.xsd 
-https://www.trendverlag.com/Schema/Train.xsd
-
-
 <Gleis GleisID="1" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm" LockEd="0">
 	<Dreibein>
 		<Vektor x="-12359.88" y="-1854.389" z="30">Pos</Vektor>
@@ -163,6 +182,10 @@ https://www.trendverlag.com/Schema/Train.xsd
 </Gleis>
 
 Beispiel ab Version EEP 16: 
+https://www.trendverlag.com/Schema/EEP.xsd 
+https://www.trendverlag.com/Schema/Common.xsd
+https://www.trendverlag.com/Schema/traxML.xsd 
+https://www.trendverlag.com/Schema/Train.xsd
 
 <Gleis GleisID="314" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="0.6" ElectSideS="0" ElectSideE="0" OneWay="1" stil="2263" gsbname="\Gleisstile\Strassen\Asphaltstrasse_01_RE1.3dm" LockEd="0">
 	<Frame>...</Frame>
@@ -228,16 +251,32 @@ mit
 			const GleisID = Gleis.getAttribute('GleisID');
 			GleisMap.get(GleissystemID).set(GleisID, Gleis);
 
+			const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
+			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
+			const PosY		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
+			const PosZ		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('z') / 100;
+
+			// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
+			usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge );
+			usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge );
+			usedArea.min.z = Math.min( usedArea.min.z, PosZ );
+
+			usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge );
+			usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge );
+			usedArea.max.z = Math.max( usedArea.max.z, PosZ );
+
+			// Weichen
 			const WeicheID	= Gleis.getAttribute('Key_Id');
 			if (WeicheID) {  // Ist das Gleis eine Weiche?
 				Weichen.push({
-					ID			: Number(WeicheID),  // sort field
+					ID				: Number(WeicheID),  // sort field
 
-					GleissystemID : GleissystemID,
+					GleissystemID 	: GleissystemID,
 					GleisID 		: GleisID,
 				});
 			}
 
+			// Signale
 			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
 				// get potential sort fields
 				const SignalID	= Meldung.getAttribute('Key_Id');
@@ -253,8 +292,36 @@ mit
 					Meldung 		: Meldung,
 				});
 			}
+			
+			// Gleisstile
+			// <Gleis stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm">
+			const StilID 		= Number(Gleis.getAttribute('stil'));
+			const Dateiname		= Gleis.getAttribute('gsbname');
+			
+			if (StilID == 0) { // What should we do if there is no value?
+			}
+			
+			const index = Gleisstile.findIndex(function (element) {
+				return (element.ID == StilID && element.Name == Dateiname);
+			});
+			if (index == -1) {
+				Gleisstile.push({
+					ID				: StilID,
+					Name			: Dateiname,
+					Anzahl			: 1,
+				})
+			} else {
+				Gleisstile[index].Anzahl = Gleisstile[index].Anzahl + 1;
+			}
+
 		}
 	}
+	
+	// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
+	usedArea.min.x = Math.max( usedArea.min.x, Area.min.x );
+	usedArea.min.y = Math.max( usedArea.min.y, Area.min.y );
+	usedArea.max.x = Math.min( usedArea.max.x, Area.min.x + Area.width  );
+	usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height );
 
 	// Extract data from Fuhrpark
 	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
@@ -279,10 +346,30 @@ mit
 		});
 	}
 
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --> 
+
+	// Anzeige des verwendeten Bereichs
+	e(div, 'p', 
+		 `Verwendeter Bereich: (${(usedArea.min.x).toFixed(0)} m, ${(usedArea.min.y).toFixed(0)} m) .. (${(usedArea.max.x).toFixed(0)} m, ${(usedArea.max.y).toFixed(0)} m)<br>`
+		+`Min./max Höhe: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) }m`
+	);
 
 	// Anzeige der Weichen
-	element = divAppend('Weiche');
-	htmlAppend(element, 'h4', `Weichen (${Weichen.length})`);
+	div = divAppend('Weiche');
+	e(div, 'h4', `Weichen (${Weichen.length})`);
+	
+	table 	= 	e(div, 		'table', 	''					);
+				e(table, 	'caption', 	`Weichen`			);
+	thead	= 	e(table, 	'thead'							);
+	tr 		= 	e(thead,	'tr'							);
+				e(tr, 		'th', 		`Weiche`			);
+				e(tr, 		'th', 		`Gleissystem Gleis`	);
+				e(tr, 		'th', 		`x (m)`				);
+				e(tr, 		'th', 		`y (m)`				);
+				e(tr, 		'th', 		`KontaktZiel`		);
+				e(tr, 		'th', 		`GleisData`			);
+	tbody	= 	e(table, 	'tbody'							);
+	
 	Weichen.sort(orderByID).forEach(Weiche => {
 		const WeicheID		= Weiche.ID;
 		const GleissystemID	= Weiche.GleissystemID;
@@ -290,19 +377,37 @@ mit
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-
-		htmlAppend(element, 'p',
-			`Weiche ${WeicheID},
-			 ${GleissystemText[GleissystemID]} ${GleisID},
-			 x = ${PosX.toFixed(0)} m,
-			 y = ${PosY.toFixed(0)} m
-			`
-		);
+		const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
+		const GleisData		= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche 
+	
+		tr = e(tbody, 'tr');
+		e(tr, 'td', WeicheID);
+		e(tr, 'td', `${GleissystemText[GleissystemID]} ${GleisID}`);
+		e(tr, 'td', PosX.toFixed(0));
+		e(tr, 'td', PosY.toFixed(0));
+		e(tr, 'td', (KontaktZiel != 0 ? KontaktZiel : ''));
+		e(tr, 'td', (GleisData   != 0 ? GleisData + ' ' + GleisDataText[GleisData] : ''));
 	});
 
 	// Anzeige der Signale
-	element = divAppend('Signal');
-	htmlAppend(element, 'h4', `Signale (${Signale.length})`);
+	div = divAppend('Signal');
+	e(div, 'h4', `Signale (${Signale.length})`);
+
+	table 	= 	e(div, 		'table', 	''								);
+				e(table,	'caption', 	`Signale`						);
+	thead	= 	e(table, 	'thead'										);
+	tr 		= 	e(thead,	'tr'										);
+				e(tr, 		'th', 		`Signal`						);
+				e(tr, 		'th', 		`Gleissystem Gleis`				);
+				e(tr, 		'th', 		`x (m)`							);
+				e(tr, 		'th', 		`y (m)`							);
+				e(tr, 		'th', 		`Position (m)`					);
+				e(tr, 		'th', 		`Distanz zum Hauptsignal (m)`	);
+				e(tr, 		'th', 		`Gleisrichtung`					);
+				e(tr, 		'th', 		`KontaktZiel`					);
+				e(tr, 		'th', 		`Name`							);
+	tbody	= 	e(table, 	'tbody'										);
+	
 	Signale.sort(orderByID).forEach(Signal => {
 		const SignalID		= Signal.ID;
 		const Name			= Signal.Name;
@@ -312,21 +417,38 @@ mit
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Signal.Meldung.getAttribute('Position') / 100;
+		const Distanz		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
+		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende (korrekt?)
+		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;;
 
-		htmlAppend(element, 'p',
-			`Signal ${SignalID},
-			 ${GleissystemText[GleissystemID]} ${GleisID},
-			 x = ${PosX.toFixed(0)} m,
-			 y = ${PosY.toFixed(0)} m,
-			 +${Position.toFixed(0)} m,
-			 ${Name}
-			`
-		);
+		tr = e(tbody, 'tr');
+		e(tr, 'td', SignalID);
+		e(tr, 'td', `${GleissystemText[GleissystemID]} ${GleisID}`);
+		e(tr, 'td', PosX.toFixed(0));
+		e(tr, 'td', PosY.toFixed(0));
+		e(tr, 'td', Position.toFixed(0));
+		e(tr, 'td', (Distanz !=0 ? Distanz.toFixed(0) : ''));
+		e(tr, 'td', ParaOderAnti);
+		e(tr, 'td', (KontaktZiel != 0 ? KontaktZiel : ''));
+		e(tr, 'td', Name);
 	});
 
 	// Anzeige der Zugverbände
-	element = divAppend('Zugverband');
-	htmlAppend(element, 'h4', `Zugverbände (${Weichen.length})`);
+	div = divAppend('Zugverband');
+	e(div, 'h4', `Zugverbände (${Weichen.length})`);
+
+	table 	= 	e(div, 		'table', 	''								);
+				e(table,	'caption', 	`Zugverbände`					);
+	thead	= 	e(table, 	'thead'										);
+	tr 		= 	e(thead,	'tr'										);
+				e(tr, 		'th', 		`Zugverband`					);
+				e(tr, 		'th', 		`Gleissystem Gleis`				);
+				e(tr, 		'th', 		`x (m)`							);
+				e(tr, 		'th', 		`y (m)`							);
+				e(tr, 		'th', 		`Position (m)`					);
+				e(tr, 		'th', 		`Name`							);
+	tbody	= 	e(table, 	'tbody'										);
+
 	Zugverbaende.sort(orderByID).forEach(Zugverband => {
 		const ZugID			= Zugverband.ID;
 		const Name			= Zugverband.Name;
@@ -337,18 +459,37 @@ mit
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
 
-		htmlAppend(element, 'p',
-			`Zugverband ${ZugID},
-			 ${GleissystemText[GleissystemID]} ${GleisID},
-			 x = ${PosX.toFixed(0)} m,
-			 y = ${PosY.toFixed(0)} m,
-			 +${Position.toFixed(0)} m
-			 ${Name},
-			`
-		);
+		tr = e(tbody, 'tr');
+		e(tr, 'td', ZugID);
+		e(tr, 'td', `${GleissystemText[GleissystemID]} ${GleisID}`);
+		e(tr, 'td', PosX.toFixed(0));
+		e(tr, 'td', PosY.toFixed(0));
+		e(tr, 'td', Position.toFixed(0));
+		e(tr, 'td', Name);
 
 		// Rollmaterialien anzeigen
 		// ...
+	});
+
+	// Anzeige der Gleisstile
+	div = divAppend('Gleisstil');
+	e(div, 'h4', `Gleisstile (${Gleisstile.length})`);
+
+	table 	= 	e(div, 		'table', 	''								);
+				e(table,	'caption', 	`Gleisstile`					);
+	thead	= 	e(table, 	'thead'										);
+	tr 		= 	e(thead,	'tr'										);
+				e(tr, 		'th', 		`Gleisstil`						);
+				e(tr, 		'th', 		`Name`							);
+				e(tr, 		'th', 		`Anzahl`						);
+	tbody	= 	e(table, 	'tbody'										);
+
+	Gleisstile.sort(orderByID).forEach(Gleisstil => {
+
+		tr = e(tbody, 'tr');
+		e(tr, 'td', Gleisstil.ID);
+		e(tr, 'td', Gleisstil.Name);
+		e(tr, 'td', Gleisstil.Anzahl);
 	});
 
 }
@@ -365,9 +506,10 @@ function orderByName(a,b) {
 	return 0;
 }
 
-function htmlAppend(target, tagName, textContent) {
+// Element erzeugen und anhängen
+function e(target, tagName, content) {
 	const element = document.createElement(tagName);
-	if (textContent) { element.textContent = textContent; }
+	if (content) { element.innerHTML = content; }
 	if (!target) { target = document.getElementById('container') }
 	target.appendChild(element);
 	return element;
@@ -403,8 +545,33 @@ function toggleElements(selector, visible) {
 	display: none;
 }
 
-#container p {
-	margin: 0;
+table {
+	border-collapse: collapse;
+}
+
+caption {
+	display: none;	
+}
+
+thead {
+	font-weight: bold;
+}
+
+th {
+	border: 1px solid gray;
+	padding: 5px;
+}
+
+tbody {
+	vertical-align: top;
+}
+
+tr {
+}
+
+td {
+	border: 1px solid gray;
+	padding: 5px;
 }
 
 .fieldset {
@@ -452,9 +619,11 @@ Anschließend wird der Inhalt ausgegeben.</small></p>
 <div class='group'>
 <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset class='fieldset'>
-	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Weiche', this.checked)">Weiche</label></div>
-	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Signal', this.checked)">Signal</label></div>
-	<div class="item"><label><input type='checkbox' name='Abschnitt' checked onchange="toggleElements('.Zugverband', this.checked)">Zugverband</label></div>
+	<div class="item"><label><input type='checkbox' name='Intro' 		checked autocomplete='off' onchange="toggleElements('.Intro', this.checked)">Intro</label></div>
+	<div class="item"><label><input type='checkbox' name='Weiche' 		checked autocomplete='off' onchange="toggleElements('.Weiche', this.checked)">Weiche</label></div>
+	<div class="item"><label><input type='checkbox' name='Signal' 		checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signal</label></div>
+	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)">Zugverband</label></div>
+	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)">Gleisstil</label></div>
 </fieldset>
 </div>
 
