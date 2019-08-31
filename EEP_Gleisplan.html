@@ -1369,6 +1369,14 @@ function showKontaktInfo(GleissystemID, GleisID) {
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // html page
 
+// Listen for checkbox change events
+document.addEventListener('DOMContentLoaded', function() {
+	document.querySelector('.fieldset').addEventListener('change', function(ev) {
+		const target = ev.target;
+		localStorage.setItem(`checkbox_${target.name}`, target.checked);
+	});
+});
+
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -1650,14 +1658,6 @@ function changefontSize(value) {
 			--normal-font-size: ${4 * factor}px;
 		}`;
 }
-
-// Listen for checkbox change events
-document.addEventListener('DOMContentLoaded', function() {
-	document.querySelector('.fieldset').addEventListener('change', function(ev) {
-		const target = ev.target;
-		localStorage.setItem(`checkbox_${target.name}`, target.checked);
-	});
-});
 </script>
 
 <style> /* html page */
