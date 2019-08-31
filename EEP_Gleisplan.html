@@ -78,7 +78,7 @@ function loadFile(file) {
 
 			// Activate Pan and Zoom
 			SvgPanZoom(usedArea);
-		}, function(err) { 
+		}, function(err) {
 			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use '</pre>'
 			document.getElementById('loading').innerHTML = `Fehler beim Lesen der Datei:<br>${err.name}: "${err.message}" in line ${err.lineNumber}<br><pre>${err.stack}` + '</pre>';
 			console.log(err);
@@ -135,7 +135,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		5145, 5146, 5147,			// Farm track
 		5602,						// Fence
 		100000,						// Kamerafahrweg
-	]
+	];
 
 	const Version = sutrackp.getElementsByTagName('Version')[0];
 	if (Version) {
@@ -443,7 +443,7 @@ if (SignalID == 113) debugger
 			});
 			//console.log(svgGleissystemGroup)
 
-			const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
+      const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
 
 			// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
 			if (Gleise.length > 0) {
@@ -576,7 +576,21 @@ if (SignalID == 113) debugger
 						d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
 						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
-
+					
+					if (Key_Id) {
+						// Show text of Weiche at the end of the track
+						svgAppend(svgGleisGroup, {
+							svg_tag			: `text`,
+							text			: `W${Key_Id}`,
+							'dy'			: '1em', 		// Shift text below the track
+							class			: `Weiche`,
+							x				: DeltaX,
+							y				: -DeltaY,
+							transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY}) 
+											   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY}) 
+											   scale(1 -1)`,
+						});
+					}
 				}
 
 				if (Key_Id) {
