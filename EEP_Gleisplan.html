@@ -66,7 +66,7 @@ function loadFile(file) {
 					progress.value++;
 				});
 			}
-		}).then(function(usedArea) {
+		}).then(function() {
 			// Hide loading
 			document.getElementById('loading').classList.add('hidden');
 
@@ -79,7 +79,7 @@ function loadFile(file) {
 			// Read settings from localStorage
 			for (let i = 0; i < localStorage.length; i++) {
 				const key = localStorage.key(i);
-				if (key.indexOf('checkbox_') == 0) {
+				if (key.indexOf('checkbox_') == 0) { // Read checkbox settings
 					const checkbox = document.querySelector(`input[type="checkbox"][name="${key.substring(9)}"]`);
 					if (checkbox) {
 						const value = localStorage.getItem(key) == "true";
@@ -88,11 +88,14 @@ function loadFile(file) {
 							checkbox.dispatchEvent(new Event('change'));
 						}
 					}
+				} else {
+					// Read other settings
 				}
 			}
 
 			// Activate Pan and Zoom
-			SvgPanZoom(usedArea);
+			SvgPanZoom();
+			
 		}, function(err) {
 			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use '</pre>'
 			document.getElementById('loading').innerHTML = `Fehler beim Lesen der Datei:<br>${err.name}: "${err.message}" in line ${err.lineNumber}<br><pre>${err.stack}` + '</pre>';
@@ -177,7 +180,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	};
 
 	// Verwendeter Bereich der Anlage
-	const usedArea = {
+	global.usedArea = {
 		min : {x : 0, y : 0, z : 0},
 		max : {x : 0, y : 0, z : 0},
 	};
@@ -185,7 +188,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	// Maps for direct access (Preparation to separate analysis of the file from creating the output.)
 	// Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
 	global.GleissystemMap 	= new Map();
-	global.MeldungenMap 		= new Map();
+	global.MeldungenMap 	= new Map();
 
 	// Append new svg elements to this root node which we apend to the svg node later
 	let fragment = document.createDocumentFragment();
@@ -430,7 +433,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				}
 			}
 		}
-		
 	}
 	// Now we are able to mark all "active" tracks in the svg-output
 	global.activeTracks = activeTracks;
@@ -462,7 +464,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			});
 			//console.log(svgGleissystemGroup)
 
-      const Gleise 			= Gleissystem.getElementsByTagName('Gleis');
+			const Gleise = Gleissystem.getElementsByTagName('Gleis');
 
 			// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
 			if (Gleise.length > 0) {
@@ -518,13 +520,13 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				const NorY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[2].getAttribute('y');
 
 				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
-				usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge );
-				usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge );
-				usedArea.min.z = Math.min( usedArea.min.z, PosZ );
+				global.usedArea.min.x = Math.min( global.usedArea.min.x, PosX - Laenge );
+				global.usedArea.min.y = Math.min( global.usedArea.min.y, PosY - Laenge );
+				global.usedArea.min.z = Math.min( global.usedArea.min.z, PosZ );
 
-				usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge );
-				usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge );
-				usedArea.max.z = Math.max( usedArea.max.z, PosZ );
+				global.usedArea.max.x = Math.max( global.usedArea.max.x, PosX + Laenge );
+				global.usedArea.max.y = Math.max( global.usedArea.max.y, PosY + Laenge );
+				global.usedArea.max.z = Math.max( global.usedArea.max.z, PosZ );
 
 				// Group node for Gleis
 				const svgGleisGroup = svgAppend(svgGleissystemGroup, {
@@ -532,7 +534,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					id		: `G${GleissystemID}-${GleisID}`,
 					class	: Gleisart[clsid] +
 								' ' + (global.activeTracks[GleissystemID].includes(GleisID) ? 'active' : 'inactive') +
-								(unsichtbar.includes(parseInt(stil) && GleisData != 16) ? ' ' + 'unsichtbar' : ''),
+								// Ein Kamerafahrweg ist immer unsichtbar
+								(stil== 100000 || (unsichtbar.includes(parseInt(stil) && GleisData != 16)) ? ' ' + 'unsichtbar' : ''),
 				});
 
 				let Winkel, DeltaX, DeltaY;
@@ -818,14 +821,14 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	}).then(function() {
 	
 		// Show min/max height
-		const text = (usedArea.min.z).toFixed(0) + ' .. ' + (usedArea.max.z).toFixed(0);
+		const text = (global.usedArea.min.z).toFixed(0) + ' .. ' + (global.usedArea.max.z).toFixed(0);
 		document.getElementById('height_area').textContent = text;
 	
 		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
-		usedArea.min.x = Math.max( usedArea.min.x, Area.min.x );
-		usedArea.min.y = Math.max( usedArea.min.y, Area.min.y );
-		usedArea.max.x = Math.min( usedArea.max.x, Area.min.x + Area.width  );
-		usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height );
+		global.usedArea.min.x = Math.max( global.usedArea.min.x, Area.min.x );
+		global.usedArea.min.y = Math.max( global.usedArea.min.y, Area.min.y );
+		global.usedArea.max.x = Math.min( global.usedArea.max.x, Area.min.x + Area.width  );
+		global.usedArea.max.y = Math.min( global.usedArea.max.y, Area.min.y + Area.height );
 
 		// Group for additional general elements
 		let svg_general_group = svgAppend(fragment, {
@@ -848,10 +851,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		svgAppend(svg_general_group, {
 			svg_tag	: `rect`,
 			class	: `box`,
-			x		:  usedArea.min.x,
-			y		:  usedArea.min.y,
-			width	:  usedArea.max.x - usedArea.min.x,
-			height	:  usedArea.max.y - usedArea.min.y,
+			x		:  global.usedArea.min.x,
+			y		:  global.usedArea.min.y,
+			width	:  global.usedArea.max.x - global.usedArea.min.x,
+			height	:  global.usedArea.max.y - global.usedArea.min.y,
 		});
 		// Zusätzliche Markierung des Zentrums
 		// <circle id="center" cx="0" cy="0" r="1" />
@@ -869,7 +872,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		// Test: process all nodes recursivly
 		//process_node(sutrackp);
 
-		return usedArea;
+		return;
 	});
 }
 
@@ -948,7 +951,7 @@ function svgAppendTextPath(svg_node, obj) {
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <script> // svg-pan-zoom
-function SvgPanZoom(usedArea) { // <!-- github.com/ariutta/svg-pan-zoom -->
+function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
 		msg();
@@ -1035,32 +1038,10 @@ function SvgPanZoom(usedArea) { // <!-- github.com/ariutta/svg-pan-zoom -->
 		// , eventsListenerElement: SVGElement
 		, onUpdatedCTM: null
 	});
-	global.panZoom = panZoom;
 
 	// Pan and zoom to used area
-	showUsedArea(true);
-
-	function showUsedArea(pan) {
-		// Pan and zoom to used area
-		// zoomAtPoint(scale, {x:0,y:0});   or   pan({x:0,y:0}); zoom(scale);
-		const width 		= panZoom.getSizes().width;
-		const height		= panZoom.getSizes().height;
-		const usedwidth 	= usedArea.max.x - usedArea.min.x;
-		const usedheight	= usedArea.max.y - usedArea.min.y;
-		const realZoom		= panZoom.getSizes().realZoom;
-
-		const panX 			= width/2  - ( usedArea.min.x + usedwidth/2  ) * realZoom;
-		const panY 			= height/2 - ( usedArea.min.y + usedheight/2 ) * realZoom;
-		const scale 		= Math.min( width  / usedwidth,
-										height / usedheight ) / realZoom;
-
-		if (pan) {
-			panZoom.pan({x: panX, y: panY});
-		}
-
-		panZoom.zoom(scale);
-	}
-
+	showUsedArea(panZoom, true);
+		
 	// resize SvgPanZoom after resizing the window
 	window.addEventListener('resize', function(ev) {
 		msg();
@@ -1070,7 +1051,6 @@ function SvgPanZoom(usedArea) { // <!-- github.com/ariutta/svg-pan-zoom -->
 		panZoom.fit();
 		panZoom.center();
 	});
-
 
 	// Button swap
 	document.getElementById('swap').addEventListener('click', function(ev) {
@@ -1111,7 +1091,7 @@ function SvgPanZoom(usedArea) { // <!-- github.com/ariutta/svg-pan-zoom -->
 		panZoom.center();
 		panZoom.resetZoom();
 		// Pan and zoom to used area
-		showUsedArea(true);
+		showUsedArea(panZoom, true);
 	});
 	// Button ResetZoom
 	document.getElementById('resetzoom').addEventListener('click', function(ev) {
@@ -1119,7 +1099,7 @@ function SvgPanZoom(usedArea) { // <!-- github.com/ariutta/svg-pan-zoom -->
 		ev.preventDefault();
 		panZoom.resetZoom();
 		// Zoom to used area
-		showUsedArea();
+		showUsedArea(panZoom);
 	});
 	// Slider strokeWidth
 	document.getElementById('strokeWidth').addEventListener('input', function(ev) {
@@ -1148,7 +1128,8 @@ function SvgPanZoom(usedArea) { // <!-- github.com/ariutta/svg-pan-zoom -->
 		ev.preventDefault();
 		panZoom.disableControlIcons();
 	})
-*/
+*/	
+
 	// Button savePNG
 	document.getElementById('savePNG').addEventListener('click', function(ev) {
 		msg();
@@ -1159,52 +1140,59 @@ function SvgPanZoom(usedArea) { // <!-- github.com/ariutta/svg-pan-zoom -->
 	document.getElementById('centerItem').addEventListener('click', function(ev) {
 		msg();
 		ev.preventDefault();
-		centerItem();
+		centerItem(panZoom);
 	});
 
-	// Show cursor position
-	function show_position(t, event) {
-		const pan 	= t.getPan();	// (x y)
-		const sizes = t.getSizes();	// width height of svg area
-									// viewBox (x y width height)
-									// realZoom = min(width/viewBox.width, height/viewBox.height)
-		//const zoom 	= t.getZoom();	// zoom factor
+	// Listen for checkbox change events - store checkbox settings in local storage
+	document.querySelector('.fieldset').addEventListener('change', function(ev) {
+		const target = ev.target;
+		localStorage.setItem(`checkbox_${target.name}`, target.checked);
+	});
+}
 
-		const posX	= ( event.offsetX - pan.x) / sizes.realZoom;
-		const posY	= ( event.offsetY - pan.y) / sizes.realZoom;
+// Show cursor position
+function show_position(t, event) {
+	const pan 	= t.getPan();	// (x y)
+	const sizes = t.getSizes();	// width height of svg area
+								// viewBox (x y width height)
+								// realZoom = min(width/viewBox.width, height/viewBox.height)
+	//const zoom 	= t.getZoom();	// zoom factor
 
-		/* Show cursor position */
-		const text = '(' + (posX).toFixed(0) + ' ' + (-posY).toFixed(0) + ')';
-		document.getElementById('cursor_position').textContent = text;
-	}
+	const posX	= ( event.offsetX - pan.x) / sizes.realZoom;
+	const posY	= ( event.offsetY - pan.y) / sizes.realZoom;
 
-	// Show coordinates of visible area
-	function show_area(t, event) {
-		const pan 		= t.getPan();	// (x y)
-		const sizes 	= t.getSizes();	// width height of svg area
-									// viewBox (x y width height)
-									// realZoom = min(width/viewBox.width, height/viewBox.height)
-		const zoom 		= t.getZoom();	// zoom factor
+	/* Show cursor position */
+	const text = '(' + (posX).toFixed(0) + ' ' + (-posY).toFixed(0) + ')';
+	document.getElementById('cursor_position').textContent = text;
+}
 
-		const minX		= (-pan.x) / sizes.realZoom;
-		const minY		= (-pan.y) / sizes.realZoom;
-		const centerX	= (-pan.x + sizes.width/2)  / sizes.realZoom;
-		const centerY	= (-pan.y + sizes.height/2)	/ sizes.realZoom;
-		const maxX		= (-pan.x + sizes.width)  	/ sizes.realZoom;
-		const maxY		= (-pan.y + sizes.height) 	/ sizes.realZoom;
+// Show coordinates of visible area
+function show_area(t, event) {
+	const pan 		= t.getPan();	// (x y)
+	const sizes 	= t.getSizes();	// width height of svg area
+								// viewBox (x y width height)
+								// realZoom = min(width/viewBox.width, height/viewBox.height)
+	const zoom 		= t.getZoom();	// zoom factor
 
-		/* Show coordinates of visible area */
-		let text = '('  + (minX).toFixed(0) + ' ' + (-minY).toFixed(0) + ') .. ('
-						+ (maxX).toFixed(0) + ' ' + (-maxY).toFixed(0) + ')';
-		document.getElementById('visible_area').textContent = text;
-		/* Show center position */
-		text = '(' + (centerX).toFixed(0) + ' ' + (-centerY).toFixed(0) + ')';
-		document.getElementById('center_position').textContent = text;
-	}
+	const minX		= (-pan.x) / sizes.realZoom;
+	const minY		= (-pan.y) / sizes.realZoom;
+	const centerX	= (-pan.x + sizes.width/2)  / sizes.realZoom;
+	const centerY	= (-pan.y + sizes.height/2)	/ sizes.realZoom;
+	const maxX		= (-pan.x + sizes.width)  	/ sizes.realZoom;
+	const maxY		= (-pan.y + sizes.height) 	/ sizes.realZoom;
 
-	// Show element
-	function show_element(t, event) {
-		if (!event || event.target.id == 'svg') { return; }
+	/* Show coordinates of visible area */
+	let text = '('  + (minX).toFixed(0) + ' ' + (-minY).toFixed(0) + ') .. ('
+					+ (maxX).toFixed(0) + ' ' + (-maxY).toFixed(0) + ')';
+	document.getElementById('visible_area').textContent = text;
+	/* Show center position */
+	text = '(' + (centerX).toFixed(0) + ' ' + (-centerY).toFixed(0) + ')';
+	document.getElementById('center_position').textContent = text;
+}
+
+// Show element
+function show_element(t, event) {
+	if (!event || event.target.id == 'svg') { return; }
 /*
 console.log('');
 
@@ -1215,36 +1203,36 @@ event.target.id + ':' +
 event.target.classList[0]
 )
 if (event.target.parentElement) {
+console.log(
+'target.parentElement|' +
+event.target.parentElement.tagName + ':' +
+event.target.parentElement.id  + ':' +
+event.target.parentElement.classList[0]
+)
+if (event.target.parentElement.parentElement) {
 	console.log(
-	'target.parentElement|' +
-	event.target.parentElement.tagName + ':' +
-	event.target.parentElement.id  + ':' +
-	event.target.parentElement.classList[0]
+	'target.parentElement.parentElement|' +
+	event.target.parentElement.parentElement.tagName + ':' +
+	event.target.parentElement.parentElement.id  + ':' +
+	event.target.parentElement.parentElement.classList[0]
 	)
-	if (event.target.parentElement.parentElement) {
-		console.log(
-		'target.parentElement.parentElement|' +
-		event.target.parentElement.parentElement.tagName + ':' +
-		event.target.parentElement.parentElement.id  + ':' +
-		event.target.parentElement.parentElement.classList[0]
-		)
-	}
+}
 }
 if (event.rangeParent) {
+console.log(
+'rangeParent|' +
+event.rangeParent.tagName + ':' +
+event.rangeParent.id  + ':' +
+event.rangeParent.classList[0]
+)
+if (event.rangeParent.parentElement) {
 	console.log(
-	'rangeParent|' +
-	event.rangeParent.tagName + ':' +
-	event.rangeParent.id  + ':' +
-	event.rangeParent.classList[0]
+	'rangeParent.parentElement|' +
+	event.rangeParent.parentElement.tagName + ':' +
+	event.rangeParent.parentElement.id  + ':' +
+	event.rangeParent.parentElement.classList[0]
 	)
-	if (event.rangeParent.parentElement) {
-		console.log(
-		'rangeParent.parentElement|' +
-		event.rangeParent.parentElement.tagName + ':' +
-		event.rangeParent.parentElement.id  + ':' +
-		event.rangeParent.parentElement.classList[0]
-		)
-	}
+}
 }
 */
 /*
@@ -1309,48 +1297,68 @@ target.parentElement		|g:G1-47:Normal
 rangeParent					|g:G1-47:Normal
 rangeParent.parentElement	|g:Eisenbahn:undefined
 */
+	
+	if (event.target.parentElement.classList[0] == 'Signal') {	// Signal
+		const SignalCode = event.target.parentElement.id;
+		const SignalID = SignalCode.substring(1)
+
+		const GleisCode = event.target.parentElement.parentElement.id;
+		const GleisTextArray 	= GleisCode.substring(1).split('-');
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
+
+		showSignalInfo(SignalID, GleissystemID, GleisID);
 		
-		if (event.target.parentElement.classList[0] == 'Signal') {	// Signal
-			const SignalCode = event.target.parentElement.id;
-			const SignalID = SignalCode.substring(1)
+	} else if (event.target.parentElement.classList[0] == 'Kontakt') {	// Kontakt
 
-			const GleisCode = event.target.parentElement.parentElement.id;
-			const GleisTextArray 	= GleisCode.substring(1).split('-');
-			const GleissystemID 	= GleisTextArray[0];
-			const GleisID 			= GleisTextArray[1];
+		const GleisCode = event.target.parentElement.parentElement.id;
+		const GleisTextArray 	= GleisCode.substring(1).split('-');
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
 
-			showSignalInfo(SignalID, GleissystemID, GleisID);
-			
-		} else if (event.target.parentElement.classList[0] == 'Kontakt') {	// Kontakt
+		showKontaktInfo(GleissystemID, GleisID);
+		
+	} else if (event.target.classList[0] == 'WeicheText') { 	// Weiche
+		const WeicheCode 	= event.target.id;
+		const WeicheID 		= WeicheCode.substring(1)
 
-			const GleisCode = event.target.parentElement.parentElement.id;
-			const GleisTextArray 	= GleisCode.substring(1).split('-');
-			const GleissystemID 	= GleisTextArray[0];
-			const GleisID 			= GleisTextArray[1];
+		const GleisCode = event.target.parentElement.id;
+		const GleisTextArray 	= GleisCode.substring(1).split('-');
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
 
-			showKontaktInfo(GleissystemID, GleisID);
-			
-		} else if (event.target.classList[0] == 'WeicheText') { 	// Weiche
-			const WeicheCode 	= event.target.id;
-			const WeicheID 		= WeicheCode.substring(1)
+		showWeicheInfo(WeicheID, GleissystemID, GleisID);
 
-			const GleisCode = event.target.parentElement.id;
-			const GleisTextArray 	= GleisCode.substring(1).split('-');
-			const GleissystemID 	= GleisTextArray[0];
-			const GleisID 			= GleisTextArray[1];
-
-			showWeicheInfo(WeicheID, GleissystemID, GleisID);
-
-		} else{ 													// Gleis
-			const GleisCode = event.target.parentElement.id;
-			const GleisTextArray 	= GleisCode.substring(1).split('-');
-			const GleissystemID 	= GleisTextArray[0];
-			const GleisID 			= GleisTextArray[1];
-			showGleisInfo(GleissystemID, GleisID);
-		}
-
+	} else{ 													// Gleis
+		const GleisCode = event.target.parentElement.id;
+		const GleisTextArray 	= GleisCode.substring(1).split('-');
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
+		showGleisInfo(GleissystemID, GleisID);
 	}
+}
 
+function showUsedArea(panZoom, pan) {
+	// Pan and zoom to used area
+	// zoomAtPoint(scale, {x:0,y:0});   or   pan({x:0,y:0}); zoom(scale);
+	const width 		= panZoom.getSizes().width;
+	const height		= panZoom.getSizes().height;
+	const usedwidth 	= global.usedArea.max.x - global.usedArea.min.x;
+	const usedheight	= global.usedArea.max.y - global.usedArea.min.y;
+	const realZoom		= panZoom.getSizes().realZoom;
+
+	const panX 			= width/2  - ( global.usedArea.min.x + usedwidth/2  ) * realZoom;
+	const panY 			= height/2 - ( global.usedArea.min.y + usedheight/2 ) * realZoom;
+	const scale 		= Math.min( width  / usedwidth,
+									height / usedheight ) / realZoom;
+
+	if (pan) {
+		panZoom.pan({x: panX, y: panY});
+	}
+	panZoom.zoom(scale);
+}
+
+function addOtherEventListener() {
 }
 
 function showGleisInfo(GleissystemID, GleisID) {
@@ -1381,15 +1389,6 @@ function showKontaktInfo(GleissystemID, GleisID) {
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // html page
-
-// Listen for checkbox change events
-document.addEventListener('DOMContentLoaded', function() {
-	document.querySelector('.fieldset').addEventListener('change', function(ev) {
-		const target = ev.target;
-		localStorage.setItem(`checkbox_${target.name}`, target.checked);
-	});
-});
-
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -1446,7 +1445,6 @@ function toggleMarker(visible) {
 
 // save current svg area to png
 function savePNG() {
-
 	// Get file name without extension
 	const filename = document.getElementById('filename').textContent;
 
@@ -1529,7 +1527,7 @@ function savePNG() {
 	img.src = url;
 }
 
-function centerItem() {
+function centerItem(panZoom) {
 
 	// Get the element from a set with a specific attribute value
 	function getElement(Set, Attribute, ID) {
@@ -1560,7 +1558,7 @@ function centerItem() {
 			return false;
 		}
 
-		centerGleis(Gleis);
+		centerGleis(panZoom, Gleis);
 		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 //console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 		return true;
@@ -1581,7 +1579,7 @@ function centerItem() {
 				const Key_Id	= Gleis.getAttribute('Key_Id'); 	// Id einer Weiche
 					if (Key_Id == ID) {
 						// Weiche gefunden
-						centerGleis(Gleis);
+						centerGleis(panZoom, Gleis);
 						msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 //console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 						return true;
@@ -1593,7 +1591,7 @@ function centerItem() {
 					const Key_Id	= Meldung.getAttribute('Key_Id'); 	// Id eines Signals
 					if (Key_Id == ID) {
 						// Signal gefunden
-						centerGleis(Gleis);
+						centerGleis(panZoom, Gleis);
 						msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 //console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 						return true;
@@ -1611,18 +1609,18 @@ function centerItem() {
 	return false;
 }
 
-function centerGleis(Gleis) {
+function centerGleis(panZoom, Gleis) {
 	const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 	const PosY		= -Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 
-	const width 	= global.panZoom.getSizes().width;
-	const height	= global.panZoom.getSizes().height;
-	const realZoom	= global.panZoom.getSizes().realZoom;
+	const width 	= panZoom.getSizes().width;
+	const height	= panZoom.getSizes().height;
+	const realZoom	= panZoom.getSizes().realZoom;
 
 	const panX 		= width/2	- PosX * realZoom;
 	const panY 		= height/2	- PosY * realZoom;
 
-	global.panZoom.pan({x: panX, y: panY});
+	panZoom.pan({x: panX, y: panY});
 }
 
 function msg(text) {
@@ -1805,6 +1803,7 @@ Herauszoomen: Umschalttaste+Doppelklick</small></p>
 Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit F11)<br/>
 Zoom-in, -out, -reset<br/>
 Auswahl der anzuzeigenden Gleissysteme<br/>
+Auswahl der anzuzeigenden Informationen (GleisID, Gleisstil, Höhe, Signale, Kontakte)<br/>
 Aktuelle Darstellung als png-Bild speichern<br/>
 Graphik auf bestimmtes Gleis oder Signal positionieren</small></p>
 
@@ -2145,13 +2144,13 @@ text.Hoehe {
 
 <defs> <!-- Symbols and Markers -->
 	<!-- Use of symbols requires translate(-10 0) to move the origin M 0 0 to the correct position -->
-	<!-- <path d='M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z' /> 								<!-- Kreissegment -->
-	<!-- <path d='M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2' /> 	<!-- Box -->
+	<!-- <path d='M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z' /> -->								<!-- Kreissegment -->
+	<!-- <path d='M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2' /> -->	<!-- Box -->
 	<symbol id='SymbolSignal' width='20' height='10' viewBox='-10 0 20 10'>
 		<path d='M 0 0 L 0 0.9 L 0.3 0.9 L 0.6 1.2 L 0.6 1.8 L 0.3 2.1   L -0.3 2.1 L -0.6 1.8 L -0.6 1.2 L -0.3 0.9 L -0 0.9' /> <!-- Linie mit Achteck -->
 	</symbol>
 	<symbol id='SymbolPreSignal' width='20' height='10' viewBox='-10 0 20 10'>
-	<!--<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.5' r='0.6' />  						<!-- Linie mit Kreis -->
+	<!--<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.5' r='0.6' /> --> 						<!-- Linie mit Kreis -->
 		<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.3' r='0.4' />  						<!-- Linie mit kleinem Kreis -->
 	</symbol>
 	<symbol id='SymbolKontakt' width='20' height='10' viewBox='-10 0 20 10'>
