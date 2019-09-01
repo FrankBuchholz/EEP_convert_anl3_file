@@ -181,10 +181,10 @@ function process_node(sutrackp) {
 	<Charakteristik Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Kurve="0" Laenge="2580"/>
 </Gleis>
 
-Beispiel ab Version EEP 16: 
-https://www.trendverlag.com/Schema/EEP.xsd 
+Beispiel ab Version EEP 16:
+https://www.trendverlag.com/Schema/EEP.xsd
 https://www.trendverlag.com/Schema/Common.xsd
-https://www.trendverlag.com/Schema/traxML.xsd 
+https://www.trendverlag.com/Schema/traxML.xsd
 https://www.trendverlag.com/Schema/Train.xsd
 
 <Gleis GleisID="314" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="0.6" ElectSideS="0" ElectSideE="0" OneWay="1" stil="2263" gsbname="\Gleisstile\Strassen\Asphaltstrasse_01_RE1.3dm" LockEd="0">
@@ -346,10 +346,10 @@ mit
 		});
 	}
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --> 
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 	// Anzeige des verwendeten Bereichs
-	e(div, 'p', 
+	e(div, 'p',
 		 `Verwendeter Bereich: (${(usedArea.min.x).toFixed(0)} m, ${(usedArea.min.y).toFixed(0)} m) .. (${(usedArea.max.x).toFixed(0)} m, ${(usedArea.max.y).toFixed(0)} m)<br>`
 		+`Min./max Höhe: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) }m`
 	);
@@ -378,7 +378,7 @@ mit
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
-		const GleisData		= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche 
+		const GleisData		= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche
 	
 		tr = e(tbody, 'tr');
 		e(tr, 'td', WeicheID);
@@ -419,7 +419,7 @@ mit
 		const Position		= Signal.Meldung.getAttribute('Position') / 100;
 		const Distanz		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende (korrekt?)
-		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;;
+		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 
 		tr = e(tbody, 'tr');
 		e(tr, 'td', SignalID);
