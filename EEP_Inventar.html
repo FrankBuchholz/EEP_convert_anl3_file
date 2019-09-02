@@ -103,6 +103,13 @@ function process_node(sutrackp) {
 		19	: 'Oberleitung, Doppelkreuzungsweiche',
 		20	: 'Straßen-T-Kreuzung',
 	};
+
+	const WeichenstellungText = { 	// weichenstellung
+		1 : 'Durchfahrt',
+		2 : 'Abzweig',
+		3 : 'KoAbzweig',
+		5 : 'Spezial',
+	};
 	
 	// Groesse der Anlage (alle Positionsangaben in m statt cm)
 	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
@@ -367,7 +374,13 @@ mit
 				e(tr, 		'th', 		`x (m)`				);
 				e(tr, 		'th', 		`y (m)`				);
 				e(tr, 		'th', 		`KontaktZiel`		);
+				e(tr, 		'th', 		`Gleisart`			);
+				e(tr, 		'th', 		`Weichenstellung`	);
+//				e(tr, 		'th', 		`SignalData`		);
+//				e(tr, 		'th', 		`NextSigFn1`		);
+//				e(tr, 		'th', 		`NextSigFn2`		);
 				e(tr, 		'th', 		`GleisData`			);
+				e(tr, 		'th', 		`Name`				);
 	tbody	= 	e(table, 	'tbody'							);
 	
 	Weichen.sort(orderByID).forEach(Weiche => {
@@ -375,19 +388,35 @@ mit
 		const GleissystemID	= Weiche.GleissystemID;
 		const GleisID 		= Weiche.GleisID;
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
+		const Name			= Gleis.getAttribute('gsbname');
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
 		const GleisData		= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche
+		const clsid			= Gleis.getAttribute('clsid');
+		const weichenstellung = Gleis.getAttribute('weichenstellung');
+//		const SignalData 	= Gleis.getAttribute('SignalData');
+//		const NextSigFn1 	= Gleis.getAttribute('NextSigFn1');
+//		const NextSigFn2 	= Gleis.getAttribute('NextSigFn2');
 	
 		tr = e(tbody, 'tr');
 		e(tr, 'td', WeicheID);
-		e(tr, 'td', `${GleissystemText[GleissystemID]} ${GleisID}`);
+		e(tr, 'td', GleissystemText[GleissystemID] + ' ' + GleisID);
 		e(tr, 'td', PosX.toFixed(0));
 		e(tr, 'td', PosY.toFixed(0));
 		e(tr, 'td', (KontaktZiel != 0 ? KontaktZiel : ''));
-		e(tr, 'td', (GleisData   != 0 ? GleisData + ' ' + GleisDataText[GleisData] : ''));
+		e(tr, 'td', Gleisart[clsid]);
+		e(tr, 'td', weichenstellung + ' ' + WeichenstellungText[weichenstellung] );
+//		e(tr, 'td', SignalData );
+//		e(tr, 'td', NextSigFn1 );
+//		e(tr, 'td', NextSigFn2 );
+		e(tr, 'td', (GleisData != 0 ? GleisData + ' ' + GleisDataText[GleisData] : ''));
+		e(tr, 'td', Name );
 	});
+//	e(div, 'p', 'SignalData: Weiche ist verknüpft mit Signal/Weiche');
+//	e(div, 'p', 'NextSigFn1: Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten');
+//	e(div, 'p', 'NextSigFn2: Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten');
+	
 
 	// Anzeige der Signale
 	div = divAppend('Signal');
@@ -404,6 +433,9 @@ mit
 				e(tr, 		'th', 		`Position (m)`					);
 				e(tr, 		'th', 		`Distanz zum Hauptsignal (m)`	);
 				e(tr, 		'th', 		`Gleisrichtung`					);
+				e(tr, 		'th', 		`Stellung`						);
+				e(tr, 		'th', 		`Anzahl Stellungen`				);
+				e(tr, 		'th', 		`SignalData`					);
 				e(tr, 		'th', 		`KontaktZiel`					);
 				e(tr, 		'th', 		`Name`							);
 	tbody	= 	e(table, 	'tbody'										);
@@ -417,6 +449,9 @@ mit
 		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
 		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Signal.Meldung.getAttribute('Position') / 100;
+		const Stellung		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('stellung');
+		const Count			= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('Count');
+		const SignalData	= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData');
 		const Distanz		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende (korrekt?)
 		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
@@ -429,9 +464,13 @@ mit
 		e(tr, 'td', Position.toFixed(0));
 		e(tr, 'td', (Distanz !=0 ? Distanz.toFixed(0) : ''));
 		e(tr, 'td', ParaOderAnti);
+		e(tr, 'td', Stellung);
+		e(tr, 'td', Count);
+		e(tr, 'td', SignalData);
 		e(tr, 'td', (KontaktZiel != 0 ? KontaktZiel : ''));
 		e(tr, 'td', Name);
 	});
+	e(div, 'p', 'SignalData: Signal ist verknüpft mit Signal/Weiche');
 
 	// Anzeige der Zugverbände
 	div = divAppend('Zugverband');
@@ -492,6 +531,8 @@ mit
 		e(tr, 'td', Gleisstil.Anzahl);
 	});
 
+	// Allow to sort all tables by clicking on the header
+	prepareSort();
 }
 
 function orderByID(a,b) {
@@ -522,6 +563,32 @@ function divAppend(_class) {
 	return element;
 }
 
+// Sort table, https://stackoverflow.com/questions/14267781/sorting-html-table-with-javascript
+function prepareSort() {
+
+	function getCellValue(tr, idx){
+		return tr.children[idx].innerText || tr.children[idx].textContent; 
+	}
+
+	function comparer(idx, asc) {
+		return function(a, b) {
+			return function(v1, v2) {
+				return v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2);
+			}(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+		}
+	}
+
+	// prepare the work...
+	document.querySelectorAll('th').forEach(
+		th => th.addEventListener('click', (() => {
+			const table = th.closest('table');
+			const tbody = table.querySelector('tbody');
+			Array.from(tbody.querySelectorAll('tr'))
+				.sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
+				.forEach(tr => tbody.appendChild(tr) );
+		}))
+	);
+}
 </script>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -555,11 +622,13 @@ caption {
 
 thead {
 	font-weight: bold;
+	background-color:#C5D8E1;
 }
 
 th {
 	border: 1px solid gray;
 	padding: 5px;
+	cursor: n-resize; /* Cursor indicating sorting */
 }
 
 tbody {
@@ -567,6 +636,10 @@ tbody {
 }
 
 tr {
+}
+
+tr:nth-child(even) {
+  background-color: #ECF2F5;
 }
 
 td {
@@ -607,8 +680,11 @@ td {
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>
 
-<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.</br>
-Anschließend wird der Inhalt ausgegeben.</small></p>
+<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.</br>
+Anschließend wird der Inhalt in verschiedenen Tabellen ausgegeben.</br></br>
+Man kann die Tabellen problemlos mit Copy &amp; Paste in ein Tabellenverarbeitungsprogramm übertragen.</br>
+Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.
+</small></p>
 <p><small>(c) Frank Buchholz, 2019</small></p>
 </div> <!-- fileselector -->
 
