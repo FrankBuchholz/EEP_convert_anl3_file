@@ -532,10 +532,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				const svgGleisGroup = svgAppend(svgGleissystemGroup, {
 					svg_tag	: `g`,
 					id		: `G${GleissystemID}-${GleisID}`,
-					class	: Gleisart[clsid] +
-								' ' + (global.activeTracks[GleissystemID].includes(GleisID) ? 'active' : 'inactive') +
+					class	: Gleisart[clsid]
+								+ ' ' + (global.activeTracks[GleissystemID].includes(GleisID) ? 'active' : 'inactive')
 								// Ein Kamerafahrweg ist immer unsichtbar
-								(stil== 100000 || (unsichtbar.includes(parseInt(stil) && GleisData != 16)) ? ' ' + 'unsichtbar' : ''),
+								+ (stil== 100000 || (unsichtbar.includes(parseInt(stil) && GleisData != 16)) ? ' ' + 'unsichtbar' : ''),
 				});
 
 				let Winkel, DeltaX, DeltaY;
@@ -614,9 +614,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						class			: `WeicheText`,
 						x				: DeltaX,
 						y				: -DeltaY,
-						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})
-										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})
-										   scale(1 -1)`,
+						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + ` scale(1 -1)`,
 					});
 				}
 					
@@ -637,9 +637,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					'dy'				: '-0.1em', 	// Shift text up
 					x					: DeltaX,
 					y					: -DeltaY,
-					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})
-										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})
-										   scale(1 -1)`,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + ` scale(1 -1)`,
 				});
 				// show Gleisstil in the middle below the track (right-adjusted)
 				svgAppend(svgGleisGroup, {
@@ -649,9 +649,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					class				: `Stil`,
 					x					: DeltaX,
 					y					: -DeltaY,
-					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})
-										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})
-										   scale(1 -1)`,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + ` scale(1 -1)`,
 				});					
 				// show Hoehe in the middle below the track (left-adjusted)
 				svgAppend(svgGleisGroup, {
@@ -661,9 +661,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					class				: `Hoehe`,
 					x					: DeltaX,
 					y					: -DeltaY,
-					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})
-										   rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})
-										   scale(1 -1)`,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + ` scale(1 -1)`,
 				});					
 
 				// Signale
@@ -719,7 +719,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						'href'				: (signalType == 'pre' ? '#SymbolPreSignal' : '#SymbolSignal'),
 						x					: DeltaX,
 						y					: -DeltaY,
-						transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
 												+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
 												+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position
@@ -789,7 +789,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 							'href'				: `#SymbolKontakt`,
 							x					: DeltaX,
 							y					: -DeltaY,
-							transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+							transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 													+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
 													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
 													+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
@@ -803,7 +803,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 							'href'				: `#SymbolKontakt`,
 							x					: DeltaX,
 							y					: -DeltaY,
-							transform 			:	  ` matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+							transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 													+ ` rotate(${(1-ParaOderAnti) * 180} ${DeltaX} ${DeltaY})`
 													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
 													+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
