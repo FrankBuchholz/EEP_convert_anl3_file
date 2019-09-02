@@ -58,7 +58,12 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 ### Aufruf
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html
 
-Zur Zeit wird eine Liste der Weichen, Signale und Zugverbände ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
+Zur Zeit wird eine Liste der Weichen, Signale, Zugverbände und verwendeter Gleisstile ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
+
+Das Programm EEP_Inventar.html zeigt die Daten in Tabellen an, die über die Zwischenablage leicht nach Excel kopiert werden können. Das hat mich auf die Idee gebracht, noch einmal im Netz nach Lösungen zu suchen mit denen EEP-Anlagen in Excel importiert werden können - schließlich gibt es in Excel ein universelle XML-Importe-Funktion.
+Und siehe da, es gibt seit vielen Jahren eine geniale Excel-Arbeitsmappe mit der man die Daten einer Anlage importieren und hübsch aubereitet auf verschiedene Tabellenblätter eintragen kann:
+Exceltabellen zum Auslesen von EEP-Anlagen
+https://forum.das-eep-depot.de/index.php?mode=viewtopic&p=15435
 
 # Impressum
 (c) Frank Buchholz, 2019
