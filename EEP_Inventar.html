@@ -779,7 +779,7 @@ function fillTable(thead, tbody, lines ) {
 // Element erzeugen und anhängen
 function e(target, tagName, content) {
 	const element = document.createElement(tagName);
-	if (content) { element.innerHTML = content; }
+	if (content) { element.textContent = content; }
 	if (!target) { target = document.getElementById('container') }
 	target.appendChild(element);
 	return element;
