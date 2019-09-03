@@ -129,10 +129,11 @@ function process_node(sutrackp) {
 		max : {x : 0, y : 0, z : 0},
 	};
 
-	// Variablen für die Ausgabe
-	let div, table, thead, tbody, tr;
-
-	div = divAppend('Intro');
+	// Variable für die Ausgabe
+	let div;
+	div = e(null, 'div' );
+	div.classList.add('Intro');
+	
 	const Version = sutrackp.getElementsByTagName('Version')[0];
 	if (Version) {
 		const EEPversion = Version.getAttribute('EEP');
@@ -403,29 +404,16 @@ mit
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+
 	// Anzeige der Weichen
-	div = divAppend('Weiche');
-	e(div, 'h4', `Weichen (${Weichen.length})`);
-	
-	table 	= 	e(div, 		'table', 	''					);
-				e(table, 	'caption', 	`Weichen`			);
-	thead	= 	e(table, 	'thead'							);
-	tr 		= 	e(thead,	'tr'							);
-				e(tr, 		'th', 		`Weiche`			);
-				e(tr, 		'th', 		`Gleissystem Gleis`	);
-				e(tr, 		'th', 		`x (m)`				);
-				e(tr, 		'th', 		`y (m)`				);
-				e(tr, 		'th', 		`KontaktZiel`		);
-				e(tr, 		'th', 		`Gleisart`			);
-				e(tr, 		'th', 		`Weichenstellung`	);
-				e(tr, 		'th', 		`SignalData`		);
-				e(tr, 		'th', 		`NextSigFn1`		);
-				e(tr, 		'th', 		`NextSigFn2`		);
-				e(tr, 		'th', 		`GleisData`			);
-				e(tr, 		'th', 		`Name`				);
-	tbody	= 	e(table, 	'tbody'							);
-	
-	Weichen.sort(orderByID).forEach(Weiche => {
+	div = createTable({
+		_class	: 'Weiche',
+		title 	: `Weichen (${Weichen.length})`,
+		caption	: `Weichen`,
+		content	: function(thead, tbody) {
+		
+		Weichen.sort(orderByID).forEach(Weiche => {
+			
 		const WeicheID		= Weiche.ID;
 		const GleissystemID	= Weiche.GleissystemID;
 		const GleisID 		= Weiche.GleisID;
@@ -440,24 +428,30 @@ mit
 		const SignalData 	= Gleis.getAttribute('SignalData');
 		const NextSigFn1 	= Gleis.getAttribute('NextSigFn1');
 		const NextSigFn2 	= Gleis.getAttribute('NextSigFn2');
-	
-		tr = e(tbody, 'tr');
-		e(tr, 'td', WeicheID);
-		e(tr, 'td', GleissystemText[GleissystemID] + ' ' + GleisID);
-		e(tr, 'td', PosX.toFixed(0));
-		e(tr, 'td', PosY.toFixed(0));
-		e(tr, 'td', (KontaktZiel != 0 ? KontaktZiel : ''));
-		e(tr, 'td', Gleisart[clsid]);
-		e(tr, 'td', weichenstellung + ' ' + WeichenstellungText[weichenstellung]);
-		e(tr, 'td', SignalData );
-		e(tr, 'td', NextSigFn1 );
-		e(tr, 'td', NextSigFn2 );
-		e(tr, 'td', (GleisData != 0 ? GleisData + ' ' + GleisDataText[GleisData] : ''));
-		e(tr, 'td', Name );
-	});
-	e(div, 'p', 'SignalData: Weiche ist verknüpft mit Signal/Weiche');
-	e(div, 'p', 'NextSigFn1: Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten');
-	e(div, 'p', 'NextSigFn2: Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten');
+
+		fillTable(thead, tbody, [
+			
+		{ th : `Weiche`,			td : WeicheID },
+		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
+		{ th : `x (m)`,				td : PosX.toFixed(0) },
+		{ th : `y (m)`,				td : PosY.toFixed(0) },
+		{ th : `KontaktZiel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
+		{ th : `Gleisart`,			td : Gleisart[clsid] },
+		{ th : `Weichenstellung`,	td : weichenstellung + ' ' + WeichenstellungText[weichenstellung] },
+		{ th : `SignalData`,		td : SignalData },
+		{ th : `NextSigFn1`,		td : NextSigFn1 },
+		{ th : `NextSigFn2`,		td : NextSigFn2 },
+		{ th : `GleisData`,			td : (GleisData != 0 ? GleisData + ' ' + GleisDataText[GleisData] : '') },
+		{ th : `Name`,				td : Name },
+
+		]) }) }
+	})
+
+	if (Weichen.length > 0) { 
+		e(div, 'p', 'SignalData: Weiche ist verknüpft mit Signal/Weiche');
+		e(div, 'p', 'NextSigFn1: Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten');
+		e(div, 'p', 'NextSigFn2: Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten');
+	}
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -468,28 +462,14 @@ mit
 		<Signal stellung="2" wirkungsdistanz="1000" StopAt="0" Geschwindigkeit="0" Delay="0" ActDelay="0"/>
 	</Meldung>
 	*/
-	div = divAppend('Signal');
-	e(div, 'h4', `Signale (${Signale.length})`);
-
-	table 	= 	e(div, 		'table', 	''								);
-				e(table,	'caption', 	`Signale`						);
-	thead	= 	e(table, 	'thead'										);
-	tr 		= 	e(thead,	'tr'										);
-				e(tr, 		'th', 		`Signal`						);
-				e(tr, 		'th', 		`Gleissystem Gleis`				);
-				e(tr, 		'th', 		`x (m)`							);
-				e(tr, 		'th', 		`y (m)`							);
-				e(tr, 		'th', 		`Position (m)`					);
-				e(tr, 		'th', 		`Distanz zum Hauptsignal (m)`	);
-				e(tr, 		'th', 		`Gleisrichtung`					);
-				e(tr, 		'th', 		`Stellung`						);
-				e(tr, 		'th', 		`Anzahl Stellungen`				);
-				e(tr, 		'th', 		`SignalData`					);
-				e(tr, 		'th', 		`KontaktZiel`					);
-				e(tr, 		'th', 		`Name`							);
-	tbody	= 	e(table, 	'tbody'										);
+	div = createTable({
+		_class	: 'Signal',
+		title 	: `Signale (${Signale.length})`,
+		caption	: `Signale`,
+		content	: function(thead, tbody) {
 	
-	Signale.sort(orderByID).forEach(Signal => {
+		Signale.sort(orderByID).forEach(Signal => {
+		
 		const SignalID		= Signal.ID;
 		const Name			= Signal.Name;
 		const GleissystemID	= Signal.GleissystemID;
@@ -505,21 +485,27 @@ mit
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 
-		tr = e(tbody, 'tr');
-		e(tr, 'td', SignalID);
-		e(tr, 'td', GleissystemText[GleissystemID] + ' ' + GleisID);
-		e(tr, 'td', PosX.toFixed(0));
-		e(tr, 'td', PosY.toFixed(0));
-		e(tr, 'td', Position.toFixed(0));
-		e(tr, 'td', (Distanz !=0 ? Distanz.toFixed(0) : ''));
-		e(tr, 'td', ParaOderAnti);
-		e(tr, 'td', Stellung);
-		e(tr, 'td', Count);
-		e(tr, 'td', SignalData);
-		e(tr, 'td', (KontaktZiel != 0 ? KontaktZiel : ''));
-		e(tr, 'td', Name);
-	});
-	e(div, 'p', 'SignalData: Signal ist verknüpft mit Signal/Weiche');
+		fillTable(thead, tbody, [
+
+		{ th : `Signal`,			td : SignalID },
+		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
+		{ th : `x (m)`,				td : PosX.toFixed(0) },
+		{ th : `y (m)`,				td : PosY.toFixed(0) },
+		{ th : `Position (m)`,		td : Position.toFixed(0) },
+		{ th : `Distanz zum Hauptsignal (m)`,	td : (Distanz !=0 ? Distanz.toFixed(0) : '') },
+		{ th : `Gleisrichtung`,		td : ParaOderAnti },
+		{ th : `Stellung`,			td : Stellung },
+		{ th : `Anzahl Stellungen`,	td : Count },
+		{ th : `SignalData`,		td : SignalData },
+		{ th : `KontaktZiel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
+		{ th : `Name`,				td : Name },
+
+		]) }) }
+	})
+
+	if (Signale.length > 0) { 
+		e(div, 'p', 'SignalData: Signal ist verknüpft mit Signal/Weiche');
+	}
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -527,36 +513,14 @@ mit
 	/*
 	<Kontakt Position="712.3505" ParaOderAnti="1" fireOnPara="0" fireOnAnti="1" Teiler="1" ActTeiler="0" TrainSide="1" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="26" LastOfs="742.3113" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="2" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" SignalData="0" SigNeg="0" LockEd="0" KontaktZiel="2" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
 	*/
-	div = divAppend('Kontakt');
-	e(div, 'h4', `Kontakte (${Kontakte.length})`);
-
-	table 	= 	e(div, 		'table', 	''								);
-				e(table,	'caption', 	`Kontakte`						);
-	thead	= 	e(table, 	'thead'										);
-	tr 		= 	e(thead,	'tr'										);
-				e(tr, 		'th', 		`Kontakt Typ`					);	// SetType
-				e(tr, 		'th', 		`Kontakt Typ`					);	// KontaktTyp[SetType] mit Modifikation
-				e(tr, 		'th', 		`SetValue`						);	// SetValue
-				e(tr, 		'th', 		`Kontakt Ziel`					);	// KontaktZiel
-				e(tr, 		'th', 		`Gleissystem Gleis`				);
-				e(tr, 		'th', 		`x (m)`							);
-				e(tr, 		'th', 		`y (m)`							);
-				e(tr, 		'th', 		`Position (m)`					);	// Position
-				e(tr, 		'th', 		`Auslösung`						);	// ParaOderAnti, fireOnPara, fireOnAnti
-				e(tr, 		'th', 		`Zug Zähler`					);	// Teiler
-				e(tr, 		'th', 		`Zählerstand`					);	// ActTeiler
-				e(tr, 		'th', 		`Zeit Verzögerung`				);	// Delay
-				e(tr, 		'th', 		`Zeit abgelaufen`				);	// ActDelay
-				e(tr, 		'th', 		`Zug Position`					);	// TrainSide
-				e(tr, 		'th', 		`für Route`						);	// Route
-				e(tr, 		'th', 		`für Zug`						);	// TrainID
-				e(tr, 		'th', 		`Zug Filter`					);	// NameFilter
-				e(tr, 		'th', 		`Neuer Zugname`					);	// TrainNewName
-				e(tr, 		'th', 		`zu Stellung`					);	// zuStellung, Wechseln
-				e(tr, 		'th', 		`SignalData`					);	// SignalData
-	tbody	= 	e(table, 	'tbody'										);
+	div = createTable({
+		_class	: 'Kontakt',
+		title 	: `Kontakte (${Kontakte.length})`,
+		caption	: `Kontakte`,
+		content	: function(thead, tbody) {
 	
-	Kontakte.sort(orderByID).forEach(Kontakt => {  // no ID, therfore no sort
+		Kontakte.sort(orderByID).forEach(Kontakt => {  // no ID, therfore no sort
+
 		// const SetType 		= Kontakt.ID;
 		const SetType 		= Kontakt.Kontakt.getAttribute('SetType');
 		const SetValue 		= Kontakt.Kontakt.getAttribute('SetValue');
@@ -663,62 +627,48 @@ mit
 
 		// Zugverband`
 		const Zugverband = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
-	
-		tr = e(tbody, 'tr');
-		e(tr, 'td', SetType);
-		e(tr, 'td', KontaktTypText);
-		e(tr, 'td', ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? SetValue : ''));
-		e(tr, 'td', (KontaktZiel != 0 ? KontaktZiel : ''));
-		e(tr, 'td', GleissystemText[GleissystemID] + ' ' + GleisID);
-		e(tr, 'td', PosX.toFixed(0));
-		e(tr, 'td', PosY.toFixed(0));
-		e(tr, 'td', Position.toFixed(0));
 
-		e(tr, 'td', (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
-						: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
-							: ( fireOnPara == 1 && fireOnAnti == 1 ? 'beide Richtungen' : '' )
-						  )
-					)
-		);
-		
-		e(tr, 'td', Teiler);
-		e(tr, 'td', ActTeiler);
-		e(tr, 'td', Delay);
-		e(tr, 'td', ActDelay);
-		e(tr, 'td', (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide));
-		e(tr, 'td', (RouteID != 0 ? RouteID + ' ' + Routen[RouteID] : ''));
-		e(tr, 'td', (TrainID != 0 ? TrainID + ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') : ''));
-		e(tr, 'td', NameFilter);
-		e(tr, 'td', TrainNewName);
-		e(tr, 'td', (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? 'Umschalter' : '')));
-		e(tr, 'td', (SignalData != 0 ? `ID=${SignalDataID} Stellung=${SignalDataStellung}` : ''));
-	});
+		fillTable(thead, tbody, [
+	
+		{ th : `Kontakt Typ`,		td : SetType },
+		{ th : `Kontakt Typ`,		td : KontaktTypText },	// KontaktTyp[SetType] mit Modifikation
+		{ th : `SetValue`,			td : ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? SetValue : '') },
+		{ th : `Kontakt Ziel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
+		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
+		{ th : `x (m)`,				td : PosX.toFixed(0) },
+		{ th : `y (m)`,				td : PosY.toFixed(0) },
+		{ th : `Position (m)`,		td : Position.toFixed(0) },	// Position
+		{ th : `Auslösung`,			td : (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+												: ( fireOnPara == 1 && fireOnAnti == 1 ? 'beide Richtungen' : '' )
+											  )
+										 ) },
+		{ th : `Zug Zähler`,		td : Teiler },
+		{ th : `Zählerstand`,		td : ActTeiler },
+		{ th : `Zeit Verzögerung`,	td : Delay },
+		{ th : `Zeit abgelaufen`,	td : ActDelay },
+		{ th : `Zug Position`,		td : (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) },
+		{ th : `für Route`,			td : (RouteID != 0 ? RouteID + ' ' + Routen[RouteID] : '') },
+		{ th : `für Zug`,			td : (TrainID != 0 ? TrainID + ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') : '') },
+		{ th : `Zug Filter`,		td : NameFilter },
+		{ th : `Neuer Zugname`,		td : TrainNewName },
+		{ th : `zu Stellung`,		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) },
+		{ th : `SignalData`,		td : (SignalData != 0 ? `ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') },
+
+		]) }) }
+	})
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 	// Anzeige der Zugverbände
-	div = divAppend('Zugverband');
-	e(div, 'h4', `Zugverbände (${Weichen.length})`);
+	createTable({
+		_class	: 'Zugverband',
+		title 	: `Zugverbände (${Weichen.length})`,
+		caption	: `Zugverbände`,
+		content	: function(thead, tbody) {
+		
+		Zugverbaende.forEach(Zugverband => { // Zugverbaende.sort(orderByID).forEach(Zugverband => {
 
-	table 	= 	e(div, 		'table', 	''								);
-				e(table,	'caption', 	`Zugverbände`					);
-	thead	= 	e(table, 	'thead'										);
-	tr 		= 	e(thead,	'tr'										);
-				e(tr, 		'th', 		`Zugverband`					);
-				e(tr, 		'th', 		`Gleissystem Gleis`				);
-				e(tr, 		'th', 		`x (m)`							);
-				e(tr, 		'th', 		`y (m)`							);
-				e(tr, 		'th', 		`Position (m)`					);
-				e(tr, 		'th', 		`Ausrichtung`					);
-				e(tr, 		'th', 		`Name`							);
-				e(tr, 		'th', 		`Anzahl Rollmaterialien`		);
-				e(tr, 		'th', 		`Route`							);
-				e(tr, 		'th', 		`Geschwindigkeit km/h`			);
-				e(tr, 		'th', 		`Sollgeschwindigkeit km/h`		);
-				e(tr, 		'th', 		`Automatik`						);
-	tbody	= 	e(table, 	'tbody'										);
-
-	Zugverbaende.forEach(Zugverband => { // Zugverbaende.sort(orderByID).forEach(Zugverband => {
 		const ZugID			= Zugverband.ID;
 		const Name			= Zugverband.Name;
 		const Anzahl		= Zugverband.Anzahl;
@@ -734,47 +684,44 @@ mit
 		const Geschwindigkeit = Zugverband.Zugverband.getAttribute('Geschwindigkeit') * 3600 / 1000;
 		const sollgeschwindigkeit = Zugverband.Zugverband.getAttribute('sollgeschwindigkeit') * 3600 / 1000;
 		const autopilot 	= Zugverband.Zugverband.getAttribute('autopilot');
+		
+		fillTable(thead, tbody, [
 
-		tr = e(tbody, 'tr');
-		e(tr, 'td', ZugID);
-		e(tr, 'td', `${GleissystemText[GleissystemID]} ${GleisID}`);
-		e(tr, 'td', PosX.toFixed(0));
-		e(tr, 'td', PosY.toFixed(0));
-		e(tr, 'td', Position.toFixed(0));
-		e(tr, 'td', (ausrichtung == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung'));
-		e(tr, 'td', Name);
-		e(tr, 'td', Anzahl);
-		e(tr, 'td', (RouteID != 0 ? RouteID + ' ' + Routen[RouteID] : ''));
-		e(tr, 'td', (Geschwindigkeit != 0 ? Geschwindigkeit.toFixed(0) : (LastDir == 1 ? '+0' : '-0')));
-		e(tr, 'td', sollgeschwindigkeit.toFixed(0));
-		e(tr, 'td', autopilot);
+		{ th : `Zugverband`,				td : ZugID },
+		{ th : `Gleissystem Gleis`,			td : `${GleissystemText[GleissystemID]} ${GleisID}` },
+		{ th : `x (m)`,						td : PosX.toFixed(0) },
+		{ th : `y (m)`,						td : PosY.toFixed(0) },
+		{ th : `Position (m)`,				td : Position.toFixed(0) },
+		{ th : `Ausrichtung`,				td : (ausrichtung == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') },
+		{ th : `Name`,						td : Name },
+		{ th : `Anzahl Rollmaterialien`,	td : Anzahl },
+		{ th : `Route`,						td : (RouteID != 0 ? RouteID + ' ' + Routen[RouteID] : '') },
+		{ th : `Geschwindigkeit km/h`,		td : (Geschwindigkeit != 0 ? Geschwindigkeit.toFixed(0) : (LastDir == 1 ? '+0' : '-0')) },
+		{ th : `Sollgeschwindigkeit km/h`,	td : sollgeschwindigkeit.toFixed(0) },
+		{ th : `Automatik`,					td : autopilot },
 
-		// Rollmaterialien anzeigen
-		// ...
-	});
+		]) }) }
+	})
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 	// Anzeige der Gleisstile
-	div = divAppend('Gleisstil');
-	e(div, 'h4', `Gleisstile (${Gleisstile.length})`);
+	createTable({
+		_class	: 'Gleisstil',
+		title 	: `Gleisstile (${Gleisstile.length})`,
+		caption	: `Gleisstile`,
+		content	: function(thead, tbody) {
+		
+		Gleisstile.sort(orderByID).forEach(Gleisstil => {
+		
+		fillTable(thead, tbody, [
+			
+		{ th : `Gleisstil`,			td : Gleisstil.ID 		},
+		{ th : `Name`,				td : Gleisstil.Name 	},
+		{ th : `Anzahl`,			td : Gleisstil.Anzahl 	},
 
-	table 	= 	e(div, 		'table', 	''								);
-				e(table,	'caption', 	`Gleisstile`					);
-	thead	= 	e(table, 	'thead'										);
-	tr 		= 	e(thead,	'tr'										);
-				e(tr, 		'th', 		`Gleisstil`						);
-				e(tr, 		'th', 		`Name`							);
-				e(tr, 		'th', 		`Anzahl`						);
-	tbody	= 	e(table, 	'tbody'										);
-
-	Gleisstile.sort(orderByID).forEach(Gleisstil => {
-
-		tr = e(tbody, 'tr');
-		e(tr, 'td', Gleisstil.ID);
-		e(tr, 'td', Gleisstil.Name);
-		e(tr, 'td', Gleisstil.Anzahl);
-	});
+		]) }) }
+	})
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -794,19 +741,47 @@ function orderByName(a,b) {
 	return 0;
 }
 
+// Create output table
+function createTable( tab ) {
+	const div 	= 	e(null,	 'div'					);
+	div.classList.add(tab._class);
+	
+					e(div, 	 'h4', 		tab.title	);
+	const table = 	e(div, 	 'table' 				);
+					e(table, 'caption', tab.caption );
+	const thead	= 	e(table, 'thead' 				);
+	const tbody	= 	e(table, 'tbody' 				);
+
+	// Now, let's do it
+	tab.content(thead, tbody);
+	
+	return div;
+}
+
+// Fill output table
+function fillTable(thead, tbody, lines ) {
+	let thead_tr;
+	
+	const first = (thead.rows.length == 0);
+	if (first) {
+		thead_tr = e(thead, 'tr' );
+	}
+
+	const tbody_tr = e(tbody,	'tr');
+	for (const line of lines) {
+		if (first) {
+			e(thead_tr, 'th', line.th);
+		}
+		e(tbody_tr, 'td', line.td);
+	}
+}
+
 // Element erzeugen und anhängen
 function e(target, tagName, content) {
 	const element = document.createElement(tagName);
 	if (content) { element.innerHTML = content; }
 	if (!target) { target = document.getElementById('container') }
 	target.appendChild(element);
-	return element;
-}
-
-function divAppend(_class) {
-	const element = document.createElement('div');
-	element.classList.add(_class);
-	document.getElementById('container').appendChild(element);
 	return element;
 }
 
@@ -821,7 +796,7 @@ function prepareSort() {
 		return function(a, b) {
 			return function(v1, v2) {
 				return v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2);
-			}(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+			}(getCellValue((asc ? a : b), idx), getCellValue((asc ? b : a), idx));
 		}
 	}
 
