@@ -8,6 +8,19 @@
 <meta name="keywords" content="EEP,.anl3,Gleisplan" />
 <meta name="language" content="de" />
 
+<!-- 
+Table Filter Library 
+https://www.tablefilter.com/ 
+
+Filter Operators
+https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators
+
+Data types, column operations
+https://www.tablefilter.com/data-types.html
+-->
+<script src="https://www.tablefilter.com/tablefilter/tablefilter.js"></script>
+<link href="https://www.tablefilter.com/tablefilter/style/tablefilter.css" rel="stylesheet">
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // Load file
 function loadFile(file) {
@@ -397,9 +410,11 @@ mit
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 	// Anzeige des verwendeten Bereichs
+	e(div, 'p', 
+		`Verwendeter Bereich: (${(usedArea.min.x).toFixed(0)} m, ${(usedArea.min.y).toFixed(0)} m) .. (${(usedArea.max.x).toFixed(0)} m, ${(usedArea.max.y).toFixed(0)} m)`
+	);
 	e(div, 'p',
-		 `Verwendeter Bereich: (${(usedArea.min.x).toFixed(0)} m, ${(usedArea.min.y).toFixed(0)} m) .. (${(usedArea.max.x).toFixed(0)} m, ${(usedArea.max.y).toFixed(0)} m)<br>`
-		+`Min./max Höhe: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) }m`
+		`Min./max Höhe: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) }m`
 	);
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -661,7 +676,7 @@ mit
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 	// Anzeige der Zugverbände
-	createTable({
+	div = createTable({
 		_class	: 'Zugverband',
 		title 	: `Zugverbände (${Weichen.length})`,
 		caption	: `Zugverbände`,
@@ -706,7 +721,7 @@ mit
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 	// Anzeige der Gleisstile
-	createTable({
+	div = createTable({
 		_class	: 'Gleisstil',
 		title 	: `Gleisstile (${Gleisstile.length})`,
 		caption	: `Gleisstile`,
@@ -744,17 +759,81 @@ function orderByName(a,b) {
 // Create output table
 function createTable( tab ) {
 	const div 	= 	e(null,	 'div'					);
-	div.classList.add(tab._class);
-	
 					e(div, 	 'h4', 		tab.title	);
 	const table = 	e(div, 	 'table' 				);
-					e(table, 'caption', tab.caption );
+	//				e(table, 'caption', tab.caption );  // TableFilter uses the caption already
 	const thead	= 	e(table, 'thead' 				);
 	const tbody	= 	e(table, 'tbody' 				);
 
+	div.classList.add(tab._class);
+
 	// Now, let's do it
 	tab.content(thead, tbody);
-	
+
+	// Activate table filter (see http://www.tablefilter.com/examples.html )
+	// Configuration via statements instead of object: http://www.tablefilter.com/features-no-configuration.html
+	// Feature toggle: http://www.tablefilter.com/toggle-features.html
+	const tf = new TableFilter(table, {
+		base_path: 'https://www.tablefilter.com/tablefilter/',
+
+		auto_filter: { delay: 500 },	// Delay for automatic filtering (milliseconds)
+
+		state: {						// Enable state persistence (see http://www.tablefilter.com/persistence.html for more options)
+			types: ['local_storage'],	// Funktioniert nicht, wenn es mehrere Tabellen auf der Seite gibt. Mögliche Werte: 'local_storage' 'hash' or 'cookie' 
+			filters: true,
+		},					
+		
+		sticky_headers: true,			// Sticky headers with overrides
+		alternate_rows: true,			// Enable alternating rows
+		mark_active_columns: {			// Mark active columns
+			highlight_column: false,
+        },
+		grid_layout: false,				// Grit layout (but no simple copy&paste to Excel anymore)
+		filters_row_index: 0,  			// Row index to show the filter bar (default 0). Show filter bar above header allows easy copy&paste of the table content.
+
+		toolbar: true,					// Enable toolbar component
+		rows_counter: { text: tab.caption + ': ' },	// Enable rows counter UI component
+		status_bar: {					// Enable status bar UI component
+			msg_filter: 'Filter aktiv ...',	// Message during filtering
+			toolbar_position: 'center',
+		},
+		btn_reset: {  					// Enable clear button
+			tooltip: 'Filter löschen',
+			toolbar_position: 'right',
+		},
+		
+		locale: 'de',					// Define default locale, default to 'en'
+		thousands_separator: '.',		// Define thousands separator ',' or '.', defaults to ','
+		decimal_separator: ',',			// Define decimal separator ',' or '.', defaults to '.'
+		
+		empty_operator: '[empty]',
+		nonempty_operator: '[nonempty]',
+		help_instructions: {			// Instructions text (accepts HTML)
+			text : 
+            'Filter-Operatoren:<br /> ' +
+            '<b>&lt;</b>, <b>&lt;=</b>, <b>=</b>, <b>&gt;=</b>, <b>&gt;</b>, <br />' +
+            '<b>*</b>, <b>!</b> (nicht), <b>{</b> (beginnt mit), <b>}</b> (endet mit), <br />' +
+            '<b>||</b> (oder),<b> &amp;&amp;</b> (und),<br />' +
+            '<b>[empty]</b>, <b>[nonempty]</b>, <b>rgx:</b><br />' +
+            '<a href="' + 
+			'https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators' + 
+			'" target="_blank">' +
+            'Weitere Informationen</a><hr/>'
+			,
+			btn_text : '?',				// btn_text oder btn_html
+		},
+
+		no_results_message: {			// "No results" message
+			content: 'Keine zum Filter passende Einträge vorhanden',
+		},
+		loader: false,					// Loading indicator, { html : '...' }
+		watermark: [ 'Filter...', ],	// Repeated watermark text for input fields or watermark for each filter if an array is supplied
+		extensions:[					// Extensions load addititional script files	
+			//{ name: 'sort' }			// Sort requires to classify numeric columns using "col_types : [ 'numeric', String', ...]," see http://www.tablefilter.com/sort.html
+		],
+	});
+	tf.init();
+
 	return div;
 }
 
@@ -839,7 +918,7 @@ table {
 }
 
 caption {
-	display: none;	
+  /* display: none;	*/
 }
 
 thead {
@@ -859,9 +938,9 @@ tbody {
 
 tr {
 }
-
+ 
 tr:nth-child(even) {
-  background-color: #ECF2F5;
+  /* background-color: #ECF2F5; */
 }
 
 td {
@@ -902,11 +981,15 @@ td {
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>
 
-<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.</br>
-Anschließend wird der Inhalt in verschiedenen Tabellen ausgegeben.</br></br>
-Man kann die Tabellen problemlos mit Copy &amp; Paste in ein Tabellenverarbeitungsprogramm übertragen.</br>
-Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.
+<p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br />
+Anschließend wird der Inhalt in verschiedenen Tabellen ausgegeben.<br /><br />
+Man kann die Tabellen problemlos mit Copy &amp; Paste in ein Tabellenverarbeitungsprogramm übertragen.<br />
+Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.<br />
 </small></p>
+<p><small>Zusätzlich wird die Bibliothek <a href='http://www.tablefilter.com/' target='_blank'>TableFilters</a> verwendet, um interaktive Funktionen zum Filtern in den Tabellen anzubieten.<br />
+Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators' target='_blank'>4.-Filter-operators</a> beschrieben.
+</small></p>
+
 <p><small>(c) Frank Buchholz, 2019</small></p>
 </div> <!-- fileselector -->
 
@@ -929,4 +1012,7 @@ Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.
 </div> <!-- container -->
 
 </body>
+
+
+
 </html>
