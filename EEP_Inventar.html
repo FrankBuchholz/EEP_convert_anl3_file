@@ -422,7 +422,7 @@ mit
 
 	// Anzeige der Weichen
 	div = createTable({
-		_class	: 'Weiche',
+		id		: 'Weiche',
 		title 	: `Weichen (${Weichen.length})`,
 		caption	: `Weichen`,
 		content	: function(thead, tbody) {
@@ -478,7 +478,7 @@ mit
 	</Meldung>
 	*/
 	div = createTable({
-		_class	: 'Signal',
+		id		: 'Signal',
 		title 	: `Signale (${Signale.length})`,
 		caption	: `Signale`,
 		content	: function(thead, tbody) {
@@ -529,7 +529,7 @@ mit
 	<Kontakt Position="712.3505" ParaOderAnti="1" fireOnPara="0" fireOnAnti="1" Teiler="1" ActTeiler="0" TrainSide="1" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="26" LastOfs="742.3113" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="2" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" SignalData="0" SigNeg="0" LockEd="0" KontaktZiel="2" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
 	*/
 	div = createTable({
-		_class	: 'Kontakt',
+		id		: 'Kontakt',
 		title 	: `Kontakte (${Kontakte.length})`,
 		caption	: `Kontakte`,
 		content	: function(thead, tbody) {
@@ -677,11 +677,11 @@ mit
 
 	// Anzeige der Zugverbände
 	div = createTable({
-		_class	: 'Zugverband',
-		title 	: `Zugverbände (${Weichen.length})`,
+		id		: 'Zugverband',
+		title 	: `Zugverbände (${Zugverbaende.size})`,
 		caption	: `Zugverbände`,
 		content	: function(thead, tbody) {
-		
+
 		Zugverbaende.forEach(Zugverband => { // Zugverbaende.sort(orderByID).forEach(Zugverband => {
 
 		const ZugID			= Zugverband.ID;
@@ -722,7 +722,7 @@ mit
 
 	// Anzeige der Gleisstile
 	div = createTable({
-		_class	: 'Gleisstil',
+		id		: 'Gleisstil',
 		title 	: `Gleisstile (${Gleisstile.length})`,
 		caption	: `Gleisstile`,
 		content	: function(thead, tbody) {
@@ -765,7 +765,9 @@ function createTable( tab ) {
 	const thead	= 	e(table, 'thead' 				);
 	const tbody	= 	e(table, 'tbody' 				);
 
-	div.classList.add(tab._class);
+	div.classList.add(tab.id);
+	div.setAttribute('id', 'div'+tab.id);
+	table.setAttribute('id', tab.id);
 
 	// Now, let's do it
 	tab.content(thead, tbody);
@@ -780,7 +782,9 @@ function createTable( tab ) {
 
 		state: {						// Enable state persistence (see http://www.tablefilter.com/persistence.html for more options)
 			types: ['local_storage'],	// Funktioniert nicht, wenn es mehrere Tabellen auf der Seite gibt. Mögliche Werte: 'local_storage' 'hash' or 'cookie' 
-			filters: true,
+			filters: true,				// Persist filters values, enabled by default
+			columns_visibility: true,	// Persist columns visibility
+			filters_visibility: true,	// Persist filters row visibility
 		},					
 		
 		sticky_headers: true,			// Sticky headers with overrides
@@ -795,11 +799,11 @@ function createTable( tab ) {
 		rows_counter: { text: tab.caption + ': ' },	// Enable rows counter UI component
 		status_bar: {					// Enable status bar UI component
 			msg_filter: 'Filter aktiv ...',	// Message during filtering
-			toolbar_position: 'center',
+			toolbar_position: 'center',	// Default position in toolbar ('left'|'center'|'right')
 		},
 		btn_reset: {  					// Enable clear button
 			tooltip: 'Filter löschen',
-			toolbar_position: 'right',
+			toolbar_position: 'right',	// Default position in toolbar ('left'|'center'|'right')
 		},
 		
 		locale: 'de',					// Define default locale, default to 'en'
@@ -828,7 +832,31 @@ function createTable( tab ) {
 		},
 		loader: false,					// Loading indicator, { html : '...' }
 		watermark: [ 'Filter...', ],	// Repeated watermark text for input fields or watermark for each filter if an array is supplied
-		extensions:[					// Extensions load addititional script files	
+		
+		extensions:[					// Extensions load addititional script files
+			{ 
+				name: 'colsVisibility',
+				description: 'Sichbarkeit der Spalten verwalten',	// Module description
+				enable_hover: true,		// Enable hover behaviour on columns manager button/link
+				btn_text: 'Spalten verstecken&#9660;',	// Button's text, defaults to Columns&#9660;
+				//at_start: [3, 4],		// List of columns indexes to be hidden at initialization
+				tickToHide: true,		// Enable tick to hide a column, defaults to true
+				text: 'Versteckte Spalten: ', // Text preceding the columns list, defaults to 'Hide' or 'Show'
+				btn_close_text: 'Schließen',	// Columns manager UI close link text, defaults to 'Close'
+				enable_tick_all: false,	// Enable select all option, disabled by default
+				tick_all_text: 'Alle auswählen:',	// Text for select all option, defaults to 'Select all:'
+				toolbar_position: 'right',	// Default position in toolbar ('left'|'center'|'right')
+			},
+			/*
+			{
+				name: 'filtersVisibility',
+				description: 'Sichtbarkeit der Filter',		// Module description
+				visible_at_start: true,	// Make filters visible at initialization, defaults to true
+				enable_icon: true,		// Enable expand/collapse icon, defaults to true
+				btn_text: 'Filter',		// Custom text for button
+				toolbar_position: 'right',	// Default position in toolbar ('left'|'center'|'right')
+			},
+			*/
 			//{ name: 'sort' }			// Sort requires to classify numeric columns using "col_types : [ 'numeric', String', ...]," see http://www.tablefilter.com/sort.html
 		],
 	});
@@ -1000,19 +1028,19 @@ Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://gi
 <div class='group'>
 <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset class='fieldset'>
-	<div class="item"><label><input type='checkbox' name='Intro' 		checked autocomplete='off' onchange="toggleElements('.Intro', this.checked)">Intro</label></div>
-	<div class="item"><label><input type='checkbox' name='Weiche' 		checked autocomplete='off' onchange="toggleElements('.Weiche', this.checked)">Weiche</label></div>
-	<div class="item"><label><input type='checkbox' name='Signal' 		checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)">Signal</label></div>
-	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)">Kontakt</label></div>
-	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)">Zugverband</label></div>
-	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)">Gleisstil</label></div>
+	<div class="item"><label><input type='checkbox' name='Intro' 		checked autocomplete='off' onchange="toggleElements('.Intro', this.checked)"><a href='#divIntro'>Intro</a></label></div>
+	<div class="item"><label><input type='checkbox' name='Weiche' 		checked autocomplete='off' onchange="toggleElements('.Weiche', this.checked)"><a href='#divWeiche'>Weiche</a></label></div>
+	<div class="item"><label><input type='checkbox' name='Signal' 		checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)"><a href='#divSignal'>Signal</a></label></div>
+	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)"><a href='#divKontakt'>Kontakt</a></label></div>
+	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)"><a href='#divZugverband'>Zugverband</a></label></div>
+	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'>Gleisstil</a></label></div>
+	|
+	<!-- Hide filter row and filter related icons to mach copy&paste to Excel easier -->
+	<div class="item"><label><input type='checkbox' name='Filter'		checked autocomplete='off' onchange="toggleElements('.fltrow,.rdiv', this.checked)">Filter</label></div>
 </fieldset>
 </div>
 
 </div> <!-- container -->
 
 </body>
-
-
-
 </html>
