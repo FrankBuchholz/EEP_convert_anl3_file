@@ -1372,12 +1372,14 @@ function showGleisInfo(GleissystemID, GleisID) {
 
 function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const Meldung 		= global.MeldungenMap.get(SignalID);
-	const name 			= Meldung.getAttribute('name');		// Dateiname
+	const File 			= Meldung.getAttribute('name');		// Dateiname
 	const Stellung		= Meldung.getElementsByTagName('Signal')[0].getAttribute('stellung');
 	const KontaktZiel 	= Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 	
-	msg(`Signal ${SignalID} '${name}' auf ${GleissystemText[GleissystemID]} ${GleisID}` 
-		+ ', ' + 'Stellung=' + Stellung  
+	const SignalstellungText = (Signalstellung[File] ? Signalstellung[File].Pos[Stellung] : '');
+	
+	msg(`Signal ${SignalID} '${File}${(Signalstellung[File] ? ' / ' + Signalstellung[File].Name : '')}' auf ${GleissystemText[GleissystemID]} ${GleisID}` 
+		+ `, Stellung ${Stellung} ${SignalstellungText}` 
 		+ (KontaktZiel != '0' ? ', Kontaktziel=' + KontaktZiel : ''));
 }
 
@@ -1389,6 +1391,8 @@ function showKontaktInfo(GleissystemID, GleisID) {
 	msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 }
 </script>
+
+<script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script> // html page
@@ -1813,7 +1817,8 @@ Graphik auf bestimmtes Gleis oder Signal positionieren</small></p>
 <p><small><strong>Referenzen / verwandte Programme</strong><br/>
 Diskussionbeitrag im <a href='https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt' target='_blank'>EEP-Forum</a><br/>
 Entwicklungsprojekt auf <a href='https://github.com/FrankBuchholz/EEP_convert_anl3_file' target='_blank'>GitHub</a><br/>
-Anzeige einer <a href='https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html' target='_blank'>Inventarliste</a> zu einer EEP-Anlage</small></p>
+Anzeige einer <a href='https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html' target='_blank'>Inventarliste</a> zu einer EEP-Anlage<br/>
+Übersicht zu den <a href='https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html' target='_blank'>Signalstellungen</a> anhand der extrahierten .ini-Dateien zu Signalen (siehe EEP -> Extras -> Ressourcen-Extraktor)</small></p>
 
 <p><small><strong>Technische Beschreibung</strong><br/>
 Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br/>

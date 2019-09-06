@@ -1,5 +1,12 @@
-<html>
+<!DOCTYPE html>
+<html lang="de">
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Signalstellungen der installierten Signale anzeigen</title>
+<meta name="description" content="Dieses Programm liest .ini-Dateien von Signalen und zeigt die daruín beschriebenen Signalstellungen an.">
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,Signale" />
+<meta name="language" content="de" />
 <script>
 
 <!-- - - - - - - -->
@@ -107,66 +114,75 @@ function parseIniString(data){
 function showSignalIniFiles(iniFiles, Signalstellungen) {
 	const target = document.getElementById('container');
 	let div, p;
-
+	
 	div = document.createElement('div');
 	target.appendChild(div);
 
-	for (const Stellungskombination in Signalstellungen) {
+	if ( true ) {
 
-		// Header
-		p = document.createElement('p');
-		div.appendChild(p);
-		p.innerHTML = 
-			  `<b>Stellungskombination ${('0000000000' + Stellungskombination).slice(-10)}` + '</b><br/>'
-			;
+		// Show list grouped by Stellungskombination
+		for (const Stellungskombination in Signalstellungen) {
 
-		// Signalstellungen
-		p = document.createElement('p');
-		div.appendChild(p);
-		for (const Signalstellung in Signalstellungen[Stellungskombination].SignalstellungArray) {
-			p.innerHTML += 
-			  `${Signalstellung} : ${Signalstellungen[Stellungskombination].SignalstellungArray[Signalstellung]}<br/>`
-			;
-		}
-
-		// Signale 
-		p = document.createElement('p');
-		div.appendChild(p);
-		for (const index in Signalstellungen[Stellungskombination].Signale) {
-			p.innerHTML += 
-			  `${Signalstellungen[Stellungskombination].Signale[index]}<br/>`
-			;
-		}
-
-	}
-
-/*
-
-	div = document.createElement('div');
-	target.appendChild(div);
-
-	for (const iniFile of iniFiles) {
-		if (iniFile.section.FileInfo) {
+			// Header
 			p = document.createElement('p');
 			div.appendChild(p);
-				
 			p.innerHTML = 
-				  `File = ${iniFile.file.name}<br/>`
-				+ `Name = ${iniFile.section.FileInfo.Name_GER}<br/>`
-				//+ `Desc = ${iniFile.section.FileInfo.Description_GER}<br/>`
-				+ `Stellungskombination = ${iniFile.Stellungskombination}<br/>`
+				  `<b>Stellungskombination ${('0000000000' + Stellungskombination).slice(-10)}` + '</b><br/>'
 				;
+
+			// Signalstellungen
+			p = document.createElement('p');
+			div.appendChild(p);
+			for (const Signalstellung in Signalstellungen[Stellungskombination].SignalstellungArray) {
+				p.innerHTML += 
+				  `${Signalstellung} : ${Signalstellungen[Stellungskombination].SignalstellungArray[Signalstellung]}<br/>`
+				;
+			}
+
+			// Signale 
+			p = document.createElement('p');
+			div.appendChild(p);
+			for (const index in Signalstellungen[Stellungskombination].Signale) {
+				p.innerHTML += 
+				  `${Signalstellungen[Stellungskombination].Signale[index]}<br/>`
+				;
+			}
+
 		}
 
+	} else {
+
+		// Stringify Stellungskombinationen for usage in EEP_Gleisplan.html and EEP_Inventar.html
 		p = document.createElement('p');
 		div.appendChild(p);
-		for (const Signalstellung in iniFile.Signalstellung) {
-			p.innerHTML += 
-			  `${Signalstellung} = ${iniFile.Signalstellung[Signalstellung]}<br/>`
-			;
-		}
+		p.innerHTML = 'const Signalstellung = {<br />';
+		for (const iniFile of iniFiles) {
+			if (Object.keys(iniFile.Signalstellung).length > 0) {
+			
+			if (iniFile.section.FileInfo) {
+				p.innerHTML += 
+					  `'${iniFile.file.name.substr(0, iniFile.file.name.length - 4)}' : { `
+					+ `Name : '${iniFile.section.FileInfo.Name_GER}', `
+					//+ `Desc = ${iniFile.section.FileInfo.Description_GER}<br/>`
+					//+ `Stellungskombination = ${iniFile.Stellungskombination}<br/>`
+					
+					;
+			}
+
+			p.innerHTML += `Pos : { `
+			//p = document.createElement('p');
+			//div.appendChild(p);
+			for (const Signalstellung in iniFile.Signalstellung) {
+				p.innerHTML += 
+				  `${Signalstellung} : '${iniFile.Signalstellung[Signalstellung]}', `
+				;
+			}
+			p.innerHTML += ` }},<br />`
+
+		}}
+		p.innerHTML += `}`
+
 	}
-*/	
 	
 }
 

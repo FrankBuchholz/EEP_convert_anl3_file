@@ -5,7 +5,7 @@
 <title>Inventar zu einer EEP-Anlage-Datei (.anl) anzeigen</title>
 <meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird der Inhalt ausgegeben.">
 <meta name="author" content="Frank Buchholz">
-<meta name="keywords" content="EEP,.anl3,Gleisplan" />
+<meta name="keywords" content="EEP,.anl3,Inventar" />
 <meta name="language" content="de" />
 
 <!-- 
@@ -66,6 +66,9 @@ function loadFile(file) {
 </script>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+
 <script> // process_node
 
 function process_node(sutrackp) {
@@ -459,7 +462,10 @@ mit
 		{ th : `GleisData`,			td : (GleisData != 0 ? GleisData + ' ' + GleisDataText[GleisData] : '') },
 		{ th : `Name`,				td : Name },
 
-		]) }) }
+		]) }) 
+		
+		return Weichen.length;
+		}
 	})
 
 	if (Weichen.length > 0) { 
@@ -486,7 +492,7 @@ mit
 		Signale.sort(orderByID).forEach(Signal => {
 		
 		const SignalID		= Signal.ID;
-		const Name			= Signal.Name;
+		const File			= Signal.Name;
 		const GleissystemID	= Signal.GleissystemID;
 		const GleisID 		= Signal.GleisID;
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
@@ -500,6 +506,17 @@ mit
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 
+		let SignalstellungText = Stellung;
+		let SignalstellungenText = '';
+		
+		if (Signalstellung[File]) {
+			SignalstellungText += ' : ' + Signalstellung[File].Pos[Stellung];
+			
+			for (StellungPos in Signalstellung[File].Pos) {
+				SignalstellungenText += StellungPos + ' : ' + Signalstellung[File].Pos[StellungPos] + '<br />';
+			}
+		}
+
 		fillTable(thead, tbody, [
 
 		{ th : `Signal`,			td : SignalID },
@@ -509,13 +526,18 @@ mit
 		{ th : `Position (m)`,		td : Position.toFixed(0) },
 		{ th : `Distanz zum Hauptsignal (m)`,	td : (Distanz !=0 ? Distanz.toFixed(0) : '') },
 		{ th : `Gleisrichtung`,		td : ParaOderAnti },
-		{ th : `Stellung`,			td : Stellung },
+		{ th : `Stellung`,			td : SignalstellungText },
 		{ th : `Anzahl Stellungen`,	td : Count },
+		{ th : `Stellungen`,		td : SignalstellungenText, html : true, },
 		{ th : `SignalData`,		td : SignalData },
 		{ th : `KontaktZiel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
-		{ th : `Name`,				td : Name },
+		{ th : `Datei`,				td : File },
+		{ th : `Name`,				td : (Signalstellung[File] ? Signalstellung[File].Name : '') },
 
-		]) }) }
+		]) }) 
+		
+		return Signale.length;
+		}
 	})
 
 	if (Signale.length > 0) { 
@@ -670,7 +692,10 @@ mit
 		{ th : `zu Stellung`,		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) },
 		{ th : `SignalData`,		td : (SignalData != 0 ? `ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') },
 
-		]) }) }
+		]) }) 
+		
+		return Kontakte.length;
+		}
 	})
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -715,7 +740,10 @@ mit
 		{ th : `Sollgeschwindigkeit km/h`,	td : sollgeschwindigkeit.toFixed(0) },
 		{ th : `Automatik`,					td : autopilot },
 
-		]) }) }
+		]) }) 
+		
+		return Zugverbaende.length;
+		}
 	})
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -735,7 +763,10 @@ mit
 		{ th : `Name`,				td : Gleisstil.Name 	},
 		{ th : `Anzahl`,			td : Gleisstil.Anzahl 	},
 
-		]) }) }
+		]) }) 
+		
+		return Gleisstile.length;
+		}
 	})
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -770,8 +801,10 @@ function createTable( tab ) {
 	table.setAttribute('id', tab.id);
 
 	// Now, let's do it
-	tab.content(thead, tbody);
+	const count = tab.content(thead, tbody);
 
+	if (count > 0) {
+	
 	// Activate table filter (see http://www.tablefilter.com/examples.html )
 	// Configuration via statements instead of object: http://www.tablefilter.com/features-no-configuration.html
 	// Feature toggle: http://www.tablefilter.com/toggle-features.html
@@ -863,6 +896,8 @@ function createTable( tab ) {
 		],
 	});
 	tf.init();
+	
+	}
 
 	return div;
 }
@@ -881,14 +916,17 @@ function fillTable(thead, tbody, lines ) {
 		if (first) {
 			e(thead_tr, 'th', line.th);
 		}
-		e(tbody_tr, 'td', line.td);
+		e(tbody_tr, 'td', line.td, line.html);
 	}
 }
 
 // Element erzeugen und anhängen
-function e(target, tagName, content) {
+function e(target, tagName, content, html) {
 	const element = document.createElement(tagName);
-	if (content) { element.textContent = content; }
+	if (content) { 
+		if (html) {	element.innerHTML 	= content; }
+		else 	  { element.textContent = content; }
+	}
 	if (!target) { target = document.getElementById('container') }
 	target.appendChild(element);
 	return element;
