@@ -1373,9 +1373,12 @@ function showGleisInfo(GleissystemID, GleisID) {
 function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const Meldung 		= global.MeldungenMap.get(SignalID);
 	const name 			= Meldung.getAttribute('name');		// Dateiname
+	const Stellung		= Meldung.getElementsByTagName('Signal')[0].getAttribute('stellung');
 	const KontaktZiel 	= Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 	
-	msg(`Signal ${SignalID} '${name}' auf ${GleissystemText[GleissystemID]} ${GleisID}` + (KontaktZiel != '0' ? ', Kontaktziel=' + KontaktZiel : ''));
+	msg(`Signal ${SignalID} '${name}' auf ${GleissystemText[GleissystemID]} ${GleisID}` 
+		+ ', ' + 'Stellung=' + Stellung  
+		+ (KontaktZiel != '0' ? ', Kontaktziel=' + KontaktZiel : ''));
 }
 
 function showWeicheInfo(WeicheID, GleissystemID, GleisID) {

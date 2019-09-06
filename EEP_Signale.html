@@ -1,0 +1,196 @@
+<html>
+<head>
+<script>
+
+<!-- - - - - - - -->
+
+function readSignalIniFiles(fileList) {
+	const promises = [];
+	for (const file of fileList) {
+		const filePromise = new Promise(resolve => {
+			const reader = new FileReader();
+			reader.readAsText(file, 'windows-1252');
+			reader.onload = (ProgressEvent) => { 
+				resolve({
+					file: file, 
+					section: parseIniString(reader.result)
+				});
+			}
+		});
+		promises.push(filePromise);
+	}
+	Promise.all(promises).then(iniFiles => {
+		// iniFiles will be an array containing contents of the files
+		
+		const Signalstellungen = {};
+		for (const iniFile of iniFiles) {
+			iniFile.Signalstellung = {};	// Signal positions
+			iniFile.Stellungskombination = 0;	// Hash code which represents the set of signal positions
+			if (iniFile.section.Model_SignalFunc) {
+				for (const parameter in iniFile.section.Model_SignalFunc) {
+					// Signalstellung: Pos01_Fn_Name_GER
+					let matchStellung = parameter.match(/^Pos(\d+)_Fn_Name_/);
+					if (matchStellung) { 
+						let 		 text = iniFile.section.Model_SignalFunc[matchStellung[0] + 'GER'];
+						if (!text) { text = iniFile.section.Model_SignalFunc[matchStellung[0] + 'ENG'] };
+						if ( text) { iniFile.Signalstellung[Number(matchStellung[1])] = text; };
+					}
+				}
+				
+				// Generate ID
+				if (iniFile.Signalstellung != {}) {
+					iniFile.Stellungskombination = Math.abs(JSON.stringify(iniFile.Signalstellung).hashCode());
+					/*					
+					Beilspiele zu Stellungskombinationen: 
+					[0256533125] = { 1 : Halt, 2 : Fahrt, }					
+					[1275122147] = { 1 : Fahrt, 2 : Halt, }					
+					*/					
+				}
+				if (!Signalstellungen[iniFile.Stellungskombination]) {
+					Signalstellungen[iniFile.Stellungskombination] = {
+						SignalstellungArray : iniFile.Signalstellung, 
+						Signale : [],
+					};
+				}
+				// Cross reference
+				Signalstellungen[iniFile.Stellungskombination].Signale.push(
+					iniFile.file.name.substr(0, iniFile.file.name.length - 4)
+				);
+				
+			}
+		}
+		showSignalIniFiles(iniFiles, Signalstellungen);
+    });
+}
+
+String.prototype.hashCode = function() {
+  let hash = 0;
+  if (this.length === 0) return hash;
+  for (let i = 0; i < this.length; i++) {
+    const chr   = this.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
+function parseIniString(data){
+	const regex = {
+		section: /^\s*\[\s*([^\]]*)\s*\]\s*$/,
+		param: /^\s*([^=]+?)\s*=\s*\"?(.*?)\"?\s*$/,
+		comment: /^\s*;.*$/,
+	};
+	const value = {};
+	const lines = data.split(/[\r\n]+/);
+	let section = null;
+	for (const line of lines) {
+		if (regex.comment.test(line)) {
+			continue;
+		} else if (regex.param.test(line)) {
+			const match = line.match(regex.param);
+			if (section) {
+				value[section][match[1]] = match[2];
+			} else {
+				value[match[1]] = match[2];
+			}
+		} else if (regex.section.test(line)) {
+			const match = line.match(regex.section);
+			value[match[1]] = {};
+			section = match[1];
+		} else if (line.length == 0 && section) {
+			section = null;
+		};
+	}
+	return value;
+}
+
+function showSignalIniFiles(iniFiles, Signalstellungen) {
+	const target = document.getElementById('container');
+	let div, p;
+
+	div = document.createElement('div');
+	target.appendChild(div);
+
+	for (const Stellungskombination in Signalstellungen) {
+
+		// Header
+		p = document.createElement('p');
+		div.appendChild(p);
+		p.innerHTML = 
+			  `<b>Stellungskombination ${('0000000000' + Stellungskombination).slice(-10)}` + '</b><br/>'
+			;
+
+		// Signalstellungen
+		p = document.createElement('p');
+		div.appendChild(p);
+		for (const Signalstellung in Signalstellungen[Stellungskombination].SignalstellungArray) {
+			p.innerHTML += 
+			  `${Signalstellung} : ${Signalstellungen[Stellungskombination].SignalstellungArray[Signalstellung]}<br/>`
+			;
+		}
+
+		// Signale 
+		p = document.createElement('p');
+		div.appendChild(p);
+		for (const index in Signalstellungen[Stellungskombination].Signale) {
+			p.innerHTML += 
+			  `${Signalstellungen[Stellungskombination].Signale[index]}<br/>`
+			;
+		}
+
+	}
+
+/*
+
+	div = document.createElement('div');
+	target.appendChild(div);
+
+	for (const iniFile of iniFiles) {
+		if (iniFile.section.FileInfo) {
+			p = document.createElement('p');
+			div.appendChild(p);
+				
+			p.innerHTML = 
+				  `File = ${iniFile.file.name}<br/>`
+				+ `Name = ${iniFile.section.FileInfo.Name_GER}<br/>`
+				//+ `Desc = ${iniFile.section.FileInfo.Description_GER}<br/>`
+				+ `Stellungskombination = ${iniFile.Stellungskombination}<br/>`
+				;
+		}
+
+		p = document.createElement('p');
+		div.appendChild(p);
+		for (const Signalstellung in iniFile.Signalstellung) {
+			p.innerHTML += 
+			  `${Signalstellung} = ${iniFile.Signalstellung[Signalstellung]}<br/>`
+			;
+		}
+	}
+*/	
+	
+}
+
+</script>
+</head>
+<body>
+
+<div id='header'> <!-- The header contains the initial selection screen and the html part of the output sceen -->
+
+<div id='fileselector'>
+<h3>EEP Signale</h3>
+
+<form action='#' onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better -->
+	<label for="fileinput">Wähle und lade eine oder mehrere EEP-Signal-Dateien (.ini)</label>
+	<input type='file' id='inifile' accept='.ini' multiple onchange='readSignalIniFiles(this.files)'>
+	<!-- An extra button is not neccessary -->
+	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
+</form>
+<p>Man erhält diese .ini-Dateien im Ordner C:\EEP15\Resourcen.unp\Signale\Signale über das EEP-Programm mit "Extras -> Ressourcen-Extraktor").</p>
+<p>Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Kombination eine eindeutige ID generiert.</P>  
+<p><small>(c) Frank Buchholz, 2019</small></p>
+</div> <!-- fileselector -->
+</div> <!-- header --> 
+
+<div id='container'></div>
+</body>
+</html>
