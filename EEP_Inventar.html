@@ -778,10 +778,12 @@ function createTable( tab ) {
 	const tf = new TableFilter(table, {
 		base_path: 'https://www.tablefilter.com/tablefilter/',
 
+		//themes: [{ name: 'skyblue' }],	// Themes 'default', 'skyblue', 'transparent', 'mytheme'
+		
 		auto_filter: { delay: 500 },	// Delay for automatic filtering (milliseconds)
 
 		state: {						// Enable state persistence (see http://www.tablefilter.com/persistence.html for more options)
-			types: ['local_storage'],	// Funktioniert nicht, wenn es mehrere Tabellen auf der Seite gibt. Mögliche Werte: 'local_storage' 'hash' or 'cookie' 
+			types: ['local_storage'],	// Mögliche Werte: 'local_storage' 'hash' or 'cookie' (erfordert id für Tabellen) 
 			filters: true,				// Persist filters values, enabled by default
 			columns_visibility: true,	// Persist columns visibility
 			filters_visibility: true,	// Persist filters row visibility
@@ -790,7 +792,7 @@ function createTable( tab ) {
 		sticky_headers: true,			// Sticky headers with overrides
 		alternate_rows: true,			// Enable alternating rows
 		mark_active_columns: {			// Mark active columns
-			highlight_column: false,
+			highlight_column: false,	// Highlight columns or only header
         },
 		grid_layout: false,				// Grit layout (but no simple copy&paste to Excel anymore)
 		filters_row_index: 0,  			// Row index to show the filter bar (default 0). Show filter bar above header allows easy copy&paste of the table content.
@@ -1035,7 +1037,7 @@ Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://gi
 	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)"><a href='#divZugverband'>Zugverband</a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'>Gleisstil</a></label></div>
 	|
-	<!-- Hide filter row and filter related icons to mach copy&paste to Excel easier -->
+	<!-- Hide filter row and filter related icons to make copy&paste to Excel easier -->
 	<div class="item"><label><input type='checkbox' name='Filter'		checked autocomplete='off' onchange="toggleElements('.fltrow,.rdiv', this.checked)">Filter</label></div>
 </fieldset>
 </div>
