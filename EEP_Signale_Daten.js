@@ -1,5 +1,8 @@
 const Signalstellung = {
 // Added/changed manually
+//'' : { Name '', Pos : { 1 : '', }},
+'system\\Route_SignalS.3ds' : { Name : 'Fahrstraße Start', Pos : { }},
+'system\\Route_SignalZ.3ds' : { Name : 'Fahrstraße Ende', Pos : { }},
 'Ampel_Licht_3' : { Name : 'Ampel DE 3', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
 'Ampel_Licht_4' : { Name : 'Ampel DE 4', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
 'Ampel_Licht_East_1' : { Name : 'Ampel DE 1 Ost', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
