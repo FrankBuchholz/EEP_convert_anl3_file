@@ -511,21 +511,20 @@ mit
 
 		let SignalstellungText = Stellung;
 		let SignalstellungenText = '';
-		
 		if (Signalstellung[File]) {
 			// 1st try: Get texts (case sensitive file name)
 			SignalstellungText += ' : ' + Signalstellung[File].Pos[Stellung];
 			
-			for (StellungPos in Signalstellung[File].Pos) {
+			for (const StellungPos in Signalstellung[File].Pos) {
 				SignalstellungenText += StellungPos + ' : ' + Signalstellung[File].Pos[StellungPos] + '<br />';
 			}
 		} else {
 			// 2nd try: Get texts (case insensitive file name)
-			for (SignalFile in Signalstellung) {
+			for (const SignalFile in Signalstellung) {
 				if (SignalFile.toLowerCase() == File.toLowerCase()) {
 					SignalstellungText += ' : ' + Signalstellung[SignalFile].Pos[Stellung];
 					
-					for (StellungPos in Signalstellung[SignalFile].Pos) {
+					for (const StellungPos in Signalstellung[SignalFile].Pos) {
 						SignalstellungenText += StellungPos + ' : ' + Signalstellung[SignalFile].Pos[StellungPos] + '<br />';
 					}
 				}

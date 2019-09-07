@@ -280,7 +280,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		}
 	}
 
-	// Meldungen analysieren um Vor- zu Hauptsignele zu separieren
+	// Meldungen analysieren um Fahrstrasßen sowie Vor- zu Hauptsignele zu separieren
 	for (const GleissystemID in trackSignals) {
 		for (const GleisID in trackSignals[GleissystemID]) {
 			for (const entry of trackSignals[GleissystemID][GleisID]) {
@@ -292,20 +292,30 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				let   Position		= entry.Meldung.getAttribute('Position') / 100; 	// Wert zwischen 0 und Gleis.Laenge
 				let   ParaOderAnti 	= entry.Meldung.getAttribute('ParaOderAnti'); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 				const Distanz		= entry.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100; // immmer positiv
-				if (Distanz == 0) {  // Store unitary signal
-				// Store unitary signal
-					entry.SignalID		= SignalID;
-					entry.signalType 	= 'unitary';
-					entry.Position 		= Position;
-					entry.ParaOderAnti 	= ParaOderAnti;
+				
+				const Name 			= entry.Meldung.getAttribute('name'); // Fahrstraßen: name = 'system\Route_SignalS.3ds' bzw. 'system\Route_SignalZ.3ds'
+				const Routes		= entry.Meldung.getAttribute('Routes'); // Fahrstraßen Start: Routes > 0
+
+				// Store signal data
+				entry.SignalID		= SignalID;
+				entry.Position 		= Position;
+				entry.ParaOderAnti 	= ParaOderAnti;
+
+				// Für Fahrstrassen gilt: name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ziel
+				// (Außerdem besitzt die Meldung zu Beginn einer Fahrstraße weitere Elemente <Route> usw.
+				if (Name == 'system\\Route_SignalS.3ds') {
+					entry.signalType 	= 'FStart';					// Fahrstrasse Start
+					continue;
+				} else if (Name == 'system\\Route_SignalZ.3ds') {
+					entry.signalType 	= 'FZiel';					// Fahrstrasse Ziel
+					continue;
+				} else if (Distanz == 0) {
+					entry.signalType 	= 'single';					// Einzel-Signal
 					continue;
 				}
 			
-				// Store pre-signal
-				entry.SignalID		= SignalID;
-				entry.signalType 	= 'pre';
-				entry.Position 		= Position;
-				entry.ParaOderAnti 	= ParaOderAnti;
+				// Store Vorsignal
+				entry.signalType 	= 'pre';						// Vorsignal
 				
 				// Now we can follow the tracks to find the position of the main signal on the track
 				let Gleis 	= global.GleissystemMap.get(GleissystemID).get(currentGleisID);	// current track
@@ -351,7 +361,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						Anschluss		= trackConnections[GleissystemID][currentGleisID].Ende.Anschluss;
 						ParaOderAnti	= (Anschluss == 'Anfang' ? ParaOderAnti : 1-ParaOderAnti);
 						
-					} else {					// look backward
+					} else {				// look backward
 
 						if (!trackConnections[GleissystemID][currentGleisID].Anfang) { // should not happen
 							console.log(`Error: Signal ${SignalID} no connected track for ${GleissystemID}-${currentGleisID}.Anfang`);
@@ -671,6 +681,14 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				//     <KontaktZiel>6</KontaktZiel>
 				//     <Signal stellung="1" wirkungsdistanz="10856.51"/>
 				// </Meldung>
+				
+				// Fahrstrassen: name = 'system\Route_SignalS.3ds' bzw. 'system\Route_SignalZ.3ds'
+				// <Meldung Position="5190" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" name="system\Route_SignalS.3ds" Key_Id="141" Routes="7">
+				// 		<KontaktZiel>0</KontaktZiel>
+				// 		<Signal stellung="1" wirkungsdistanz="0" StopAt="0" Delay="0" ActDelay="0"/>
+				// 		<Route Target="142" Start="5190" Stop="1890" Color="13">
+				//		...
+				// </Meldung>
 
 				const trackSignalEntries = global.trackSignals[GleissystemID][GleisID];
 				if (trackSignalEntries) for (const trackSignalEntry of trackSignalEntries) {
@@ -712,11 +730,15 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					});
 					*/
 					
-					// Show symbol for Signal
+					// Show symbol for Signal / Fahrstrasse
 					svgAppend(svgSignalGroup, {
 						svg_tag				: `use`,
 						//class				: `Signal`,
-						'href'				: (signalType == 'pre' ? '#SymbolPreSignal' : '#SymbolSignal'),
+						href				: (	  signalType == 'FStart' 	? '#SymbolFStart' 
+												: signalType == 'FZiel' 	? '#SymbolFZiel'
+												: signalType == 'pre' 		? '#SymbolPreSignal' 
+												: 							  '#SymbolSignal'
+											  ),
 						x					: DeltaX,
 						y					: -DeltaY,
 						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
@@ -726,10 +748,16 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 												,
 					});
 	
-					// Show text of Signal
+					// Show text of Signal / Fahrstrasse
 					svgAppend(svgSignalGroup, {
 						svg_tag				: `text`,
-						text				: `S${SignalID}` + (signalType == 'pre' ? ` ${Distanz.toFixed(0)}m` : ``),
+						text				: (	  signalType == 'FStart'	? 'Fs' 
+												: signalType == 'FZiel'	 	? 'Fz'
+												: signalType == 'pre' 		? 'S' 
+												: 						  	  'S'  
+											  )
+												+ SignalID 
+												+ (signalType == 'pre' ? ` ${Distanz.toFixed(0)}m` : ``),
 						//'dy'				: `${(ParaOderAnti == 0 ? '-2.3' : '1.3em')}`, 	// Shift text if not rotated to the side of the symbol
 						'dy'				: `-2.3`, 										// Shift text if rotated to the side of the symbol
 						class				: `Signal`,
@@ -1376,7 +1404,18 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const Stellung		= Meldung.getElementsByTagName('Signal')[0].getAttribute('stellung');
 	const KontaktZiel 	= Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 	
-	const SignalstellungText = (Signalstellung[File] ? Signalstellung[File].Pos[Stellung] : '');
+	let SignalstellungText = '';
+	if (Signalstellung[File]) {
+		// 1st try: Get texts (case sensitive file name)
+		SignalstellungText = Signalstellung[File].Pos[Stellung];
+	} else {
+		// 2nd try: Get texts (case insensitive file name)
+		for (SignalFile in Signalstellung) {
+			if (SignalFile.toLowerCase() == File.toLowerCase()) {
+				SignalstellungText = Signalstellung[SignalFile].Pos[Stellung];
+			}
+		}
+	}
 	
 	msg(`Signal ${SignalID} '${File}${(Signalstellung[File] ? ' / ' + Signalstellung[File].Name : '')}' auf ${GleissystemText[GleissystemID]} ${GleisID}` 
 		+ `, Stellung ${Stellung} ${SignalstellungText}` 
@@ -2119,7 +2158,7 @@ text.Hoehe {
 
 /* Symbole */
 
-#SymbolSignal, #SymbolPreSignal, #SymbolKontakt {
+#SymbolSignal, #SymbolPreSignal, #SymbolFStart, #SymbolFZiel, #SymbolKontakt {
 	marker-start: none;
 	marker-end:   none;
 	stroke-width: var(--narrow-stroke-width);
@@ -2155,14 +2194,20 @@ text.Hoehe {
 	<!-- <path d='M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z' /> -->								<!-- Kreissegment -->
 	<!-- <path d='M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2' /> -->	<!-- Box -->
 	<symbol id='SymbolSignal' width='20' height='10' viewBox='-10 0 20 10'>
-		<path d='M 0 0 L 0 0.9 L 0.3 0.9 L 0.6 1.2 L 0.6 1.8 L 0.3 2.1   L -0.3 2.1 L -0.6 1.8 L -0.6 1.2 L -0.3 0.9 L -0 0.9' /> <!-- Linie mit Achteck -->
+		<path d='M 0 0 L 0 0.9  M 0.25 0.9 L 0.6 1.25 L 0.6 1.75 L 0.25 2.1  L -0.25 2.1 L -0.6 1.75 -0.6 1.25 -0.25 0.9 Z' /> <!-- Linie mit Achteck -->
 	</symbol>
 	<symbol id='SymbolPreSignal' width='20' height='10' viewBox='-10 0 20 10'>
 	<!--<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.5' r='0.6' /> --> 						<!-- Linie mit Kreis -->
-		<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.3' r='0.4' />  						<!-- Linie mit kleinem Kreis -->
+		<path d='M 0 0 L 0 0.9' /><circle cx='0' cy='1.3' r='0.4' />  							<!-- Linie mit kleinem Kreis -->
 	</symbol>
 	<symbol id='SymbolKontakt' width='20' height='10' viewBox='-10 0 20 10'>
-		<path d='M 0 0 L 0 0.9 L 0.7 2.1 L -0.7 2.1 L 0 0.9' />									<!-- Linie mit Dreieck -->
+		<path d='M 0 0 L 0 0.9  M 0 0.9 L 0.7 2.1 L -0.7 2.1 Z' />									<!-- Linie mit Dreieck -->
+	</symbol>
+	<symbol id='SymbolFStart' width='20' height='10' viewBox='-10 0 20 10'>
+		<path d='M 0 0 L 0 1.1  M 0 1.1 L 0.41 0.83 L 0.29 1.3 L 0.67 1.6 L 0.17 1.65 L 0 2.1  L -0.17 1.65 L -0.67 1.6 L -0.29 1.3 L -0.41 0.83 Z' /> 	<!-- Linie mit 5er Stern -->
+	</symbol>
+	<symbol id='SymbolFZiel' width='20' height='10' viewBox='-10 0 20 10'>
+		<path d='M 0 0 L 0 0.9  M 0 0.9 L -1.2 0.9 L -1.2 2.1 L 0 2.1 Z  M -0.6 0.9 L -0.6 2.1  M 0 1.5 L -1.2 1.5' /> <!-- Linie mit Flagge -->
 	</symbol>
 
 	<!-- Prellbock: Querbalken -->
