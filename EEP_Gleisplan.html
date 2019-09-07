@@ -280,7 +280,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		}
 	}
 
-	// Meldungen analysieren um Fahrstrasßen sowie Vor- zu Hauptsignele zu separieren
+	// Meldungen analysieren um Fahrstraßen sowie Vor- zu Hauptsignele zu separieren
 	for (const GleissystemID in trackSignals) {
 		for (const GleisID in trackSignals[GleissystemID]) {
 			for (const entry of trackSignals[GleissystemID][GleisID]) {
@@ -301,13 +301,13 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				entry.Position 		= Position;
 				entry.ParaOderAnti 	= ParaOderAnti;
 
-				// Für Fahrstrassen gilt: name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ziel
+				// Für Fahrstraßen gilt: name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ziel
 				// (Außerdem besitzt die Meldung zu Beginn einer Fahrstraße weitere Elemente <Route> usw.
 				if (Name == 'system\\Route_SignalS.3ds') {
-					entry.signalType 	= 'FStart';					// Fahrstrasse Start
+					entry.signalType 	= 'FStart';					// Fahrstraße Start
 					continue;
 				} else if (Name == 'system\\Route_SignalZ.3ds') {
-					entry.signalType 	= 'FZiel';					// Fahrstrasse Ziel
+					entry.signalType 	= 'FZiel';					// Fahrstraße Ziel
 					continue;
 				} else if (Distanz == 0) {
 					entry.signalType 	= 'single';					// Einzel-Signal
@@ -423,7 +423,46 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		}
 	}
 
+	// Lade Kollektor-Einträge, die Gleise miteinander verbinden, z.B. bei bestimmten Drehscheiben 
+	/* Beispiel:
+	<Kollektor id="8">
+		<Gleis gleisID="171" gleissystemID="1"/>
+		<Gleis gleisID="172" gleissystemID="1"/>
+		<Gleis gleisID="173" gleissystemID="1"/>
+		...
+	</Kollektor>
+	*/
+	const KollektorTracks = {};
+	for (const Kollektor of sutrackp.getElementsByTagName('Kollektor')) {
+		const KollektorID = Kollektor.getAttribute('id');
+		const Kollektors = Kollektor.getElementsByTagName('Gleis');
+		
+		if (Kollektors.length < 2) {	// So far we only look for Kollektors connecting tracks
+			continue;
+		}
+		for (const Gleis of Kollektors) {
+			const GleissystemID = Gleis.getAttribute('gleissystemID');
+			const GleisID 		= Gleis.getAttribute('gleisID');
+			
+			if (!KollektorTracks[GleissystemID]) {
+				KollektorTracks[GleissystemID] = {};
+			}
+			KollektorTracks[GleissystemID][GleisID] = [];
+
+			for (const Gleis of Kollektor.getElementsByTagName('Gleis')) {
+				const GleissystemID2 = Gleis.getAttribute('gleissystemID');
+				const GleisID2 		 = Gleis.getAttribute('gleisID');
+				
+				if (GleisID != GleisID2) {
+					KollektorTracks[GleissystemID][GleisID].push({GleissystemID : GleissystemID2, GleisID : GleisID2, });
+				}
+			}
+		}
+	}
+	global.KollektorTracks = KollektorTracks;
+	
 	// Add connected tracks as "active" tracks because they can be reached by trains as well
+debugger
 	for (const GleissystemID in activeTracks) {
 		const usedGleiseArray = activeTracks[GleissystemID];
 		
@@ -433,15 +472,31 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 			// Get connected tracks of "active" tracks
 			const connectedTracks = trackConnections[GleissystemID][GleisID1]
-			if (!connectedTracks) { continue; }
-			
-			for (const Anschluss in connectedTracks) {
-				// Add new connected tracks
-				// These tracks will be processed, too
-				if (!activeTracks[GleissystemID].includes(connectedTracks[Anschluss].GleisID)) {
-					 activeTracks[GleissystemID].push(connectedTracks[Anschluss].GleisID);
+			if (connectedTracks) {			
+				for (const Anschluss in connectedTracks) {
+					// Add new connected tracks
+					// These tracks will be processed, too
+					if (!activeTracks[GleissystemID].includes(connectedTracks[Anschluss].GleisID)) {
+						 activeTracks[GleissystemID].push(connectedTracks[Anschluss].GleisID);
+					}
 				}
 			}
+
+			// Get related tracks from Kollektors
+			if (KollektorTracks[GleissystemID]) {
+				const collectedTracks = KollektorTracks[GleissystemID][GleisID1]
+				if (collectedTracks) {			
+					for (const Gleis of collectedTracks) {
+						// Add new connected tracks
+						// These tracks will be processed, too
+						if (!activeTracks[Gleis.GleissystemID].includes(Gleis.GleisID)) {
+							 activeTracks[Gleis.GleissystemID].push(Gleis.GleisID);
+						}
+					}
+				}
+			}
+		
+			
 		}
 	}
 	// Now we are able to mark all "active" tracks in the svg-output
@@ -549,7 +604,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				});
 
 				let Winkel, DeltaX, DeltaY;
-				if (Kruemmung == '0') {
+				if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
 			/*
 			SVG: Gerades Gleis
 
@@ -682,7 +737,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				//     <Signal stellung="1" wirkungsdistanz="10856.51"/>
 				// </Meldung>
 				
-				// Fahrstrassen: name = 'system\Route_SignalS.3ds' bzw. 'system\Route_SignalZ.3ds'
+				// Fahrstraßen: name = 'system\Route_SignalS.3ds' bzw. 'system\Route_SignalZ.3ds'
 				// <Meldung Position="5190" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" name="system\Route_SignalS.3ds" Key_Id="141" Routes="7">
 				// 		<KontaktZiel>0</KontaktZiel>
 				// 		<Signal stellung="1" wirkungsdistanz="0" StopAt="0" Delay="0" ActDelay="0"/>
@@ -730,7 +785,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					});
 					*/
 					
-					// Show symbol for Signal / Fahrstrasse
+					// Show symbol for Signal / Fahrstraße
 					svgAppend(svgSignalGroup, {
 						svg_tag				: `use`,
 						//class				: `Signal`,
@@ -748,7 +803,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 												,
 					});
 	
-					// Show text of Signal / Fahrstrasse
+					// Show text of Signal / Fahrstraße
 					svgAppend(svgSignalGroup, {
 						svg_tag				: `text`,
 						text				: (	  signalType == 'FStart'	? 'Fs' 
