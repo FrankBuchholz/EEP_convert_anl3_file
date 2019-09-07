@@ -482,6 +482,9 @@ mit
 		<KontaktZiel>2</KontaktZiel>
 		<Signal stellung="2" wirkungsdistanz="1000" StopAt="0" Geschwindigkeit="0" Delay="0" ActDelay="0"/>
 	</Meldung>
+	
+	Achtung: Fahrstrassen werden ebenfalls durch Meldungen realisiert
+	Dabei gilt name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ende einer Fahrstrasse.
 	*/
 	div = createTable({
 		id		: 'Signal',
@@ -510,10 +513,22 @@ mit
 		let SignalstellungenText = '';
 		
 		if (Signalstellung[File]) {
+			// 1st try: Get texts (case sensitive file name)
 			SignalstellungText += ' : ' + Signalstellung[File].Pos[Stellung];
 			
 			for (StellungPos in Signalstellung[File].Pos) {
 				SignalstellungenText += StellungPos + ' : ' + Signalstellung[File].Pos[StellungPos] + '<br />';
+			}
+		} else {
+			// 2nd try: Get texts (case insensitive file name)
+			for (SignalFile in Signalstellung) {
+				if (SignalFile.toLowerCase() == File.toLowerCase()) {
+					SignalstellungText += ' : ' + Signalstellung[SignalFile].Pos[Stellung];
+					
+					for (StellungPos in Signalstellung[SignalFile].Pos) {
+						SignalstellungenText += StellungPos + ' : ' + Signalstellung[SignalFile].Pos[StellungPos] + '<br />';
+					}
+				}
 			}
 		}
 
