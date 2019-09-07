@@ -1,17 +1,18 @@
 const Signalstellung = {
 // Added/changed manually
 //'' : { Name '', Pos : { 1 : '', }},
-'system\\Route_SignalS.3ds' : { Name : 'Fahrstraße Start', Pos : { }},
-'system\\Route_SignalZ.3ds' : { Name : 'Fahrstraße Ende', Pos : { }},
 'Ampel_Licht_3' : { Name : 'Ampel DE 3', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
 'Ampel_Licht_4' : { Name : 'Ampel DE 4', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
 'Ampel_Licht_East_1' : { Name : 'Ampel DE 1 Ost', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
 'Ampel_Licht_East_2' : { Name : 'Ampel DE 2 Ost', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
 'Ampel_Licht_West_1' : { Name : 'Ampel DE 1 West', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
 'Ampel_Licht_West_2' : { Name : 'Ampel DE 2 West', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
+'Schranke2_SM2' : { Name : 'Eisenbahnschranke 2', Pos : { 1 : 'Fahrt', 2 : 'Halt', }},
 'signal_1' : { Name : 'Ampel 3 (mehrbegriffig)', Pos : { 1 : 'Fahrt, Grün', 2 : 'Halt, Rot', 3 : 'Halt, Gelb', 4 : 'Max. Geschwindigkeit 50 km/h, Gelb blinkend', }},
 'signal_2' : { Name : 'Ampel 4 (mehrbegriffig)', Pos : { 1 : 'Fahrt, Grün', 2 : 'Halt, Rot', 3 : 'Halt, Gelb', 4 : 'Max. Geschwindigkeit 50 km/h, Gelb blinkend', }},
-// Created with EEP_Signale.html (deactivated part of the program)
+'system\\Route_SignalS.3ds' : { Name : 'Fahrstraße Start', Pos : { }},
+'system\\Route_SignalZ.3ds' : { Name : 'Fahrstraße Ende', Pos : { }},
+// Created with EEP_Signale.html (use the xdeactivated part of the program)
 'Ampel_1' : { Name : 'Ampel 1', Pos : { 1 : 'Fahrt', 2 : 'Halt', }},
 'Ampel_2' : { Name : 'Ampel 2', Pos : { 1 : 'Fahrt', 2 : 'Halt', }},
 'Ampel_Licht_3' : { Name : 'Ampel DE 3', Pos : { 1 : 'Fahrt', 2 : 'Fahrt', 3 : 'Fahrt', 4 : 'Halt', }},
