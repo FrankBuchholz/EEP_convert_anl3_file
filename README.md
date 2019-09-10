@@ -15,7 +15,6 @@ Herauszoomen: Umschalttaste+Doppelklick<br/>
 Details anzeigen: Klick auf Gleis, Symbol oder Text
 
 ### Tastaturfunktionen
-(nur wenn kein Button im Fokus ist)<br/>
 <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
 <kbd>+</kbd> <kbd>-</kbd> : Zoomen</small></p>
 
