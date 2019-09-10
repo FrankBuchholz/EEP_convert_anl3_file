@@ -11,7 +11,7 @@ https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html
 ### Mausfunktionen 
 Verschieben: Klick+Halten+Bewegen<br/>
 An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
-Herauszoomen: Umschalttaste+Doppelklick<br/>
+Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br/>
 Details anzeigen: Klick auf Gleis, Symbol oder Text
 
 ### Tastaturfunktionen

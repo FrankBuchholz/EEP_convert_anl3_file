@@ -108,7 +108,7 @@ Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explor
 <p><small>(c) Frank Buchholz, 2019, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a></small></p>
 </footer>
 
-<style>
+<style> /* Selection screen */
 #fileselector {
 	margin: 15px;
 }
@@ -1170,7 +1170,7 @@ function svgAppendTextPath(svg_node, obj) {
 
 <section id="loading" class="hidden"> <!-- Progress bar screen --> 
 Lade... <progress id="progress" class="hidden" max="100"></progress>
-<style>
+<style> /* Progress bar screen */
 #loading {						/* progress bar */
 	text-align: center;
 	width: 100%;
@@ -1179,6 +1179,7 @@ Lade... <progress id="progress" class="hidden" max="100"></progress>
 </section> <!-- Progress bar screen --> 
 
 <main id="main" class="column hidden"> <!-- Main screen --> 
+
 <section id="heading"> <!-- The heading shows the header and the controls -->
 <nav id="controls">
 
@@ -1270,7 +1271,7 @@ Cursor: <span id="cursor_position"> </span>
 
 </nav> <!-- controls -->
 
-<style>
+<style> /* heading */
 #heading {
 	background-color: var(--body-background-color);
 	color: var(--body-text-color);
@@ -1295,6 +1296,7 @@ Cursor: <span id="cursor_position"> </span>
 }
 </style>
 </section>  <!-- heading -->
+
 <section id="container"> <!-- The container takes the remainig part of the screen to show the graphic -->
 <svg id="svg" xmlns="http://www.w3.org/2000/svg" version="1.1">
 
@@ -1599,7 +1601,8 @@ text.Hoehe {
 </style>
 
 </section> <!-- container -->
-<style> <!-- Flex main screen -->
+
+<style> /* Flex main screen */
 #main {
 	margin: 0;
 	padding: 0;
@@ -2252,7 +2255,7 @@ function centerGleis(panZoom, Gleis) {
 }
 </script>
 
-<script> 
+<script> // Main screen
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -2450,8 +2453,7 @@ function changefontSize(value) {
 	</div>
 	<div class="modal-footer">Info Box Footer</div>
 </div>
-<style>
-/* Modal Popup */
+<style> /* Info Box */
 #infoPopup {
 	/* display: none; Hidden by default */
 	position: absolute;
