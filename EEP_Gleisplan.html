@@ -72,7 +72,7 @@ kbd {
 <p><small><strong>Mausfunktionen</strong><br/>
 Verschieben: Klick+Halten+Bewegen<br/>
 An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
-Herauszoomen: Umschalttaste+Doppelklick<br/>
+Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br/>
 Details anzeigen: Klick auf Gleis, Symbol oder Text</small></p>
 
 <p><small><strong>Tastaturfunktionen</strong><br/>
@@ -388,7 +388,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		trackConnections[GleissystemID] = [];
 		const Gleisverbindungen = Gleissystem.getElementsByTagName("Gleisverbindung");
 		for (const Gleisverbindung of Gleisverbindungen) {
-			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang"/>
+			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang" Flags="1"/>
 			// Verwendung:
 			// prevGleisID   		= trackConnections[GleissystemID][GleisID].Anfang.GleisID
 			// prevGleisAnschluss 	= trackConnections[GleissystemID][GleisID].Anfang.Anschluss
@@ -399,6 +399,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			const Anschluss1 	= Gleisverbindung.getAttribute("Anschluss1");
 			const GleisID2 		= Gleisverbindung.getAttribute("GleisID2");
 			const Anschluss2 	= Gleisverbindung.getAttribute("Anschluss2");
+			const Flags 		= Gleisverbindung.getAttribute("Flags");		// undefined: normal connection, 1: virtual connection
 
 			// Store relation GleisID1 -> GleisID2
 			if (!trackConnections[GleissystemID][GleisID1]) {
@@ -819,7 +820,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				}
 					
 				// show GleisID in the middle above the track
-				if (Kruemmung == "0") {
+				if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
 					Winkel 			= 0;
 					DeltaX			= Laenge / 2;
 					DeltaY			= 0;
@@ -1716,7 +1717,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		// , preventMouseEventsDefault: true // enable or disable preventDefault for mouse events
 		, zoomScaleSensitivity: 0.1 // Zoom sensitivity
 		, minZoom: 0.1 // Minimum Zoom level
-		, maxZoom: 100 // Maximum Zoom level
+		, maxZoom: 500 // Maximum Zoom level
 		// , fit: true // enable or disable viewport fit in SVG (default true)
 		// , contain: false // enable or disable viewport contain the svg (default false)
 		// , center: true // enable or disable viewport centering in SVG (default true)
@@ -2439,8 +2440,6 @@ function changefontSize(value) {
 </script>
 
 <aside id="infoPopup" class="hidden"> <!-- Info Box -->
-<!-- alternate and much nicer solution: https://github.com/ZulNs/Draggable-Resizable-Dialog
-Sample: https://zulns.github.io/Draggable-Resizable-Dialog/ --> 
 <div class="modal-content">
 	<div id="infoPopupHeader"><span class="close">&#x2716;</span><span class="modal-header">Info Box Header - Click here to move</span></div> <!-- colse-x could be &times; as well-->
 	<div class="modal-body">
@@ -2727,26 +2726,29 @@ function showKontaktInfo(GleissystemID, GleisID) {
 
 <aside> <!-- Experiment: Dialog Box based on https://github.com/ZulNs/Draggable-Resizable-Dialog -->
 <!-- It's neccessary to fork this project to be able to adjust css and js -->
+<!--
+Bug: mouse event on slider do not work anymore
+-->
 <div class="hidden">
-<button id="show-dialog" onclick="_showDialog();">Show Dialog</button>
-<p id="dialog-status">Dialog hidden...</p>
+	<button id="show-dialog" onclick="_showDialog();">Show Dialog</button>
+	<p id="dialog-status">Dialog hidden...</p>
 </div>
 
 <div class="dialog" style="width:480px; height:240px;">
-  <div class="titlebar">Dialog Title...</div>
-  <button>Close</button>
-  <div class="content">
-    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-  </div>
-  <div class="buttonpane">
-    <div class="buttonset">
-	  <button>Ok</button>
-      <button>Cancel</button>
-    </div>
-  </div>
+	<div class="titlebar">Dialog Title...</div>
+	<button>Close</button>
+	<div class="content">
+		<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+	</div>
+	<div class="buttonpane">
+		<div class="buttonset">
+			<button>Ok</button>
+			<button>Cancel</button>
+		</div>
+	</div>
 </div>
 <link rel="stylesheet" href="Draggable-Resizable-Dialog/draggable-resizable-dialog.css">
-<script type="text/javascript" src="Draggable-Resizable-Dialog/draggable-resizable-dialog.js"></script>
+<!-- <script type="text/javascript" src="Draggable-Resizable-Dialog/draggable-resizable-dialog.js"></script> -->
 </aside>
 
 </main> <!-- Main screen --> 
