@@ -11,10 +11,16 @@ https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html
 ### Mausfunktionen 
 Verschieben: Klick+Halten+Bewegen<br/>
 An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
-Herauszoomen: Umschalttaste+Doppelklick
+Herauszoomen: Umschalttaste+Doppelklick<br/>
+Details anzeigen: Klick auf Gleis, Symbol oder Text
+
+### Tastaturfunktionen
+(nur wenn kein Button im Fokus ist)<br/>
+<kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
+<kbd>+</kbd> <kbd>-</kbd> : Zoomen</small></p>
 
 ### Interaktive Funktionen
-Wechsel zwischen vertikalen und horizontaler Ausrichtung<br/>
+Wechsel zwischen vertikalen und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br/>
 Zoom-in, -out, -reset<br/>
 Auswahl der anzuzeigenden Gleissysteme und von Informationen wie Texten oder Marker<br/>
 Aktuelles Bild als png-Bild speichern<br/>
@@ -25,11 +31,11 @@ Einstellung der Linien- und Textbreite
 
 Google Chrome:
 
-Rechts-Klick in der Graphik -> Inspect (Ctrl+Shift+I) -> Das svg-Element wird im neuen Fenster (DevTools) blau hinterlegt angezeigt -> Rechts-Klick auf diesem Element -> Copy -> Copy Element
+Rechts-Klick in der Graphik &rarr; Inspect <kbd>Ctrl+Shift+I</kbd> &rarr; Das svg-Element wird im neuen Fenster (DevTools) blau hinterlegt angezeigt &rarr; Rechts-Klick auf diesem Element &rarr; Copy &rarr; Copy Element
 
 Firefox:
 
-Rechts-Klick in der Graphik -> Element untersuchen -> Das svg-Element wird im neuen Fenster (DevTools) blau hinterlegt angezeigt -> Rechts-Klick auf diesem Element -> Kopieren -> Äußeres HTML
+Rechts-Klick in der Graphik &rarr; Element untersuchen &rarr; Das svg-Element wird im neuen Fenster (DevTools) blau hinterlegt angezeigt &rarr; Rechts-Klick auf diesem Element &rarr; Kopieren &rarr; Äußeres HTML
 
 Nun kann man das svg-Element aus der Zwischenablage in ein leeres Textdokument pasten und z.B. als .svg-Datei speichern.
 
