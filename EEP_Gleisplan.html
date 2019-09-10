@@ -75,7 +75,7 @@ An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
 Herauszoomen: Umschalttaste+Doppelklick<br/>
 Details anzeigen: Klick auf Gleis, Symbol oder Text</small></p>
 
-<p><small><strong>Tastaturfunktionen</strong> (nur wenn kein Button im Fokus ist)<br/>
+<p><small><strong>Tastaturfunktionen</strong><br/>
 <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
 <kbd>+</kbd> <kbd>-</kbd> : Zoomen</small></p>
 
@@ -85,7 +85,9 @@ Zoom-in, -out, -reset<br/>
 Auswahl der anzuzeigenden Gleissysteme<br/>
 Auswahl der anzuzeigenden Informationen (GleisID, Gleisstil, Höhe, Signale, Kontakte)<br/>
 Aktuelle Darstellung als png-Bild speichern<br/>
-Graphik auf bestimmtes Gleis, Signal oder Weiche positionieren</small></p>
+Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
+Einstellung der Linien- und Textbreite
+</small></p>
 
 <p><small><strong>Referenzen / verwandte Programme</strong><br/>
 Diskussionbeitrag im <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br/>
@@ -224,7 +226,7 @@ function updateUi(fn) {
 			requestAnimationFrame(function() {
 				resolve(result);
 			});
-		})
+		});
 	});
 }
 </script>
@@ -463,7 +465,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						signalType 		:"main",
 						Position 		: Position,
 						ParaOderAnti	: ParaOderAnti,
-					})
+					});
 					continue;
 				}
 
@@ -524,7 +526,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 							signalType 		:"main",
 							Position 		: (Anschluss == "Anfang" ? Position : Laenge - Position),
 							ParaOderAnti	: ParaOderAnti,
-						})
+						});
 						break;
 
 					} else {
@@ -602,7 +604,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			const GleisID1 = usedGleiseArray[i];
 
 			// Get connected tracks of "active" tracks
-			const connectedTracks = trackConnections[GleissystemID][GleisID1]
+			const connectedTracks = trackConnections[GleissystemID][GleisID1];
 			if (connectedTracks) {			
 				for (const Anschluss in connectedTracks) {
 					// Add new connected tracks
@@ -615,7 +617,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 			// Get related tracks from Kollektors
 			if (KollektorTracks[GleissystemID]) {
-				const collectedTracks = KollektorTracks[GleissystemID][GleisID1]
+				const collectedTracks = KollektorTracks[GleissystemID][GleisID1];
 				if (collectedTracks) {			
 					for (const Gleis of collectedTracks) {
 						// Add new connected tracks
@@ -800,8 +802,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				if (Key_Id) {
 					// Show text of Weiche at the end of the track
 					let Code = "W";
-					if (GleisData == 18 || GleisData == 19) { Code = "DWK" }
-					if (GleisData == 20 || GleisData == 21) { Code = "T-W" }
+					if (GleisData == 18 || GleisData == 19) { Code = "DWK" };
+					if (GleisData == 20 || GleisData == 21) { Code = "T-W" };
 					svgAppend(svgGleisGroup, {
 						svg_tag			: `text`,
 						id				: `W${Key_Id}`,
@@ -1271,6 +1273,7 @@ Cursor: <span id="cursor_position"> </span>
 #heading {
 	background-color: var(--body-background-color);
 	color: var(--body-text-color);
+	border-bottom: 1px dotted #3983ab;
 }
 
 #controls input[type="number"]#number, input[type="number"]#sizePNG {
@@ -1345,7 +1348,7 @@ svg {
 	/* <![CDATA[ */
 svg {
 	background: white;
-	border: 1px dotted #3983ab;
+	border: 0; /* 1px dotted #3983ab; */
 	padding: 0;
 	box-sizing: border-box;
 	/* transform: scale(1,-1);     		not useful as it would mirror the text, too */
@@ -1963,7 +1966,7 @@ function showArea(t, event) {
 	const sizes 	= t.getSizes();	// width height of svg area
 								// viewBox (x y width height)
 								// realZoom = min(width/viewBox.width, height/viewBox.height)
-	const zoom 		= t.getZoom();	// zoom factor
+	//const zoom 		= t.getZoom();	// zoom factor
 
 	const minX		= (-pan.x) / sizes.realZoom;
 	const minY		= (-pan.y) / sizes.realZoom;
@@ -2619,7 +2622,6 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
 	const gsbname 	= Gleis.getAttribute("gsbname");	// Dateiname
 
-	const Key_Id	= Gleis.getAttribute("Key_Id"); 	// Id einer Weiche
 	const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
 	const weichenstellung = Gleis.getAttribute('weichenstellung');
 	const GleisData	= Gleis.getAttribute("data"); 		// Bitfeld einer Weiche
@@ -2665,7 +2667,7 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 		SignalstellungText = Signalstellung[File].Pos[Stellung];
 	} else {
 		// 2nd try: Get texts (case insensitive file name)
-		for (SignalFile in Signalstellung) {
+		for (const SignalFile in Signalstellung) {
 			if (SignalFile.toLowerCase() == File.toLowerCase()) {
 				SignalstellungText = Signalstellung[SignalFile].Pos[Stellung];
 			}
