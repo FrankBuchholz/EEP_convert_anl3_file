@@ -1273,7 +1273,6 @@ Cursor: <span id="cursor_position"> </span>
 #heading {
 	background-color: var(--body-background-color);
 	color: var(--body-text-color);
-	border-bottom: 1px dotted #3983ab;
 }
 
 #controls input[type="number"]#number, input[type="number"]#sizePNG {
@@ -1618,6 +1617,7 @@ text.Hoehe {
 #main.column #heading {
 	flex: 0;					/* shrink as much as possible */
 	margin-bottom: 0px;
+	border-bottom: 1px dotted #3983ab;
 }
 #main.column #container {
 	flex: 1;					/* grow as much as possible */
@@ -1647,6 +1647,7 @@ text.Hoehe {
 }
 #main.row #heading {
 	flex: 1;					/* 1/5 = width: 20% */
+	border-right: 1px dotted #3983ab;
 }
 #main.row #container {
 	flex: 4;					/* 4/5 = width: 80% */
@@ -1670,7 +1671,7 @@ text.Hoehe {
 }
 </style>
 
-<script src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+<script type="text/javascript" src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <script> // svg-pan-zoom
 function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
@@ -2438,6 +2439,8 @@ function changefontSize(value) {
 </script>
 
 <aside id="infoPopup" class="hidden"> <!-- Info Box -->
+<!-- alternate and much nicer solution: https://github.com/ZulNs/Draggable-Resizable-Dialog
+Sample: https://zulns.github.io/Draggable-Resizable-Dialog/ --> 
 <div class="modal-content">
 	<div id="infoPopupHeader"><span class="close">&#x2716;</span><span class="modal-header">Info Box Header - Click here to move</span></div> <!-- colse-x could be &times; as well-->
 	<div class="modal-body">
@@ -2567,7 +2570,7 @@ function dragElement(element) {
   }
 }
 </script>
-<script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+<script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 <script>  // Show information in Info Box
 function showGleisInfo(GleissystemID, GleisID) {
 	const Gleissystem = global.GleissystemMap.get(GleissystemID);
@@ -2721,6 +2724,30 @@ function showKontaktInfo(GleissystemID, GleisID) {
 }
 </script>
 </aside> <!-- Info Box -->
+
+<aside> <!-- Experiment: Dialog Box based on https://github.com/ZulNs/Draggable-Resizable-Dialog -->
+<!-- It's neccessary to fork this project to be able to adjust css and js -->
+<div class="hidden">
+<button id="show-dialog" onclick="_showDialog();">Show Dialog</button>
+<p id="dialog-status">Dialog hidden...</p>
+</div>
+
+<div class="dialog" style="width:480px; height:240px;">
+  <div class="titlebar">Dialog Title...</div>
+  <button>Close</button>
+  <div class="content">
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+  </div>
+  <div class="buttonpane">
+    <div class="buttonset">
+	  <button>Ok</button>
+      <button>Cancel</button>
+    </div>
+  </div>
+</div>
+<link rel="stylesheet" href="Draggable-Resizable-Dialog/draggable-resizable-dialog.css">
+<script type="text/javascript" src="Draggable-Resizable-Dialog/draggable-resizable-dialog.js"></script>
+</aside>
 
 </main> <!-- Main screen --> 
 
