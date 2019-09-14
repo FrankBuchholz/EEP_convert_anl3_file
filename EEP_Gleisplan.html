@@ -7,6 +7,7 @@
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,Gleisplan" />
 <meta name="language" content="de" />
+<link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
 
 <style> /* html page */
 html, body { /* deactivate default settings */
@@ -1115,6 +1116,25 @@ function bodyAppend(tagName, innerHTML) {
 function svgAppend(svg_node, obj) {
 	const svgNS 	= "http://www.w3.org/2000/svg";
 	//const xlinkNS	= "http://www.w3.org/1999/xlink";
+	
+	// The lightweight library for manipulating and animating SVG: https://github.com/svgdotjs/svg.js
+	// http://svgjs.com/
+	
+	// planned: optimize sequence of transform operations based on https://github.com/svg/svgo
+	/*
+	https://github.com/svg/svgo/blob/master/plugins/convertTransform.js
+	Convert matrices to the short aliases,
+	Convert long translate, scale or rotate transform notations to the shorts ones,
+	Convert transforms to the matrices and multiply them all into one,
+	Remove useless transforms.
+	Limit transform precision with matrix one. Calculating with larger precision doesn't add any value.
+	No sense in angle precision more then number of significant digits in matrix.
+	Convert fixed-point numbers: 12.754997 → 12.755
+	Convert long translate transform notation to the shorts one: translate(10 0) → translate(10)
+	Convert long scale transform notation to the shorts one: scale(2 2) → scale(2)
+	Convert long rotate transform notation to the short one: translate(cx cy) rotate(a) translate(-cx -cy) → rotate(a cx cy)
+	Decrease accuracy of floating-point numbers in transforms keeping a specified number of decimals: Smart rounds values like 2.349 to 2.35.
+	*/
 
 	let element = document.createElementNS(svgNS, obj.svg_tag);
 
@@ -1298,6 +1318,11 @@ Cursor: <span id="cursor_position"> </span>
 </section>  <!-- heading -->
 
 <section id="container"> <!-- The container takes the remainig part of the screen to show the graphic -->
+<!-- 
+svg editor: https://github.com/SVG-Edit/svgedit
+https://svg-edit.github.io/svgedit/releases/latest/editor/svg-editor.html
+-->
+
 <svg id="svg" xmlns="http://www.w3.org/2000/svg" version="1.1">
 
 <title>EEP Gleisplan</title>
@@ -2442,137 +2467,9 @@ function changefontSize(value) {
 }
 </script>
 
-<aside id="infoPopup" class="hidden"> <!-- Info Box -->
-<div class="modal-content">
-	<div id="infoPopupHeader"><span class="close">&#x2716;</span><span class="modal-header">Info Box Header - Click here to move</span></div> <!-- colse-x could be &times; as well-->
-	<div class="modal-body">
-		<p>Info Box Body</p>
-		<p>Move</p>
-		<p>this</p>
-		<p>Box</p>
-	</div>
-	<div class="modal-footer">Info Box Footer</div>
-</div>
-<style> /* Info Box */
-#infoPopup {
-	/* display: none; Hidden by default */
-	position: absolute;
-	z-index: 9; 		/* Sit on top */
-	top: 100px;			/* Initial position */
-	left: 100px;
-	width: 400px;
-	overflow: auto; 	/* Enable scroll if needed */
-}
-
-#infoPopupHeader {
-	cursor: move;		/* Drag anchor */
-	z-index: 10;
-}
-
-#infoPopupHeader {
-	padding: 2px 2px 2px 10px;
-	background-color: var(--header-background-color);
-	color: var(--header-text-color);
-}
-
-.modal-header {
-}
-
-/* Close Button */
-.close {
-	color: var(--header-text-color);
-	float: right;
-	font-size: 0.8em;
-	font-weight: bold;
-}
-
-.close:hover,
-.close:focus {
-	color: var(--body-text-color);
-	text-decoration: none;
-	cursor: pointer;
-}
-
-/* Modal Content */
-.modal-content {
-	margin: auto;
-	padding: 0;
-	border: 1px solid #888;
-	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
-}
-
-.modal-body {
-	padding: 2px 10px;
-	background-color: var(--body-background-color);
-	color: var(--body-text-color);
-}
-
-.modal-footer {
-	padding: 2px 10px;
-	background-color: var(--footer-background-color);
-	color: var(--footer-text-color);
-}
-</style>
-<script> // Make the Info Box draggagle
-// When the user clicks on (x), close the modal popup
-document.querySelector(".close").addEventListener("click", function(ev) {
-	ev.target.closest('aside').classList.add("hidden");
-});
-
-/*
-const infoPopupClose = document.getElementsByClassName("close")[0];
-infoPopupClose.onclick = function() {
-	document.getElementById("infoPopup").classList.add("hidden");
-}
-*/
-
-//Make the element draggagle:
-const infoPopup = document.getElementById("infoPopup");
-dragElement(infoPopup);
-
-function dragElement(element) {
-  let dx = 0, dy = 0, posX = 0, posY = 0;
-  if (document.getElementById(element.id + "Header")) {
-    /* if present, the header is where you move the modal popup from */
-    document.getElementById(element.id + "Header").onmousedown = dragMouseDown;
-  } else {
-    /* otherwise, move the modal popup from anywhere inside the modal popup */
-    element.onmousedown = dragMouseDown;
-  }
-
-  function dragMouseDown(e) {
-    e = e || window.event;
-    e.preventDefault();
-    // get the mouse cursor position at startup:
-    posX = e.clientX;
-    posY = e.clientY;
-    document.onmouseup = closeDragElement;
-    // call a function whenever the cursor moves:
-    document.onmousemove = elementDrag;
-  }
-
-  function elementDrag(e) {
-    e = e || window.event;
-    e.preventDefault();
-    // calculate the new cursor position:
-    dx = posX - e.clientX;
-    dy = posY - e.clientY;
-    posX = e.clientX;
-    posY = e.clientY;
-    // set the element"s new position:
-    element.style.top = (element.offsetTop - dy) + "px";
-    element.style.left = (element.offsetLeft - dx) + "px";
-  }
-
-  function closeDragElement() {
-    /* stop moving when mouse button is released:*/
-    document.onmouseup = null;
-    document.onmousemove = null;
-  }
-}
-</script>
+<aside id="infoPopup"> <!-- Info Window -->
 <script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
-<script>  // Show information in Info Box
+<script type="text/javascript">  // Show information in Info Box
 function showGleisInfo(GleissystemID, GleisID) {
 	const Gleissystem = global.GleissystemMap.get(GleissystemID);
 	if (!Gleissystem){ return; }
@@ -2597,27 +2494,19 @@ function showGleisInfo(GleissystemID, GleisID) {
 	// Kurzform in msg-Element
 	msg(`${GleissystemText[GleissystemID]} ${GleisID}, ${Gleisart[clsid]}, Stil ${stil}, ${gsbname}`);
 
-	// Ausführlich in Info Popup
-	const infoPopup = document.getElementById("infoPopup");
-	infoPopup.classList.remove("hidden");
-
-	const infoPopupHeader = infoPopup.getElementsByClassName("modal-header")[0];
-	infoPopupHeader.textContent = `${GleissystemText[GleissystemID]} ${GleisID}`;
-
+	// Ausführlich im Info Popup
 	const br = "<br />";
-	const infoPopupBody 	= infoPopup.getElementsByClassName("modal-body")[0];
-	infoPopupBody.innerHTML = 
-		  `Typ: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
-		+ (GleisData != 0 ? br + GleisDataText[GleisData] : '')
-		+ br + `Stil: ${stil}`
-		+ (gsbname != null ? br + `Datei: ${gsbname}` : "")
-		+ br + `Länge: ${Laenge.toFixed(0)}m`
-		+ br + `Position (Anfang): (${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m)`
-		+ br + `Höhe: ${PosZ.toFixed(2)}m`
-		;
-
-	const infoPopupFooter 	= infoPopup.getElementsByClassName("modal-footer")[0];
-		infoPopupFooter.textContent = `Position: ${GleissystemText[GleissystemID]} ${GleisID}`;
+	showInfoWindow({
+		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
+		content: 
+			  `Typ: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
+			+ (GleisData != 0 ? br + GleisDataText[GleisData] : '')
+			+ br + `Stil: ${stil}`
+			+ (gsbname != null ? br + `Datei: ${gsbname}` : "")
+			+ br + `Länge: ${Laenge.toFixed(0)}m`
+			+ br + `Position (Anfang): (${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m)`
+			+ br + `Höhe: ${PosZ.toFixed(2)}m`
+	});
 }
 
 function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
@@ -2637,26 +2526,19 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	// Kurzform in msg-Element
 	msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 
-	// Ausführlich in Info Popup
-	const infoPopup = document.getElementById("infoPopup");
-	infoPopup.classList.remove("hidden");
-
-	const infoPopupHeader = infoPopup.getElementsByClassName("modal-header")[0];
-	infoPopupHeader.textContent = `Weiche ${WeicheID}`;
-
+	// Ausführlich im Info Popup
 	const br = "<br />";
-	const infoPopupBody 	= infoPopup.getElementsByClassName("modal-body")[0];
-	infoPopupBody.innerHTML = 
-		  `Typ: ${Gleisart[clsid]}`
-		+ (GleisData   != 0 ? br + GleisDataText[GleisData] : '')
-		+ br + `Weichenstellung: ${WeichenstellungText[weichenstellung]}`
-		+ br + `Stil: ${stil}`
-		+ (gsbname != null ? br + `Datei: ${gsbname}` : "")
-		+ (KontaktZiel != 0 ? br + `KontaktZiel: ${KontaktZiel}` : '')
-		;
-
-	const infoPopupFooter 	= infoPopup.getElementsByClassName("modal-footer")[0];
-	infoPopupFooter.textContent = `Position: ${GleissystemText[GleissystemID]} ${GleisID}`;
+	showInfoWindow({
+		title: `Weiche ${WeicheID}`,
+		content: 
+			  `Position: ${GleissystemText[GleissystemID]} ${GleisID}`
+			+ `Typ: ${Gleisart[clsid]}`
+			+ (GleisData   != 0 ? br + GleisDataText[GleisData] : '')
+			+ br + `Weichenstellung: ${WeichenstellungText[weichenstellung]}`
+			+ br + `Stil: ${stil}`
+			+ (gsbname != null ? br + `Datei: ${gsbname}` : "")
+			+ (KontaktZiel != 0 ? br + `KontaktZiel: ${KontaktZiel}` : '')
+	});
 }
 
 function showSignalInfo(SignalID, GleissystemID, GleisID) {
@@ -2683,48 +2565,86 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 		+ `, Stellung ${Stellung} ${SignalstellungText}` 
 		+ (KontaktZiel != 0 ? `, Kontaktziel=` + KontaktZiel : ""));
 
-	// Ausführlich in Info Popup
-	const infoPopup = document.getElementById("infoPopup");
-	infoPopup.classList.remove("hidden");
-
-	const infoPopupHeader = infoPopup.getElementsByClassName("modal-header")[0];
-	infoPopupHeader.textContent = `Signal ${SignalID}`;
-
+	// Ausführlich im Info Popup
 	const br = "<br />";
-	const infoPopupBody 	= infoPopup.getElementsByClassName("modal-body")[0];
-	infoPopupBody.innerHTML = 
-		  `Name: ${File}`
-		+ (Signalstellung[File] && File != Signalstellung[File].Name ? br + `${Signalstellung[File].Name}` : "")
-		+ br + `Stellung ${Stellung}: ${SignalstellungText}`
-		+ (KontaktZiel != 0 ? br + `Kontaktziel: ${KontaktZiel}` : "")
-		;
-
-	const infoPopupFooter 	= infoPopup.getElementsByClassName("modal-footer")[0];
-	infoPopupFooter.textContent = `Position: ${GleissystemText[GleissystemID]} ${GleisID}`;
+	showInfoWindow({
+		title: `Signal ${SignalID}`,
+		content: 
+			  `Name: ${File}`
+			+ (Signalstellung[File] && File != Signalstellung[File].Name ? br + `${Signalstellung[File].Name}` : "")
+			+ br + `Stellung ${Stellung}: ${SignalstellungText}`
+			+ (KontaktZiel != 0 ? br + `Kontaktziel: ${KontaktZiel}` : "")
+	});
 }
 
 function showKontaktInfo(GleissystemID, GleisID) {
 	// Kurzform in msg-Element
 	msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 
-	// Ausführlich in Info Popup
-	const infoPopup = document.getElementById("infoPopup");
-	infoPopup.classList.remove("hidden");
-
-	const infoPopupHeader = infoPopup.getElementsByClassName("modal-header")[0];
-	infoPopupHeader.textContent = `Kontakt`;
-
+	// Ausführlich im Info Popup
 	const br = "<br />";
-	const infoPopupBody 	= infoPopup.getElementsByClassName("modal-body")[0];
-	infoPopupBody.innerHTML = 
-		  ``
-		  ;
-
-	const infoPopupFooter 	= infoPopup.getElementsByClassName("modal-footer")[0];
-	infoPopupFooter.textContent = `Position: ${GleissystemText[GleissystemID]} ${GleisID}`;
+	showInfoWindow({
+		title: `Kontakt`,
+		content: 
+			  ``
+	});
 }
 </script>
-</aside> <!-- Info Box -->
+<link rel="stylesheet" href="toolwindow/toolwindow.css"/>
+<style> /* mod */
+</style>
+<script type="text/javascript" src="toolwindow/toolwindow.js"></script>
+<script type="text/javascript"> // toolwindow
+let infoWindow;
+function showInfoWindow(options) {
+	if (!infoWindow) {
+		infoWindow = new ToolWindow({
+			title: options.title, // goes in the title bar,
+			//closeButtonText: "x", // ✖ = &#x2716; 
+			top: 120,
+			left: 120, // optional: when no top or left are given, this window attempts to center itself
+			width: 175, // starting width
+			height: 200, // starting height
+			minWidth: 100, // don't go thinner than this
+			minHeight: 100, // don't go shorter than this
+			//placement: "inside,auto",
+			//relativeToElement: "#container",
+			animated: false,
+			content: {
+				type: "html",
+				value: options.content,
+			},
+			buttons: [/*{	//  to omit all buttons
+				text: "Dismiss",
+				clicked: function() {
+					// button click handlers are invoked with the infoWindow as the `this` parameter
+					this.hide();
+				}
+				}, {
+				text: "Refresh",
+				clicked: function() {
+					// note that we can completely replace the content
+					// here and that content.value can be any one of:
+					// - string
+					// - function producing a string
+					// - async function producing a string (ie, promise)
+					this.content = {
+						type: "html",
+						value: "<hr/>This is html<hr/>"
+					};
+					this.refresh();
+				}
+			}*/]
+		});
+	} else {
+		infoWindow.title = options.title;
+		infoWindow.content.value = options.content;
+		infoWindow.fitContent();
+	}
+	infoWindow.show();
+}
+</script>
+</aside>
 
 </main> <!-- Main screen --> 
 
