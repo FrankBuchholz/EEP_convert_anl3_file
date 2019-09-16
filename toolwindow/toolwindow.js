@@ -285,7 +285,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 		+ (this._options.buttons.length) * 64		// min-width: 64px;
 		+ (this._options.buttons.length) * (5 + 5)	// margin: 5px;
 	  );	  
-console.log('#buttons='+this._options.buttons.length+' minWidth='+this._options.minWidth+' _minW='+this._minW);
+	  this._log('#buttons='+this._options.buttons.length+' minWidth='+this._options.minWidth+' _minW='+this._minW);
       this._minH = this._options.minHeight;
       if (this._options.width < this._minW) {
         this._options.width = this._minW;
