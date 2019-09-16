@@ -22,7 +22,7 @@ Details anzeigen: Klick auf Gleis, Symbol oder Text
 Wechsel zwischen vertikalen und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br/>
 Zoom-in, -out, -reset<br/>
 Auswahl der anzuzeigenden Gleissysteme und von Informationen wie Texten oder Marker<br/>
-Aktuelles Bild als png-Bild speichern<br/>
+Aktuelles Bild als `.png`-Bild speichern<br/>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
 Einstellung der Linien- und Textbreite
 
@@ -69,7 +69,7 @@ Die GitHub-Bibliothek [`toolwindow`](https://github.com/fluffynuts/toolwindow) w
 Anzeige einer Inventarliste zu einer EEP-Anlage.
 
 ### Aufruf
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html)
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html")
 
 Zur Zeit wird eine Liste der Weichen, Signale, Zugverbände und verwendeter Gleisstile ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
 
@@ -88,7 +88,7 @@ Anzeige von Signalpositionen.
 
 Die Bedeutung der Signalstellung hängt vom jeweiligen Modell ab – es gibt keine Standards, nicht einmal für die ersten beiden Stellungen.
 Beispielsweise gibt es etliche Signale mit der Stellungskombination { 1 : Fahrt, 2 : Halt } und einige andere mit der Stellungskombination { 1 : Halt, 2 : Fahrt } sowie etliche weitere Kombinationen, die mit { 1 : Halt, … } beginnen.  
-Die Stellungskombination eines Signals kann man der entsprechenden .ini-Datei entnehmen. Man erhält diese .ini-Dateien im Ordner C:\EEP15\Resourcen.unp\Signale\Signale über das EEP-Programm mit „Extras → Ressourcen-Extraktor“).  
+Die Stellungskombination eines Signals kann man der entsprechenden `.ini`-Datei entnehmen. Man erhält diese `.ini`-Dateien im Ordner `C:\EEP15\Resourcen.unp\Signale\Signale` über das EEP-Programm mit „Extras → Ressourcen-Extraktor“).  
 
 Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Kombination eine eindeutige ID generiert.  
 
