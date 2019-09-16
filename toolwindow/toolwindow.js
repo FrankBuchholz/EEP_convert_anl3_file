@@ -301,7 +301,7 @@ console.log('#buttons='+this._options.buttons.length+' minWidth='+this._options.
       this._resizeMode = '';
       this._initialPlacementDone = false;
       this._raised = false;
-      this._handlingMouseEvent = false;
+	  //## this._handlingMouseEvent = false; //## not used
 
       if (this._options.boundingElement) {
         this._boundingElement = typeof this._options.boundingElement === "string" ? document.querySelector(this._options.boundingElement) : this._options.boundingElement;
@@ -318,6 +318,7 @@ console.log('#buttons='+this._options.buttons.length+' minWidth='+this._options.
     }
 
     ToolWindow.prototype = {
+	  _log: function(text){if(false)console.log(text)}, // show log if true	
       get title() { //## Allow to set the title	
         return this._options.title;
       },
@@ -908,6 +909,7 @@ console.log('#buttons='+this._options.buttons.length+' minWidth='+this._options.
         }
       },
       _suppressEvent: function _suppressEvent(evt) {
+		//this._log('_suppressEvent: '+(this._isDrag?' Drag':'')+(this._isResize?' resize=':'')+this._resizeMode+(this._isButton?' Button':''));		
 		if (evt.stopPropagation) {
           evt.stopPropagation();
         }
@@ -924,11 +926,10 @@ console.log('#buttons='+this._options.buttons.length+' minWidth='+this._options.
        if (!evt || !evt.target) {
           return;
         }
+		this._log('_onMouseDown: '+(this._isDrag?' Drag':'')+(this._isResize?' resize=':'')+this._resizeMode+(this._isButton?' Button':''));		
+
 		if (evt.target.closest(".dialog>.content") && this._resizeMode === '') { //## Allow normal events on content element
-			this._handlingMouseEvent = true;
 			return;
-		} else {
-			this._handlingMouseEvent = false;
 		}
         var rect = this._getOffset(this._dialog);
         this._maxX = Math.max(document.documentElement["clientWidth"], document.body["scrollWidth"], document.documentElement["scrollWidth"], document.body["offsetWidth"], document.documentElement["offsetWidth"]);
@@ -1153,9 +1154,8 @@ console.log('#buttons='+this._options.buttons.length+' minWidth='+this._options.
         if (!evt || !evt.target) {
           return;
         }
-        if (this._handlingMouseEvent) { //## Allow normal events on content element
-          return;
-        }
+		this._log('_onMouseMove: '+(this._isDrag?' Drag':'')+(this._isResize?' resize':'')+this._resizeMode+(this._isButton?' Button':''));		
+
         if (this._isDrag) {
           this._doDrag(evt);
         } else if (this._isResize) {
@@ -1193,12 +1193,16 @@ console.log('#buttons='+this._options.buttons.length+' minWidth='+this._options.
             this._resizeMode = '';
           }
         }
+		this._log('_onMouseMove: '+(this._isDrag?' Drag':'')+(this._isResize?' resize':'')+this._resizeMode+(this._isButton?' Button':''));		
+       if (!this._isDrag && !this._isResize && this._resizeMode==='' && !this._isButton) { //## Allow normal events like 'extend selection' on content element and events on external objects like 'change slider'
+          return;
+        }
         return this._suppressEvent(evt);
       },
       _onMouseUp: function _onMouseUp(evt) {
         evt = evt || window.event;
-        if (this._handlingMouseEvent) { //## Allow normal events on content element
-		  this._handlingMouseEvent = false;
+		this._log('_onMouseUp: '+(this._isDrag?' Drag':'')+(this._isResize?' resize':'')+this._resizeMode+(this._isButton?' Button':''));		
+       if (!this._isDrag && !this._isResize && this._resizeMode==='' && !this._isButton) { //## Allow normal events like 'extend selection' on content element and events on external objects like 'change slider'
           return;
         }
         if (this._isDrag) {

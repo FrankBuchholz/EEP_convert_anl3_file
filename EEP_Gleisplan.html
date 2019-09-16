@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Interaktive Anzeige des Gleisplans zu einer EEP-Anlage-Datei (.anl)</title>
-<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit SVG-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von CSS. Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek svg-pan-zoom verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.">
+<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit SVG-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von CSS. Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken  svg-pan-zoom zum Verschieben und Zoomen und toolwindow zur Anzeige von Popups verwendet.">
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,Gleisplan" />
 <meta name="language" content="de" />
@@ -16,14 +16,14 @@ html, body { /* deactivate default settings */
 }
 
 body {
-	--header-background-color: STEELBLUE;
-	--header-text-color: WHITE;
+	--header-background-color: STEELBLUE; /* ThreeDHighlight; */
+	--header-text-color: WHITE; /* CaptionText; */
 	
-	--body-background-color: AZURE;
-	--body-text-color: BLACK;
+	--body-background-color: AZURE; /* Window; */
+	--body-text-color: BLACK; /* WindowText; */
 	
-	--footer-background-color: CADETBLUE;
-	--footer-text-color: WHITE;
+	--footer-background-color: CADETBLUE; /* ButtonFace; */
+	--footer-text-color: WHITE; /* ButtonText; */
 }
 
 .hidden {
@@ -74,7 +74,7 @@ kbd {
 Verschieben: Klick+Halten+Bewegen<br/>
 An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
 Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br/>
-Details anzeigen: Klick auf Gleis, Symbol oder Text</small></p>
+Details anzeigen: Klick auf Gleis, Symbol oder Text (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet)</small></p>
 
 <p><small><strong>Tastaturfunktionen</strong><br/>
 <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
@@ -101,8 +101,8 @@ Anzeige einer <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP
 <p><small><strong>Technische Beschreibung</strong><br/>
 Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br/>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br/>
-Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich wird die Bibliothek <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> verwendet, um interaktive Funktionen zum Verschieben und Zoomen anzubieten.<br/>
-Das Programm läuft in Google Chome und Firefox, nicht jedoch im Internet Explorer.</small></p>
+Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br/>
+Das Programm läuft in aktuellen Versionen von Google Chome und Firefox, nicht jedoch im Internet Explorer.</small></p>
 </article>
 
 <footer>
@@ -324,6 +324,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	// Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
 	global.GleissystemMap 	= new Map();
 	global.MeldungenMap 	= new Map();
+	global.KontakteArray	= [];
 
 	// Append new svg elements to this root node which we apend to the svg node later
 	let fragment = document.createDocumentFragment();
@@ -968,6 +969,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					const fireOnPara  	= Kontakt.getAttribute("fireOnPara"); 	// Kontakt aktiv für Gleisrichtung 1
 					const fireOnAnti  	= Kontakt.getAttribute("fireOnAnti"); 	// Kontakt aktiv für Gleisrichtung 2
 					
+					const KontaktID = global.KontakteArray.length; // arbitrary identfication
+					global.KontakteArray[KontaktID] = Kontakt;
+					
 					let Winkel, DeltaX, DeltaY;
 					if (Kruemmung == "0") {
 						Winkel 			= 0;
@@ -983,7 +987,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					// Group node for Kontakt
 					const svgKontaktGroup = svgAppend(svgGleisGroup, {
 						svg_tag	: `g`,
-						//id		: `???`,
+						id		: `K${KontaktID}`,
 						class	: `Kontakt`,
 					});
 
@@ -1199,8 +1203,104 @@ Lade... <progress id="progress" class="hidden" max="100"></progress>
 </section> <!-- Progress bar screen --> 
 
 <main id="main" class="column hidden"> <!-- Main screen --> 
+<style> /* Flex main screen */
+#main {
+	margin: 0;
+	padding: 0;
+}
+
+/* flex */
+
+#main {
+	height: 100vh;
+}
+
+#main.column {
+	display: flex;				/* top level flex */
+	flex-direction: column; 	/* vertically stacked */
+}
+#main.column #heading {
+	flex: 0;					/* shrink as much as possible */
+	margin-bottom: 0px;
+	border-bottom: 1px dotted #3983ab;
+}
+#main.column #container {
+	flex: 1;					/* grow as much as possible */
+
+	display: flex;				/* second level flex for svg */
+}
+#main.column #controls {
+	display: flex;				/* second level flex for article within heading */
+	flex-direction: row; 		/* horizontally */
+	flex-wrap: wrap;
+	justify-content: space-between;
+	margin-left: 0px;
+	margin-right: 0px;
+}
+#main.column #controls .group {
+	flex: 1;
+	margin: 0px;
+	border-right: 1px dotted;
+	padding-top: 5px;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#main.row {
+	display: flex;
+	flex-direction: row; 		/* side by side */
+}
+#main.row #heading {
+	flex: 1;					/* 1/5 = width: 20% */
+	border-right: 1px dotted #3983ab;
+}
+#main.row #container {
+	flex: 4;					/* 4/5 = width: 80% */
+
+	display: flex;				/* second level flex for svg */
+}
+#main.row #controls {
+	display: flex;				/* second level flex for div within heading */
+	flex-direction: column; 	/* vertically */
+	flex-wrap: wrap;
+	justify-content: space-between;
+}
+#main.row #controls .group {
+	flex: 1;
+	margin: 5px;
+}
+
+#svg {
+	flex: 1;
+	height: 100%;
+}
+</style>
 
 <section id="heading"> <!-- The heading shows the header and the controls -->
+<style> /* heading */
+#heading {
+	background-color: var(--body-background-color);
+	color: var(--body-text-color);
+}
+
+#controls input[type="number"]#number, input[type="number"]#sizePNG {
+	width:60px;
+}
+
+#controls .fieldset {
+	border-width: 0;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
+	padding-block-start: 0;
+	padding-inline-start: 0;
+	padding-inline-end: 0;
+	padding-block-end: 0;
+}
+#controls .fieldset .item {
+	white-space: nowrap;		/* keep checkbox and label together */
+	display:inline;				/* but do no add extra line breaks per item */
+}
+</style>
 <nav id="controls">
 
 <header class="group">
@@ -1290,31 +1390,6 @@ Cursor: <span id="cursor_position"> </span>
 </article>
 
 </nav> <!-- controls -->
-
-<style> /* heading */
-#heading {
-	background-color: var(--body-background-color);
-	color: var(--body-text-color);
-}
-
-#controls input[type="number"]#number, input[type="number"]#sizePNG {
-	width:60px;
-}
-
-#controls .fieldset {
-	border-width: 0;
-	margin-inline-start: 0;
-	margin-inline-end: 0;
-	padding-block-start: 0;
-	padding-inline-start: 0;
-	padding-inline-end: 0;
-	padding-block-end: 0;
-}
-#controls .fieldset .item {
-	white-space: nowrap;		/* keep checkbox and label together */
-	display:inline;				/* but do no add extra line breaks per item */
-}
-</style>
 </section>  <!-- heading -->
 
 <section id="container"> <!-- The container takes the remainig part of the screen to show the graphic -->
@@ -1627,81 +1702,8 @@ text.Hoehe {
 
 </section> <!-- container -->
 
-<style> /* Flex main screen */
-#main {
-	margin: 0;
-	padding: 0;
-}
-
-/* flex */
-
-#main {
-	height: 100vh;
-}
-
-#main.column {
-	display: flex;				/* top level flex */
-	flex-direction: column; 	/* vertically stacked */
-}
-#main.column #heading {
-	flex: 0;					/* shrink as much as possible */
-	margin-bottom: 0px;
-	border-bottom: 1px dotted #3983ab;
-}
-#main.column #container {
-	flex: 1;					/* grow as much as possible */
-
-	display: flex;				/* second level flex for svg */
-}
-#main.column #controls {
-	display: flex;				/* second level flex for article within heading */
-	flex-direction: row; 		/* horizontally */
-	flex-wrap: wrap;
-	justify-content: space-between;
-	margin-left: 0px;
-	margin-right: 0px;
-}
-#main.column #controls .group {
-	flex: 1;
-	margin: 0px;
-	border-right: 1px dotted;
-	padding-top: 5px;
-	padding-left: 5px;
-	padding-right: 5px;
-}
-
-#main.row {
-	display: flex;
-	flex-direction: row; 		/* side by side */
-}
-#main.row #heading {
-	flex: 1;					/* 1/5 = width: 20% */
-	border-right: 1px dotted #3983ab;
-}
-#main.row #container {
-	flex: 4;					/* 4/5 = width: 80% */
-
-	display: flex;				/* second level flex for svg */
-}
-#main.row #controls {
-	display: flex;				/* second level flex for div within heading */
-	flex-direction: column; 	/* vertically */
-	flex-wrap: wrap;
-	justify-content: space-between;
-}
-#main.row #controls .group {
-	flex: 1;
-	margin: 5px;
-}
-
-#svg {
-	flex: 1;
-	height: 100%;
-}
-</style>
-
 <script type="text/javascript" src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
-<script> // svg-pan-zoom
+<script type="text/javascript"> // svg-pan-zoom
 function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
@@ -1915,6 +1917,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	});
 	// Slider strokeWidth
 	document.getElementById("strokeWidth").addEventListener("input", function(ev) {
+console.log('strokeWidth='+ev.target.value);	
 		msg();
 		ev.preventDefault();
 		changeStrokeWidth(ev.target.value);
@@ -2109,10 +2112,9 @@ target.parentElement		|g:S39:Signal
 rangeParent					|g:S39:Signal
 rangeParent.parentElement	|g:G1-47:Normal
 
-
 Kontakt symbol
 target						|use::undefined
-target.parentElement		|g::Kontakt
+target.parentElement		|g:K1:Kontakt
 target.parentElement.parentElement|g:G1-47:Normal
 
 Kontakt circle
@@ -2122,44 +2124,24 @@ rangeParent					|g:G1-47:Normal
 rangeParent.parentElement	|g:Eisenbahn:undefined
 */
 	
-	if (event.target.parentElement.classList[0] == "Signal") {	// Signal
+	if (event.target.parentElement.classList[0] == "Signal") {			// Signal
 		const SignalCode 		= event.target.parentElement.id;
-		const SignalID 			= SignalCode.substring(1)
-
 		const GleisCode 		= event.target.parentElement.parentElement.id;
-		const GleisTextArray 	= GleisCode.substring(1).split("-");
-		const GleissystemID 	= GleisTextArray[0];
-		const GleisID 			= GleisTextArray[1];
-
-		showSignalInfo(SignalID, GleissystemID, GleisID);
+		showSignalInfo(SignalCode, GleisCode);
 		
 	} else if (event.target.parentElement.classList[0] == "Kontakt") {	// Kontakt
-
+		const KontaktCode		= event.target.parentElement.id;
 		const GleisCode 		= event.target.parentElement.parentElement.id;
-		const GleisTextArray 	= GleisCode.substring(1).split("-");
-		const GleissystemID 	= GleisTextArray[0];
-		const GleisID 			= GleisTextArray[1];
-
-		showKontaktInfo(GleissystemID, GleisID);
+		showKontaktInfo(KontaktCode, GleisCode);
 		
-	} else if (event.target.classList[0] == "WeicheText") { 	// Weiche
+	} else if (event.target.classList[0] == "WeicheText") { 			// Weiche
 		const WeicheCode 		= event.target.id;
-		const WeicheID 			= WeicheCode.substring(1)
-
 		const GleisCode 		= event.target.parentElement.id;
-		const GleisTextArray 	= GleisCode.substring(1).split("-");
-		const GleissystemID 	= GleisTextArray[0];
-		const GleisID 			= GleisTextArray[1];
+		showWeicheInfo(WeicheCode, GleisCode);
 
-		showWeicheInfo(WeicheID, GleissystemID, GleisID);
-
-	} else if (event.target.parentElement.id != "general") {	// Gleis (hopefully)
+	} else if (event.target.parentElement.id != "general") {			// Gleis (hopefully)
 		const GleisCode 		= event.target.parentElement.id;
-		const GleisTextArray 	= GleisCode.substring(1).split("-");
-		const GleissystemID 	= GleisTextArray[0];
-		const GleisID 			= GleisTextArray[1];
-		
-		showGleisInfo(GleissystemID, GleisID);
+		showGleisInfo(GleisCode);
 	}
 }
 
@@ -2280,7 +2262,7 @@ function centerGleis(panZoom, Gleis) {
 }
 </script>
 
-<script> // Main screen
+<script type="text/javascript"> // Main screen
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -2470,7 +2452,11 @@ function changefontSize(value) {
 <aside id="infoPopup"> <!-- Info Window -->
 <script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 <script type="text/javascript">  // Show information in Info Box
-function showGleisInfo(GleissystemID, GleisID) {
+function showGleisInfo(GleisCode) {
+	const GleisTextArray 	= GleisCode.substring(1).split("-");
+	const GleissystemID 	= GleisTextArray[0];
+	const GleisID 			= GleisTextArray[1];
+
 	const Gleissystem = global.GleissystemMap.get(GleissystemID);
 	if (!Gleissystem){ return; }
 	
@@ -2495,8 +2481,9 @@ function showGleisInfo(GleissystemID, GleisID) {
 	msg(`${GleissystemText[GleissystemID]} ${GleisID}, ${Gleisart[clsid]}, Stil ${stil}, ${gsbname}`);
 
 	// Ausführlich im Info Popup
-	const br = "<br />";
+	const br = "<br />", i = "<i>", _i = "</i>";
 	showInfoWindow({
+		code: GleisCode,
 		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
 		content: 
 			  `Typ: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
@@ -2509,7 +2496,12 @@ function showGleisInfo(GleissystemID, GleisID) {
 	});
 }
 
-function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
+function showWeicheInfo(WeicheCode, GleisCode) {
+	const WeicheID 			= WeicheCode.substring(1)
+	const GleisTextArray 	= GleisCode.substring(1).split("-");
+	const GleissystemID 	= GleisTextArray[0];
+	const GleisID 			= GleisTextArray[1];
+
 	const Gleis 	= global.GleissystemMap.get(GleissystemID).get(GleisID);
 	const clsid 	= Gleis.getAttribute("clsid");		// Gleisart
 	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
@@ -2527,12 +2519,13 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 
 	// Ausführlich im Info Popup
-	const br = "<br />";
+	const br = "<br />", i = "<i>", _i = "</i>";
 	showInfoWindow({
+		code: WeicheCode,
 		title: `Weiche ${WeicheID}`,
 		content: 
-			  `Position: ${GleissystemText[GleissystemID]} ${GleisID}`
-			+ `Typ: ${Gleisart[clsid]}`
+			  `${i}Position: ${GleissystemText[GleissystemID]} ${GleisID}${_i}`
+			+ br + `Gleisart: ${Gleisart[clsid]}`
 			+ (GleisData   != 0 ? br + GleisDataText[GleisData] : '')
 			+ br + `Weichenstellung: ${WeichenstellungText[weichenstellung]}`
 			+ br + `Stil: ${stil}`
@@ -2541,75 +2534,260 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	});
 }
 
-function showSignalInfo(SignalID, GleissystemID, GleisID) {
+function showSignalInfo(SignalCode, GleisCode) {
+	const SignalID 			= SignalCode.substring(1)
+	const GleisTextArray 	= GleisCode.substring(1).split("-");
+	const GleissystemID 	= GleisTextArray[0];
+	const GleisID 			= GleisTextArray[1];
+
 	const Meldung 		= global.MeldungenMap.get(SignalID);
 	const File 			= Meldung.getAttribute("name");		// Dateiname
-	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
+	const Position		= Meldung.getAttribute('Position') / 100;
+	const ParaOderAnti 	= Meldung.getAttribute('ParaOderAnti');
+
 	const KontaktZiel 	= Meldung.getElementsByTagName("KontaktZiel")[0].textContent;
+
+	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
+	const SignalData	= Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData');
+ 	const Distanz		= Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
+
+	// Fahrstraßen
+	const Routes		= Meldung.getAttribute('Routes');
+	const RouteList	 	= Meldung.getElementsByTagName("Route");
+
+	const SignalType 	= (File == 'system\\Route_SignalS.3ds' ? 'Fahrstraße Startsignal' 
+							: (File == 'system\\Route_SignalZ.3ds' ? 'Fahrstraße Endesignal'
+								: 'Signal' ));
 	
 	let SignalstellungText = "";
-	if (Signalstellung[File]) {
-		// 1st try: Get texts (case sensitive file name)
-		SignalstellungText = Signalstellung[File].Pos[Stellung];
-	} else {
-		// 2nd try: Get texts (case insensitive file name)
-		for (const SignalFile in Signalstellung) {
-			if (SignalFile.toLowerCase() == File.toLowerCase()) {
-				SignalstellungText = Signalstellung[SignalFile].Pos[Stellung];
+	// Die Bedeutung der Signalstellung für Fahrstraßen ist noch unklar
+	if (SignalType == 'Signal') {
+		if (Signalstellung[File]) {
+			// 1st try: Get texts (case sensitive file name)
+			SignalstellungText = Signalstellung[File].Pos[Stellung];
+		} else {
+			// 2nd try: Get texts (case insensitive file name)
+			for (const SignalFile in Signalstellung) {
+				if (SignalFile.toLowerCase() == File.toLowerCase()) {
+					SignalstellungText = Signalstellung[SignalFile].Pos[Stellung];
+				}
 			}
 		}
 	}
 	
 	// Kurzform in msg-Element
-	msg(`Signal ${SignalID} ${File} auf ${GleissystemText[GleissystemID]} ${GleisID}` 
+	msg(`${SignalType} ${SignalID} ${File} auf ${GleissystemText[GleissystemID]} ${GleisID}` 
 		+ `, Stellung ${Stellung} ${SignalstellungText}` 
 		+ (KontaktZiel != 0 ? `, Kontaktziel=` + KontaktZiel : ""));
 
 	// Ausführlich im Info Popup
-	const br = "<br />";
+	const br = "<br />", i = "<i>", _i = "</i>";
+
+	// Fahrstraßen
+	const ColorText = { // <color> modulo 8
+		0: { name: 'grau',		color: 'rgb(180,180,180)', 	},
+		1: { name: 'rot',		color: 'rgb(220,0,0)', 		},
+		2: { name: 'grün',		color: 'rgb(0,220,0)', 		},
+		3: { name: 'blau',		color: 'rgb(0,0,220)', 		},
+		4: { name: 'gelb',		color: 'rgb(220,220,0)', 	},
+		5: { name: 'pink',		color: 'rgb(220,0,220)', 	},
+		6: { name: 'hellblau', 	color: 'rgb(0,180,220)', 	},
+		7: { name: 'orange',	color: 'rgb(220,110,0)',	},
+	}
+	let RoutesText = '';
+	for (Route of RouteList) {
+		const Target 	= Route.getAttribute('Target');
+		const Color 	= Route.getAttribute('Color');
+		
+		RoutesText += br
+			+ 'Zielsignal: ' 	+ Target
+			+ ', ' + '<span style="color:' + ColorText[Color%8].color + ';">Farbe: ' + Color + ' ' + ColorText[Color%8].name + '</span>'
+			;
+	}
+
 	showInfoWindow({
-		title: `Signal ${SignalID}`,
+		code: SignalCode,
+		title: `${SignalType} ${SignalID}`,
 		content: 
-			  `Name: ${File}`
+			  `${i}Position: ${GleissystemText[GleissystemID]} ${GleisID}${_i} +${Position.toFixed(1)}m`
+			+ br + `Name: ${File}`
 			+ (Signalstellung[File] && File != Signalstellung[File].Name ? br + `${Signalstellung[File].Name}` : "")
 			+ br + `Stellung ${Stellung}: ${SignalstellungText}`
+			+ (Distanz !=0 ? br + `Distanz zum Hauptsignal: ${Distanz.toFixed(0)}m` : '')
+			+ br + `Gleisrichtung: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung')
+			+ (SignalData != null ? br + `SignalData: ${SignalData}` : '')			
 			+ (KontaktZiel != 0 ? br + `Kontaktziel: ${KontaktZiel}` : "")
-	});
+			+ (Routes ? br + `Fahrstraßen: ${Routes}` : "")
+			+ (RoutesText != '' ? RoutesText : '')
+		});
 }
 
-function showKontaktInfo(GleissystemID, GleisID) {
+function showKontaktInfo(KontaktCode, GleisCode) {
+	const KontaktID 		= KontaktCode.substring(1);
+	const GleisTextArray 	= GleisCode.substring(1).split("-");
+	const GleissystemID 	= GleisTextArray[0];
+	const GleisID 			= GleisTextArray[1];
+
+//<Kontakt Position="2186.82" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="6" LastOfs="2213.881" ConnectF="2" ConnectR="2" VolDist="28" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" SignalData="0" KontaktZiel="1" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
+	const Kontakt		= global.KontakteArray[KontaktID];
+	const SetType 		= Kontakt.getAttribute('SetType');
+	const SetValue 		= Kontakt.getAttribute('SetValue');
+	const KontaktZiel 	= Kontakt.getAttribute('KontaktZiel');
+	const Position		= Kontakt.getAttribute('Position') / 100;
+	const ParaOderAnti 	= Kontakt.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
+	const fireOnPara 	= Kontakt.getAttribute('fireOnPara');
+	const fireOnAnti 	= Kontakt.getAttribute('fireOnAnti');
+	const Teiler 		= Kontakt.getAttribute('Teiler');
+	const ActTeiler 	= Kontakt.getAttribute('ActTeiler');
+	const Delay 		= Kontakt.getAttribute('Delay');
+	const ActDelay 		= Kontakt.getAttribute('ActDelay');
+	const TrainSide 	= Kontakt.getAttribute('TrainSide');
+	const RouteID 		= Kontakt.getAttribute('Route');
+	const TrainID 		= Kontakt.getAttribute('TrainID');
+	const NameFilter 	= Kontakt.getAttribute('NameFilter');
+	const TrainNewName 	= Kontakt.getAttribute('TrainNewName');
+	const zuStellung 	= Kontakt.getAttribute('zuStellung');
+	const Wechseln 		= Kontakt.getAttribute('Wechseln');
+	const VolDist 		= Kontakt.getAttribute('VolDist');
+	const SignalData 	= Kontakt.getAttribute('SignalData');
+	
+	// Kontakttyp (SetType)
+	// Achtung: Bei der Anzeige werden die Variablne v, x, t ersetzt
+	const KontaktTyp = { 			// SetValue
+		0 	: 'Weiche/Signal',		// -	
+		1 	: 'Fahrzeug +v max',	// Geschwindigkeit in km/h
+		2 	: 'Fahrzeug +v min',	// Geschwindigkeit in km/h
+		3 	: 'Fahrzeug +v soll',	// Geschwindigkeit in km/h
+		5 	: 'Fahrzeug -v max',	// Geschwindigkeit in km/h
+		6 	: 'Fahrzeug -v min',	// Geschwindigkeit in km/h
+		7 	: 'Fahrzeug -v soll',	// Geschwindigkeit in km/h
+		8 	: 'RollGleis x m',		// Halt nach x m
+		256 : 'Sound',				// Sound_ID
+		512 : 'Kamera t sek.',		// Kamerawechsel nach t Sekunden
+		768 : 'Immobilie',			// Verweist auf ImmoIdx
+		1024 : 'DKW/EKW',			// Verweist auf ImmoIdx
+		1280 : 'Einfahrt Depot',	// ?
+		1536 : 'Ausfahrt Depot',	// ?
+		32768 : 'Gruppen KP',		// ?
+	}
+
+	// DKW/EKW Weichenstellung
+	const VolDistText = {
+		0 : 'Umschalter',
+		1 : 'links-links',
+		2 : 'links-rechts',
+		3 : 'rechts-rechts',
+		4 : 'rechts-links',
+	}
+
+	const TrainSidetext = {
+		0 : 'Spitze',
+		1 : 'Schluss',
+		[-1] : 'GrKP',
+	}
+
+	// Spezielle Kontakt-Typen
+	let KontaktTypText = KontaktTyp[SetType];
+	if 		  (SetType == 0) {
+		//if 		(Weichen.find(function(Weiche) { return Weiche.ID == KontaktZiel}) ) { KontaktTypText = 'Weiche'; } 
+		//else if (Signale.find(function(Signal) { return Signal.ID == KontaktZiel}) ) { KontaktTypText = 'Signal'; }
+		//else { KontaktTypText = 'Kontaktziel nicht gefunden'; }
+	} else if (SetType >= 1 && SetType <= 7) {
+		KontaktTypText = KontaktTypText.replace('v', SetValue);			// 'Fahrzeug +v max'
+	} else if (SetType == 8) {
+		KontaktTypText = KontaktTypText.replace('x', SetValue);			// 'RollGleis x m'
+	} else if (SetType == 512) {
+		KontaktTypText = KontaktTypText.replace('t', SetValue);			// 'Kamera t sek.'
+	} else if (SetType == 1024) {
+		KontaktTypText = KontaktTypText + ' ' + VolDistText[VolDist];	// DKW/EKW Weichenstellung
+	}
+	
+	// SignalData 
+	/*
+	Byte 1 - 2 (LSB)
+		Key-ID des abgefragten Signals oder Weiche
+	Byte 3 - 4 (MSB) 
+		Signal- oder Weichenstellung, die gegeben sein muss, damit der Kontakt schaltet
+		Signal: 
+			1=Fahrt
+			2=Halt
+		Weiche: 
+			1=Durchfahrt
+			2=Abzweig
+			3=Koabzweig
+		EKW: 
+			1=von links nach rechts
+			2=von rechts nach rechts
+			3=von rechts nach links 
+		DKW: 
+			1=von links nach links
+			2=von links nach rechts
+			3=von rechts nach rechts
+			4=von rechts nach links 
+	*/
+	const SignalDataStellung = Math.floor(SignalData / 65536);
+	const SignalDataID   	 = SignalData - SignalDataStellung * 65536;
+
+	// Zugverband`
+	//const Zugverband = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
+
 	// Kurzform in msg-Element
 	msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 
 	// Ausführlich im Info Popup
-	const br = "<br />";
+	const br = "<br />", i = "<i>", _i = "</i>";
 	showInfoWindow({
+		code: KontaktCode,
 		title: `Kontakt`,
-		content: 
-			  ``
+			content:  
+				   `${i}Position: ${GleissystemText[GleissystemID]} ${GleisID}${_i} +${Position.toFixed(1)}m`
+			+ br + `Kontakt Typ: `		+ SetType + ' ' + KontaktTypText	// KontaktTyp[SetType] mit Modifikation
+			+ ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? br + `SetValue: ` + SetValue : '') 
+			+ (KontaktZiel != 0 	? br + `Kontaktziel: ` + KontaktZiel : '') 
+			+ br + `Auslösung: `		+ (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+												: ( fireOnPara == 1 && fireOnAnti == 1 ? 'beide Richtungen' : '' )
+											  )
+										  ) 
+			+ (Teiler != 0 			? br + `Zug-Zähler: ` + Teiler : '')
+			+ (ActTeiler != 0 		? br + `Zählerstand: `		+ ActTeiler : '')
+			+ (Delay != 0 			? br + `Zeit Verzögerung: `	+ Delay : '')
+			+ (ActDelay != 0 		? br + `Zeit abgelaufen: `	+ ActDelay : '')
+			+ br + `Zug Position: `		 + (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
+			+ (RouteID != 0 		? br + `für Route: ` + RouteID + ' ' + Routen[RouteID] : '') 
+			+ (TrainID != 0 		? br + `für Zug: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden')*/ : '') 
+			+ (NameFilter != ''		? br + `Zug Filter: `		 + NameFilter : '') 
+			+ (TrainNewName != ''	? br + `Neuer Zugname: `	 + TrainNewName : '')
+			+ (zuStellung > 0 && Wechseln == 0 ? br + `zu Stellung: ` + zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) 
+			+ (SignalData != 0 		? br + `SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
 	});
 }
 </script>
 <link rel="stylesheet" href="toolwindow/toolwindow.css"/>
-<style> /* mod */
+<style> /* mod default CSS */
 </style>
 <script type="text/javascript" src="toolwindow/toolwindow.js"></script>
 <script type="text/javascript"> // toolwindow
-let infoWindow;
+let infoWindow = { count: 0, };
 function showInfoWindow(options) {
-	if (!infoWindow) {
-		infoWindow = new ToolWindow({
+	let code = 'default';
+	if (global.shiftDown) {
+		code = options.code;
+	}
+	if (!infoWindow[code]) {
+		infoWindow.count = (infoWindow.count+1)%10; 
+		infoWindow[code] = new ToolWindow({
 			title: options.title, // goes in the title bar,
 			//closeButtonText: "x", // ✖ = &#x2716; 
-			top: 120,
-			left: 120, // optional: when no top or left are given, this window attempts to center itself
-			width: 175, // starting width
+			top: 120+infoWindow.count*32,
+			left: 120+infoWindow.count*32, // optional: when no top or left are given, this window attempts to center itself
+			width: 225, // starting width
 			height: 200, // starting height
 			minWidth: 100, // don't go thinner than this
 			minHeight: 100, // don't go shorter than this
 			//placement: "inside,auto",
 			//relativeToElement: "#container",
-			animated: false,
+			animated: true,
 			content: {
 				type: "html",
 				value: options.content,
@@ -2637,11 +2815,11 @@ function showInfoWindow(options) {
 			}*/]
 		});
 	} else {
-		infoWindow.title = options.title;
-		infoWindow.content.value = options.content;
-		infoWindow.fitContent();
+		infoWindow[code].title = options.title;
+		infoWindow[code].content.value = options.content;
+		infoWindow[code].fitContent();
 	}
-	infoWindow.show();
+	infoWindow[code].show();
 }
 </script>
 </aside>

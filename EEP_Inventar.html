@@ -23,7 +23,7 @@ https://www.tablefilter.com/data-types.html
 <link href="https://www.tablefilter.com/tablefilter/style/tablefilter.css" rel="stylesheet">
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-<script> // Load file
+<script type="text/javascript"> // Load file
 function loadFile(file) {
 	var fr;
 	if (typeof window.FileReader !== 'function') {
@@ -70,7 +70,7 @@ function loadFile(file) {
 
 <script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 
-<script> // process_node
+<script type="text/javascript"> // process_node
 
 function process_node(sutrackp) {
 //console.log(sutrackp.nodeName);
@@ -128,7 +128,7 @@ function process_node(sutrackp) {
 		3 : 'KoAbzweig',
 		5 : 'Spezial',
 	};
-
+	
 	// Groesse der Anlage (alle Positionsangaben in m statt cm)
 	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
 	const Area = {
@@ -510,6 +510,32 @@ mit
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 
+		// Fahrstraßen
+		const Routes		= Signal.Meldung.getAttribute('Routes');
+		const RouteList	 	= Signal.Meldung.getElementsByTagName("Route");
+
+		// Fahrstraßen
+		const ColorText = { // <color> modulo 8
+			0: { name: 'grau',		color: 'rgb(180,180,180)', 	},
+			1: { name: 'rot',		color: 'rgb(220,0,0)', 		},
+			2: { name: 'grün',		color: 'rgb(0,220,0)', 		},
+			3: { name: 'blau',		color: 'rgb(0,0,220)', 		},
+			4: { name: 'gelb',		color: 'rgb(220,220,0)', 	},
+			5: { name: 'pink',		color: 'rgb(220,0,220)', 	},
+			6: { name: 'hellblau', 	color: 'rgb(0,180,220)', 	},
+			7: { name: 'orange',	color: 'rgb(220,110,0)',	},
+		}
+		let RoutesText = '';
+		for (Route of RouteList) {
+			const Target 	= Route.getAttribute('Target');
+			const Color 	= Route.getAttribute('Color');
+			
+			RoutesText += 
+				  'Zielsignal: ' 	+ Target
+				+ ', ' + '<span style="color:' + ColorText[Color%8].color + ';">Farbe: ' + Color + ' ' + ColorText[Color%8].name + '</span><br />'
+				;
+		}
+
 		let SignalstellungText = Stellung;
 		let SignalstellungenText = '';
 		if (Signalstellung[File]) {
@@ -534,20 +560,22 @@ mit
 
 		fillTable(thead, tbody, [
 
-		{ th : `Signal`,			td : SignalID },
-		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
-		{ th : `x (m)`,				td : PosX.toFixed(0) },
-		{ th : `y (m)`,				td : PosY.toFixed(0) },
-		{ th : `Position (m)`,		td : Position.toFixed(0) },
-		{ th : `Distanz zum Hauptsignal (m)`,	td : (Distanz !=0 ? Distanz.toFixed(0) : '') },
-		{ th : `Gleisrichtung`,		td : ParaOderAnti },
-		{ th : `Stellung`,			td : SignalstellungText },
-		{ th : `Anzahl Stellungen`,	td : Count },
+		{ th : `Signal`,			td : SignalID, },
+		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID, },
+		{ th : `x (m)`,				td : PosX.toFixed(0), },
+		{ th : `y (m)`,				td : PosY.toFixed(0), },
+		{ th : `Position (m)`,		td : Position.toFixed(0), },
+		{ th : `Distanz zum Hauptsignal (m)`,	td : (Distanz !=0 ? Distanz.toFixed(0) : ''), },
+		{ th : `Gleisrichtung`,		td : ParaOderAnti, },
+		{ th : `Stellung`,			td : SignalstellungText, },
+		{ th : `Anzahl Stellungen`,	td : Count, },
 		{ th : `Stellungen`,		td : SignalstellungenText, html : true, },
-		{ th : `SignalData`,		td : SignalData },
-		{ th : `KontaktZiel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
-		{ th : `Datei`,				td : File },
-		{ th : `Name`,				td : (Signalstellung[File] ? Signalstellung[File].Name : '') },
+		{ th : `SignalData`,		td : SignalData, },
+		{ th : `KontaktZiel`,		td : (KontaktZiel != 0 ? KontaktZiel : ''), },
+		{ th : `Anzahl Fahrstraßen`,	td : Routes, },
+		{ th : `Fahrstraßen`,		td : RoutesText, html : true, },
+		{ th : `Datei`,				td : File, },
+		{ th : `Name`,				td : (Signalstellung[File] ? Signalstellung[File].Name : ''), },
 
 		]) }) 
 		
@@ -976,7 +1004,7 @@ function prepareSort() {
 </script>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-<script> // html page
+<script type="text/javascript"> // html page
 
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
