@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -177,6 +177,9 @@ function process_node(sutrackp) {
 	// Maps for direct access
 	const GleisMap = new Map();	// Verwendung: Gleis = GleisMap.get(GleissystemID).get(GleisID))
 
+	// Signale und Weichen als Kontaktziele
+	const KontaktZiele		= {};
+	
 	// Sortable arrays
 	const
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
@@ -304,6 +307,22 @@ mit
 					GleisID 		: GleisID,
 				});
 			}
+			
+			// Weichen mit KontaktZiel 
+			const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0];
+			if (KontaktZielEntry) {
+				const KontaktZiel 	= KontaktZielEntry.textContent;
+				if (KontaktZiel != null && KontaktZiel != 0) {
+					const WeicheID = Gleis.getAttribute("Key_Id");
+					KontaktZiele[KontaktZiel] = { 
+						Typ				: 'Weiche',
+						ID				: WeicheID,
+						GleissystemID 	: GleissystemID,
+						GleisID			: GleisID,
+					}
+				}
+			}
+			
 
 			// Signale
 			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
@@ -320,6 +339,20 @@ mit
 
 					Meldung 		: Meldung,
 				});
+				
+				// Signale mit KontaktZiel 
+				const KontaktZielEntry 	= Meldung.getElementsByTagName("KontaktZiel")[0];
+				if (KontaktZielEntry) {
+					const KontaktZiel 	= KontaktZielEntry.textContent;
+					if (KontaktZiel != null && KontaktZiel != 0) {
+						KontaktZiele[KontaktZiel] = { 
+							Typ 			: 'Signal',
+							ID				: SignalID,
+							GleissystemID 	: GleissystemID,
+							GleisID			: GleisID,
+						}
+					}
+				}
 			}
 			
 			// Kontakte
@@ -454,7 +487,7 @@ mit
 		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
 		{ th : `x (m)`,				td : PosX.toFixed(0) },
 		{ th : `y (m)`,				td : PosY.toFixed(0) },
-		{ th : `KontaktZiel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
+		{ th : `Kontaktziel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
 		{ th : `Gleisart`,			td : Gleisart[clsid] },
 		{ th : `Weichenstellung`,	td : weichenstellung + ' ' + WeichenstellungText[weichenstellung] },
 		{ th : `SignalData`,		td : SignalData },
@@ -571,7 +604,7 @@ mit
 		{ th : `Anzahl Stellungen`,	td : Count, },
 		{ th : `Stellungen`,		td : SignalstellungenText, html : true, },
 		{ th : `SignalData`,		td : SignalData, },
-		{ th : `KontaktZiel`,		td : (KontaktZiel != 0 ? KontaktZiel : ''), },
+		{ th : `Kontaktziel`,		td : (KontaktZiel != 0 ? KontaktZiel : ''), },
 		{ th : `Anzahl Fahrstraßen`,	td : Routes, },
 		{ th : `Fahrstraßen`,		td : RoutesText, html : true, },
 		{ th : `Datei`,				td : File, },
@@ -630,22 +663,22 @@ mit
 	
 		// Kontakttyp (SetType)
 		// Achtung: Bei der Anzeige werden die Variablne v, x, t ersetzt
-		const KontaktTyp = { 			// SetValue
-			0 	: 'Weiche/Signal',		// -	
-			1 	: 'Fahrzeug +v max',	// Geschwindigkeit in km/h
-			2 	: 'Fahrzeug +v min',	// Geschwindigkeit in km/h
-			3 	: 'Fahrzeug +v soll',	// Geschwindigkeit in km/h
-			5 	: 'Fahrzeug -v max',	// Geschwindigkeit in km/h
-			6 	: 'Fahrzeug -v min',	// Geschwindigkeit in km/h
-			7 	: 'Fahrzeug -v soll',	// Geschwindigkeit in km/h
-			8 	: 'RollGleis x m',		// Halt nach x m
-			256 : 'Sound',				// Sound_ID
-			512 : 'Kamera t sek.',		// Kamerawechsel nach t Sekunden
-			768 : 'Immobilie',			// Verweist auf ImmoIdx
-			1024 : 'DKW/EKW',			// Verweist auf ImmoIdx
-			1280 : 'Einfahrt Depot',	// ?
-			1536 : 'Ausfahrt Depot',	// ?
-			32768 : 'Gruppen KP',		// ?
+		const KontaktTyp = { 				// SetValue
+			0 	: 'Weiche/Signal',			// -								U+2B62	⭢
+			1 	: 'Fahrzeug +v km/h max',	// Geschwindigkeit in km/h			U+1F686	🚆	U+1f697	🚗	U+26f4	⛴
+			2 	: 'Fahrzeug +v km/h min',	// Geschwindigkeit in km/h
+			3 	: 'Fahrzeug +v km/h soll',	// Geschwindigkeit in km/h
+			5 	: 'Fahrzeug -v km/h max',	// Geschwindigkeit in km/h
+			6 	: 'Fahrzeug -v km/h min',	// Geschwindigkeit in km/h
+			7 	: 'Fahrzeug -v km/h soll',	// Geschwindigkeit in km/h
+			8 	: 'RollGleis x m',			// Halt nach x m					U+1f6d1	🛑
+			256 : 'Sound',					// Sound_ID							U+1F50A	🔊	U+266B	♫
+			512 : 'Kamera t sek.',			// Kamerawechsel nach t Sekunden	U+1F4F7	📷
+			768 : 'Immobilie',				// Verweist auf ImmoIdx				U+1F3E0	🏠
+			1024 : 'DKW/EKW',				// Verweist auf ImmoIdx
+			1280 : 'Einfahrt Depot',		// ?
+			1536 : 'Ausfahrt Depot',		// ?
+			32768 : 'Gruppen KP',			// ?
 		}
 
 		// DKW/EKW Weichenstellung
@@ -663,12 +696,12 @@ mit
 			[-1] : 'GrKP',
 		}
 
+		const Ziel = KontaktZiele[KontaktZiel];
+
 		// Spezielle Kontakt-Typen
 		let KontaktTypText = KontaktTyp[SetType];
 		if 		  (SetType == 0) {
-			if 		(Weichen.find(function(Weiche) { return Weiche.ID == KontaktZiel}) ) { KontaktTypText = 'Weiche'; } 
-			else if (Signale.find(function(Signal) { return Signal.ID == KontaktZiel}) ) { KontaktTypText = 'Signal'; }
-			else { KontaktTypText = 'Kontaktziel nicht gefunden'; }
+			KontaktTypText = Ziel.Typ;
 		} else if (SetType >= 1 && SetType <= 7) {
 			KontaktTypText = KontaktTypText.replace('v', SetValue);			// 'Fahrzeug +v max'
 		} else if (SetType == 8) {
@@ -710,19 +743,25 @@ mit
 
 		fillTable(thead, tbody, [
 	
-		{ th : `Kontakt Typ`,		td : SetType },
-		{ th : `Kontakt Typ`,		td : KontaktTypText },	// KontaktTyp[SetType] mit Modifikation
+		{ th : `SetType`,			td : SetType },
+		{ th : `Kontaktyp`,			td : KontaktTypText },	// KontaktTyp[SetType] mit Modifikation
 		{ th : `SetValue`,			td : ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? SetValue : '') },
-		{ th : `Kontakt Ziel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
+		{ th : `Kontaktziel`,		
+			td : (KontaktZiel != null && KontaktZiel != 0 	
+					? `${KontaktZiel}: ${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
+					: '')
+		},
 		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
 		{ th : `x (m)`,				td : PosX.toFixed(0) },
 		{ th : `y (m)`,				td : PosY.toFixed(0) },
 		{ th : `Position (m)`,		td : Position.toFixed(0) },	// Position
-		{ th : `Auslösung`,			td : (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
-											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
-												: ( fireOnPara == 1 && fireOnAnti == 1 ? 'beide Richtungen' : '' )
-											  )
-										 ) },
+		{ th : `Auslösung`,			
+			td : ( fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+					: ( fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+						: ( fireOnPara == 1 && fireOnAnti == 1 ? 'beide Richtungen' : '' )
+					  )
+				 )
+		},
 		{ th : `Zug Zähler`,		td : Teiler },
 		{ th : `Zählerstand`,		td : ActTeiler },
 		{ th : `Zeit Verzögerung`,	td : Delay },
@@ -785,7 +824,7 @@ mit
 
 		]) }) 
 		
-		return Zugverbaende.length;
+		return Zugverbaende.size;
 		}
 	})
 
