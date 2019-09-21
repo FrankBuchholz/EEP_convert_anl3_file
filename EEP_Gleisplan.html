@@ -19,7 +19,7 @@ body {
 	--header-background-color: STEELBLUE; /* ThreeDHighlight; */
 	--header-text-color: WHITE; /* CaptionText; */
 	
-	--body-background-color: AZURE; /* Window; */
+	--body-background-color: WhiteSmoke; /* AZURE; Window; */
 	--body-text-color: BLACK; /* WindowText; */
 	
 	--footer-background-color: CADETBLUE; /* ButtonFace; */
@@ -28,6 +28,15 @@ body {
 
 .hidden {
 	display: none;
+}
+
+ /* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not relilaby. */
+.no-select,
+fieldset,
+select,
+input,
+button {
+	user-select: none;
 }
 
 kbd { 
@@ -85,7 +94,7 @@ Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F1
 Zoom-in, -out, -reset<br/>
 Auswahl der anzuzeigenden Gleissysteme<br/>
 Auswahl der anzuzeigenden Informationen (GleisID, Gleisstil, Höhe, Signale, Kontakte)<br/>
-Aktuelle Darstellung als png-Bild speichern<br/>
+Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br/>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
 Einstellung der Linien- und Textbreite
 </small></p>
@@ -190,24 +199,31 @@ function loadFile(file) {
 			document.getElementById("filename").textContent = file.name.substring(0, file.name.length -1 -1 -3);
 
 			// Read settings from localStorage
+			const strokeWidth = localStorage.getItem('strokeWidth') || document.getElementById("strokeWidth").value;					
+			document.getElementById("strokeWidth").value = strokeWidth;
+			const fontSize = localStorage.getItem('fontSize') || document.getElementById("fontSize").value;
+			document.getElementById("fontSize").value = fontSize;
+					
 			for (let i = 0; i < localStorage.length; i++) {
 				const key = localStorage.key(i);
-				if (key.indexOf("checkbox_") == 0) { // Read checkbox settings
+				if (key.indexOf("checkbox_") === 0) { // Read checkbox settings
 					const checkbox = document.querySelector(`input[type="checkbox"][name="${key.substring(9)}"]`);
 					if (checkbox) {
-						const value = localStorage.getItem(key) == "true";
-						if (checkbox.checked != value) {
+						const value = localStorage.getItem(key) === "true";
+						if (checkbox.checked !== value) {
 							checkbox.checked = value;
 							checkbox.dispatchEvent(new Event("change"));
 						}
 					}
 				} else {
-					// Read other settings
 				}
 			}
 
 			// Activate Pan and Zoom
-			return global.SvgPanZoom = SvgPanZoom();
+			global.SvgPanZoom = SvgPanZoom();
+			changefontSize(fontSize);
+			changeStrokeWidth(strokeWidth);			
+			return; 
 			
 		}, function(err) {
 			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use "</pre>"
@@ -469,10 +485,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 				// Für Fahrstraßen gilt: name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ziel
 				// (Außerdem besitzt die Meldung zu Beginn einer Fahrstraße weitere Elemente <Route> usw.
-				if (Name == "system\\Route_SignalS.3ds") {
+				if (Name === "system\\Route_SignalS.3ds") {
 					entry.signalType 	= "FStart";					// Fahrstraße Start
 					continue;
-				} else if (Name == "system\\Route_SignalZ.3ds") {
+				} else if (Name === "system\\Route_SignalZ.3ds") {
 					entry.signalType 	= "FZiel";					// Fahrstraße Ziel
 					continue;
 				} else if (Distanz == 0) {
@@ -525,7 +541,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						
 						nextGleisID		= trackConnections[GleissystemID][currentGleisID].Ende.GleisID;
 						Anschluss		= trackConnections[GleissystemID][currentGleisID].Ende.Anschluss;
-						ParaOderAnti	= (Anschluss == "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+						ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
 						
 					} else {				// look backward
 
@@ -536,7 +552,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 						nextGleisID		= trackConnections[GleissystemID][currentGleisID].Anfang.GleisID;
 						Anschluss		= trackConnections[GleissystemID][currentGleisID].Anfang.Anschluss;
-						ParaOderAnti	= (Anschluss != "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+						ParaOderAnti	= (Anschluss !== "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
 					}
 					
 					Gleis 	= global.GleissystemMap.get(GleissystemID).get(nextGleisID);
@@ -556,7 +572,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 							Meldung 		: entry.Meldung,
 							SignalID		: SignalID,
 							signalType 		:"main",
-							Position 		: (Anschluss == "Anfang" ? Position : Laenge - Position),
+							Position 		: (Anschluss === "Anfang" ? Position : Laenge - Position),
 							ParaOderAnti	: ParaOderAnti,
 						});
 						break;
@@ -618,8 +634,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			for (const Gleis of Kollektor.getElementsByTagName("Gleis")) {
 				const GleissystemID2 = Gleis.getAttribute("gleissystemID");
 				const GleisID2 		 = Gleis.getAttribute("gleisID");
-				
-				if (GleisID != GleisID2) {
+				if (GleisID !== GleisID2) {
 					KollektorTracks[GleissystemID][GleisID].push({GleissystemID : GleissystemID2, GleisID : GleisID2, });
 				}
 			}
@@ -670,7 +685,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	return initProgress(Gleissysteme.length).then(function() {
 		let promise = null;
 		for (const Gleissystem of Gleissysteme) {
-			if (promise == null) {
+			if (promise === null) {
 				promise = process(Gleissystem);
 			} else {
 				promise = promise.then(function() { return process(Gleissystem); });
@@ -950,9 +965,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					svgAppend(svgSignalGroup, {
 						svg_tag				: `use`,
 						//class				: `Signal`,
-						href				: (	  signalType == "FStart" 	? "#SymbolFStart" 
-												: signalType == "FZiel" 	? "#SymbolFZiel"
-												: signalType == "pre" 		? "#SymbolPreSignal" 
+						href				: (	  signalType === "FStart" 	? "#SymbolFStart" 
+												: signalType === "FZiel" 	? "#SymbolFZiel"
+												: signalType === "pre" 		? "#SymbolPreSignal" 
 												: 							  "#SymbolSignal"
 											  ),
 						x					: DeltaX,
@@ -967,13 +982,13 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					// Show text of Signal / Fahrstraße
 					svgAppend(svgSignalGroup, {
 						svg_tag				: `text`,
-						text				: (	  signalType == "FStart"	? "Fs" 
-												: signalType == "FZiel"	 	? "Fz"
-												: signalType == "pre" 		? "S" 
+						text				: (	  signalType === "FStart"	? "Fs" 
+												: signalType === "FZiel"	 	? "Fz"
+												: signalType === "pre" 		? "S" 
 												: 						  	  "S"  
 											  )
 												+ SignalID 
-												+ (signalType == "pre" ? ` ${Distanz.toFixed(0)}m` : ``),
+												+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``),
 						//"dy"				: `${(ParaOderAnti == 0 ? "-2.3" : "1.3em")}`, 	// Shift text if not rotated to the side of the symbol
 						"dy"				: `-2.3`, 										// Shift text if rotated to the side of the symbol
 						class				: `Signal`,
@@ -1196,10 +1211,10 @@ function svgAppend(svg_node, obj) {
 
 	// copy all attributes except the tag and the text
 	for (const [key, value] of Object.entries(obj)) {
-		if (key != "svg_tag" && key != "text") { element.setAttribute(key, value); }
+		if (key !== "svg_tag" && key !== "text") { element.setAttribute(key, value); }
 	}
 
-	if (obj.svg_tag == "text") {
+	if (obj.svg_tag === "text") {
 		const textNode 	= document.createTextNode(obj.text);
 		element.appendChild(textNode);
 	}
@@ -1221,10 +1236,10 @@ function svgAppendTextPath(svg_node, obj) {
 
 	const textPath 	= document.createElementNS(svgNS, "textPath");
 	textPath.setAttribute("class", obj.class);
-	if (obj["text-anchor"] == "middle") {
+	if (obj["text-anchor"] === "middle") {
 		textPath.setAttribute("startOffset", "50%");
 	}
-	else if (obj["text-anchor"] == "end") {
+	else if (obj["text-anchor"] === "end") {
 		textPath.setAttribute("startOffset", "90%"); // How to put the text exactly to the end?
 	}
 	textPath.setAttributeNS(xlinkNS, "xlink:href", obj.href);
@@ -1335,7 +1350,10 @@ Lade... <progress id="progress" class="hidden" max="100"></progress>
 	color: var(--body-text-color);
 }
 
-#controls input[type="number"]#number, input[type="number"]#sizePNG {
+#controls input[type="number"]#number, 
+input[type="number"]#sizePNG,
+input[type="number"]#exportSize,
+input[type="number"]#jpgQuality {
 	width:60px;
 }
 
@@ -1359,10 +1377,10 @@ Lade... <progress id="progress" class="hidden" max="100"></progress>
 <h3 id="filename">EEP Gleisplan</h3>
 </header>
 
-<article class="group"> <!-- Buttons -->
-<button id="swap">swap</button> |
-<input type="number" id="sizePNG" value="3000" min="1">
-<button id="savePNG">save PNG</button>
+<article class="group no-select"> <!-- Buttons -->
+<button id="swap">swap</button>
+<!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
+<button id="savePNG">Export PNG/JPG/SVG</button>
 <br/>
 <button id="zoom-in">+</button>
 <button id="zoom-out">-</button>
@@ -1372,13 +1390,13 @@ Lade... <progress id="progress" class="hidden" max="100"></progress>
 	<button id="enable">enable controls</button>
 	<button id="disable">disable controls</button>
 -->
-<br />
+<br>
 Linie <input type="range" min="1" max="100" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
-<br/>
+<br>
 Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
 </article>
 
-<article class="group"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
+<article class="group no-select"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
 <select id="select" >
 	<option value="1">Eisenbahn</option>
 	<option value="2">Strassenbahn</option>
@@ -1403,7 +1421,7 @@ Zentrum des Bereichs: <span id="center_position"> </span><br/>
 Cursor: <span id="cursor_position"> </span>
 </article>
 
-<article class="group"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
+<article class="group no-select"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset class="fieldset">
 	<!-- Firefox keeps the status of the checkbox between page loadsby default. -->
 	<div class="item"><label class="Eisenbahn hidden">
@@ -1866,7 +1884,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	// https://stackoverflow.com/questions/5203407/how-to-detect-if-multiple-keys-are-pressed-at-once-using-javascript
 	window.addEventListener("keydown", function(ev) {
 		//msg('Target: ' + ev.target.nodeName + ' Key: ' + ev.key);
-		if (ev.target.nodeName != "BODY" && ev.target.nodeName != "BUTTON") { return; }
+		if (ev.target.nodeName !== "BODY" && ev.target.nodeName !== "BUTTON") { return; }
 		
 		// Check active keys
 		if ( !( ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "+", "-"].includes(ev.key) )) {
@@ -1874,11 +1892,11 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		}
 
 		// Zoom
-		if 		  (ev.key == '+') {
+		if 		  (ev.key === '+') {
 			panZoom.zoomIn();
 			ev.preventDefault();
 			return false;
-		} else if (ev.key == '-') {
+		} else if (ev.key === '-') {
 			panZoom.zoomOut();
 			ev.preventDefault();
 			return false;
@@ -1889,22 +1907,22 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 											// viewBox (x y width height)
 											// realZoom = min(width/viewBox.width, height/viewBox.height)
 		//const zoom 	= panZoom.getZoom();		// zoom factor
-		if 		  (ev.key == 'ArrowUp') {
+		if 		  (ev.key === 'ArrowUp') {
 			panZoom.panBy({
 				x: 0,
 				y: (global.shiftDown ? +sizes.height / 2 : +5),
 			});
-		} else if (ev.key == 'ArrowDown') {
+		} else if (ev.key === 'ArrowDown') {
 			panZoom.panBy({
 				x: 0,
 				y: (global.shiftDown ? -sizes.height / 2 : -5),
 			});
-		} else if (ev.key == 'ArrowLeft') {
+		} else if (ev.key === 'ArrowLeft') {
 			panZoom.panBy({
 				x: (global.shiftDown ? +sizes.width  / 2 : +5),
 				y: 0,
 			});
-		} else if (ev.key == 'ArrowRight') {
+		} else if (ev.key === 'ArrowRight') {
 			panZoom.panBy({
 				x: (global.shiftDown ? -sizes.width  / 2 : -5),
 				y: 0,
@@ -1972,12 +1990,14 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		msg();
 		ev.preventDefault();
 		changeStrokeWidth(ev.target.value);
+		localStorage.setItem('strokeWidth', ev.target.value);
 	});
 	// Slider fontSize
 	document.getElementById("fontSize").addEventListener("input", function(ev) {
 		msg();
 		ev.preventDefault();
 		changefontSize(ev.target.value);
+		localStorage.setItem('fontSize', ev.target.value);
 	});
 	// Button "enable controls"
 /*
@@ -2000,7 +2020,8 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	document.getElementById("savePNG").addEventListener("click", function(ev) {
 		msg();
 		ev.preventDefault();
-		savePNG();
+		//##savePNG();
+		showExportWindow();		
 	});
 	// Button centerItem
 	document.getElementById("centerItem").addEventListener("click", function(ev) {
@@ -2025,7 +2046,7 @@ function centerItem(_sel, _val) {
 	// Get the element from a set with a specific attribute value
 	function getElement(Set, Attribute, ID) {
 		for (const Element of Set) {
-			if (Element.getAttribute(Attribute) == ID) return Element;
+			if (Element.getAttribute(Attribute) == ID) return Element; // compare string with number
 		}
 	}
 
@@ -2059,10 +2080,9 @@ function centerItem(_sel, _val) {
 
 		centerGleis(Gleis);
 		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-//console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 		return true;
 
-	} else if (sel == "I" || sel == 'S' || sel == 'W') {		// I = Signal/Weiche (Nummern übergreifend über alle Gleissysteme)
+	} else if (sel === "I" || sel === 'S' || sel === 'W') {		// I = Signal/Weiche (Nummern übergreifend über alle Gleissysteme)
 		// Gleis.getAttribute("Key_Id") bzw. Gleis.getAttribute("Meldung").getAttribute("Key_Id")
 		const ID 		= val;
 
@@ -2076,13 +2096,12 @@ function centerItem(_sel, _val) {
 				const GleissystemID = Gleissystem.getAttribute("GleissystemID");
 				const GleisID = Gleis.getAttribute("GleisID");
 				const Key_Id	= Gleis.getAttribute("Key_Id"); 	// Id einer Weiche
-					if (Key_Id == ID) {
-						// Weiche gefunden
-						centerGleis(Gleis);
-						msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-//console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
-						return true;
-					}
+				if (Key_Id == ID) {
+					// Weiche gefunden
+					centerGleis(Gleis);
+					msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+					return true;
+				}
 
 				const Meldungen = Gleis.getElementsByTagName("Meldung");
 				for (const Meldung of Meldungen) {
@@ -2092,7 +2111,6 @@ function centerItem(_sel, _val) {
 						// Signal gefunden
 						centerGleis(Gleis);
 						msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-//console.log(`Gleis ${GleissystemID}-${GleisID} Pos: (${PosX} ${PosY}) Pan: (${panX} ${panY})`)
 						return true;
 					}
 
@@ -2102,7 +2120,7 @@ function centerItem(_sel, _val) {
 		msg(`Signal/Weiche ${ID} existiert nicht`);
 		return false; // Signal nicht gefunden
 
-	} else if (sel == "K") {		// Kontakt
+	} else if (sel === "K") {		// Kontakt
 		//...
 	}
 	return false;
@@ -2178,7 +2196,7 @@ function showArea(t, event) {
 
 // Show element
 function showElement(t, event) {
-	if (!event || event.target.id == "svg") { return; }
+	if (!event || event.target.id === "svg") { return; }
 /*
 console.log("");
 
@@ -2283,22 +2301,22 @@ rangeParent					|g:G1-47:Normal
 rangeParent.parentElement	|g:Eisenbahn:undefined
 */
 	
-	if (event.target.parentElement.classList[0] == "Signal") {			// Signal
+	if (event.target.parentElement.classList[0] === "Signal") {			// Signal
 		const SignalCode 		= event.target.parentElement.id;
 		const GleisCode 		= event.target.parentElement.parentElement.id;
 		showSignalInfo(SignalCode, GleisCode);
 		
-	} else if (event.target.parentElement.classList[0] == "Kontakt") {	// Kontakt
+	} else if (event.target.parentElement.classList[0] === "Kontakt") {	// Kontakt
 		const KontaktCode		= event.target.parentElement.id;
 		const GleisCode 		= event.target.parentElement.parentElement.id;
 		showKontaktInfo(KontaktCode, GleisCode);
 		
-	} else if (event.target.classList[0] == "WeicheText") { 			// Weiche
+	} else if (event.target.classList[0] === "WeicheText") { 			// Weiche
 		const WeicheCode 		= event.target.id;
 		const GleisCode 		= event.target.parentElement.id;
 		showWeicheInfo(WeicheCode, GleisCode);
 
-	} else if (event.target.parentElement.id != "general") {			// Gleis (hopefully)
+	} else if (event.target.parentElement.id !== "general") {			// Gleis (hopefully)
 		const GleisCode 		= event.target.parentElement.id;
 		showGleisInfo(GleisCode);
 	}
@@ -2381,6 +2399,7 @@ function toggleMarker(visible) {
 }
 
 // save current svg area to png
+/*
 function savePNG() {
 	// Get file name without extension
 	const filename = document.getElementById("filename").textContent;
@@ -2463,7 +2482,7 @@ function savePNG() {
 	// Load img
 	img.src = url;
 }
-
+*/
 function msg(text) {
 	if (text) {
 		document.getElementById("message").textContent = text; // Text only therefore we do not need to use innerHTML
@@ -2512,6 +2531,11 @@ function changefontSize(value) {
 }
 </script>
 
+<link rel="stylesheet" href="toolwindow/toolwindow.css"/>
+<style> /* mod default CSS */
+</style>
+<script type="text/javascript" src="toolwindow/toolwindow.js"></script>
+
 <aside id="infoPopup"> <!-- Info Window -->
 <script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 <script type="text/javascript">  // Show information in Info Box
@@ -2543,24 +2567,20 @@ function showGleisInfo(GleisCode) {
 	// Kurzform in msg-Element
 	msg(`${GleissystemText[GleissystemID]} ${GleisID}, ${Gleisart[clsid]}, Stil ${stil}, ${gsbname}`);
 
-	// Pattern to center graphic on object
-	// <a href="javascript:global.SvgPanZoom.centerItem(1,1);">Gleis 1</a>
-	// <a href="javascript:global.SvgPanZoom.centerItem('S',6);">Signal 5</a> 
-
 	// Ausführlich im Info Popup
-	const br = "<br />", _i = "</i>", _a = "</a>";
+	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
 		code: GleisCode,
 		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
 		content: 
 			`Position (Anfang): `
-				+ `(<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});return false;">${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m${_a})`
-			+ br + `Typ: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
-			+ (GleisData != 0 ? br + GleisDataText[GleisData] : '')
-			+ br + `Stil: ${stil}`
-			+ (gsbname != null ? br + `Datei: ${gsbname}` : "")
-			+ br + `Länge: ${Laenge.toFixed(0)}m`
-			+ br + `Höhe: ${PosZ.toFixed(2)}m`
+				+ `(<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});return false;">${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m<\/a>)`
+			+ `<br>Typ: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
+			+ (GleisData != 0 ? `<br>${GleisDataText[GleisData]}` : '')
+			+ `<br>Stil: ${stil}`
+			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
+			+ `<br>Länge: ${Laenge.toFixed(0)}m`
+			+ `<br>Höhe: ${PosZ.toFixed(2)}m`
 	});
 }
 
@@ -2587,20 +2607,19 @@ function showWeicheInfo(WeicheCode, GleisCode) {
 	msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 
 	// Ausführlich im Info Popup
-	const br = "<br />", _i = "</i>", _a = "</a>";
 	showInfoWindow({
 		code: WeicheCode,
 		title: `Weiche ${WeicheID}`,
 		content: 
 			`<i>Position: `
-				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});">${GleissystemText[GleissystemID]} ${GleisID}${_a}`
-				+ `${_i}`
-			+ br + `Gleisart: ${Gleisart[clsid]}`
-			+ (GleisData   != 0 ? br + GleisDataText[GleisData] : '')
-			+ br + `Weichenstellung: ${WeichenstellungText[weichenstellung]}`
-			+ br + `Stil: ${stil}`
-			+ (gsbname != null ? br + `Datei: ${gsbname}` : "")
-			+ (KontaktZiel != null && KontaktZiel != 0 ? br + `KontaktZiel: ${KontaktZiel}` : '')
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
+				+ `<\/i>`
+			+ `<br>Gleisart: ${Gleisart[clsid]}`
+			+ (GleisData   != 0 ? `<br>` + GleisDataText[GleisData] : '')
+			+ `<br>Weichenstellung: ${WeichenstellungText[weichenstellung]}`
+			+ `<br>Stil: ${stil}`
+			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
+			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>KontaktZiel: ${KontaktZiel}` : '')
 	});
 }
 
@@ -2625,19 +2644,20 @@ function showSignalInfo(SignalCode, GleisCode) {
 	const Routes		= Meldung.getAttribute('Routes');
 	const RouteList	 	= Meldung.getElementsByTagName("Route");
 
-	const SignalType 	= (File == 'system\\Route_SignalS.3ds' ? 'Fahrstraße Startsignal' 
-							: (File == 'system\\Route_SignalZ.3ds' ? 'Fahrstraße Endesignal'
+	const SignalType 	= (File === 'system\\Route_SignalS.3ds' ? 'Fahrstraße Startsignal' 
+							: (File === 'system\\Route_SignalZ.3ds' ? 'Fahrstraße Endesignal'
 								: 'Signal' ));
 	
 	let SignalstellungText = "";
 	// Die Bedeutung der Signalstellung für Fahrstraßen ist noch unklar
-	if (SignalType == 'Signal') {
+	if (SignalType === 'Signal') {
 		if (Signalstellung[File]) {
 			// 1st try: Get texts (case sensitive file name)
 			SignalstellungText = Signalstellung[File].Pos[Stellung];
 		} else {
 			// 2nd try: Get texts (case insensitive file name)
 			for (const SignalFile in Signalstellung) {
+console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(SignalFile.toLowerCase()) + ' == ' + typeof(File.toLowerCase()));
 				if (SignalFile.toLowerCase() == File.toLowerCase()) {
 					SignalstellungText = Signalstellung[SignalFile].Pos[Stellung];
 				}
@@ -2651,7 +2671,6 @@ function showSignalInfo(SignalCode, GleisCode) {
 		+ (KontaktZiel != null && KontaktZiel != 0 ? `, Kontaktziel=` + KontaktZiel : ""));
 
 	// Ausführlich im Info Popup
-	const br = "<br />", _i = "</i>", _a = "</a>";
 
 	// Fahrstraßen
 	const ColorText = { // <color> modulo 8
@@ -2675,22 +2694,23 @@ function showSignalInfo(SignalCode, GleisCode) {
 			;
 	}
 
+console.log('File != Signalstellung[File].Name' + ' : ' + typeof(File) + ' == ' + typeof(Signalstellung[File].Name));
 	showInfoWindow({
 		code: SignalCode,
 		title: `${SignalType} ${SignalID}`,
 		content:
 			`<i>Position: `
-				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});">${GleissystemText[GleissystemID]} ${GleisID}${_a}`
-				+ `${_i} +${Position.toFixed(1)}m`
-			+ br + `Name: ${File}`
-			+ (Signalstellung[File] && File != Signalstellung[File].Name ? br + `${Signalstellung[File].Name}` : "")
-			+ br + `Stellung ${Stellung}: ${SignalstellungText}`
-			+ (Distanz !=0 ? br + `Distanz zum Hauptsignal: ${Distanz.toFixed(0)}m` : '')
-			+ br + `Gleisrichtung: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung')
-			+ (SignalData != null ? br + `SignalData: ${SignalData}` : '')			
-			+ (KontaktZiel != null && KontaktZiel != 0 ? br + `Kontaktziel: ${KontaktZiel}` : "")
-			+ (Routes ? br + `Fahrstraßen: ${Routes}` : "")
-			+ (RoutesText != '' ? RoutesText : '')
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
+				+ `<\/i> +${Position.toFixed(1)}m`
+			+ `<br>Name: ${File}`
+			+ (Signalstellung[File] && File != Signalstellung[File].Name ? `<br>${Signalstellung[File].Name}` : "")
+			+ `<br>Stellung ${Stellung}: ${SignalstellungText}`
+			+ (Distanz !=0 ? `<br>Distanz zum Hauptsignal: ${Distanz.toFixed(0)}m` : '')
+			+ `<br>Gleisrichtung: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung')
+			+ (SignalData != null ? `<br>SignalData: ${SignalData}` : '')			
+			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>Kontaktziel: ${KontaktZiel}` : "")
+			+ (Routes ? `<br>Fahrstraßen: ${Routes}` : "")
+			+ (RoutesText !== '' ? RoutesText : '')
 		});
 }
 
@@ -2809,7 +2829,6 @@ function showKontaktInfo(KontaktCode, GleisCode) {
 	msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 
 	// Ausführlich im Info Popup
-	const br = "<br />", _i = "</i>", _a = "</a>";
 	showInfoWindow({
 		code: KontaktCode,
 		title: `Kontakt`,
@@ -2817,39 +2836,35 @@ function showKontaktInfo(KontaktCode, GleisCode) {
 			`<i>Position: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});">`
 				+ `${GleissystemText[GleissystemID]} ${GleisID}`
-				+ `${_a}`
-				+ `${_i} +${Position.toFixed(1)}m`
-			+ br + `Kontakttyp ` + SetType + ': ' + KontaktTypText	// KontaktTyp[SetType] mit Modifikation
-			+ ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? br + `SetValue: ` + SetValue : '') 
+				+ `<\/a>`
+				+ `<\/i> +${Position.toFixed(1)}m`
+			+ `<br>Kontakttyp ` + SetType + ': ' + KontaktTypText	// KontaktTyp[SetType] mit Modifikation
+			+ ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? `<br>SetValue: ` + SetValue : '') 
 			+ (KontaktZiel != null && KontaktZiel != 0 	
-				? br + `Kontaktziel ${KontaktZiel}: ` 
+				? `<br>Kontaktziel ${KontaktZiel}: ` 
 					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem('I',${Ziel.ID});">`
 					+ `${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
-					+ `${_a}` 
+					+ `<\/a>` 
 				: '') 
-			+ br + `Auslösung: `		+ (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+			+ `<br>Auslösung: `		+ (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
 											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
 												: ( fireOnPara == 1 && fireOnAnti == 1 ? 'beide Richtungen' : '' )
 											  )
 										  ) 
-			+ (Teiler != 0 			? br + `Zug-Zähler: ` + Teiler : '')
-			+ (ActTeiler != 0 		? br + `Zählerstand: `		+ ActTeiler : '')
-			+ (Delay != 0 			? br + `Zeitverzögerung: `	+ Delay : '')
-			+ (ActDelay != 0 		? br + `Zeit abgelaufen: `	+ ActDelay : '')
-			+ br + `Zugposition: `		 + (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
-			+ (RouteID != 0 		? br + `für Route: ` + RouteID /* + ' ' + Routen[RouteID] */ : '') 
-			+ (TrainID != 0 		? br + `für Zug: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : '') 
-			+ (NameFilter != ''		? br + `Zug-Filter: `		 + NameFilter : '') 
-			+ (TrainNewName != ''	? br + `Neuer Zugname: `	 + TrainNewName : '')
-			+ (zuStellung > 0 && Wechseln == 0 ? br + `zu Stellung: ` + zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) 
-			+ (SignalData != 0 		? br + `SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
+			+ (Teiler != 0 			? `<br>Zug-Zähler: ` + Teiler : '')
+			+ (ActTeiler != 0 		? `<br>Zählerstand: `		+ ActTeiler : '')
+			+ (Delay != 0 			? `<br>Zeitverzögerung: `	+ Delay : '')
+			+ (ActDelay != 0 		? `<br>Zeit abgelaufen: `	+ ActDelay : '')
+			+ `<br>Zugposition: `		+ (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
+			+ (RouteID != 0 		? `<br>für Route: ` + RouteID /* + ' ' + Routen[RouteID] */ : '') 
+			+ (TrainID != 0 		? `<br>für Zug: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : '') 
+			+ (NameFilter !== ''	? `<br>Zug-Filter: `		 + NameFilter : '') 
+			+ (TrainNewName !== ''	? `<br>Neuer Zugname: `	 + TrainNewName : '')
+			+ (zuStellung > 0 && Wechseln == 0 ? `<br>zu Stellung: ` + zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) 
+			+ (SignalData != 0 		? `<br>SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
 	});
 }
 </script>
-<link rel="stylesheet" href="toolwindow/toolwindow.css"/>
-<style> /* mod default CSS */
-</style>
-<script type="text/javascript" src="toolwindow/toolwindow.js"></script>
 <script type="text/javascript"> // toolwindow
 let infoWindow = { count: 0, };
 function showInfoWindow(options) {
@@ -2858,10 +2873,10 @@ function showInfoWindow(options) {
 		code = options.code;
 	}
 	if (!infoWindow[code]) {
-		infoWindow.count = (infoWindow.count+1)%10; 
+		infoWindow.count = (infoWindow.count+1)%10;
 		infoWindow[code] = new ToolWindow({
 			title: options.title, // goes in the title bar,
-			//closeButtonText: "x", // ✖ = &#x2716; 
+			//closeButtonText: "x", // ✖ = &#x2716;
 			top: 120+infoWindow.count*32,
 			left: 120+infoWindow.count*32, // optional: when no top or left are given, this window attempts to center itself
 			width: 225, // starting width
@@ -2903,6 +2918,198 @@ function showInfoWindow(options) {
 		infoWindow[code].fitContent();
 	}
 	infoWindow[code].show();
+}
+</script>
+</aside>
+
+<aside id="exportPopup"> <!-- Export Window -->
+
+<script type="text/javascript"> // toolwindow
+let exportWindow;
+function showExportWindow() {
+	//const content 	= document.getElementById("exportPopupContent").innerHTML; // Wouöld lead to duplicate id attributes. How to address the input elements? 
+	if (!exportWindow) {
+		const l = "/";
+		const content = `
+<p>Wähle die Größe <input type="number" name="exportSize" id="exportSize" value="3000" min="1" autocomplete="off" \/> und das gewünschte Datenformat:<\/p>
+<dl>
+<dt>PNG<\/dt>
+<dd>Verlustfreie Pixel-Graphik in bestimmter Größe; ideal für Computergraphik<\/dd>
+<dt>JPG<\/dt>
+<dd>Verlustbehaftetes Pixel-Bild in bestimmter Größe und Qualität; ideal für Fotos.<br>
+Qualität (%): <input type="number" name="jpgQuality" id="jpgQuality" value="92" min="1" max="100" step="1" autocomplete="off" \/><br><br>
+Nur Bilder in diesem Format können direkt in das <a href="https:\/\/www.eepforum.de\/gallery\/" target="_blank">EEP-Forum<\/a> hochgeladen werden: <i>Die Bilder dürfen die Dateiendungen jpg, jpeg besitzen und sie dürfen maximal 2 MB groß sein. Die minimale Bildgröße beträgt 800×500 Pixel und die maximale Größe beträgt 1920×1080 Pixel.<\/i> Daher wird die Größe der exportieren Graphik nach Möglichkeit auf diese Werte begrenzt.<\/dd>
+<dt>SVG<\/dt>
+<dd>Beliebig zoombare, verlustfreie Vektor-Graphik; ideal zur Weiterverarbeitung in anderen Programmen<br>
+Beim Export wird die gesamte Graphik exportiert auch wenn dann nur der gewählte Ausschnitt gezeigt wird.<\/dd>
+<\/dl>
+				`;
+	
+		exportWindow = new ToolWindow({
+			title: "Gleisplan exportieren",
+			//closeButtonText: "x", // ✖ = &#x2716;
+			//top: 120+exportWindow,
+			//left: 120+exportWindow, // optional: when no top or left are given, this window attempts to center itself
+			width: 225, // starting width
+			height: 200, // starting height
+			minWidth: 100, // don't go thinner than this
+			minHeight: 100, // don't go shorter than this
+			//placement: "inside,auto",
+			//relativeToElement: "#container",
+			animated: true,
+			content: {
+				type: "html",
+				value: content,		
+			},
+			buttons: [
+				{
+					text: "PNG",
+					clicked: function() {
+						exportGraphic("png");
+					}
+				}, {
+					text: "JPG",
+					clicked: function() {
+						exportGraphic("jpg");
+					}
+				}, {
+					text: "SVG",
+					clicked: function() {
+						exportGraphic("svg");
+					}
+				},
+			],
+		});
+	}
+	exportWindow.show();
+}
+
+function exportGraphic(fileType) {
+	// Get target size of the raster graphic (png/jpg)
+	let   exportSize = Number(document.getElementById("exportSize").value);
+	const jpgQuality = Number(document.getElementById("jpgQuality").value) / 100;
+
+	// Read svg
+	const svg 		= document.getElementById("svg");
+	const svgSize 	= svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
+	svg.setAttribute("width", svgSize.width);
+	svg.setAttribute("height", svgSize.height);
+	const svgString	= new XMLSerializer().serializeToString(svg);
+	svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again
+	svg.removeAttribute("height");
+
+	const svgType = "image/svg+xml;charset=utf-8";
+	if (fileType === 'svg') {
+		// Export svg
+		exportData('data:' + svgType + ',' + encodeURIComponent(svgString), fileType);
+		return;
+	}
+
+	// Convert svg to png/jpg and export it
+	const svgBlob 	= new Blob([svgString], {type: svgType});
+	
+	// Create object url
+	const DOMURL = self.URL || self.webkitURL || self;
+	const url = DOMURL.createObjectURL(svgBlob);
+
+	// Create canvas
+	const canvas = document.createElement("canvas");
+
+	// Set size of canvas
+	const ratio = svgSize.width / svgSize.height;
+
+	if (ratio > 1) {
+		if (fileType === 'jpg') {
+			exportSize 	= Math.max(800, Math.min(1920, exportSize));
+			if (exportSize / ratio < 500) {
+				exportSize = 500 * ratio
+			}
+			if (exportSize / ratio > 1080) {
+				exportSize = 1080 * ratio
+			}
+		}
+		canvas.width 	= exportSize;
+		canvas.height 	= exportSize / ratio;
+	} else {
+		if (fileType === 'jpg') {
+			exportSize 	= Math.max(500, Math.min(1080, exportSize));
+			if (exportSize / ratio < 800) {
+				exportSize = 800 * ratio
+			}
+			if (exportSize / ratio > 1920) {
+				exportSize = 1920 * ratio
+			}
+		}
+		canvas.width 	= exportSize / ratio;
+		canvas.height 	= exportSize;
+	}
+
+	const ctx = canvas.getContext("2d");
+
+	// Create image from object url
+	const img = new Image();
+	img.onload = function() {
+		// Paint image into canvas
+		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+		// Convert canvas to png/jpg
+		// Firefox might raise exception NS_ERROR_FAILURE
+		let mimeType;
+		if 		(fileType === 'png') { mimeType = "image/png"; }
+		else if (fileType === 'jpg') { mimeType = "image/jpeg"; }
+		else {
+			msg("Dateityp nicht unterstützt: " + fileType);
+			return false;
+		}
+		
+		let DataURL;
+		try{
+			const encoderOptions = jpgQuality; // jpg quality (default 0.92) 
+			DataURL = canvas.toDataURL(mimeType, encoderOptions);
+		} catch(err){
+			console.log(err);
+			msg("Zu groß: Export nicht möglich (toDataURL()): " + mimeType);
+			return false;
+		}
+		// We might get a very short result which is another type of error
+		if ( DataURL.length <= 6 ) {
+			msg("Zu groß, Export nicht möglich (DataURL.length): " + mimeType)
+			return false;
+		}
+
+		const rc = exportData(DataURL, fileType);
+		// Remove temporary data
+		DOMURL.revokeObjectURL(DataURL);
+		msg(`${fileType}-Graphik in Größe ${canvas.width}x${canvas.height} exportiert`);
+		return rc;
+	};
+	// Load img
+	img.src = url;
+}
+function exportData(dataURL, fileType) {
+	// Get file name without extension
+	const filename = document.getElementById("filename").textContent;
+
+	// Create download link and click it
+	const link = document.createElement("a");
+	link.setAttribute("href", dataURL);
+	link.setAttribute("download", filename + "." + fileType);
+	//link.setAttribute("target", "_blank"); // not required
+	link.style.display = "none";
+	document.body.appendChild(link); // Required for Firefox(?)
+	// Download
+	try{
+		link.click(); // We might get a network error in case of very huge results (but it"s not possible to catch the error)
+	} catch(err){
+		console.log(err);
+		msg("Zu groß: Export nicht möglich (link.click)");
+		document.body.removeChild(link);
+		DOMURL.revokeObjectURL(dataURL);
+		return false;
+	}
+	// Remove temporary data
+	document.body.removeChild(link);
+	return true;
 }
 </script>
 </aside>

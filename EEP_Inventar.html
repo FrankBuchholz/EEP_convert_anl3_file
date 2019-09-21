@@ -21,6 +21,13 @@ https://www.tablefilter.com/data-types.html
 -->
 <script src="https://www.tablefilter.com/tablefilter/tablefilter.js"></script>
 <link href="https://www.tablefilter.com/tablefilter/style/tablefilter.css" rel="stylesheet">
+<style> /* mod tablefilter */
+/* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not relilaby. */
+.rdiv,
+.fltrow {
+	user-select: none; /* no select/copy to clipboard (but it does not work with Ctrl+A) */
+}
+</style>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script type="text/javascript"> // Load file
@@ -1057,7 +1064,6 @@ function toggleElements(selector, visible) {
 }
 
 </script>
-
 <style> /* html page */
 .hidden {
 	display: none;
@@ -1112,6 +1118,15 @@ td {
 	display: inline;			/* but do no add extra line breaks per item */
 }
 
+/* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not relilaby. */
+.no-select,
+fieldset,
+select,
+input,
+label,
+button {
+	user-select: none;
+}
 </style>
 
 </head>
@@ -1133,7 +1148,7 @@ td {
 
 <p><small>Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br />
 Anschließend wird der Inhalt in verschiedenen Tabellen ausgegeben.<br /><br />
-Man kann die Tabellen problemlos mit Copy &amp; Paste in ein Tabellenverarbeitungsprogramm übertragen.<br />
+Man kann die Tabellen (bei Firefox auch mit Strg+A) mit Copy &amp; Paste in ein Tabellenverarbeitungsprogramm übertragen.<br />
 Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.<br />
 </small></p>
 <p><small>Zusätzlich wird die Bibliothek <a href='http://www.tablefilter.com/' target='_blank'>TableFilters</a> verwendet, um interaktive Funktionen zum Filtern in den Tabellen anzubieten.<br />
