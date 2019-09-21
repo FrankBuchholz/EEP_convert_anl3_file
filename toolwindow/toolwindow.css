@@ -55,6 +55,7 @@ Use this as a template for toolwindow styling
 	bottom: 0;
     width: 100%;
 	text-align: right;
+	user-select: none; /* no select/copy to clipboard */
 }
 .dialog button.close {
     color: CaptionText;
@@ -70,13 +71,13 @@ Use this as a template for toolwindow styling
 	height: 32px;
 	width: 32px;
     cursor: pointer;
+	user-select: none; /* no select/copy to clipboard */
 }
 .dialog button.close:hover {
 	background: red;
 }
 .dialog button.hover,
-.dialog button.active
-{
+.dialog button.active {
 	cursor: pointer;
 }
 .dialog .button-bar button {
