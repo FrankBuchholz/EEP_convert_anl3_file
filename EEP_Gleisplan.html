@@ -123,7 +123,10 @@ Das Programm läuft in aktuellen Versionen von Google Chome und Firefox, nicht j
 	margin: 15px;
 }
 </style>
-<script> // Load and process file
+<script type="text/javascript" src="rematrix/rematrix.js"></script> <!-- https://github.com/jlmakes/rematrix -->
+<!-- <script type="text/javascript" src="https://unpkg.com/rematrix"></script> --> <!-- latest version -->
+<!-- <script type="text/javascript" src="https://unpkg.com/rematrix@0.4.1/dist/rematrix.min.js"></script> --> <!-- version 0.4.1 -->
+<script type="text/javascript"> // Load and process file
 
 const global = {}; // Collection of all global variables
 
@@ -339,6 +342,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	// Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
 	global.GleissystemMap 	= new Map();
 	global.MeldungenMap 	= new Map();
+	global.WeichenMap 		= new Map();
 	global.KontakteArray	= [];
 	global.KontaktZiele		= {};
 
@@ -369,14 +373,18 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		const Gleise 			= Gleissystem.getElementsByTagName("Gleis");
 		for (const Gleis of Gleise) {
 			const GleisID 	= Gleis.getAttribute("GleisID");
+			Gleis.GleissystemID = GleissystemID;
 			global.GleissystemMap.get(GleissystemID).set(GleisID, Gleis);
 			
+			// Weichen
+			const WeicheID = Number(Gleis.getAttribute("Key_Id"));
+			global.WeichenMap.set(WeicheID, Gleis);
+
 			// Weichen mit KontaktZiel 
 			const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0];
 			if (KontaktZielEntry) {
 				const KontaktZiel 	= KontaktZielEntry.textContent;
 				if (KontaktZiel != null && KontaktZiel != 0) {
-					const WeicheID = Gleis.getAttribute("Key_Id");
 					global.KontaktZiele[KontaktZiel] = { 
 						Typ				: 'Weiche',
 						ID				: WeicheID,
@@ -388,7 +396,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 			// Collect Meldungen to be able to create individual symbols for Vor- and Hauptsignal
 			for (const Meldung of Gleis.getElementsByTagName("Meldung")) {
-				const SignalID = Meldung.getAttribute("Key_Id");
+				const SignalID = Number(Meldung.getAttribute("Key_Id"));
+				Meldung.GleissystemID = GleissystemID;
+				Meldung.GleisID = GleisID;
 				global.MeldungenMap.set(SignalID, Meldung);
 
 				if (!trackSignals[GleissystemID][GleisID]) {
@@ -750,15 +760,54 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 																	// 16: Zentrale Strecken einer Straßen-T-Kreuzung
 																	// 20: Weichen einer Straßen-T-Kreuzung
 
-				const Laenge	= Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Laenge") / 100;
-				const Kruemmung	= Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Kruemmung") * 100;
-				const PosX		= Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("x") / 100;
+				const Laenge	= +Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Laenge") / 100;
+				const Kruemmung	= +Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Kruemmung") * 100;
+				const PosX		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("x") / 100;
 				const PosY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("y") / 100;
-				const PosZ		= Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("z") / 100;
-				const DirX		= Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[1].getAttribute("x");
+				const PosZ		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("z") / 100;
+				const DirX		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[1].getAttribute("x");
 				const DirY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[1].getAttribute("y");
-				const NorX		= Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[2].getAttribute("x");
+				const DirZ		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[1].getAttribute("z");
+				const NorX		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[2].getAttribute("x");
 				const NorY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[2].getAttribute("y");
+				const NorZ		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[2].getAttribute("z");
+				const BinX		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[3].getAttribute("x");
+				const BinY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[3].getAttribute("y");
+				const BinZ		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[3].getAttribute("z");
+
+				/* 
+				2D transformation matrix		3D transformation matrix	
+				matrix(	a, b, c, d,  x, y) = 	matrix3d( a, b, 0, 0,  c, d, 0, 0,  0, 0, 1, 0,  x, y, 0, 1 ).
+				
+				Rematrix.format
+				[ a, b, 0, 0,
+				  c, d, 0, 0,
+				  0, 0, 1, 0,
+				  x, y, 0, 1  ]
+				  
+				Rematrix.identity
+				[ 1, 0, 0, 0,
+				  0, 1, 0, 0,
+				  0, 0, 1, 0,
+				  0, 0, 0, 1 ]
+				 
+				Rematrix.rotateZ
+				[ cos a, 	sin a,	0, 0,
+				  -sin a, 	cos a, 	0, 0,
+				  0, 		0, 		1, 0,
+				  0, 		0, 		0, 1]
+				
+				Rematrix.translate3d
+				[ 1,  0,  0,  0,
+				  0,  1,  0,  0,
+				  0,  0,  1,  0,
+				  dx, dy, dz, 1 ]
+
+				*/
+				const mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
+				function matrixToString(m) {	// Generate matrix command for svg
+					return `matrix(${m[0]} ${m[1]} ${m[4]} ${m[5]} ${m[12]} ${(m[13])})`;
+				}
 
 				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
 				global.usedArea.min.x = Math.min( global.usedArea.min.x, PosX - Laenge );
@@ -779,7 +828,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 								+ (stil== 100000 || (unsichtbar.includes(parseInt(stil) && GleisData != 16)) ? " " + "unsichtbar" : ""),
 				});
 
-				let Winkel, DeltaX, DeltaY;
+				let Winkel, DeltaX, DeltaY, DeltaZ;
 				if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
 			/*
 			SVG: Gerades Gleis
@@ -792,6 +841,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					Winkel 			= 0;
 					DeltaX			= Laenge;
 					DeltaY			= 0;
+					DeltaZ			= 0;
 
 					svgAppend(svgGleisGroup, {
 						svg_tag				: `path`,
@@ -799,6 +849,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						d 					: `M 0 0 H ${Laenge}`,
 						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
+
+					// Calculate points
+					Gleis.mMid = [
+							mMatrix,
+							Rematrix.translate3d(DeltaX/2, DeltaY, DeltaZ),
+						].reduce(Rematrix.multiply);
 
 				} else { // Kruemmung != 0
 			/*
@@ -832,6 +888,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					const Radius	= 1 / Kruemmung;
 					DeltaX 			= Math.sin(Winkel) * Radius;
 					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+					DeltaZ			= 0;
 
 					svgAppend(svgGleisGroup, {
 						svg_tag				: `path`,
@@ -839,7 +896,40 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
 						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					});
-					
+
+					// Calculate points
+					Gleis.mMid = [
+							mMatrix,
+							Rematrix.translate3d(Math.sin(Winkel/2) * Radius, (1 - Math.cos(Winkel/2)) * Radius, DeltaZ),
+						].reduce(Rematrix.multiply);
+
+				}
+
+				// Calculate points
+				Gleis.mPos = Rematrix.translate(PosX, PosY);
+				Gleis.mEnd = [
+						mMatrix,
+						Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
+					].reduce(Rematrix.multiply);
+
+
+				if (global.__showCircles__) {
+					// Show circle at Point
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `circle`,
+						r					: 2,
+						transform 			: matrixToString(Gleis.mPos),
+					});
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `circle`,
+						r					: 1,
+						transform 			: matrixToString(Gleis.mMid),
+					});
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `circle`,
+						r					: 1,
+						transform 			: matrixToString(Gleis.mEnd),
+					});
 				}
 
 				if (Key_Id) {
@@ -941,6 +1031,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						DeltaX 			= Math.sin(Winkel) * Radius;
 						DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 					}
+					
+					// Calculate points
+					Meldung.mPos = [
+							mMatrix,
+							Rematrix.translate(DeltaX, DeltaY),
+						].reduce(Rematrix.multiply);
 
 					// Group node for Signal
 					const svgSignalGroup = svgAppend(svgGleisGroup, {
@@ -949,18 +1045,15 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						class	: `Signal`,
 					});
 
-					// Show circle at Signal
-					/*
-					svgAppend(svgSignalGroup, {
-						svg_tag				: `circle`,
-						//class				: `Signal`,
-						cx					: DeltaX,
-						cy					: DeltaY,
-						r					: 3,
-						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
-					});
-					*/
-					
+					if (global.__showCircles__) {
+						// Show circle at Point
+						svgAppend(svgSignalGroup, {
+							svg_tag				: `circle`,
+							r					: 2,
+							transform 			: matrixToString(Meldung.mPos),
+						});
+					}
+			
 					// Show symbol for Signal / Fahrstraße
 					svgAppend(svgSignalGroup, {
 						svg_tag				: `use`,
@@ -1008,7 +1101,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					const ParaOderAnti 	= Kontakt.getAttribute("ParaOderAnti"); // Gleisrichtung 1: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 					const fireOnPara  	= Kontakt.getAttribute("fireOnPara"); 	// Kontakt aktiv für Gleisrichtung 1
 					const fireOnAnti  	= Kontakt.getAttribute("fireOnAnti"); 	// Kontakt aktiv für Gleisrichtung 2
-					const KontaktZiel 	= Kontakt.getAttribute('KontaktZiel');
+					const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
 					
 					const KontaktID = global.KontakteArray.length; // arbitrary identfication
 					global.KontakteArray[KontaktID] = Kontakt;
@@ -1018,12 +1111,20 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						Winkel 			= 0;
 						DeltaX			= Position;
 						DeltaY			= 0;
+						DeltaZ			= 0;
 					} else { // Kruemmung != 0
 						Winkel 			= Kruemmung * Position;
 						const Radius 	= 1 / Kruemmung;
 						DeltaX 			= Math.sin(Winkel) * Radius;
 						DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+						DeltaZ			= 0;
 					}
+					
+					// Calculate points
+					Kontakt.mPos = [
+							mMatrix,
+							Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
+						].reduce(Rematrix.multiply);
 
 					// Group node for Kontakt
 					const svgKontaktGroup = svgAppend(svgGleisGroup, {
@@ -1032,17 +1133,14 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						class	: `Kontakt`,
 					});
 
-					// Show circle at Kontakt
-					/*
-					svgAppend(svgKontaktGroup, {
-						svg_tag				: `circle`,
-						//class				: `Kontakt`,
-						cx					: DeltaX,
-						cy					: DeltaY,
-						r					: 3,
-						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
-					});
-					*/
+					if (global.__showCircles__) {
+						// Show circle at Point
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `circle`,
+							r					: 2,
+							transform 			: matrixToString(Kontakt.mPos),
+						});
+					}
 					
 					// Show symbol for Kontakt
 					if (fireOnPara == 1) {
@@ -1112,7 +1210,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	}).then(function() {
 		// Show min/max height
 		const text = (global.usedArea.min.z).toFixed(0) + " .. " + (global.usedArea.max.z).toFixed(0);
-		document.getElementById("height_area").textContent = text;
+		document.getElementById("heightArea").textContent = text;
 	
 		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
 		global.usedArea.min.x = Math.max( global.usedArea.min.x, Area.min.x );
@@ -1415,10 +1513,10 @@ Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSi
 </article>
 
 <article class="group"> <!-- Status line -->
-Min/Max Höhe der Anlage: <span id="height_area"> </span><br/>
-Sichtbarer Bereich: <span id="visible_area"> </span><br/>
-Zentrum des Bereichs: <span id="center_position"> </span><br/>
-Cursor: <span id="cursor_position"> </span>
+Min/Max Höhe der Anlage: <span id="heightArea"> </span><br/>
+Sichtbarer Bereich: <span id="visibleArea"> </span><br/>
+Zentrum des Bereichs: <span id="centerPosition"> </span><br/>
+Cursor: <span id="cursorPosition"> </span>
 </article>
 
 <article class="group no-select"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
@@ -1772,7 +1870,15 @@ text.Hoehe {
 
 </section> <!-- container -->
 
+<!-- local library -->
+<!-- <script type="text/javascript" src="svg-pan-zoom/dist/svg-pan-zoom.js"></script>
+<!-- remote library on GitHub pages -->
 <script type="text/javascript" src="https://ariutta.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+<!-- Not possible: "Cross-Origin Read Blocking (CORB) blocked cross-origin response with MIME type text/plain." 
+See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/ariutta/svg-pan-zoom/master/dist/svg-pan-zoom.js"></script>		-->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/ariutta/svg-pan-zoom/master/dist/svg-pan-zoom.min.js"></script>	-->
+
 <script type="text/javascript"> // svg-pan-zoom
 function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
@@ -1845,7 +1951,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 						showPosition(options.instance, ev);
 					},
 					mouseleave: function(ev) {
-						document.getElementById("cursor_position").textContent = "";
+						document.getElementById("cursorPosition").textContent = "";
 					},
 				};
 				for (const eventName in this.listeners) {
@@ -2038,10 +2144,10 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
 	return { // public interface
 		centerItem: centerItem,
-		centerGleis: centerGleis,
+		centerPosition: centerPosition,
 	}
 
-function centerItem(_sel, _val) {
+function centerItem() {
 
 	// Get the element from a set with a specific attribute value
 	function getElement(Set, Attribute, ID) {
@@ -2051,16 +2157,10 @@ function centerItem(_sel, _val) {
 	}
 
 	// Get input values
-	let sel, val;
-	if (_sel && _val){
-		sel = _sel;
-		val = _val;
-	} else {
-		//const text 	= o.options[o.selectedIndex].text;		// e.g. Eisenbahn
-		const o = document.getElementById("select");
-		sel 	= o.options[o.selectedIndex].value;			// e.g. 1-6, I (statt W, S), K
-		val 	= Number(document.getElementById("number").value);
-	}
+	//const text 	= o.options[o.selectedIndex].text;		// e.g. Eisenbahn
+	const o 	= document.getElementById("select");
+	const sel 	= o.options[o.selectedIndex].value;			// e.g. 1-6, I (statt W, S), K
+	const val 	= Number(document.getElementById("number").value);
 
 	if (sel >= "1" && sel <= "6") { // Gleissystem
 
@@ -2078,7 +2178,7 @@ function centerItem(_sel, _val) {
 			return false;
 		}
 
-		centerGleis(Gleis);
+		centerPosition(Gleis.mMid); // Mitte des Gleises
 		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 		return true;
 
@@ -2086,39 +2186,26 @@ function centerItem(_sel, _val) {
 		// Gleis.getAttribute("Key_Id") bzw. Gleis.getAttribute("Meldung").getAttribute("Key_Id")
 		const ID 		= val;
 
-		// Suche das Signal bzw. die Weiche auf allen Gleisen
-		const Gleissysteme 	= global.sutrackp.getElementsByTagName("Gleissystem");
-		for (const Gleissystem of Gleissysteme) {
+		const Meldung = global.MeldungenMap.get(Number(ID));
+		if (Meldung) {
+			// Signal gefunden
+			centerPosition(Meldung.mPos);
+			msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			return true;
+		}
 
-			const Gleise = Gleissystem.getElementsByTagName("Gleis");
-			for (const Gleis of Gleise) {
+		const Gleis = global.WeichenMap.get(Number(ID));
+		if (Gleis) {
+			// Weiche gefunden
+			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
+			const GleisID = Gleis.getAttribute("GleisID");
+			centerPosition(Gleis.mEnd);
+			msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
+			return true;
+		}
 
-				const GleissystemID = Gleissystem.getAttribute("GleissystemID");
-				const GleisID = Gleis.getAttribute("GleisID");
-				const Key_Id	= Gleis.getAttribute("Key_Id"); 	// Id einer Weiche
-				if (Key_Id == ID) {
-					// Weiche gefunden
-					centerGleis(Gleis);
-					msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-					return true;
-				}
-
-				const Meldungen = Gleis.getElementsByTagName("Meldung");
-				for (const Meldung of Meldungen) {
-
-					const Key_Id	= Meldung.getAttribute("Key_Id"); 	// Id eines Signals
-					if (Key_Id == ID) {
-						// Signal gefunden
-						centerGleis(Gleis);
-						msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-						return true;
-					}
-
-				} // ´Meldungen
-			} // Gleise
-		} // Gleissysteme
 		msg(`Signal/Weiche ${ID} existiert nicht`);
-		return false; // Signal nicht gefunden
+		return false; // Signal/Weiche nicht gefunden
 
 	} else if (sel === "K") {		// Kontakt
 		//...
@@ -2126,16 +2213,13 @@ function centerItem(_sel, _val) {
 	return false;
 }
 
-function centerGleis(Gleis) {
-	const PosX		= Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("x") / 100;
-	const PosY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("y") / 100;
-
+function centerPosition(Position) {
 	const width 	= panZoom.getSizes().width;
 	const height	= panZoom.getSizes().height;
 	const realZoom	= panZoom.getSizes().realZoom;
 
-	const panX 		= width/2	- PosX * realZoom;
-	const panY 		= height/2	- PosY * realZoom;
+	const panX 		= width/2	- Position[12] * realZoom;
+	const panY 		= height/2	- (Position[13]) * realZoom;
 
 	panZoom.pan({x: panX, y: panY});
 }
@@ -2167,7 +2251,7 @@ function showPosition(t, event) {
 
 	/* Show cursor position */
 	const text = "(" + (posX).toFixed(0) + " " + (-posY).toFixed(0) + ")";
-	document.getElementById("cursor_position").textContent = text;
+	document.getElementById("cursorPosition").textContent = text;
 }
 
 // Show coordinates of visible area
@@ -2188,10 +2272,10 @@ function showArea(t, event) {
 	/* Show coordinates of visible area */
 	let text = "("  + (minX).toFixed(0) + " " + (-minY).toFixed(0) + ") .. ("
 					+ (maxX).toFixed(0) + " " + (-maxY).toFixed(0) + ")";
-	document.getElementById("visible_area").textContent = text;
+	document.getElementById("visibleArea").textContent = text;
 	/* Show center position */
 	text = "(" + (centerX).toFixed(0) + " " + (-centerY).toFixed(0) + ")";
-	document.getElementById("center_position").textContent = text;
+	document.getElementById("centerPosition").textContent = text;
 }
 
 // Show element
@@ -2532,9 +2616,15 @@ function changefontSize(value) {
 </script>
 
 <link rel="stylesheet" href="toolwindow/toolwindow.css"/>
+<!-- Not possible, see same issue above -->
+<!-- <link rel="stylesheet" href="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.css"/> -->
+
 <style> /* mod default CSS */
 </style>
 <script type="text/javascript" src="toolwindow/toolwindow.js"></script>
+<!-- Not possible, see same issue above -->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.js"></script> -->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.min.js"></script> -->
 
 <aside id="infoPopup"> <!-- Info Window -->
 <script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
@@ -2573,8 +2663,9 @@ function showGleisInfo(GleisCode) {
 		code: GleisCode,
 		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
 		content: 
-			`Position (Anfang): `
-				+ `(<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});return false;">${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m<\/a>)`
+			`Position Anfang: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[12].toFixed(0)}m, ${Gleis.mPos[13].toFixed(0)}m<\/a>)`
+			+ `<br>Mitte: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[12].toFixed(0)}m, ${Gleis.mMid[13].toFixed(0)}m<\/a>)`
+			+ `<br>Ende: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}])">${Gleis.mEnd[12].toFixed(0)}m, ${Gleis.mEnd[13].toFixed(0)}m<\/a>)`
 			+ `<br>Typ: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
 			+ (GleisData != 0 ? `<br>${GleisDataText[GleisData]}` : '')
 			+ `<br>Stil: ${stil}`
@@ -2612,7 +2703,7 @@ function showWeicheInfo(WeicheCode, GleisCode) {
 		title: `Weiche ${WeicheID}`,
 		content: 
 			`<i>Position: `
-				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}]);">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
 				+ `<\/i>`
 			+ `<br>Gleisart: ${Gleisart[clsid]}`
 			+ (GleisData   != 0 ? `<br>` + GleisDataText[GleisData] : '')
@@ -2624,7 +2715,7 @@ function showWeicheInfo(WeicheCode, GleisCode) {
 }
 
 function showSignalInfo(SignalCode, GleisCode) {
-	const SignalID 			= SignalCode.substring(1)
+	const SignalID 			= Number(SignalCode.substring(1));
 	const GleisTextArray 	= GleisCode.substring(1).split("-");
 	const GleissystemID 	= GleisTextArray[0];
 	const GleisID 			= GleisTextArray[1];
@@ -2694,16 +2785,15 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			;
 	}
 
-console.log('File != Signalstellung[File].Name' + ' : ' + typeof(File) + ' == ' + typeof(Signalstellung[File].Name));
 	showInfoWindow({
 		code: SignalCode,
 		title: `${SignalType} ${SignalID}`,
 		content:
 			`<i>Position: `
-				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
-				+ `<\/i> +${Position.toFixed(1)}m`
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${GleissystemText[GleissystemID]} ${GleisID}`
+				+ ` +${Position.toFixed(1)}m<\/a><\/i>`
 			+ `<br>Name: ${File}`
-			+ (Signalstellung[File] && File != Signalstellung[File].Name ? `<br>${Signalstellung[File].Name}` : "")
+			+ (Signalstellung[File] && File !== Signalstellung[File].Name ? `<br>${Signalstellung[File].Name}` : "")
 			+ `<br>Stellung ${Stellung}: ${SignalstellungText}`
 			+ (Distanz !=0 ? `<br>Distanz zum Hauptsignal: ${Distanz.toFixed(0)}m` : '')
 			+ `<br>Gleisrichtung: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung')
@@ -2724,7 +2814,7 @@ function showKontaktInfo(KontaktCode, GleisCode) {
 	const Kontakt		= global.KontakteArray[KontaktID];
 	const SetType 		= Kontakt.getAttribute('SetType');
 	const SetValue 		= Kontakt.getAttribute('SetValue');
-	const KontaktZiel 	= Kontakt.getAttribute('KontaktZiel');
+	const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
 	const Position		= Kontakt.getAttribute('Position') / 100;
 	const ParaOderAnti 	= Kontakt.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 	const fireOnPara 	= Kontakt.getAttribute('fireOnPara');
@@ -2820,7 +2910,12 @@ function showKontaktInfo(KontaktCode, GleisCode) {
 	const SignalDataStellung = Math.floor(SignalData / 65536);
 	const SignalDataID   	 = SignalData - SignalDataStellung * 65536;
 	
+	let Meldung, Gleis;
 	const Ziel = global.KontaktZiele[KontaktZiel];
+	if (Ziel) {
+		Meldung = global.MeldungenMap.get(Number(Ziel.ID));
+		Gleis = global.WeichenMap.get(Number(Ziel.ID));
+	}
 
 	// Zugverband`
 	//const Zugverband = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
@@ -2834,15 +2929,13 @@ function showKontaktInfo(KontaktCode, GleisCode) {
 		title: `Kontakt`,
 			content:  
 			`<i>Position: `
-				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem(${GleissystemID},${GleisID});">`
-				+ `${GleissystemText[GleissystemID]} ${GleisID}`
-				+ `<\/a>`
-				+ `<\/i> +${Position.toFixed(1)}m`
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kontakt.mPos}]);">`
+				+ `${GleissystemText[GleissystemID]} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
 			+ `<br>Kontakttyp ` + SetType + ': ' + KontaktTypText	// KontaktTyp[SetType] mit Modifikation
 			+ ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? `<br>SetValue: ` + SetValue : '') 
 			+ (KontaktZiel != null && KontaktZiel != 0 	
 				? `<br>Kontaktziel ${KontaktZiel}: ` 
-					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerItem('I',${Ziel.ID});">`
+					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
 					+ `${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
 					+ `<\/a>` 
 				: '') 
