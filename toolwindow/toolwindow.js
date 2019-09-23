@@ -777,7 +777,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }
       },
       _createDialog: function _createDialog() {
-        var _this5 = this;
+        var _self = this;
 
         this._dialog = this._mkDiv("dialog", document.body);
         this._dialog.style.width = this._px(this._options.width);
@@ -785,18 +785,21 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         this._dialog.style.display = 'none';
         this._dialog.style.zIndex = (++zIndex).toString();
         document.addEventListener("click", function () {
-          _this5._raised = false;
+          _self._raised = false;
         });
         if (this._options.escapeCloses) {
           this._dialog.addEventListener("click", function (ev) {
-            return _this5._suppressEvent(ev);
+           if (ev.target.closest(".dialog>.content")) { // Allow normal events on content element
+             return;
+           }
+           return _self._suppressEvent(ev);
           });
           document.addEventListener("keydown", function (ev) {
-            if (!_this5._dialog || !_this5._dialog.parentElement) {
+            if (!_self._dialog || !_self._dialog.parentElement) {
               return;
             }
-            if (_this5._raised && ev.key === "Escape") {
-              _this5.hide();
+            if (_self._raised && ev.key === "Escape") {
+              _self.hide();
             }
           });
         }
