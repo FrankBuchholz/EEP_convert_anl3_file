@@ -4,6 +4,20 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+/*
+ * Pure JavaScript for Draggable and Risizable Dialog Box
+ *
+ * Originally designed by ZulNs, @Gorontalo, Indonesia, 7 June 2017
+ * Modified to be a re-usable component by Davyd McColl, 2019
+ * Extended to allow selecting and copying content by Frank Buchholz, 2019
+ *
+ *
+ * This file is generated. If you'd like to make modifications and contributions,
+ * change files under lib and run:
+ *   npm run autobuild
+ * to regenerate this file as you make changes
+ */
+
 (function () {
   function r(e, n, t) {
     function o(i, f) {
@@ -233,14 +247,6 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
       verticalEdge: verticalEdge
     };
   }, { "./config": 2 }], 4: [function (require, module, exports) {
-    /*
-     * Pure JavaScript for Draggable and Risizable Dialog Box
-     *
-     * Originally designed by ZulNs, @Gorontalo, Indonesia, 7 June 2017
-     * Modified to be a re-usable component by Davyd McColl, 2019
-     * Extended to allow selecting and copying content by Frank Buchholz, 2019
-     */
-
     var _require2 = require("./config"),
         defaultOptions = _require2.defaultOptions,
         alignments = _require2.alignments,
@@ -276,16 +282,14 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
       // TODO: determine auto position?
 
-	  // Calculate minimal width to show all buttons
-	  // CSS: .dialog .button-bar button { min-width: 64px; padding: 0 5px; border: 1px; margin: 5px; }
-	  // The following formula works even if it's too narrow in the beginning.
-	  // The width gets extended as required in fitContent() -> ctx.self.moveTo() later
-      this._minW = Math.max(this._options.minWidth,
-		+ this._options.buttons.length * 64			// min-width: 64px;
-		+ this._options.buttons.length * (2 * 5)	// margin: 5px;
-		- 49	// 'Magic' value works perfectly fine if content of popup is small
-	  );
-	  this._log('#buttons='+this._options.buttons.length+' minWidth='+this._options.minWidth+' _minW='+this._minW);
+      // Calculate minimal width to show all buttons
+      // CSS: .dialog .button-bar button { min-width: 64px; padding: 0 5px; border: 1px; margin: 5px; }
+      // The following formula works even if it's too narrow in the beginning.
+      // The width gets extended as required in fitContent() -> ctx.self.moveTo() later
+      this._minW = Math.max(this._options.minWidth, +this._options.buttons.length * 64 // min-width: 64px;
+      + this._options.buttons.length * (2 * 5) // margin: 5px;
+      - 49); // 'Magic' value works perfectly fine if content of popup is small
+      this._log("#buttons=" + this._options.buttons.length + " minWidth=" + this._options.minWidth + " _minW=" + this._minW);
       this._minH = this._options.minHeight;
       if (this._options.width < this._minW) {
         this._options.width = this._minW;
@@ -313,8 +317,12 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
     }
 
     ToolWindow.prototype = {
-	  _log: function(text){if(window.__debug_toolwindow__)console.log(text);}, // show log if true
-	  
+      _log: function _log(text) {
+        if (window.__debug_toolwindow__) {
+          console.log(text);
+        }
+      },
+
       get title() {
         return this._options.title;
       },
@@ -410,11 +418,11 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }, frameTime);
       },
       refresh: function refresh() {
-        var _self = this;
+        var _this3 = this;
 
         if (this._options.title) {
-		  _self._setTitle(this._options.title);
-		}
+          this._setTitle(this._options.title);
+        }
         if (!this._options.content) {
           this._setText("No content defined");
           return;
@@ -422,13 +430,13 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         switch (this._options.content.type) {
           case "text":
             this._fetchContent(function (result) {
-              return _self._setText(result);
+              return _this3._setText(result);
             });
             break;
           case "html":
           case "text/html":
             this._fetchContent(function (result) {
-              return _self._setHTML(result);
+              return _this3._setHTML(result);
             });
             break;
           case "url":
@@ -514,7 +522,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
       get _isAutoPosition() {
         var placement = (this._options.placement || "").trim().toLowerCase();
-        return !placement || placement.split("|").indexOf("auto") > -1;
+        return !placement || placement.split(/[,|;\s]/).indexOf("auto") > -1;
       },
 
       _positionWith: function _positionWith(el, placements) {
@@ -734,6 +742,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }
         return current + delta;
       },
+
+
       _setTitle: function _setTitle(text) {
         this._dialogTitleText.innerHTML = "";
         if (typeof text !== "string") {
@@ -741,6 +751,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }
         this._dialogTitleText.innerText = text;
       },
+
       _setText: function _setText(text) {
         this._dialogContent.innerHTML = "";
         if (typeof text !== "string") {
@@ -777,7 +788,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }
       },
       _createDialog: function _createDialog() {
-        var _self = this;
+        var _this5 = this;
 
         this._dialog = this._mkDiv("dialog", document.body);
         this._dialog.style.width = this._px(this._options.width);
@@ -785,30 +796,33 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         this._dialog.style.display = 'none';
         this._dialog.style.zIndex = (++zIndex).toString();
         document.addEventListener("click", function () {
-          _self._raised = false;
+          _this5._raised = false;
         });
         if (this._options.escapeCloses) {
           this._dialog.addEventListener("click", function (ev) {
-           if (ev.target.closest(".dialog>.content")) { // Allow normal events on content element
-             return;
-           }
-           return _self._suppressEvent(ev);
-          });
-          document.addEventListener("keydown", function (ev) {
-            if (!_self._dialog || !_self._dialog.parentElement) {
+            if (ev.target.closest(".dialog>.content")) {
+              // Allow normal events on content element
               return;
             }
-            if (_self._raised && ev.key === "Escape") {
-              _self.hide();
+            return _this5._suppressEvent(ev);
+          });
+          document.addEventListener("keydown", function (ev) {
+            if (!_this5._dialog || !_this5._dialog.parentElement) {
+              return;
+            }
+            if (_this5._raised && ev.key === "Escape") {
+              _this5.hide();
             }
           });
         }
       },
       _createTitlebar: function _createTitlebar() {
         this._dialogTitle = this._mkDiv("titlebar", this._dialog);
+
         this._closeButton = this._mkEl("button", "close", this._dialogTitle);
         this._closeButton.innerText = this._options.closeButtonText;
         this._closeButton.addEventListener("click", this.hide.bind(this));
+
         this._dialogTitleText = this._mkEl("span", "", this._dialogTitle);
         this._dialogTitleText.innerText = this._options.title;
       },
@@ -908,7 +922,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }
       },
       _suppressEvent: function _suppressEvent(evt) {
-		if (evt.stopPropagation) {
+        if (evt.stopPropagation) {
           evt.stopPropagation();
         }
         if (evt.preventDefault) {
@@ -918,17 +932,19 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
           return false;
         }
       },
+      _logOnMouseDown: function _logOnMouseDown() {
+        this._log("_onMouseDown: " + (this._isDrag ? " Drag" : "") + (this._isResize ? " resize=" : "") + this._resizeMode + (this._isButton ? " Button" : ""));
+      },
       _onMouseDown: function _onMouseDown(evt) {
         this._raiseDialog();
         evt = evt || window.event;
         if (!evt || !evt.target) {
           return;
         }
-		this._log('_onMouseDown: '+(this._isDrag?' Drag':'')+(this._isResize?' resize=':'')+this._resizeMode+(this._isButton?' Button':''));
-
-		if (!this._resizeMode && evt.target.closest(".dialog>.content")) { // Allow normal events on content element
-			return;
-		}
+        if (!this._resizeMode && evt.target.closest(".dialog>.content")) {
+          // Allow normal events on content element
+          return;
+        }
         var rect = this._getOffset(this._dialog);
         this._maxX = Math.max(document.documentElement["clientWidth"], document.body["scrollWidth"], document.documentElement["scrollWidth"], document.body["offsetWidth"], document.documentElement["offsetWidth"]);
         this._maxY = Math.max(document.documentElement["clientHeight"], document.body["scrollHeight"], document.documentElement["scrollHeight"], document.body["offsetHeight"], document.documentElement["offsetHeight"]);
@@ -946,14 +962,15 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         this._topPos = rect.top;
 
         if (!this._resizeMode && (evt.target === this._dialogTitle || evt.target === this._dialogTitleText)) {
-          this._setCursor('move');
+          this._setCursor("move");
           this._isDrag = true;
-        } else if (this._resizeMode !== '') {
+        } else if (this._resizeMode) {
           this._isResize = true;
         }
         if (this._coverContentDuringMoveAndResize) {
           this._createContentCover();
         }
+        this._logOnMouseDown();
         return this._suppressEvent(evt);
       },
       _createContentCover: function _createContentCover() {
@@ -1145,12 +1162,14 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         }
         this._setDialogContentSizing();
       },
+      _logOnMouseMove: function _logOnMouseMove() {
+        this._log("_onMouseMove: " + (this._isDrag ? " Drag" : "") + (this._isResize ? " resize=" : "") + this._resizeMode + (this._isButton ? " Button" : ""));
+      },
       _onMouseMove: function _onMouseMove(evt) {
         evt = evt || window.event;
         if (!evt || !evt.target) {
           return;
         }
-
         if (this._isDrag) {
           this._doDrag(evt);
         } else if (this._isResize) {
@@ -1188,16 +1207,20 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
             this._resizeMode = '';
           }
         }
-		this._log('_onMouseMove: '+(this._isDrag?' Drag':'')+(this._isResize?' resize=':'')+this._resizeMode+(this._isButton?' Button':''));		
-		if (!this._isDrag && !this._isResize && !this._resizeMode && !this._isButton) { // Allow normal events like 'extend selection' on content element and events on external objects
+        this._logOnMouseMove();
+        if (!this._isDrag && !this._isResize && !this._resizeMode && !this._isButton) {
+          // Allow normal events like 'extend selection' on content element and events on external objects
           return;
         }
         return this._suppressEvent(evt);
       },
+      _logOnMouseUp: function _logOnMouseUp() {
+        this._log("_onMouseUp: " + (this._isDrag ? " Drag" : "") + (this._isResize ? " resize=" : "") + this._resizeMode + (this._isButton ? " Button" : ""));
+      },
       _onMouseUp: function _onMouseUp(evt) {
         evt = evt || window.event;
-		this._log('_onMouseUp: '+(this._isDrag?' Drag':'')+(this._isResize?' resize=':'')+this._resizeMode+(this._isButton?' Button':''));		
-       if (!this._isDrag && !this._isResize && !this._resizeMode && !this._isButton) { // Allow normal events like 'extend selection' on content element and events on external objects
+        if (!this._isDrag && !this._isResize && !this._resizeMode && !this._isButton) {
+          // Allow normal events like 'extend selection' on content element and events on external objects
           return;
         }
         if (this._isDrag) {
@@ -1210,6 +1233,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
         } else if (this._isButton) {
           this._isButton = false;
         }
+        this._logOnMouseUp();
         this._removeContentCover();
         return this._suppressEvent(evt);
       },
