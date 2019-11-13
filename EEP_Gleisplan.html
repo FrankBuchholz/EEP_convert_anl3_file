@@ -813,7 +813,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					// Rematrix.format maps short form [DirX, DirY, NorX, NorY, PosX, PosY] to long form:
 					//  	   0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15  
 					// 		  [DirX, DirY, 0,    0,    NorX, NorY, 0,    0,    0,    0,    0,    0,    PosX, PosY, 0,    1 ]
-					mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    0,    0,    0,    0,    PosX, PosY, PosZ, 1 ]
+					mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 						
 					// Identify CurveType
 					const EEPCurve  = Curve.getElementsByTagName("EEPCurve")[0];
@@ -872,31 +872,45 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 						const Position	= Line.getElementsByTagName("VectorBundle")[0].getElementsByTagName("Position")[0];
 						const Tangent	= Line.getElementsByTagName("VectorBundle")[0].getElementsByTagName("Vector")[0];
-						const UpDirection = Line.getElementsByTagName("Vector")[0];
-						
-						PosX		= PosX + (+Position.getAttribute("x"));
-						PosY		= PosY + (-Position.getAttribute("y"));
-						PosZ		= PosZ + (+Position.getAttribute("z"));
-						
-//if (GleisID == "183") debugger;	
-						// too simply: It might be neccessay to rotate with both angles
-						if (DirX >=0.999 && Math.abs(DirY) <= 0.001 && DirZ == 0) {
+						const UpDirection = Line.getElementsByTagName("Vector")[1];	// Caution: getElementsByTagName searches in all decendant elements!
+																					// Vector[0] is the vector within VectorBundle 
+/* Try this from https://stackoverflow.com/questions/1241525/java-element-getelementsbytagname-restrict-to-top-level/18090152
+function getChildrenByTagName(parent, name) {
+	var nodeList = [];
+	for (var child = parent.firstChild; child != null; child = child.nextSibling) {
+		if (child.nodeType == 1 && name == child.nodeName) {
+			nodeList.push(child);
+		}
+	}
+	return nodeList;
+}
 
-							DirX		= +Tangent.getAttribute("dx");
-							DirY		= -Tangent.getAttribute("dy");
-							DirZ		= +Tangent.getAttribute("dz");
-							
-							NorX		= -Tangent.getAttribute("dy");
-							NorY		= -Tangent.getAttribute("dx");
-							NorZ		= +Tangent.getAttribute("dz");
-							
-							BinX		= +UpDirection.getAttribute("dx");
-							BinY		= -UpDirection.getAttribute("dy");
-							BinZ		= +UpDirection.getAttribute("dz");
-						}
+*/						
+						const PosX2		= +Position.getAttribute("x");
+						const PosY2		= +Position.getAttribute("y");
+						const PosZ2		= +Position.getAttribute("z");
 
-						//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
-						mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
+						const DirX2		= +Tangent.getAttribute("dx");
+						const DirY2		= +Tangent.getAttribute("dy");
+						const DirZ2		= +Tangent.getAttribute("dz");
+							
+						const NorX2		= +Tangent.getAttribute("dy");
+						const NorY2		= +Tangent.getAttribute("dx");
+						const NorZ2		= +Tangent.getAttribute("dz");
+							
+						const BinX2		= +UpDirection.getAttribute("dx");
+						const BinY2		= +UpDirection.getAttribute("dy");
+						const BinZ2		= +UpDirection.getAttribute("dz");
+						
+// Special tracks				
+//if (GleissystemID == "3" && GleisID == "349") debugger;	// <Interval near="99.99991" far="0"/>
+//if (GleissystemID == "3" && GleisID == "354") debugger;	// <Interval near="40.00005" far="0"/>; ist: 1728 -1805 soll: 1730 -1812 diff: +2 -7
+//if (GleissystemID == "3" && GleisID == "362") debugger;	// <Interval near="59.9999" far="0"/>
+
+						mMatrix = [
+									mMatrix,
+									[DirX2, DirY2, DirZ2, 0, NorX2, NorY2, NorZ2, 0, BinX2, BinY2, BinZ2, 0, PosX2, PosY2, PosZ2, 1 ],  // 321 354 ok
+								  ].reduce(Rematrix.multiply);
 
 					} else if (Arc) {
 						CurveType 	= 'Arc';
@@ -906,8 +920,12 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						<Arc><VectorBundle2><Vector>[1]   	.. and normal 	{0, radius, 0}
 						*/
 						const Radius = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0].getAttribute("y");
-						const SweepFlag	= (+Interval.getAttribute("near") < +Interval.getAttribute("far") ? 1 : 0)
+						const SweepFlag	= (+Interval.getAttribute("near") < +Interval.getAttribute("far") ? 1 : 0);
 						Kruemmung = 1 / Radius;
+
+// Special tracks 				
+//if (GleissystemID == "3" && GleisID == "351") debugger;	// <Interval near="26.99997" far="0"/>
+//if (GleissystemID == "3" && GleisID == "360") debugger;	// <Interval near="99.66833" far="0"/>
 
 					} else if (Helix) {
 						CurveType 	= 'Helix';
@@ -915,6 +933,10 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						const VectorPos	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
 						const VectorDir	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0];
 						const VectorNor	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
+
+						const pX		= +VectorPos.getAttribute("x");
+						const pY		= +VectorPos.getAttribute("y");
+						const pZ		= +VectorPos.getAttribute("z");
 
 /*						
 console.log(`Helix ${GleissystemText[GleissystemID]} ${GleisID}`
@@ -936,16 +958,17 @@ console.log(`Helix ${GleissystemText[GleissystemID]} ${GleisID}`
 
 						PosX		= PosX + DirX * Radius;
 						PosY		= PosY + DirY * Radius;
-						Kruemmung = SweepFlag * (1 / Radius); 
+						Kruemmung 	= SweepFlag * (1 / Radius); 
 						
-						// Rotate by 90°
-						//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
 						mMatrix = [
 									[DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ],
+									Rematrix.translate3d(pX, pY, pZ),
 									Rematrix.rotateZ(SweepFlag * 90),
 								  ].reduce(Rematrix.multiply);
-						
-//if (GleisID == "601") debugger;						
+								  
+// Special tracks			
+//if (GleissystemID == "3" && GleisID == "350") debugger;	// <VectorBundle2><Position x="-3.80571" y="0" z="0"/>
+//if (GleissystemID == "3" && GleisID == "601") debugger;						
 
 					} else if (Clothoid) {
 						CurveType 	= 'Clothoid';
@@ -1098,6 +1121,15 @@ console.log(`Cubic ${GleissystemText[GleissystemID]} ${GleisID}`
 					mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 				} /* EEP 15 */
 
+/*
+const Interval = Gleis.getElementsByTagName("Interval")[0];			
+if (0 != +Interval.getAttribute("near")) {
+	console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}`
+	+ ' ' + Interval.getAttribute("near") 
+	+ ' ' + Interval.getAttribute("far") 
+	);
+}					
+*/
 				/* 
 				2D transformation matrix		3D transformation matrix	
 				matrix(	a, b, c, d,  x, y) = 	matrix3d( a, b, 0, 0,  c, d, 0, 0,  0, 0, 1, 0,  x, y, 0, 1 ).
