@@ -776,8 +776,14 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 																	// 16: Zentrale Strecken einer Straßen-T-Kreuzung
 																	// 20: Weichen einer Straßen-T-Kreuzung
 
-				let CurveType, Laenge, Kruemmung, mMatrix
-				let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ
+				let CurveType, Laenge, Kruemmung, mMatrix, svgPath, svgTransform;
+				let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
+
+				// Generate matrix command for svg
+				function matrixToTransform(m) {
+					//     `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					return `matrix(${m[0]} ${m[1]} ${m[4]} ${m[5]} ${m[12]} ${(m[13])})`;
+				}
 
 				if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 				
@@ -914,6 +920,7 @@ function getChildrenByTagName(parent, name) {
 						const BinZ2		= +UpDirection.getAttribute("dz");
 						
 // Special tracks				
+//if (GleissystemID == "1" && GleisID == "468") debugger;	// Anzeige ist geschert
 //if (GleissystemID == "3" && GleisID == "349") debugger;	// <Interval near="99.99991" far="0"/>
 //if (GleissystemID == "3" && GleisID == "354") debugger;	// <Interval near="40.00005" far="0"/>; ist: 1728 -1805 soll: 1730 -1812 diff: +2 -7
 //if (GleissystemID == "3" && GleisID == "362") debugger;	// <Interval near="59.9999" far="0"/>
@@ -990,6 +997,12 @@ console.log(`Helix ${GleissystemText[GleissystemID]} ${GleisID}`
 
 					} else if (Cubic) {
 						CurveType 	= 'Cubic';
+						// How to map vectors a b c d to Bezier points?
+						// https://developer.mozilla.org/de/docs/Web/SVG/Tutorial/Pfade#Bezier-Kurven
+						// http://blogs.sitepointstatic.com/examples/tech/svg-curves/cubic-curve.html
+						// https://pomax.github.io/bezierinfo/
+						// https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-837-computer-graphics-fall-2012/lecture-notes/MIT6_837F12_Lec01.pdf
+						
 /*				
 Pattern A:
 			<Frame>
@@ -1038,35 +1051,69 @@ Cubic	348	x	1546.876	y	-1850.316	z	12.383	Length	84.41560
 Arc 	215	x	1467.390	y	-1822.741	z	12.384
 
 */
-						// In a first try we simply show a Line which connects the start and end points
-						Kruemmung	= 0;	
 						
+						// If Frame.Position = 0 and Cubic.Position <> 0 then treat Cubic.Position as the starting point of the curve
 						const PositionA	= Cubic.getElementsByTagName("Position")[0];
 						const pX		= +PositionA.getAttribute("x");
 						const pY		= +PositionA.getAttribute("y");
 						const pZ		= +PositionA.getAttribute("z");
-						
-						const VectorB	= Cubic.getElementsByTagName("Vector")[0];
-						const VectorC	= Cubic.getElementsByTagName("Vector")[1];
-						const VectorD	= Cubic.getElementsByTagName("Vector")[2];
-
-						//const u = 1; // Position s = [0..length] -> Parameter u = [0..1]
-						const dx = (+VectorB.getAttribute("dx")) // * u^1
-								 + (+VectorC.getAttribute("dx")) // * u^2
-								 + (+VectorD.getAttribute("dx")) ;//* u^3;
-						const dy = (+VectorB.getAttribute("dy")) // * u^1
-								 + (+VectorC.getAttribute("dy")) // * u^2
-								 + (+VectorD.getAttribute("dy")) ;//* u^3;
-						const dz = (+VectorB.getAttribute("dz")) // * u^1
-								 + (+VectorC.getAttribute("dz")) // * u^2
-								 + (+VectorD.getAttribute("dz")) ;//* u^3;
-								 
 						mMatrix = [
 								mMatrix,
 								Rematrix.translate3d(pX, pY, pZ),
-								Rematrix.rotate(Math.atan2(dy, dx) * 180 / Math.PI),
+							].reduce(Rematrix.multiply);
+							
+						// The Cubic element stores the canonical monomial basis values of the bezier curve
+						// The values of Cubic.Vector are relative to the starting point.
+						// Therefore we define aX=0 aY=0 and use the tree Cubic.Vector for bX bY etc.  
+						const VectorA	= [0, 0, 0];
+						const VectorB	= Cubic.getElementsByTagName("Vector")[0];
+						const VectorC	= Cubic.getElementsByTagName("Vector")[1];
+						const VectorD	= Cubic.getElementsByTagName("Vector")[2];
+						
+						const aX		= VectorA[0]; 
+						const aY		= VectorA[1]; 
+						const aZ		= VectorA[2]; 
+						const bX		= +VectorB.getAttribute("dx")
+						const bY		= +VectorB.getAttribute("dy")
+						const bZ		= +VectorB.getAttribute("dz")
+						const cX		= +VectorC.getAttribute("dx")
+						const cY		= +VectorC.getAttribute("dy")
+						const cZ		= +VectorC.getAttribute("dz")
+						const dX		= +VectorD.getAttribute("dx")
+						const dY		= +VectorD.getAttribute("dy")
+						const dZ		= +VectorD.getAttribute("dz")
+
+						/* Construct the bezier curve in svg
+						The svg command "M x0 y0 C x1 y1 x2 y2 x3 y3" uses the coordinates of the bezier points of the cubic curve.  
+						Multipy the vector [aX bX cX dX] respective the vector [aY bY cY dY] with the matrix
+						1  1   1  1
+						0 1/3 2/3 1
+						0  0  1/3 1
+						0  0   0  0
+						to get the coordinates of the bezier points B1 B2 B3 B4.
+						*/
+						svgPath 	 = `M 0 0 C ${bX/3} ${bY/3} ${bX*2/3+cX/3} ${bY*2/3+cY/3} ${bX+cX+dX} ${bY+cY+dY}`;
+						svgTransform = matrixToTransform(mMatrix);
+						
+						// In addition show the Line which connects the start and end point
+						Kruemmung	= 0;	
+						// Calculate the end point
+						const u = 1; // Position s = [0..length] -> Parameter u = [0..1]
+						const deltaX = aX + bX*u + cX*u*u + dX*u*u*u;
+						const deltaY = aY + bY*u + cY*u*u + dY*u*u*u;
+						const deltaZ = aZ + bZ*u + cZ*u*u + dY*u*u*u;
+						Laenge = Math.sqrt(deltaX**2 + deltaY**2 + deltaZ**2); // The Line connects start and end point		
+						mMatrix = [
+								mMatrix,
+								Rematrix.rotate(Math.atan2(deltaY, deltaX) * 180 / Math.PI), // let's ignore deltaZ
 							].reduce(Rematrix.multiply);								 
-/*					
+						// Calculate mid point // Bug: this is the mid of the Line bit not the mid of the Cubic
+						Gleis.mMid = [
+								mMatrix,
+								Rematrix.translate3d(Laenge/2, 0, 0),
+							].reduce(Rematrix.multiply);
+
+/*						
 console.log(`Cubic ${GleissystemText[GleissystemID]} ${GleisID}`
 	+ ' Pos ' + FramePos.getAttribute("x")  + ' ' + FramePos.getAttribute("y")  + ' ' + FramePos.getAttribute("z")  
 	+ ' Dir ' + FrameDir.getAttribute("dx") + ' ' + FrameDir.getAttribute("dy") + ' ' + FrameDir.getAttribute("dz")  
@@ -1076,7 +1123,8 @@ console.log(`Cubic ${GleissystemText[GleissystemID]} ${GleisID}`
 	+ ' vB  ' + VectorB.getAttribute("dx") 	+ ' ' + VectorB.getAttribute("dy") 	+ ' ' + VectorB.getAttribute("dz")
 	+ ' vC  ' + VectorC.getAttribute("dx") 	+ ' ' + VectorC.getAttribute("dy") 	+ ' ' + VectorC.getAttribute("dz")
 	+ ' vD  ' + VectorD.getAttribute("dx") 	+ ' ' + VectorD.getAttribute("dy") 	+ ' ' + VectorD.getAttribute("dz")  
-	+ ' d  '  + dx      					+ ' ' + dy      					+ ' ' + dz
+	+ ' d   ' + deltaX      				+ ' ' + deltaY      				+ ' ' + deltaZ
+	+ ' svg ' + svgPath
 )
 */
 
@@ -1172,19 +1220,14 @@ if (0 != +Interval.getAttribute("near")) {
 				*/
 
 				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
-				global.usedArea.min.x = Math.min( global.usedArea.min.x, PosX - Laenge );
-				global.usedArea.min.y = Math.min( global.usedArea.min.y, PosY - Laenge );
-				global.usedArea.min.z = Math.min( global.usedArea.min.z, PosZ );
+				const posX = 12, posY = 13, posZ = 14;
+				global.usedArea.min.x = Math.min( global.usedArea.min.x, mMatrix[posX] - Laenge );
+				global.usedArea.min.y = Math.min( global.usedArea.min.y, mMatrix[posY] - Laenge );
+				global.usedArea.min.z = Math.min( global.usedArea.min.z, mMatrix[posZ] );
 
-				global.usedArea.max.x = Math.max( global.usedArea.max.x, PosX + Laenge );
-				global.usedArea.max.y = Math.max( global.usedArea.max.y, PosY + Laenge );
-				global.usedArea.max.z = Math.max( global.usedArea.max.z, PosZ );
-
-				// Generate matrix command for svg
-				function matrixToTransform(m) {
-					//     `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
-					return `matrix(${m[0]} ${m[1]} ${m[4]} ${m[5]} ${m[12]} ${(m[13])})`;
-				}
+				global.usedArea.max.x = Math.max( global.usedArea.max.x, mMatrix[posX] + Laenge );
+				global.usedArea.max.y = Math.max( global.usedArea.max.y, mMatrix[posY] + Laenge );
+				global.usedArea.max.z = Math.max( global.usedArea.max.z, mMatrix[posZ] );
 
 				// Group node for Gleis
 				const svgGleisGroup = svgAppend(svgGleissystemGroup, {
@@ -1198,7 +1241,17 @@ if (0 != +Interval.getAttribute("near")) {
 				});
 
 				let Winkel, DeltaX, DeltaY, DeltaZ;
-				if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
+
+				if (svgPath) { // The svg command is already prepared
+				
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `path`,
+						class				: `stil-${stil}`,
+						d 					: svgPath,
+						transform 			: svgTransform
+					});
+						
+				} else if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // Show line. The svg-arc is not shown if the radius is too big
 			/*
 			SVG: Gerades Gleis
 
@@ -1226,7 +1279,7 @@ if (0 != +Interval.getAttribute("near")) {
 							Rematrix.translate3d(DeltaX/2, DeltaY, DeltaZ),
 						].reduce(Rematrix.multiply);
 
-				} else { // Kruemmung != 0
+				} else { // Show arc. Kruemmung != 0
 			/*
 			SVG: Gebogenes Gleis
 
@@ -1279,12 +1332,11 @@ if (0 != +Interval.getAttribute("near")) {
 				// Calculate points
 				Gleis.CurveType = CurveType;
 				Gleis.Laenge = Laenge;
-				Gleis.mPos = mMatrix; //Rematrix.translate(PosX, PosY);
+				Gleis.mPos = mMatrix;
 				Gleis.mEnd = [
 						mMatrix,
 						Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
 					].reduce(Rematrix.multiply);
-
 
 				if (global.__showCircles__) {
 					// Show circle at Point
@@ -1318,22 +1370,24 @@ if (0 != +Interval.getAttribute("near")) {
 						"class"			: `WeicheText`,
 						x				: DeltaX,
 						y				: -DeltaY,
-						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+						transform 		: matrixToTransform(mMatrix)
 										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
 										  + ` scale(1 -1)`,
 					});
 				}
 					
 				// show GleisID in the middle above the track
+				let svgRotate;
 				if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
-					Winkel 			= 0;
 					DeltaX			= Laenge / 2;
 					DeltaY			= 0;
+					svgRotate		= '';
 				} else {
-					Winkel 			= Kruemmung * Laenge / 2;
+					const Winkel 	= Kruemmung * Laenge / 2;
 					const Radius	= 1 / Kruemmung;
 					DeltaX 			= Math.sin(Winkel) * Radius;
 					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+					svgRotate		= ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`;
 				}
 				svgAppend(svgGleisGroup, {
 					svg_tag				: `text`,
@@ -1341,9 +1395,9 @@ if (0 != +Interval.getAttribute("near")) {
 					dy					: `-0.1em`, 	// Shift text up
 					x					: DeltaX,
 					y					: -DeltaY,
-					//transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					transform 			: matrixToTransform(mMatrix)
-										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+					//transform 			: matrixToTransform(Gleis.mMid) // Bug: does not work for Rotator yet
+										  + svgRotate
 										  + ` scale(1 -1)`,
 				});
 				// show Gleisstil in the middle below the track (right-adjusted)
@@ -1354,9 +1408,8 @@ if (0 != +Interval.getAttribute("near")) {
 					"class"				: `Stil`,
 					x					: DeltaX,
 					y					: -DeltaY,
-					//transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					transform 			: matrixToTransform(mMatrix)
-										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + svgRotate
 										  + ` scale(1 -1)`,
 				});					
 				// show Hoehe in the middle below the track (left-adjusted)
@@ -1367,9 +1420,8 @@ if (0 != +Interval.getAttribute("near")) {
 					"class"				: `Hoehe`,
 					x					: DeltaX,
 					y					: -DeltaY,
-					//transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 					transform 			: matrixToTransform(mMatrix)
-										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + svgRotate
 										  + ` scale(1 -1)`,
 				});					
 
@@ -1441,7 +1493,6 @@ if (0 != +Interval.getAttribute("near")) {
 											  ),
 						x					: DeltaX,
 						y					: -DeltaY,
-						//transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 						transform 			: matrixToTransform(mMatrix)
 												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
 												+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
@@ -1464,7 +1515,6 @@ if (0 != +Interval.getAttribute("near")) {
 						class				: `Signal`,
 						x					: DeltaX,
 						y					: -DeltaY,
-						//transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 						transform 			: matrixToTransform(mMatrix)
 												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`	// Rotate text to the side of the symbol
 												+ ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
@@ -1528,7 +1578,6 @@ if (0 != +Interval.getAttribute("near")) {
 							"href"				: `#SymbolKontakt`,
 							x					: DeltaX,
 							y					: -DeltaY,
-							//transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 							transform 			: matrixToTransform(mMatrix)
 													+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
 													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
@@ -1543,7 +1592,6 @@ if (0 != +Interval.getAttribute("near")) {
 							"href"				: `#SymbolKontakt`,
 							x					: DeltaX,
 							y					: -DeltaY,
-							//transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 							transform 			: matrixToTransform(mMatrix)
 													+ ` rotate(${(1-ParaOderAnti) * 180} ${DeltaX} ${DeltaY})`
 													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
@@ -1565,7 +1613,6 @@ if (0 != +Interval.getAttribute("near")) {
 							class				: `Kontakt`,
 							x					: DeltaX,
 							y					: -DeltaY,
-							//transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
 							transform 			: matrixToTransform(mMatrix)
 													+ ` rotate(${ParaOderAnti*180+(1-fireOnPara)*180} ${DeltaX} ${DeltaY})`	// Rotate text to the side of the symbol
 													+ ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
