@@ -188,7 +188,7 @@ function drawClothoidCurve(A, L1, L2, RotationCCW, ClothoidPath){
 
 	const s1 	= L1/a;				// curvature = 1/radius at start point
 	const s2 	= L2/a;				// curvature = 1/radius at end point
-	let   ds 	= Math.abs(s2-s1)/STEPCOUNT;	// delta curvature per step
+	let   ds 	= (s2-s1)/STEPCOUNT;	// delta curvature per step
 	const ads	= a * ds;
 
 	let   s 	= s1;				// curvature at current point
@@ -205,7 +205,7 @@ function drawClothoidCurve(A, L1, L2, RotationCCW, ClothoidPath){
 	moveTo(p);						// Start point
 	
 	let svgBezierPath	= 'M0,0'; 	// Complete path: 'M0,0' + ' C100,100 421,154 406,249' ...
-	while(s < s2){
+	for (let i = 1; i <= STEPCOUNT; i++) {
 		p.x = p2.x;													// Set current point
 		p.y = p2.y;
 
@@ -226,7 +226,7 @@ function drawClothoidCurve(A, L1, L2, RotationCCW, ClothoidPath){
 
 			const f = 4;	// limit 4: max 45°, 3: max 60°
 			if ( Math.abs(w - b1.w) > (Math.PI / f) 					// Draw new curve if difference of the angles exceeds limit  
-				|| s+ds >= s2 )  {										// or to cover the last point
+				|| i == STEPCOUNT )  {										// or to cover the last point
 				// if yes, draw the next part
 				
 				b4 = { x: p2.x,  y: p2.y,  dx: dx,  dy: dy, };			// 4. Bezier point 
@@ -239,7 +239,7 @@ function drawClothoidCurve(A, L1, L2, RotationCCW, ClothoidPath){
 						y: b1.y + (b3.y - b1.y) / f,					// (I guess we should calculate the factor dependant on s or a)
 					}	
 				drawBezierCurve(b1, b2, b3, b4);
-				svgBezierPath += ' C' + b2.x + ' ' + (-b2.y) + ',' + b3.x + ' ' + (-b3.y) + ',' + b4.x + ' ' + (-b4.y);
+				svgBezierPath += ' C' + b2.x + ',' + (-b2.y) + ' ' + b3.x + ',' + (-b3.y) + ' ' + b4.x + ',' + (-b4.y);
 
 				// Prepare next part
 				b1 = { x: b4.x,  y: b4.y,  dx: dx,  dy: dy,  w: w, };	// 1. Bezier point
