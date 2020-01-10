@@ -1337,6 +1337,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			class	: Gleisart[clsid]
 						+ " " + CurveType
 						+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
+						+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
 						// Ein Kamerafahrweg ist immer unsichtbar
 						+ (stil== 100000 || (unsichtbar.includes(parseInt(stil) && GleisData != 16)) ? " " + "unsichtbar" : ""),
 		});
@@ -2277,7 +2278,7 @@ input[type="number"]#jpgQuality {
 <h3 id="filename">EEP Gleisplan</h3>
 </header>
 
-<article class="group no-select"> <!-- Buttons -->
+<article class="group no-select"> <!-- Buttons, line and font size -->
 <button id="swap">swap</button>
 <!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
 <button id="savePNG">Export PNG/JPG/SVG</button>
@@ -2315,7 +2316,249 @@ Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSi
 </article>
 
 <article class="group"> <!-- Status line -->
-Min/Max Höhe der Anlage: <span id="heightArea"> </span><br/>
+Min/Max Höhe der Anlage: <span id="heightArea"></span><br/>
+
+<!-- Begin: Two handled slider for min/max height -->
+<!-- https://leaverou.github.io/multirange/ 
+Features:
+	Only 0.6KB minified & gzipped!
+	No dependencies.
+	Uses feature detection, will not run if two-handle sliders are natively supported.
+	Keyboard accessible
+	Clicking on the track still works
+	Handles can be moved past each other
+	Customizable styling
+	JS properties polyfilled too (input.value, input.valueLow, input.valueHigh)
+API:
+	JS: Use the multirange(element) function to process sliders added to the page later.
+	CSS: Use the --range-color property to change the color of the range. Use the --track-background property for more extensive customization.
+	HTML: Use the multiple attribute to enable the second handle. Use data-drag-middle attribute to enable moving both handles by dragging the middle of the track between them.
+-->
+<style>
+@supports (--css: variables) {
+	input[type="range"].multirange {
+		padding: 0;
+		margin: 0;
+		display: inline-block;
+		vertical-align: top;
+	}
+		input[type="range"].multirange::-moz-range-thumb {
+			transform: scale(1); /* FF doesn't apply position it seems */
+		}
+
+	input[type="range"].multirange.original {
+		position: absolute;
+	}
+
+		input[type="range"].multirange.original::-webkit-slider-thumb {
+			position: relative;
+			z-index: 2;
+		}
+
+		input[type="range"].multirange.original::-moz-range-thumb {
+			z-index: 2;
+		}
+
+		input[type="range"].multirange::-moz-range-track {
+			border-color: transparent; /* needed to switch FF to "styleable" control */
+		}
+
+	input[type="range"].multirange.middle {
+		position: absolute;
+		-webkit-appearance: none;
+	}
+		input[type="range"].multirange.middle:focus {
+			outline: none;
+		}
+		input[type="range"].multirange.middle::-moz-range-thumb {
+			position: relative;
+			z-index: 1;
+			height: 9px;
+			width: var(--size);
+			margin-top: 6px;
+			margin-bottom: 6px;
+			background: transparent;
+			cursor: pointer;
+			border: 0;
+		}
+		input[type="range"].multirange.middle::-webkit-slider-thumb {
+			position: relative;
+			z-index: 1;
+			height: 9px;
+			width: var(--size);
+			margin-top: 6px;
+			margin-bottom: 6px;
+			background: transparent;
+			-webkit-appearance: none;
+			cursor: pointer;
+		}
+
+	input[type="range"].multirange.ghost {
+		position: relative;
+		background: var(--track-background);
+		--track-background: linear-gradient(		/* color of different parts of the bar */
+				to right,							/* direction from left to right */
+				transparent 		var(--low), 	/* no color up to left slider */
+				var(--range-color) 	0,				/* constant color starting with left slider */
+				var(--range-color) 	var(--high), 	/* constant color ending at right slider */
+				transparent 		0				/* no color right of sliders */
+			) no-repeat 0 45% / 100% 20%;			/* "0" "relative vertical position" / "relative width" "relative height=thickness" */
+		--range-color: hsl(190, 80%, 40%);			/* base color of bar hsl(hue, satuation, lightness)*/ 
+	}
+
+		input[type="range"].multirange.ghost::-webkit-slider-runnable-track {
+			background: var(--track-background);
+		}
+
+		input[type="range"].multirange.ghost::-moz-range-track {
+			background: var(--track-background);
+		}
+		input[type="range"].multirange.ghost::-webkit-slider-thumb {
+			position: relative;
+			z-index: 2;
+		}
+		input[type="range"].multirange.ghost::-moz-range-thumb {
+			z-index: 2;
+		}
+
+}
+</style>
+
+<style>
+#heightRange {
+	width: 200px;
+}
+</style>
+<input id="heightRange" type="range" multiple value="0,100" data-drag-middle /><br/>
+
+<script type="text/javascript">
+(function() {
+"use strict";
+
+var supportsMultiple = self.HTMLInputElement && "valueLow" in HTMLInputElement.prototype;
+
+var descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+
+var multirange = function(input) {
+	if (supportsMultiple || input.classList.contains("multirange")) {
+		return;
+	}
+
+	var value = input.getAttribute("value");
+	var values = value === null ? [] : value.split(",");
+	var min = +(input.min || 0);
+	var max = +(input.max || 100);
+	var ghost = input.cloneNode();
+	var dragMiddle = input.getAttribute("data-drag-middle") !== null;
+	var middle = input.cloneNode();
+
+	input.classList.add("multirange", "original");
+	ghost.classList.add("multirange", "ghost");
+
+	input.value = values[0] || min + (max - min) / 2;
+	ghost.value = values[1] || min + (max - min) / 2;
+
+	input.parentNode.insertBefore(ghost, input.nextSibling);
+
+	Object.defineProperty(input, "originalValue", descriptor.get ? descriptor : {
+		// Fuck you Safari >:(
+		get: function() { return this.value; },
+		set: function(v) { this.value = v; }
+	});
+
+	Object.defineProperties(input, {
+		valueLow: {
+			get: function() { return Math.min(this.originalValue, ghost.value); },
+			set: function(v) { this.originalValue = v; update(); },
+			enumerable: true
+		},
+		valueHigh: {
+			get: function() { return Math.max(this.originalValue, ghost.value); },
+			set: function(v) { ghost.value = v; update(); },
+			enumerable: true
+		}
+	});
+
+	if (descriptor.get) {
+		// Again, fuck you Safari
+		Object.defineProperty(input, "value", {
+			get: function() { return this.valueLow + "," + this.valueHigh; },
+			set: function(v) {
+				var values = v.split(",");
+				this.valueLow = values[0];
+				this.valueHigh = values[1];
+				update();
+			},
+			enumerable: true
+		});
+	}
+
+	if (typeof input.oninput === "function") {
+		ghost.oninput = input.oninput.bind(input);
+	}
+
+	function update(mode) {
+		ghost.style.setProperty("--low", 100 * ((input.valueLow - min) / (max - min)) + 1 + "%");
+		ghost.style.setProperty("--high", 100 * ((input.valueHigh - min) / (max - min)) - 1 + "%");
+
+		if (dragMiddle && mode !== 1) {
+			let w = input.valueHigh - input.valueLow;
+			if (w>1) w-=0.5;
+			middle.style.setProperty("--size", (100 * w / (max - min)) + "%");
+			middle.value = min + (input.valueHigh + input.valueLow - 2*min - w)*(max - min)/(2*(max - min - w));
+		}
+		
+		// Process changed values (this should be a callback function instead)
+		changeHeightRange(input.valueLow, input.valueHigh);
+	}
+
+	ghost.addEventListener("mousedown", function passClick(evt) {
+		// Find the horizontal position that was clicked
+		let clickValue = min + (max - min)*evt.offsetX / this.offsetWidth;
+		let middleValue = (input.valueHigh + input.valueLow)/2;
+		if ( (input.valueLow == ghost.value) == (clickValue > middleValue) ) {
+			// Click is closer to input element and we swap thumbs
+			input.value = ghost.value;
+		}
+	});
+	input.addEventListener("input", update);
+	ghost.addEventListener("input", update);
+
+	if (dragMiddle) {
+		middle.classList.add("multirange", "middle");
+		input.parentNode.insertBefore(middle, input.nextSibling);
+		middle.addEventListener("input", function () {
+			let w = input.valueHigh - input.valueLow;
+			let m = min + w/2 + (middle.value - min)*(max - min - w)/(max-min);
+			input.valueLow = m - w/2;
+			input.valueHigh = input.valueLow+w;
+			update(1);
+		});
+	}
+
+	update();
+}
+
+multirange.init = function() {
+	[].slice.call(document.querySelectorAll("input[type=range][multiple]:not(.multirange)")).forEach(multirange);
+}
+
+if (typeof module === "undefined") {
+	self.multirange = multirange;
+	if (document.readyState == "loading") {
+		document.addEventListener("DOMContentLoaded", multirange.init);
+	}
+	else {
+		multirange.init();
+	}
+} else {
+	module.exports = multirange;
+}
+
+})();
+</script>
+<!-- End: Two handled slider for min/max height -->
+
 Sichtbarer Bereich: <span id="visibleArea"> </span><br/>
 Zentrum des Bereichs: <span id="centerPosition"> </span><br/>
 Cursor: <span id="cursorPosition"> </span>
@@ -2586,7 +2829,7 @@ text.Hoehe {
 	stroke-opacity: 0.5;
 }
 
-.hidden {		/* versteckte Elemente */
+.hidden, .hiddenZ {		/* versteckte Elemente */
 	display: none !important;
 }
 	/* ]]> */
@@ -2928,7 +3171,6 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	document.getElementById("savePNG").addEventListener("click", function(ev) {
 		msg();
 		ev.preventDefault();
-		//##savePNG();
 		showExportWindow();		
 	});
 	// Button centerItem
@@ -3285,91 +3527,6 @@ function toggleMarker(visible) {
 	}	
 }
 
-// save current svg area to png
-/*
-function savePNG() {
-	// Get file name without extension
-	const filename = document.getElementById("filename").textContent;
-
-	// Get target size of the raster graphic (png)
-	const sizePNG = Number(document.getElementById("sizePNG").value);
-
-	// Read svg
-	const svg 		= document.getElementById("svg");
-	const svgSize 	= svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
-	svg.setAttribute("width", svgSize.width);
-	svg.setAttribute("height", svgSize.height);
-	const svgString	= new XMLSerializer().serializeToString(svg);
-	svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again
-	svg.removeAttribute("height");
-	const svgBlob 	= new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
-
-	// Create object url
-	const DOMURL = self.URL || self.webkitURL || self;
-	const url = DOMURL.createObjectURL(svgBlob);
-
-	// Create canvas
-	const canvas = document.createElement("canvas");
-
-	// Set size of canvas
-	const ratio = svgSize.width / svgSize.height;
-	if (ratio > 1) {
-		canvas.width 	= sizePNG;
-		canvas.height 	= sizePNG / ratio;
-	} else {
-		canvas.width 	= sizePNG / ratio;
-		canvas.height 	= sizePNG;
-	}
-
-	const ctx = canvas.getContext("2d");
-
-	// Create image from object url
-	const img = new Image();
-	img.onload = function() {
-		// Paint image into canvas
-		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-		// Convert canvas to png
-		// Firefox might raise exception NS_ERROR_FAILURE
-		let png;
-		try{
-			png = canvas.toDataURL("image/png");
-		} catch(err){
-			console.log(err);
-			msg("Zu groß: PNG-Export nicht möglich (toDataURL)");
-			return;
-		}
-		// We might get a very short result which is another type of error
-		if ( png.length <= 6 ) {
-			msg("Zu groß, PNG-Export nicht möglich (png.length)")
-			return;
-		}
-
-		// Create download link and click it
-		const link = document.createElement("a");
-		link.setAttribute("href", png);
-		link.setAttribute("download", filename + ".png");
-		link.setAttribute("target", "_blank");
-		link.style.display = "none";
-		document.body.appendChild(link);
-		// Download
-		try{
-			link.click(); // We might get a network error in case of very huge results (but it"s not possible to catch the error)
-		} catch(err){
-			console.log(err);
-			msg("Zu groß: PNG-Export nicht möglich (link.click)");
-			document.body.removeChild(link);
-			DOMURL.revokeObjectURL(png);
-			return;
-		}
-		// Remove temporary data
-		document.body.removeChild(link);
-		DOMURL.revokeObjectURL(png);
-	};
-	// Load img
-	img.src = url;
-}
-*/
 function msg(text) {
 	if (text) {
 		document.getElementById("message").textContent = text; // Text only therefore we do not need to use innerHTML
@@ -3416,6 +3573,37 @@ function changefontSize(value) {
 			--normal-font-size: ${4 * factor}px;
 		}`;
 }
+
+function changeHeightRange(valueLow, valueHigh) {
+	// skip call during initialization
+	if (!global.usedArea) {
+		return;
+	}
+
+	// localStorage.setItem('heightRange', valueLow + ','+ valueHigh);
+
+	// Show min/max height
+	const delta = ( global.usedArea.max.z - global.usedArea.min.z) / 100; // valueLow, valueHigh run from 0 to 100
+	const minZ = global.usedArea.min.z + delta * valueLow;
+	const maxZ = global.usedArea.min.z + delta * valueHigh;
+	document.getElementById("heightArea").textContent = minZ.toFixed(1) + " .. " + maxZ.toFixed(1);
+	
+	// Adjust svg group elements
+	const svgElem = document.getElementById("svg");
+	for (const groupElem of svgElem.getElementsByTagName("g")) {
+		for (const className of groupElem.classList){
+			if (className.substring(0,7) == "height=") {  // Example: "height=123"
+				const height = +className.substring(7);
+				if (height < minZ || height > maxZ) {
+					groupElem.classList.add("hiddenZ");
+				} else {
+					groupElem.classList.remove("hiddenZ");
+				}
+			}
+		}
+	}
+}
+
 </script>
 
 <link rel="stylesheet" href="toolwindow/toolwindow.css"/>
@@ -3821,7 +4009,7 @@ function showInfoWindow(options) {
 <script type="text/javascript"> // toolwindow
 let exportWindow;
 function showExportWindow() {
-	//const content 	= document.getElementById("exportPopupContent").innerHTML; // Wouöld lead to duplicate id attributes. How to address the input elements? 
+	//const content 	= document.getElementById("exportPopupContent").innerHTML; // Would lead to duplicate id attributes. How to address the input elements? 
 	if (!exportWindow) {
 		const l = "/";
 		const content = `
