@@ -506,8 +506,14 @@ mit
 
 		fillTable(thead, tbody, [
 			
-		{ th : `Weiche`,			td : WeicheID },
-		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
+		{ th : `Weiche`,			td : 
+				  `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${WeicheID});">`
+				+ WeicheID
+				+ `<\/a>`, html : true, },
+		{ th : `Gleissystem Gleis`,	td : 
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ `<\/a>`, html : true, },
 		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
 		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
 		{ th : `Kontaktziel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
@@ -614,8 +620,14 @@ mit
 
 		fillTable(thead, tbody, [
 
-		{ th : `Signal`,			td : SignalID, },
-		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID, },
+		{ th : `Signal`,			td : 
+				  `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${SignalID});">`
+				+ SignalID
+				+ `<\/a>`, html : true, },
+		{ th : `Gleissystem Gleis`,	td : 
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ `<\/a>`, html : true, },		
 		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0), },
 		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0), },
 		{ th : `Position (m)`,		td : Position.toFixed(0), },
@@ -771,7 +783,10 @@ mit
 					? `${KontaktZiel}: ${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
 					: '')
 		},
-		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
+		{ th : `Gleissystem Gleis`,	td : 
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ `<\/a>`, html : true, },		
 		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
 		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
 		{ th : `Position (m)`,		td : Position.toFixed(0) },	// Position
@@ -829,7 +844,10 @@ mit
 		fillTable(thead, tbody, [
 
 		{ th : `Zugverband`,				td : ZugID },
-		{ th : `Gleissystem Gleis`,			td : `${GleissystemText[GleissystemID]} ${GleisID}` },
+		{ th : `Gleissystem Gleis`,	td : 
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ `<\/a>`, html : true, },		
 		{ th : `x (m)`,						td : Gleis.PosX.toFixed(0) },
 		{ th : `y (m)`,						td : Gleis.PosY.toFixed(0) },
 		{ th : `Position (m)`,				td : Position.toFixed(0) },
@@ -1167,6 +1185,8 @@ Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.<br
 Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators' target='_blank'>4.-Filter-operators</a> beschrieben.
 </small></p>
 
+<p>Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers den <a href="EEP_Gleisplan.html" target="_blank">Gleisplan</a> für die gleiche EEP-Anlage-Datei öffnet, dann kann man über die Links von Gleisen den Gleisplan auf das gewählte Objekt positionieren.</p>
+
 <p><small>(c) Frank Buchholz, 2019</small></p>
 </div> <!-- fileselector -->
 
@@ -1190,6 +1210,32 @@ Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://gi
 </div>
 
 </div> <!-- container -->
+
+<script type="text/javascript"> // Broadcast Channel 
+// https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
+
+// Initialization: Connection to a broadcast channel
+const EEPchannel = new BroadcastChannel('EEP');
+
+// Example of a simple event handler that only
+// logs the event to the console
+EEPchannel.onmessage = function(ev) {
+	console.log(ev); 
+}
+
+function postGleisMessage(GleissystemID, GleisID) {
+	EEPchannel.postMessage({GleissystemID: GleissystemID, GleisID: GleisID});
+}
+
+function postIDMessage(ID) {
+	EEPchannel.postMessage({ID: ID});
+}
+
+// Disconnect the channel
+//EEPchannel.close();
+
+</script>
+
 
 </body>
 </html>

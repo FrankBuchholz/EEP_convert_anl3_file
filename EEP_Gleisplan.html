@@ -96,6 +96,7 @@ Auswahl der anzuzeigenden Gleissysteme<br/>
 Auswahl der anzuzeigenden Informationen (GleisID, Gleisstil, Höhe, Signale, Kontakte)<br/>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br/>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
+Die Positionierung ist auch über das <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm möglich!<br/>
 Einstellung der Linien- und Textbreite<br/>
 Auswahl der Gleise mit minimalem und maximalen Höhenfilter
 </small></p>
@@ -3186,6 +3187,85 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		const target = ev.target;
 		localStorage.setItem(`checkbox_${target.name}`, target.checked);
 	});
+
+// Broadcast Channel to receive messages from EEP_Inventar.html
+// https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
+
+// // Initialization: Connection to a broadcast channel
+EEPchannel = new BroadcastChannel('EEP');
+
+// Event handler
+EEPchannel.onmessage = function(ev) {
+
+	// Get the element from a set with a specific attribute value
+	function getElement(Set, Attribute, ID) {
+		for (const Element of Set) {
+			if (Element.getAttribute(Attribute) == ID) return Element; // compare string with number
+		}
+	}
+
+	const GleissystemID = ev.data.GleissystemID;
+	const GleisID		= ev.data.GleisID;
+	const ID			= ev.data.ID;	// Signal oder Weiche
+	
+	if (GleissystemID && GleisID) {
+
+		const Gleissystem	= getElement(global.sutrackp.getElementsByTagName("Gleissystem"), "GleissystemID", GleissystemID);
+		if (!Gleissystem) {
+			msg(`Gleissystem ${GleissystemID} existiert nicht`);
+			return false;
+		}
+
+		const Gleis 		= getElement(Gleissystem.getElementsByTagName("Gleis"), "GleisID", GleisID);
+		if (!Gleis) {
+			msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
+			return false;
+		}
+
+		centerPosition(Gleis.mMid); // Mitte des Gleises
+		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+
+		const GleisCode = 'G' + GleissystemID + '-' + GleisID;
+		showGleisInfo(GleisCode);
+		return true;
+
+	} else if (ID) {
+	
+		const Meldung = global.MeldungenMap.get(Number(ID));
+		if (Meldung) {
+			// Signal gefunden
+			centerPosition(Meldung.mPos);
+			msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			
+			const SignalCode = 'S' + ID;
+			const GleisCode = 'G' + Meldung.GleissystemID + '-' + Meldung.GleisID;
+			showSignalInfo(SignalCode, GleisCode);
+			return true;
+		}
+
+		const Gleis = global.WeichenMap.get(Number(ID));
+		if (Gleis) {
+			// Weiche gefunden
+			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
+			const GleisID = Gleis.getAttribute("GleisID");
+			centerPosition(Gleis.mEnd);
+			msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
+			
+			const WeicheCode = 'S' + ID;
+			const GleisCode = 'G' + Gleis.GleissystemID + '-' + GleisID;
+			showWeicheInfo(WeicheCode, GleisCode);
+			return true;
+		}
+	
+	} else {
+		console.log(ev); 
+	}
+};
+
+// Disconnect the channel
+//EEPchannel.close();
+
+// End: Broadcast Channel 
 
 	return { // public interface
 		centerItem: centerItem,
