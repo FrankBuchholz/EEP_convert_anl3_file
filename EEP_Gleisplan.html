@@ -96,7 +96,8 @@ Auswahl der anzuzeigenden Gleissysteme<br/>
 Auswahl der anzuzeigenden Informationen (GleisID, Gleisstil, Höhe, Signale, Kontakte)<br/>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br/>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
-Einstellung der Linien- und Textbreite
+Einstellung der Linien- und Textbreite<br/>
+Auswahl der Gleise mit minimalem und maximalen Höhenfilter
 </small></p>
 
 <p><small><strong>Referenzen / verwandte Programme</strong><br/>
@@ -3768,10 +3769,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		const Target 	= Route.getAttribute('Target');
 		const Color 	= Route.getAttribute('Color');
 		
-		RoutesText += br
-			+ 'Zielsignal: ' 	+ Target
-			+ ', ' + '<span style="color:' + ColorText[Color%8].color + ';">Farbe: ' + Color + ' ' + ColorText[Color%8].name + '</span>'
-			;
+		RoutesText += `<br>Zielsignal: ${Target}, <span style="color:${ColorText[Color%8].color};">Farbe: ${Color} ${ColorText[Color%8].name}`+'</span>';
 	}
 
 	showInfoWindow({
@@ -3821,6 +3819,7 @@ function showKontaktInfo(KontaktCode, GleisCode) {
 	const Wechseln 		= Kontakt.getAttribute('Wechseln');
 	const VolDist 		= Kontakt.getAttribute('VolDist');
 	const SignalData 	= Kontakt.getAttribute('SignalData');
+	const LuaFn 		= Kontakt.getAttribute('LuaFn');
 	
 	// Kontakttyp (SetType)
 	// Achtung: Bei der Anzeige werden die Variablne v, x, t ersetzt
@@ -3944,6 +3943,7 @@ function showKontaktInfo(KontaktCode, GleisCode) {
 			+ (TrainNewName !== ''	? `<br>Neuer Zugname: `	 + TrainNewName : '')
 			+ (zuStellung > 0 && Wechseln == 0 ? `<br>zu Stellung: ` + zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) 
 			+ (SignalData != 0 		? `<br>SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
+			+ (LuaFn !== ''			? `<br>LuaFn: `		 + LuaFn : '') 
 	});
 }
 </script>

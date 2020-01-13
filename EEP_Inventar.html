@@ -158,20 +158,12 @@ function process_node(sutrackp) {
 	div = e(null, 'div' );
 	div.classList.add('Intro');
 	
+	let EEPversion;
 	const Version = sutrackp.getElementsByTagName('Version')[0];
-	if (Version) {
-		const EEPversion = Version.getAttribute('EEP');
-		if (EEPversion && EEPversion >= 16) {
-		e(div, 'p',
-				`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
-				`
-			);	
-			return;
-		}
-	}
-
 	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Tiefe = 607 m
 	if (Version) {
+		EEPversion = Version.getAttribute('EEP');
+
 		e(div, 'p',
 			`EEP Version = ${Version.getAttribute('EEP')},
 			 Anzahl Objekte = ${Version.getAttribute('No3DMs')},
@@ -290,19 +282,45 @@ mit
 			const GleisID = Gleis.getAttribute('GleisID');
 			GleisMap.get(GleissystemID).set(GleisID, Gleis);
 
-			const Laenge	= Gleis.getElementsByTagName('Charakteristik')[0].getAttribute('Laenge') / 100;
-			const PosX		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-			const PosY		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
-			const PosZ		= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('z') / 100;
+			let Laenge;
+			
+			if (EEPversion && EEPversion >= 16) { /* EEP 16 */
+				
+				const Frame		= Gleis.getElementsByTagName("Frame")[0];
+				const FramePos	= Frame.getElementsByTagName("Position")[0];
+				const Interval 	= Gleis.getElementsByTagName("Interval")[0];
+				const near 		= +Interval.getAttribute("near");
+				const far 		= +Interval.getAttribute("far");
+			
+				Laenge	= Math.abs( far - near );			
+
+				// Depending on CurveType some adjustments might be required!
+				Gleis.PosX		= +FramePos.getAttribute("x");
+				Gleis.PosY		= -FramePos.getAttribute("y");
+				Gleis.PosZ		= +FramePos.getAttribute("z");
+				
+			} else {  /* EEP 15 */
+
+				const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
+				const Dreibein	= Gleis.getElementsByTagName("Dreibein")[0];
+				const FramePos	= Dreibein.getElementsByTagName("Vektor")[0];
+
+				Laenge = +Charakteristik.getAttribute("Laenge") / 100;
+				
+				Gleis.PosX		= +FramePos.getAttribute("x") / 100;
+				Gleis.PosY		= -FramePos.getAttribute("y") / 100;
+				Gleis.PosZ		= +FramePos.getAttribute("z") / 100;
+
+			} /* EEP 15 */
 
 			// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
-			usedArea.min.x = Math.min( usedArea.min.x, PosX - Laenge );
-			usedArea.min.y = Math.min( usedArea.min.y, PosY - Laenge );
-			usedArea.min.z = Math.min( usedArea.min.z, PosZ );
+			usedArea.min.x = Math.min( usedArea.min.x, Gleis.PosX - Laenge );
+			usedArea.min.y = Math.min( usedArea.min.y, Gleis.PosY - Laenge );
+			usedArea.min.z = Math.min( usedArea.min.z, Gleis.PosZ );
 
-			usedArea.max.x = Math.max( usedArea.max.x, PosX + Laenge );
-			usedArea.max.y = Math.max( usedArea.max.y, PosY + Laenge );
-			usedArea.max.z = Math.max( usedArea.max.z, PosZ );
+			usedArea.max.x = Math.max( usedArea.max.x, Gleis.PosX + Laenge );
+			usedArea.max.y = Math.max( usedArea.max.y, Gleis.PosY + Laenge );
+			usedArea.max.z = Math.max( usedArea.max.z, Gleis.PosZ );
 
 			// Weichen
 			const WeicheID	= Gleis.getAttribute('Key_Id');
@@ -458,7 +476,7 @@ mit
 		`Verwendeter Bereich: (${(usedArea.min.x).toFixed(0)} m, ${(usedArea.min.y).toFixed(0)} m) .. (${(usedArea.max.x).toFixed(0)} m, ${(usedArea.max.y).toFixed(0)} m)`
 	);
 	e(div, 'p',
-		`Min./max Höhe: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) }m`
+		`Min./max Höhe: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) } m`
 	);
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -478,8 +496,6 @@ mit
 		const GleisID 		= Weiche.GleisID;
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
 		const Name			= Gleis.getAttribute('gsbname');
-		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
 		const GleisData		= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche
 		const clsid			= Gleis.getAttribute('clsid');
@@ -492,8 +508,8 @@ mit
 			
 		{ th : `Weiche`,			td : WeicheID },
 		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
-		{ th : `x (m)`,				td : PosX.toFixed(0) },
-		{ th : `y (m)`,				td : PosY.toFixed(0) },
+		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
+		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
 		{ th : `Kontaktziel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
 		{ th : `Gleisart`,			td : Gleisart[clsid] },
 		{ th : `Weichenstellung`,	td : weichenstellung + ' ' + WeichenstellungText[weichenstellung] },
@@ -540,8 +556,6 @@ mit
 		const GleissystemID	= Signal.GleissystemID;
 		const GleisID 		= Signal.GleisID;
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
-		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Signal.Meldung.getAttribute('Position') / 100;
 		const Stellung		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('stellung');
 		const Count			= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('Count');
@@ -602,8 +616,8 @@ mit
 
 		{ th : `Signal`,			td : SignalID, },
 		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID, },
-		{ th : `x (m)`,				td : PosX.toFixed(0), },
-		{ th : `y (m)`,				td : PosY.toFixed(0), },
+		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0), },
+		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0), },
 		{ th : `Position (m)`,		td : Position.toFixed(0), },
 		{ th : `Distanz zum Hauptsignal (m)`,	td : (Distanz !=0 ? Distanz.toFixed(0) : ''), },
 		{ th : `Gleisrichtung`,		td : ParaOderAnti, },
@@ -648,8 +662,6 @@ mit
 		const GleissystemID	= Kontakt.GleissystemID;
 		const GleisID 		= Kontakt.GleisID;
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
-		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Kontakt.Kontakt.getAttribute('Position') / 100;
 		const ParaOderAnti 	= Kontakt.Kontakt.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 		const fireOnPara 	= Kontakt.Kontakt.getAttribute('fireOnPara');
@@ -667,6 +679,7 @@ mit
 		const Wechseln 		= Kontakt.Kontakt.getAttribute('Wechseln');
 		const VolDist 		= Kontakt.Kontakt.getAttribute('VolDist');
 		const SignalData 	= Kontakt.Kontakt.getAttribute('SignalData');
+		const LuaFn		 	= Kontakt.Kontakt.getAttribute('LuaFn');
 	
 		// Kontakttyp (SetType)
 		// Achtung: Bei der Anzeige werden die Variablne v, x, t ersetzt
@@ -759,8 +772,8 @@ mit
 					: '')
 		},
 		{ th : `Gleissystem Gleis`,	td : GleissystemText[GleissystemID] + ' ' + GleisID },
-		{ th : `x (m)`,				td : PosX.toFixed(0) },
-		{ th : `y (m)`,				td : PosY.toFixed(0) },
+		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
+		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
 		{ th : `Position (m)`,		td : Position.toFixed(0) },	// Position
 		{ th : `Auslösung`,			
 			td : ( fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
@@ -780,6 +793,7 @@ mit
 		{ th : `Neuer Zugname`,		td : TrainNewName },
 		{ th : `zu Stellung`,		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) },
 		{ th : `SignalData`,		td : (SignalData != 0 ? `ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') },
+		{ th : `LuaFn`,				td : LuaFn },
 
 		]) }) 
 		
@@ -804,8 +818,6 @@ mit
 		const GleissystemID	= Zugverband.Gleisort.getAttribute('gleissystemID');
 		const GleisID 		= Zugverband.Gleisort.getAttribute('gleisID');
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
-		const PosX			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('x') / 100;
-		const PosY			= Gleis.getElementsByTagName('Dreibein')[0].getElementsByTagName('Vektor')[0].getAttribute('y') / 100;
 		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
 		const ausrichtung 	= Zugverband.Gleisort.getAttribute('ausrichtung');
 		const RouteID 		= Zugverband.Zugverband.getAttribute('Route');
@@ -818,8 +830,8 @@ mit
 
 		{ th : `Zugverband`,				td : ZugID },
 		{ th : `Gleissystem Gleis`,			td : `${GleissystemText[GleissystemID]} ${GleisID}` },
-		{ th : `x (m)`,						td : PosX.toFixed(0) },
-		{ th : `y (m)`,						td : PosY.toFixed(0) },
+		{ th : `x (m)`,						td : Gleis.PosX.toFixed(0) },
+		{ th : `y (m)`,						td : Gleis.PosY.toFixed(0) },
 		{ th : `Position (m)`,				td : Position.toFixed(0) },
 		{ th : `Ausrichtung`,				td : (ausrichtung == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') },
 		{ th : `Name`,						td : Name },
