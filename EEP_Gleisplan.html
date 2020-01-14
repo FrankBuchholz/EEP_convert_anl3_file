@@ -3192,7 +3192,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 // https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
 
 // // Initialization: Connection to a broadcast channel
-EEPchannel = new BroadcastChannel('EEP');
+const EEPchannel = new BroadcastChannel('EEP');
 
 // Event handler
 EEPchannel.onmessage = function(ev) {
@@ -3204,11 +3204,45 @@ EEPchannel.onmessage = function(ev) {
 		}
 	}
 
-	const GleissystemID = ev.data.GleissystemID;
-	const GleisID		= ev.data.GleisID;
-	const ID			= ev.data.ID;	// Signal oder Weiche
+	const GleissystemID = '' + ev.data.GleissystemID;	// Gleis
+	const GleisID		= '' + ev.data.GleisID;
 	
-	if (GleissystemID && GleisID) {
+	const ID			= ev.data.ID;				// Signal oder Weiche
+	const KontaktID		= ev.data.KontaktID;		// Kontakt
+
+	if (ID) {	// Signal oder Weiche
+	
+		const Meldung = global.MeldungenMap.get(Number(ID));
+		if (Meldung) {
+			// Signal gefunden
+			centerPosition(Meldung.mPos);
+			msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			
+			showSignalInfo(ID, GleissystemID, GleisID);
+			return true;
+		}
+
+		const Gleis = global.WeichenMap.get(Number(ID));
+		if (Gleis) {
+			// Weiche gefunden
+			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
+			const GleisID = Gleis.getAttribute("GleisID");
+			centerPosition(Gleis.mEnd);
+			msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
+			
+			showWeicheInfo(ID, GleissystemID, GleisID);
+			return true;
+		}
+
+	} else if (KontaktID) {	// Kontakt
+
+		const Kontakt = global.KontakteArray[KontaktID];
+		centerPosition(Kontakt.mPos);
+
+		showKontaktInfo(KontaktID, GleissystemID, GleisID);
+		return true;
+
+	} else if (GleissystemID && GleisID) {	// Gleis
 
 		const Gleissystem	= getElement(global.sutrackp.getElementsByTagName("Gleissystem"), "GleissystemID", GleissystemID);
 		if (!Gleissystem) {
@@ -3225,37 +3259,8 @@ EEPchannel.onmessage = function(ev) {
 		centerPosition(Gleis.mMid); // Mitte des Gleises
 		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 
-		const GleisCode = 'G' + GleissystemID + '-' + GleisID;
-		showGleisInfo(GleisCode);
+		showGleisInfo(GleissystemID, GleisID);
 		return true;
-
-	} else if (ID) {
-	
-		const Meldung = global.MeldungenMap.get(Number(ID));
-		if (Meldung) {
-			// Signal gefunden
-			centerPosition(Meldung.mPos);
-			msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
-			
-			const SignalCode = 'S' + ID;
-			const GleisCode = 'G' + Meldung.GleissystemID + '-' + Meldung.GleisID;
-			showSignalInfo(SignalCode, GleisCode);
-			return true;
-		}
-
-		const Gleis = global.WeichenMap.get(Number(ID));
-		if (Gleis) {
-			// Weiche gefunden
-			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
-			const GleisID = Gleis.getAttribute("GleisID");
-			centerPosition(Gleis.mEnd);
-			msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
-			
-			const WeicheCode = 'S' + ID;
-			const GleisCode = 'G' + Gleis.GleissystemID + '-' + GleisID;
-			showWeicheInfo(WeicheCode, GleisCode);
-			return true;
-		}
 	
 	} else {
 		console.log(ev); 
@@ -3513,22 +3518,44 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 	
 	if (event.target.parentElement.classList[0] === "Signal") {			// Signal
 		const SignalCode 		= event.target.parentElement.id;
+		const SignalID 			= Number(SignalCode.substring(1));
+
 		const GleisCode 		= event.target.parentElement.parentElement.id;
-		showSignalInfo(SignalCode, GleisCode);
+		const GleisTextArray 	= GleisCode.substring(1).split("-");
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
+
+		showSignalInfo(SignalID, GleissystemID, GleisID);
 		
 	} else if (event.target.parentElement.classList[0] === "Kontakt") {	// Kontakt
 		const KontaktCode		= event.target.parentElement.id;
+		const KontaktID 		= KontaktCode.substring(1);
+
 		const GleisCode 		= event.target.parentElement.parentElement.id;
-		showKontaktInfo(KontaktCode, GleisCode);
+		const GleisTextArray 	= GleisCode.substring(1).split("-");
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
+	
+		showKontaktInfo(KontaktID, GleissystemID, GleisID);
 		
 	} else if (event.target.classList[0] === "WeicheText") { 			// Weiche
 		const WeicheCode 		= event.target.id;
+		const WeicheID 			= WeicheCode.substring(1)
+
 		const GleisCode 		= event.target.parentElement.id;
-		showWeicheInfo(WeicheCode, GleisCode);
+		const GleisTextArray 	= GleisCode.substring(1).split("-");
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
+
+		showWeicheInfo(WeicheID, GleissystemID, GleisID);
 
 	} else if (event.target.parentElement.id !== "general") {			// Gleis (hopefully)
 		const GleisCode 		= event.target.parentElement.id;
-		showGleisInfo(GleisCode);
+		const GleisTextArray 	= GleisCode.substring(1).split("-");
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
+
+		showGleisInfo(GleissystemID, GleisID);
 	}
 }
 
@@ -3701,11 +3728,7 @@ function changeHeightRange(valueLow, valueHigh) {
 <aside id="infoPopup"> <!-- Info Window -->
 <script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 <script type="text/javascript">  // Show information in Info Box
-function showGleisInfo(GleisCode) {
-	const GleisTextArray 	= GleisCode.substring(1).split("-");
-	const GleissystemID 	= GleisTextArray[0];
-	const GleisID 			= GleisTextArray[1];
-
+function showGleisInfo(GleissystemID, GleisID) {
 	const Gleissystem = global.GleissystemMap.get(GleissystemID);
 	if (!Gleissystem){ return; }
 	
@@ -3729,7 +3752,7 @@ function showGleisInfo(GleisCode) {
 	
 	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
-		code: GleisCode,
+		code: 'G' + GleissystemID + '-' + GleisID,
 		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
 		content: 
 			`Position Anfang: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[posX].toFixed(0)}m, ${-Gleis.mPos[posY].toFixed(0)}m<\/a>)`
@@ -3745,12 +3768,7 @@ function showGleisInfo(GleisCode) {
 	});
 }
 
-function showWeicheInfo(WeicheCode, GleisCode) {
-	const WeicheID 			= WeicheCode.substring(1)
-	const GleisTextArray 	= GleisCode.substring(1).split("-");
-	const GleissystemID 	= GleisTextArray[0];
-	const GleisID 			= GleisTextArray[1];
-
+function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	const Gleis 	= global.GleissystemMap.get(GleissystemID).get(GleisID);
 	const clsid 	= Gleis.getAttribute("clsid");		// Gleisart
 	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
@@ -3769,7 +3787,7 @@ function showWeicheInfo(WeicheCode, GleisCode) {
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: WeicheCode,
+		code: 'W' + WeicheID,
 		title: `Weiche ${WeicheID}`,
 		content: 
 			`<i>Position: `
@@ -3784,12 +3802,7 @@ function showWeicheInfo(WeicheCode, GleisCode) {
 	});
 }
 
-function showSignalInfo(SignalCode, GleisCode) {
-	const SignalID 			= Number(SignalCode.substring(1));
-	const GleisTextArray 	= GleisCode.substring(1).split("-");
-	const GleissystemID 	= GleisTextArray[0];
-	const GleisID 			= GleisTextArray[1];
-
+function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const Meldung 		= global.MeldungenMap.get(SignalID);
 	const File 			= Meldung.getAttribute("name");		// Dateiname
 	const Position		= Meldung.getAttribute('Position') / 100;
@@ -3853,7 +3866,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 	}
 
 	showInfoWindow({
-		code: SignalCode,
+		code: 'S' + SignalID,
 		title: `${SignalType} ${SignalID}`,
 		content:
 			`<i>Position: `
@@ -3871,12 +3884,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		});
 }
 
-function showKontaktInfo(KontaktCode, GleisCode) {
-	const KontaktID 		= KontaktCode.substring(1);
-	const GleisTextArray 	= GleisCode.substring(1).split("-");
-	const GleissystemID 	= GleisTextArray[0];
-	const GleisID 			= GleisTextArray[1];
-
+function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 //<Kontakt Position="2186.82" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="6" LastOfs="2213.881" ConnectF="2" ConnectR="2" VolDist="28" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" SignalData="0" KontaktZiel="1" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
 	const Kontakt		= global.KontakteArray[KontaktID];
 	const SetType 		= Kontakt.getAttribute('SetType');
@@ -3993,7 +4001,7 @@ function showKontaktInfo(KontaktCode, GleisCode) {
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: KontaktCode,
+		code: 'K' + KontaktID,
 		title: `Kontakt`,
 			content:  
 			`<i>Position: `
