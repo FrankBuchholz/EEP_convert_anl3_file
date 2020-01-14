@@ -392,6 +392,7 @@ mit
 					GleisID			: GleisID,
 
 					Kontakt 		: Kontakt,
+					KontaktID		: Kontakte.length,	 // arbitrary identfication
 				});
 			}
 			
@@ -506,14 +507,18 @@ mit
 
 		fillTable(thead, tbody, [
 			
-		{ th : `Weiche`,			td : 
-				  `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${WeicheID});">`
+		{ th : `Weiche`,
+			td : 
+				  `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${WeicheID},${GleissystemID},${GleisID});">`
 				+ WeicheID
-				+ `<\/a>`, html : true, },
-		{ th : `Gleissystem Gleis`,	td : 
+				+ `<\/a>`, 
+			html : true, },
+		{ th : `Gleissystem Gleis`,	
+			td : 
 				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
 				+ GleissystemText[GleissystemID] + ' ' + GleisID
-				+ `<\/a>`, html : true, },
+				+ `<\/a>`, 
+			html : true, },
 		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
 		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
 		{ th : `Kontaktziel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
@@ -620,14 +625,18 @@ mit
 
 		fillTable(thead, tbody, [
 
-		{ th : `Signal`,			td : 
-				  `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${SignalID});">`
+		{ th : `Signal`,			
+			td : 
+				  `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${SignalID},${GleissystemID},${GleisID});">`
 				+ SignalID
-				+ `<\/a>`, html : true, },
-		{ th : `Gleissystem Gleis`,	td : 
+				+ `<\/a>`, 
+			html : true, },
+		{ th : `Gleissystem Gleis`,	
+			td : 
 				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
 				+ GleissystemText[GleissystemID] + ' ' + GleisID
-				+ `<\/a>`, html : true, },		
+				+ `<\/a>`, 
+			html : true, },		
 		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0), },
 		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0), },
 		{ th : `Position (m)`,		td : Position.toFixed(0), },
@@ -667,6 +676,7 @@ mit
 	
 		Kontakte.sort(orderByID).forEach(Kontakt => {  // no ID, therfore no sort
 
+		const KontaktID		= Kontakt.KontaktID;
 		// const SetType 		= Kontakt.ID;
 		const SetType 		= Kontakt.Kontakt.getAttribute('SetType');
 		const SetValue 		= Kontakt.Kontakt.getAttribute('SetValue');
@@ -775,18 +785,28 @@ mit
 
 		fillTable(thead, tbody, [
 	
-		{ th : `SetType`,			td : SetType },
-		{ th : `Kontaktyp`,			td : KontaktTypText },	// KontaktTyp[SetType] mit Modifikation
+		{ th : `SetType`,			td :  SetType, },
+		{ th : `Kontaktyp`,			td : KontaktTypText, },		// KontaktTyp[SetType] mit Modifikation
 		{ th : `SetValue`,			td : ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? SetValue : '') },
-		{ th : `Kontaktziel`,		
+		{ th : `Kontaktziel`,
 			td : (KontaktZiel != null && KontaktZiel != 0 	
-					? `${KontaktZiel}: ${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
-					: '')
+				? 	  `${KontaktZiel}: ${Ziel.Typ} ` 
+					+ `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${Ziel.ID},${Ziel.GleissystemID},${Ziel.GleisID});">`
+					+ Ziel.ID
+					+ `<\/a>`
+					+ ` auf ` 
+					+ `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${Ziel.GleissystemID},${Ziel.GleisID});">`
+					+ GleissystemText[Ziel.GleissystemID] + ' ' + Ziel.GleisID
+					+ `<\/a>`
+				: 	''), 
+			html : true,
 		},
-		{ th : `Gleissystem Gleis`,	td : 
-				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+		{ th : `Gleissystem Gleis`,	
+			td :  `<a href="javascript:void(0);" onclick="javascript:postKontaktMessage(${KontaktID},${GleissystemID},${GleisID});">`
 				+ GleissystemText[GleissystemID] + ' ' + GleisID
-				+ `<\/a>`, html : true, },		
+				+ `<\/a>`, 
+			html : true, 
+		},		
 		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
 		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
 		{ th : `Position (m)`,		td : Position.toFixed(0) },	// Position
@@ -1223,12 +1243,27 @@ EEPchannel.onmessage = function(ev) {
 	console.log(ev); 
 }
 
-function postGleisMessage(GleissystemID, GleisID) {
-	EEPchannel.postMessage({GleissystemID: GleissystemID, GleisID: GleisID});
+function postGleisMessage(GleissystemID, GleisID) {					// Gleis
+	EEPchannel.postMessage({
+		GleissystemID: GleissystemID, 
+		GleisID: GleisID,
+	});
 }
 
-function postIDMessage(ID) {
-	EEPchannel.postMessage({ID: ID});
+function postIDMessage(ID, GleissystemID, GleisID) {				// Signal oder Weiche
+	EEPchannel.postMessage({
+		ID: 			ID,
+		GleissystemID: 	GleissystemID, 
+		GleisID: 		GleisID, 
+	});
+}
+
+function postKontaktMessage(KontaktID, GleissystemID, GleisID) {	// Kontakt
+	EEPchannel.postMessage({
+		KontaktID: 		KontaktID, 
+		GleissystemID: 	GleissystemID, 
+		GleisID: 		GleisID, 
+	});
 }
 
 // Disconnect the channel
