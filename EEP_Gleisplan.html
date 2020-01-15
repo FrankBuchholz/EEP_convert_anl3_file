@@ -79,11 +79,14 @@ kbd {
 </article>
 
 <article>
-<p><small><strong>Mausfunktionen</strong><br/>
-Verschieben: Klick+Halten+Bewegen<br/>
-An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
-Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br/>
-Details anzeigen: Klick auf Gleis, Symbol oder Text (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet)</small></p>
+<p><small><strong>Mausfunktionen</strong><br>
+Verschieben: Klick+Halten+Bewegen<br>
+An der Stelle des Cursors hineinzoomen: Doppelklick<br>
+Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br>
+Details anzeigen: Klick auf Gleis, Symbol oder Text<br>
+<span class="li">wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet</span>
+<span class="li">wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt</span>
+</small></p>
 
 <p><small><strong>Tastaturfunktionen</strong><br/>
 <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
@@ -123,6 +126,11 @@ Das Programm läuft in aktuellen Versionen von Google Chome und Firefox, nicht j
 <style> /* Selection screen */
 #fileselector {
 	margin: 15px;
+}
+#fileselector span.li {
+	display: list-item;
+	padding-top: 0.2em;
+	margin-left: 2em;
 }
 </style>
 <script type="text/javascript" src="rematrix/rematrix.js"></script> <!-- https://github.com/jlmakes/rematrix -->
@@ -1824,7 +1832,7 @@ console.log("Kontakt auf Cubic"
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
 					// text				:  `→${KontaktZiel} ${ParaOderAnti}${fireOnPara}${fireOnAnti}`,
-					text				:  `→${Ziel.Typ.substr(0, 1)}${Ziel.ID}`, // → = &rarr; = &#8594;   ⭢ = &#2B62
+					text				:  (Ziel ? `→${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `→?${KontaktZiel}`), // → = &rarr; = &#8594;   ⭢ = &#2B62
 					//"dy"				: `${(ParaOderAnti == 0 ? "-2.3" : "1.3em")}`, 	// Shift text if not rotated to the side of the symbol
 					"dy"				: `-2.3`, 										// Shift text if rotated to the side of the symbol
 					class				: `Kontakt`,
@@ -3357,15 +3365,25 @@ function centerPosition(Position) {
 
 }
 
-global.shiftDown = false;
+global.shiftDown 	= false;
+global.strgDown 	= false;
+global.altDown 		= false;
 document.addEventListener('keydown', function(event){
-    if(event.keyCode === 16 || event.charCode === 16){
+    if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = true;
+    } else if	(event.keyCode === 17 || event.charCode === 17){
+        global.strgDown = true;
+    } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = true;
     }
 });
 document.addEventListener('keyup', function(event){
-    if(event.keyCode === 16 || event.charCode === 16){
+    if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = false;
+    } else if	(event.keyCode === 17 || event.charCode === 17){
+        global.strgDown = false;
+    } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = false;
     }
 });
 
@@ -3728,6 +3746,22 @@ function changeHeightRange(valueLow, valueHigh) {
 <aside id="infoPopup"> <!-- Info Window -->
 <script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 <script type="text/javascript">  // Show information in Info Box
+function objectToHTML(object) {
+	let s = '';
+	
+	if (global.altDown) {							// only if alt-key is pressed
+		s = object.outerHTML;						// get HTML representation of object
+		s = s.replace(/</g,"&lt;");					// escapeing of < is required
+		s = s.replace(/>(?![a-zA-Z0-9])/g,"&gt;<br>");	// escapeing of > is optional but allows adding line breaks (unless followed by Pos, Dir, Nor or Bin)
+		s = s.replace(/\t/g," ");					// replace tabs
+		s = s.replace(/\s{2,}/g, ' ');				// replace duplicate spaces
+		s = s.replace(/(\r\n|\n|\r)/g,"");			// remove line breaks
+		s = '<br><br><code>' + s + '</code>';		// <br> at the end allows easy copy & paste
+	}
+
+	return s;
+}
+
 function showGleisInfo(GleissystemID, GleisID) {
 	const Gleissystem = global.GleissystemMap.get(GleissystemID);
 	if (!Gleissystem){ return; }
@@ -3765,6 +3799,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ `<br>Länge: ${Gleis.Laenge.toFixed(0)}m`
 			+ `<br>Höhe: ${Gleis.mPos[posZ].toFixed(2)}m`
 			+ (Gleis.CurveType == 'classic' || Gleis.CurveType == 'EEPCurve' ? '' : `<br>CurveType: ${Gleis.CurveType}`)
+			+ objectToHTML(Gleis)
 	});
 }
 
@@ -3799,7 +3834,8 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 			+ `<br>Stil: ${stil}`
 			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>KontaktZiel: ${KontaktZiel}` : '')
-	});
+			+ objectToHTML(Gleis)
+		});
 }
 
 function showSignalInfo(SignalID, GleissystemID, GleisID) {
@@ -3881,6 +3917,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>Kontaktziel: ${KontaktZiel}` : "")
 			+ (Routes ? `<br>Fahrstraßen: ${Routes}` : "")
 			+ (RoutesText !== '' ? RoutesText : '')
+			+ objectToHTML(Meldung)
 		});
 }
 
@@ -4011,9 +4048,12 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 			+ ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? `<br>SetValue: ` + SetValue : '') 
 			+ (KontaktZiel != null && KontaktZiel != 0 	
 				? `<br>Kontaktziel ${KontaktZiel}: ` 
-					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
-					+ `${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
-					+ `<\/a>` 
+					+ ( Ziel ? 
+							`<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
+							+ `${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
+							+ `<\/a>` 
+						  : 'unbekannt'
+					  )
 				: '') 
 			+ `<br>Auslösung: `		+ (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
 											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
@@ -4032,6 +4072,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 			+ (zuStellung > 0 && Wechseln == 0 ? `<br>zu Stellung: ` + zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) 
 			+ (SignalData != 0 		? `<br>SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
 			+ (LuaFn !== ''			? `<br>LuaFn: `		 + LuaFn : '') 
+			+ objectToHTML(Kontakt)
 	});
 }
 </script>
