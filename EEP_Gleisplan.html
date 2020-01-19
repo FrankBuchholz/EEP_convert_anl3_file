@@ -474,16 +474,18 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			if (!trackConnections[GleissystemID][GleisID1]) {
 				 trackConnections[GleissystemID][GleisID1] = {};
 			}
-			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2 };
+			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2, Flags : Flags };
 
 			// Store relation GleisID2 -> GleisID1
 			if (!trackConnections[GleissystemID][GleisID2]) {
 				 trackConnections[GleissystemID][GleisID2] = {};
 			}
-			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1 };
+			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1, Flags : Flags };
 		}
 	}
-
+	// Now we are able to show connections on detail popups
+	global.trackConnections = trackConnections;
+	
 	// Meldungen analysieren um Fahrstraßen sowie Vor- zu Hauptsignele zu separieren
 	for (const GleissystemID in trackSignals) {
 		for (const GleisID in trackSignals[GleissystemID]) {
@@ -1087,7 +1089,7 @@ if(startangle != 0 || endangle != 0) {
 					].reduce(Rematrix.multiply);
 
 				const Radius = Math.sqrt(MidX2*MidX2 + MidY2*MidY2 + MidZ2*MidZ2);				// The curve radius is the length of the second vector
-				Kruemmung = 1 / Radius * (MidY2 >= 0 ? 1 : -1) * (angle >= 0 ? 1 : -1);
+				Kruemmung = 1 / Radius * (DirX2 >= 0 ? 1 : -1) * (MidY2 >= 0 ? 1 : -1);
 
 console.log(GleissystemText[GleissystemID] + ' ' + GleisID
 		+ " Arc |Radius|=" + Radius
@@ -3864,6 +3866,18 @@ function showGleisInfo(GleissystemID, GleisID) {
 	// Ausführlich im Info Popup
 	const posX = 12, posY = 13, posZ = 14;
 	
+	// Show connected tracks
+	let connectionText = '';
+	const connections = global.trackConnections[GleissystemID][GleisID] || {};
+	for (const connection in connections) {
+		const connectedGleisID = connections[connection].GleisID;
+		const connectedGleis = Gleissystem.get(connectedGleisID);
+		connectionText += '<br>' + connection
+			+': ' 
+			+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
+			+ ' ' + ( connections[connection].Flags ? 'virtuell' : '' )
+	}
+	
 	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
 		code: 'G' + GleissystemID + '-' + GleisID,
@@ -3879,11 +3893,15 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ `<br>Länge: ${Gleis.Laenge.toFixed(0)}m`
 			+ `<br>Höhe: ${Gleis.mPos[posZ].toFixed(2)}m`
 			+ (Gleis.CurveType == 'classic' || Gleis.CurveType == 'EEPCurve' ? '' : `<br>CurveType: ${Gleis.CurveType}`)
+			+ connectionText
 			+ objectToHTML(Gleis)
 	});
 }
 
 function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
+	const Gleissystem = global.GleissystemMap.get(GleissystemID);
+	if (!Gleissystem){ return; }
+
 	const Gleis 	= global.GleissystemMap.get(GleissystemID).get(GleisID);
 	const clsid 	= Gleis.getAttribute("clsid");		// Gleisart
 	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
@@ -3899,6 +3917,20 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 
 	// Kurzform in msg-Element
 	msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+	
+	// Show connected tracks
+	let connectionText = '';
+	const connections = global.trackConnections[GleissystemID][GleisID] || {};
+	for (const connection in connections) {
+		if (connection != 'Anfang') {
+			const connectedGleisID = connections[connection].GleisID;
+			const connectedGleis = Gleissystem.get(connectedGleisID);
+			connectionText += '<br>' + connection
+				+': ' 
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
+				+ ' ' + ( connections[connection].Flags ? 'virtuell' : '' )
+		}
+	}
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
@@ -3914,6 +3946,7 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 			+ `<br>Stil: ${stil}`
 			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>KontaktZiel: ${KontaktZiel}` : '')
+			+ connectionText
 			+ objectToHTML(Gleis)
 		});
 }
