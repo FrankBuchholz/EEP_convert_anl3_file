@@ -854,14 +854,16 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 			BinY	= -FrameBin.getAttribute("dy");
 			BinZ	= +FrameBin.getAttribute("dz");
 
-if (DirX == -NorY ) { console.log('DirX == -NorY' + ' for '
-	+ GleissystemText[GleissystemID] + ' ' + GleisID
+if (DirX == -NorY ) { 
+	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
+		+ ' DirX == -NorY'
 	);
 }			
-if (BinZ == -1 ) { console.log('BinZ == -1' + ' for '
-	+ GleissystemText[GleissystemID] + ' ' + GleisID
+if (BinZ == -1 ) {
+	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
+		+ ' BinZ == -1'
 	);
-	BinZ = 1;
+	//BinZ = 1;
 }	
 
 			//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
@@ -969,15 +971,17 @@ return nodeList;
 
 			} else if (Arc) {
 				CurveType 	= 'Arc';
-				/* Many arc tracks show following simple pattern:
+				/* Many arc tracks show following simple pattern with Vector[0].dx = 1:
+				Case a)
 				<Arc>
 					<VectorBundle2>
-						<Position x="0" 	y="<radius>" 	z="0"/>
-						<Vector   dx="1" 	dy="0" 			dz="0"/>
-						<Vector   dx="0" 	dy="<radius>" 	dz="0"/>
+						<Position x="0" 	y="<radius>" 	z="0"/>		// Assumption: Offset of the mid point of the circle
+						<Vector   dx="1" 	dy="0" 			dz="0"/>	// Assumption: Dir vector of the radius: dx=cos(a) dy=sin(a) dz=0
+						<Vector   dx="0" 	dy="<radius>" 	dz="0"/>	// Assumption: Radius of the circle
 					</VectorBundle2>
 				</Arc>
 
+				Case 2)
 				But here is an example of a more complex arc Wasserwege 52 from 191227_T_T_Fahrstr16.anl3 :
 				<Arc>
 					<VectorBundle2>
@@ -986,36 +990,112 @@ return nodeList;
 						<Vector 	dx="-236.4548" 		dy="0" 	dz="4.188222E-05"/>
 					</VectorBundle2>
 				</Arc>
+				
+				Case 3)
+				Often, if the LinearTwist is not zero, it might get worse: 
+				see Gleis 293 of Gleismauerbau.anl3 
+				Start at (527m 167m) 
+				End at (594m 148m)
+				<Frame>
+					<Position x="-80.13483" y="90.08649" z="2.973716E-02"/>
+					<Vector dx="0.9930941" dy="-0.1173196" dz="-9.018375E-05"/>
+					<Vector dx="0.1173197" dy="0.9930942" dz="2.049906E-05"/>
+					<Vector dx="8.715599E-05" dy="-3.093776E-05" dz="0.9999999"/>
+				</Frame>
+				<Interval near="0" far="69.6798"/>
+				<Curve>
+					<Arc>
+						<VectorBundle2>
+							<Position x="719.2866" y="700.8601" z="0.1525257"/>
+							<Vector dx="0.9750743" dy="-0.2218784" dz="3.322236E-04"/>
+							<Vector dx="125.8095" dy="552.8863" dz="-0.109463"/>
+						</VectorBundle2>
+					</Arc>
+				</Curve>
+				<Twist>
+					<CombinedTwist>
+						<Twist>
+							<LinearTwist startangle="-4.371127E-08" endangle="-2.185552E-08"/>
+						</Twist>
+						<Twist>
+							<DirectionalTwist bFrozen="true">
+								<Vector dx="0" dy="0" dz="1"/>
+							</DirectionalTwist>
+						</Twist>
+					</CombinedTwist>
+				</Twist>
+				<Gleisverbindung GleisID1="238" Anschluss1="Ende" GleisID2="293" Anschluss2="Anfang"/>
+				<Gleisverbindung GleisID1="293" Anschluss1="Ende" GleisID2="1203" Anschluss2="Anfang"/>
+				
+				However, in case of 
+				Gleismauerbau.anl3 Eisenbahn 581 LinearTwist startangle=0.000422 endangle=0.000422
+				it's ok because vectorBunde2 looks like in the first simple pattern.
 				*/
 				
+				// relative position of center point of the Arc
 				const PosX2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0].getAttribute("x");
 				const PosY2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0].getAttribute("y");
 				const PosZ2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0].getAttribute("z");
 
-				const V0X2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dx");
-				const V0Y2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dy");
-				const V0Z2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dz");
+				// Tangent (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1) 
+				const DirX2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dx");
+				const DirY2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dy");
+				const DirZ2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dz");
 
-				const V1X2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dx");
-				const V1Y2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dy");
-				const V1Z2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dz");
+const DirLength = Math.sqrt(DirX2*DirX2 + DirY2*DirY2 + DirZ2*DirZ2);
+if (DirLength < 0.999 || DirLength > 1.001) {
+	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
+		+ " Arc VectorBundle2[0] not normalized dx=" + DirX2
+		+ " dy=" + DirY2
+		+ " dz=" + DirZ2
+	);
+}
 
-				mMatrix = [
-						mMatrix,
-						Rematrix.translate3d(PosX2 - V1X2, PosY2 - V1Y2, PosZ2 - V1Z2),	// Why does this works?
-					].reduce(Rematrix.multiply);
+if( (DirX2 != 0 && DirX2 != 1) || (DirY2 != 0 && DirY2 != 1) || (DirZ2 != 0 && DirZ2 != 1) ) {					
+	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
+		+ " Arc with VectorBundle2[0] dx=" + DirX2
+		+ " dy=" + DirY2
+		+ " dz=" + DirZ2
+		+ " angle=" + Math.atan2(DirY2, DirX2)*180/Math.PI + "°"
+	);
+}			
 
-				if ( V0X2 == 0 && V0Y2 == 1 ) {
-				mMatrix = [
-						mMatrix,
-						Rematrix.rotateZ( 90 ),											// Why does this works?
-					].reduce(Rematrix.multiply);
+				// The curve radius is the length of this vector
+				const MidX2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dx");
+				const MidY2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dy");
+				const MidZ2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dz");
+
+				// const LinearTwist = Gleis.getElementsByTagName("Twist")[0].getElementsByTagName("CombinedTwist")[0].getElementsByTagName("Twist")[0].getElementsByTagName("LinearTwist")[0];
+				const LinearTwist = Gleis.getElementsByTagName("LinearTwist")[0];	// simplified access
+				let startangle, endangle;
+				if (LinearTwist) {
+					startangle	= +LinearTwist.getAttribute("startangle");
+					endangle	= +LinearTwist.getAttribute("endangle");
+if(startangle != 0 || endangle != 0) {					
+	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
+		+ " Arc with LinearTwist startangle=" + startangle
+		+ " endangle=" + endangle
+	);
+}			
 				}
-				
-				const Radius = ( V0X2 == 1 && V0Y2 == 0 ? V1Y2 : -V1X2 );				// Why does this works?
-				Kruemmung = 1 / Radius;
-				
-				const SweepFlag	= (near < far ? 1 : -1); // no adjustment required?
+
+				const angle = ( DirX2 === 1 && DirY2 === 0 ? 0 : Math.atan2(DirY2, DirX2)*180/Math.PI );	// skip 0° Rotation
+				mMatrix = [
+						mMatrix,
+						Rematrix.translate3d(PosX2 - MidX2, PosY2 - MidY2, PosZ2 - MidZ2),		// Translate by distance of mid point of circle
+						Rematrix.rotateZ( angle ), 												// Rotate by tangent of circle
+					].reduce(Rematrix.multiply);
+
+				const Radius = Math.sqrt(MidX2*MidX2 + MidY2*MidY2 + MidZ2*MidZ2);				// The curve radius is the length of the second vector
+				Kruemmung = 1 / Radius * (MidY2 >= 0 ? 1 : -1) * (angle >= 0 ? 1 : -1);
+
+console.log(GleissystemText[GleissystemID] + ' ' + GleisID
+		+ " Arc |Radius|=" + Radius
+		+ " MidX2 f=" + (MidX2 >= 0 ? 1 : -1)
+		+ " MidY2 f=" + (MidY2 >= 0 ? 1 : -1)
+		+ " MidZ2 f=" + (MidZ2 >= 0 ? 1 : -1)
+		+ " Radius=" + Radius * (MidX2 >= 0 ? 1 : -1) * (MidY2 >= 0 ? 1 : -1)
+)
 
 // Special tracks				
 //if (GleissystemID == "4" && GleisID == "52") debugger;				
@@ -1271,7 +1351,7 @@ console.log(`Cubic ${GleissystemText[GleissystemID]} ${GleisID}`
 			const FrameNor	= Dreibein.getElementsByTagName("Vektor")[2];
 			const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
 			
-			Laenge = +Charakteristik.getAttribute("Laenge") / 100;
+			Laenge 		= +Charakteristik.getAttribute("Laenge") / 100;
 			Kruemmung	= +Charakteristik.getAttribute("Kruemmung") * 100;
 			
 			PosX		= +FramePos.getAttribute("x") / 100;
@@ -2302,7 +2382,7 @@ input[type="number"]#jpgQuality {
 	<button id="disable">disable controls</button>
 -->
 <br>
-Linie <input type="range" min="1" max="100" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
+Linie <input type="range" min="1" max="150" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
 <br>
 Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
 </article>
