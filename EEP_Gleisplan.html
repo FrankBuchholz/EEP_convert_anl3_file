@@ -855,7 +855,7 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 			BinX	= +FrameBin.getAttribute("dx");
 			BinY	= -FrameBin.getAttribute("dy");
 			BinZ	= +FrameBin.getAttribute("dz");
-
+/*
 if (DirX == -NorY ) { 
 	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
 		+ ' DirX == -NorY'
@@ -867,6 +867,7 @@ if (BinZ == -1 ) {
 	);
 	//BinZ = 1;
 }	
+*/
 
 			//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
 			// Rematrix.format maps short form [DirX, DirY, NorX, NorY, PosX, PosY] to long form:
@@ -973,131 +974,35 @@ return nodeList;
 
 			} else if (Arc) {
 				CurveType 	= 'Arc';
-				/* Many arc tracks show following simple pattern with Vector[0].dx = 1:
-				Case a)
-				<Arc>
-					<VectorBundle2>
-						<Position x="0" 	y="<radius>" 	z="0"/>		// Assumption: Offset of the mid point of the circle
-						<Vector   dx="1" 	dy="0" 			dz="0"/>	// Assumption: Dir vector of the radius: dx=cos(a) dy=sin(a) dz=0
-						<Vector   dx="0" 	dy="<radius>" 	dz="0"/>	// Assumption: Radius of the circle
-					</VectorBundle2>
-				</Arc>
 
-				Case 2)
-				But here is an example of a more complex arc Wasserwege 52 from 191227_T_T_Fahrstr16.anl3 :
-				<Arc>
-					<VectorBundle2>
-						<Position 	x="3.265381E-03" 	y="0" 	z="4.188222E-05"/>
-						<Vector 	dx="0" 				dy="1" 	dz="0"/>
-						<Vector 	dx="-236.4548" 		dy="0" 	dz="4.188222E-05"/>
-					</VectorBundle2>
-				</Arc>
-				
-				Case 3)
-				Often, if the LinearTwist is not zero, it might get worse: 
-				see Gleis 293 of Gleismauerbau.anl3 
-				Start at (527m 167m) 
-				End at (594m 148m)
-				<Frame>
-					<Position x="-80.13483" y="90.08649" z="2.973716E-02"/>
-					<Vector dx="0.9930941" dy="-0.1173196" dz="-9.018375E-05"/>
-					<Vector dx="0.1173197" dy="0.9930942" dz="2.049906E-05"/>
-					<Vector dx="8.715599E-05" dy="-3.093776E-05" dz="0.9999999"/>
-				</Frame>
-				<Interval near="0" far="69.6798"/>
-				<Curve>
-					<Arc>
-						<VectorBundle2>
-							<Position x="719.2866" y="700.8601" z="0.1525257"/>
-							<Vector dx="0.9750743" dy="-0.2218784" dz="3.322236E-04"/>
-							<Vector dx="125.8095" dy="552.8863" dz="-0.109463"/>
-						</VectorBundle2>
-					</Arc>
-				</Curve>
-				<Twist>
-					<CombinedTwist>
-						<Twist>
-							<LinearTwist startangle="-4.371127E-08" endangle="-2.185552E-08"/>
-						</Twist>
-						<Twist>
-							<DirectionalTwist bFrozen="true">
-								<Vector dx="0" dy="0" dz="1"/>
-							</DirectionalTwist>
-						</Twist>
-					</CombinedTwist>
-				</Twist>
-				<Gleisverbindung GleisID1="238" Anschluss1="Ende" GleisID2="293" Anschluss2="Anfang"/>
-				<Gleisverbindung GleisID1="293" Anschluss1="Ende" GleisID2="1203" Anschluss2="Anfang"/>
-				
-				However, in case of 
-				Gleismauerbau.anl3 Eisenbahn 581 LinearTwist startangle=0.000422 endangle=0.000422
-				it's ok because vectorBunde2 looks like in the first simple pattern.
-				*/
-				
 				// relative position of center point of the Arc
-				const PosX2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0].getAttribute("x");
-				const PosY2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0].getAttribute("y");
-				const PosZ2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0].getAttribute("z");
+				const Pos 	= Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
+				const PosX2 = +Pos.getAttribute("x");
+				const PosY2 = +Pos.getAttribute("y");
+				const PosZ2 = +Pos.getAttribute("z");
 
 				// Tangent (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1) 
-				const DirX2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dx");
-				const DirY2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dy");
-				const DirZ2 = +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0].getAttribute("dz");
+				const Dir 	= Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0];
+				const DirX2 = +Dir.getAttribute("dx");
+				const DirY2 = +Dir.getAttribute("dy");
+				const DirZ2 = +Dir.getAttribute("dz");
 
-const DirLength = Math.sqrt(DirX2*DirX2 + DirY2*DirY2 + DirZ2*DirZ2);
-if (DirLength < 0.999 || DirLength > 1.001) {
-	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
-		+ " Arc VectorBundle2[0] not normalized dx=" + DirX2
-		+ " dy=" + DirY2
-		+ " dz=" + DirZ2
-	);
-}
-
-if( (DirX2 != 0 && DirX2 != 1) || (DirY2 != 0 && DirY2 != 1) || (DirZ2 != 0 && DirZ2 != 1) ) {					
-	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
-		+ " Arc with VectorBundle2[0] dx=" + DirX2
-		+ " dy=" + DirY2
-		+ " dz=" + DirZ2
-		+ " angle=" + Math.atan2(DirY2, DirX2)*180/Math.PI + "°"
-	);
-}			
-
-				// The curve radius is the length of this vector
-				const MidX2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dx");
-				const MidY2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dy");
-				const MidZ2 	= +Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1].getAttribute("dz");
-
-				// const LinearTwist = Gleis.getElementsByTagName("Twist")[0].getElementsByTagName("CombinedTwist")[0].getElementsByTagName("Twist")[0].getElementsByTagName("LinearTwist")[0];
-				const LinearTwist = Gleis.getElementsByTagName("LinearTwist")[0];	// simplified access
-				let startangle, endangle;
-				if (LinearTwist) {
-					startangle	= +LinearTwist.getAttribute("startangle");
-					endangle	= +LinearTwist.getAttribute("endangle");
-if(startangle != 0 || endangle != 0) {					
-	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
-		+ " Arc with LinearTwist startangle=" + startangle
-		+ " endangle=" + endangle
-	);
-}			
-				}
+				// The distance of the center point = curve radius is the length of the second vector
+				const Nor 	= Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
+				const MidX2 = +Nor.getAttribute("dx");
+				const MidY2 = +Nor.getAttribute("dy");
+				const MidZ2 = +Nor.getAttribute("dz");
 
 				const angle = ( DirX2 === 1 && DirY2 === 0 ? 0 : Math.atan2(DirY2, DirX2)*180/Math.PI );	// skip 0° Rotation
 				mMatrix = [
 						mMatrix,
-						Rematrix.translate3d(PosX2 - MidX2, PosY2 - MidY2, PosZ2 - MidZ2),		// Translate by distance of mid point of circle
-						Rematrix.rotateZ( angle ), 												// Rotate by tangent of circle
+						Rematrix.translate3d(PosX2 - MidX2, PosY2 - MidY2, PosZ2 - MidZ2),	// Translate by distance of mid point of circle
+						Rematrix.rotateZ( angle ), 											// Rotate by tangent of circle
 					].reduce(Rematrix.multiply);
 
-				const Radius = Math.sqrt(MidX2*MidX2 + MidY2*MidY2 + MidZ2*MidZ2);				// The curve radius is the length of the second vector
-				Kruemmung = 1 / Radius * (DirX2 >= 0 ? 1 : -1) * (MidY2 >= 0 ? 1 : -1);
-
-console.log(GleissystemText[GleissystemID] + ' ' + GleisID
-		+ " Arc |Radius|=" + Radius
-		+ " MidX2 f=" + (MidX2 >= 0 ? 1 : -1)
-		+ " MidY2 f=" + (MidY2 >= 0 ? 1 : -1)
-		+ " MidZ2 f=" + (MidZ2 >= 0 ? 1 : -1)
-		+ " Radius=" + Radius * (MidX2 >= 0 ? 1 : -1) * (MidY2 >= 0 ? 1 : -1)
-)
+				const Radius = Math.sqrt(MidX2*MidX2 + MidY2*MidY2 + MidZ2*MidZ2)			// The curve radius is the length of the second vector
+								 * (DirX2 >= 0 ? 1 : -1) * (MidY2 >= 0 ? 1 : -1);			// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
+				Kruemmung = 1 / Radius;
 
 // Special tracks				
 //if (GleissystemID == "4" && GleisID == "52") debugger;				
@@ -1108,45 +1013,106 @@ console.log(GleissystemText[GleissystemID] + ' ' + GleisID
 
 			} else if (Helix) {
 				CurveType 	= 'Helix';
-				
-				const VectorPos	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
-				const VectorDir	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0];
-				const VectorNor	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
 
-				const pX		= +VectorPos.getAttribute("x");
-				const pY		= +VectorPos.getAttribute("y");
-				const pZ		= +VectorPos.getAttribute("z");
+				// relative position of center point of the Helix
+				const Pos 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
+				const PosX2 = +Pos.getAttribute("x");
+				const PosY2 = +Pos.getAttribute("y");
+				const PosZ2 = +Pos.getAttribute("z");
 
-/*						
-console.log(`Helix ${GleissystemText[GleissystemID]} ${GleisID}`
-+ ' Pos ' + FramePos.getAttribute("x")   + ' ' + FramePos.getAttribute("y")   + ' ' + FramePos.getAttribute("z")  
-+ ' Dir ' + FrameDir.getAttribute("dx")  + ' ' + FrameDir.getAttribute("dy")  + ' ' + FrameDir.getAttribute("dz")  
-+ ' Nor ' + FrameNor.getAttribute("dx")  + ' ' + FrameNor.getAttribute("dy")  + ' ' + FrameNor.getAttribute("dz")  
-+ ' Bin ' + FrameBin.getAttribute("dx")  + ' ' + FrameBin.getAttribute("dy")  + ' ' + FrameBin.getAttribute("dz")  
-+ ' a/b ' + Helix.getAttribute("a")      + ' ' + Helix.getAttribute("b")
-+ ' vPos '+ VectorPos.getAttribute("x")  + ' ' + VectorPos.getAttribute("y")  + ' ' + VectorPos.getAttribute("z")  
-+ ' vDir '+ VectorDir.getAttribute("dx") + ' ' + VectorDir.getAttribute("dy") + ' ' + VectorDir.getAttribute("dz")
-+ ' vNor '+ VectorNor.getAttribute("dx") + ' ' + VectorNor.getAttribute("dy") + ' ' + VectorNor.getAttribute("dz")
-)
-*/						
+				// Tangent (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1) 
+				const Dir 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0];
+				const DirX2 = +Dir.getAttribute("dx");
+				const DirY2 = +Dir.getAttribute("dy");
+				const DirZ2 = +Dir.getAttribute("dz");
+
+				// Normal (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1)
+				const Nor 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
+				const NorX2 = +Nor.getAttribute("dx");
+				const NorY2 = +Nor.getAttribute("dy");
+				const NorZ2 = +Nor.getAttribute("dz");
 
 				// Adjust position and direction
-				const Radius = +Helix.getAttribute("a");	// Radius and offset in x direction
-				// const b = +Helix.getAttribute("b");
-				const SweepFlag = (+VectorNor.getAttribute("dy") >= 0 ? 1 : -1);
+				const a = +Helix.getAttribute("a");			// Radius (= offset) in x direction
+				const b = +Helix.getAttribute("b");			// Offset in z direction
 
-				PosX		= PosX + DirX * Radius;
-				PosY		= PosY + DirY * Radius;
-				Kruemmung 	= SweepFlag * (1 / Radius); 
-				
+/* Original
+			
 				mMatrix = [
-							[DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ],
-							Rematrix.translate3d(pX, pY, pZ),
-							Rematrix.rotateZ(SweepFlag * 90),
+							[DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX + DirX * a, PosY + DirY * a, PosZ, 1 ],
+							Rematrix.translate3d(PosX2, PosY2, PosZ2),
+							Rematrix.rotateZ((NorY2 >= 0 ? 1 : -1) * 90),
 						  ].reduce(Rematrix.multiply);
-						  
+
+identisch zu Original
+				mMatrix = [
+							Rematrix.translate3d(DirX * a, DirY * a, DirZ * a),
+							mMatrix,  
+							Rematrix.translate3d(PosX2, PosY2, PosZ2),
+							Rematrix.rotateZ((NorY2 >= 0 ? 1 : -1) * 90),
+						  ].reduce(Rematrix.multiply);
+
+*/
+
+					  
 // Special tracks			
-//if (GleissystemID == "3" && GleisID == "350") debugger;	// <VectorBundle2><Position x="-3.80571" y="0" z="0"/>
+//if (GleissystemID == "3" && GleisID == "350") 	debugger;	// <VectorBundle2><Position x="-3.80571" y="0" z="0"/>
+
+// Error: wrong position of special Helix
+if ( ((PosX2 != 0 || PosY2 != 0) && (DirX2 != 1 || DirY2 != 0))		// generic
+||	(GleissystemID == "1" && GleisID == "5675"	)					// Makinista_GRAFENBURG 16
+||	(GleissystemID == "1" && GleisID == "5902"	)
+||	(GleissystemID == "1" && GleisID == "5935"	)
+||	(GleissystemID == "1" && GleisID == "6096"	)
+||	(GleissystemID == "2" && GleisID == "888"	)
+||	(GleissystemID == "2" && GleisID == "970"	)
+||	(GleissystemID == "3" && GleisID == "4065"	)
+||	(GleissystemID == "3" && GleisID == "5011"	)
+||	(GleissystemID == "3" && GleisID == "5027"	)
+||	(GleissystemID == "3" && GleisID == "5649"	)
+||	(GleissystemID == "3" && GleisID == "5650"	)
+||	(GleissystemID == "4" && GleisID == "3170"	)
+||	(GleissystemID == "4" && GleisID == "5627"	)
+||	(GleissystemID == "4" && GleisID == "6049"	)
+||	(GleissystemID == "4" && GleisID == "6051"	)
+||	(GleissystemID == "4" && GleisID == "6056"	)
+||	(GleissystemID == "4" && GleisID == "6057"	)
+||	(GleissystemID == "4" && GleisID == "6059"	)
+||	(GleissystemID == "4" && GleisID == "6060"	)
+||	(GleissystemID == "4" && GleisID == "6072"	)
+||	(GleissystemID == "1" && GleisID == "687"	)					// Gleismauerbau
+){
+	console.log('\t' + GleissystemText[GleissystemID] + '\t' + GleisID
+		+ '\tHelix non-zero Pos2'
+		+ '\tPos\t'  + PosX  + '\t' + PosY  + '\t' + PosZ
+		+ '\ta\t' + a
+		+ '\tb\t' + b
+		+ '\tPos2\t' + PosX2 + '\t' + PosY2 + '\t' + PosZ2
+		+ '\tDir2\t' + DirX2 + '\t' + DirY2 + '\t' + DirZ2
+		+ '\tNor2\t' + NorX2 + '\t' + NorY2 + '\t' + NorZ2
+	);
+}
+
+				// I do not know why this works in most cases ... but not in all cases ...
+				//if (PosX2 == 0 && PosY2 == 0 && PosZ2 == 0) {
+				if (PosY2 == 0) {
+					// Start point need adjustment
+					const DirAngle = ( DirX2 === 1 && DirY2 === 0 ? 0 : Math.atan2(DirY2, DirX2)*180/Math.PI );
+					const NorAngle = ( NorX2 === 1 && NorY2 === 0 ? 0 : Math.atan2(NorY2, NorX2)*180/Math.PI );
+					mMatrix = [
+								Rematrix.translate3d(a * DirX, a * DirY, a * DirZ),
+								mMatrix,  
+								Rematrix.translate3d(PosX2, -PosY2, PosZ2),
+								Rematrix.rotateZ(NorAngle),
+							  ].reduce(Rematrix.multiply);
+				} else {
+					// Start point is already ok
+				}
+
+				const Radius = a 													// Radius
+								* (DirX2 >= 0 ? 1 : -1) * (NorY2 >= 0 ? 1 : -1);	// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
+				Kruemmung 	= 1 / Radius; 
+
 
 			} else if (Clothoid) {
 				CurveType 	= 'Clothoid';
@@ -3817,9 +3783,6 @@ function changeHeightRange(valueLow, valueHigh) {
 <link rel="stylesheet" href="toolwindow/toolwindow.css"/>
 <!-- Not possible, see same issue above -->
 <!-- <link rel="stylesheet" href="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.css"/> -->
-
-<style> /* mod default CSS */
-</style>
 <script type="text/javascript" src="toolwindow/toolwindow.js"></script>
 <!-- Not possible, see same issue above -->
 <!-- <script type="text/javascript" src="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.js"></script> -->
@@ -4437,6 +4400,16 @@ function exportData(dataURL, fileType) {
 }
 </script>
 </aside>
+
+<style> /* mod default CSS */
+/* instead of insert CSS modifications here, you yan use the bookmark trick described at http://mcdlr.com/css-inject/ 
+Example:
+CSS mod Gleisplan
+javascript:(function(){ var style = document.createElement(%27style%27), styleContent = document.createTextNode(%27.Prellbock { marker-end: none !important; } .inactive { /* inaktive Gleisstile */ stroke-opacity: 1.0 !important; } .EEPCurve, .Line, .Arc, .Rotator, .Cubic { /* uninteressante Gleisarten .EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Helix */ stroke-width: var(--narrow-stroke-width) !important; stroke-opacity: 0.2 !important; }%27); style.appendChild(styleContent ); var caput = document.getElementsByTagName(%27head%27); caput[0].appendChild(style); })();
+*/
+
+
+</style>
 
 </main> <!-- Main screen --> 
 
