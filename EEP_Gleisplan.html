@@ -96,7 +96,8 @@ Details anzeigen: Klick auf Gleis, Symbol oder Text<br>
 Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br/>
 Zoom-in, -out, -reset<br/>
 Auswahl der anzuzeigenden Gleissysteme<br/>
-Auswahl der anzuzeigenden Informationen (GleisID, Gleisstil, Höhe, Signale, Kontakte)<br/>
+Auswahl der anzuzeigenden Informationen (GleisID, Gleisart, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Rahmen)<br/>
+Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise)<br/>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br/>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
 Die Positionierung ist auch über das <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm möglich!<br/>
@@ -208,6 +209,10 @@ function loadFile(file) {
 
 			// Show main area
 			document.getElementById("main").classList.remove("hidden");
+			if (global.EEPversion && global.EEPversion >= 16) {
+				document.getElementById("CheckboxCurveType").classList.remove("hidden");
+			}
+
 			// Show file name
 			document.getElementById("filename").textContent = file.name.substring(0, file.name.length -1 -1 -3);
 
@@ -322,12 +327,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	if (Version) {
 		global.EEPversion = Version.getAttribute("EEP");	
 		if (global.EEPversion && global.EEPversion >= 16) {
-			/*
-			bodyAppend("p",
-				`Die Anlagedatei aus EEP Version ${global.EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht vollständig unterstützt.
-				`
-			);
-			*/
 			//return;
 		}
 	}
@@ -1584,11 +1583,13 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			].reduce(Rematrix.multiply);
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})` : '');
 		
-		// show GleisID in the middle above the track
+		// show GleisID in the middle above the track (left-adjusted)
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: (CurveType == 'classic' || CurveType == 'EEPCurve' ? `${GleisID}` : `${CurveType} ${GleisID}`),
+			text				: `${GleisID}`,
+			dx					: `-0.5em`, 	// Shift text left to move it a little bit towards the center
 			dy					: `-0.1em`, 	// Shift text up
+			"class"				: `GleisID`,
 			x					: DeltaX,
 			y					: -DeltaY,
 			transform 			: matrixToTransform(mMatrix)
@@ -1596,10 +1597,27 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 								  + svgRotate
 								  + ` scale(1 -1)`,
 		});
+		// show CurveType in the middle above the track (right-adjusted)
+		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
+		svgAppend(svgGleisGroup, {
+			svg_tag				: `text`,
+			text				: `${CurveType}`,
+			dx					: `-0.7em`, 	// Shift text left to geta away from GleisID
+			dy					: `-0.1em`, 	// Shift text up
+			"class"				: `CurveType`,
+			x					: DeltaX,
+			y					: -DeltaY,
+			transform 			: matrixToTransform(mMatrix)
+			//transform 			: matrixToTransform(Gleis.mMid) // Bug: does not work for Rotator yet
+								  + svgRotate
+								  + ` scale(1 -1)`,
+		});
+		}
 		// show Gleisstil in the middle below the track (right-adjusted)
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
 			text				: `${stil}`,
+			dx					: `-0.1em`, 	// Shift text left a little bit  
 			dy					: `1em`, 		// Shift text below the track
 			"class"				: `Stil`,
 			x					: DeltaX,
@@ -1612,6 +1630,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
 			text				: `[${mMatrix[posZ].toFixed(2)}m]`,
+			dx					: `+0.1em`, 	// Shift text right a little bit
 			dy					: `1em`, 		// Shift text below the track
 			"class"				: `Hoehe`,
 			x					: DeltaX,
@@ -2624,39 +2643,43 @@ Cursor: <span id="cursorPosition"> </span>
 
 <article class="group no-select"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset class="fieldset">
-	<!-- Firefox keeps the status of the checkbox between page loadsby default. -->
-	<div class="item"><label class="Eisenbahn hidden">
+	<!-- Firefox keeps the status of the checkbox between page loads by default. -->
+	<div class="item Eisenbahn hidden"><label>
 	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
-	<div class="item"><label class="Strassenbahn hidden">
+	<div class="item Strassenbahn hidden"><label>
 	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
-	<div class="item"><label class="Strasse hidden">
+	<div class="item Strasse hidden"><label>
 	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
-	<div class="item"><label class="Wasserwege hidden">
+	<div class="item Wasserwege hidden"><label>
 	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
-	<div class="item"><label class="Steuerstrecken hidden">
+	<div class="item Steuerstrecken hidden"><label>
 	<input type="checkbox" name="Steuerstrecken" checked autocomplete="off" onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
-	<div class="item"><label class="GBS hidden">
+	<div class="item GBS hidden"><label>
 	<input type="checkbox" name="GBS" 			checked autocomplete="off" onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
-	<div class="item"><label class="Text">
-	<input type="checkbox" name="Text" 			checked autocomplete="off" onchange="toggleElements('text', this.checked)">Text</label></div>
-	<div class="item"><label class="Stil">
+	<div class="item"><label>
+	<input type="checkbox" name="GleisID" 		checked autocomplete="off" onchange="toggleElements('.GleisID', this.checked)">GleisID</label></div>
+	<div class="item hidden" id="CheckboxCurveType"><label>
+	<input type="checkbox" name="CurveType" 	checked autocomplete="off" onchange="toggleElements('.CurveType', this.checked)">Gleisart</label></div>
+	<div class="item"><label>
 	<input type="checkbox" name="Stil" 			checked autocomplete="off" onchange="toggleElements('.Stil', this.checked)">Stil</label></div>
-	<div class="item"><label class="Hoehe">
-	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)">Hoehe</label></div>
-	<div class="item"><label class="WeicheText">
+	<div class="item"><label>
+	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)">Höhe</label></div>
+	<div class="item"><label>
 	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)">Weichen</label></div>
-	<div class="item"><label class="Signal">
+	<div class="item"><label>
 	<input type="checkbox" name="Signal" 		checked autocomplete="off" onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
-	<div class="item"><label class="Kontakt">
+	<div class="item"><label>
 	<input type="checkbox" name="Kontakt" 		checked autocomplete="off" onchange="toggleElements('.Kontakt', this.checked)">Kontakte</label></div>
-	<div class="item"><label class="active">
+	<div class="item"><label>
 	<input type="checkbox" name="active" 		checked autocomplete="off" onchange="toggleElements('.active', this.checked)">aktiv</label></div>
-	<div class="item"><label class="inactive">
+	<div class="item"><label>
 	<input type="checkbox" name="inactive" 		checked autocomplete="off" onchange="toggleElements('.inactive', this.checked)">inaktiv</label></div>
-	<div class="item"><label class="unsichtbar">
+	<div class="item"><label>
 	<input type="checkbox" name="unsichtbar" 	checked autocomplete="off" onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
-	<div class="item"><label class="Marker">
+	<div class="item"><label>
 	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)">Marker</label></div>
+	<div class="item"><label>
+	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('#general', this.checked)">Rahmen</label></div>
 </fieldset>
 </article>
 
@@ -2732,18 +2755,18 @@ text {
 	font-size: var(--normal-font-size);
 	font-family: Arial;
 	stroke-width: 0;
-	text-anchor	: middle;
 }
 
-/* Gleisnummern in der Mitte des Gleises */
+/* not used */
 textPath {
 }
 
-text.WeicheText {
-	text-anchor	: end;
+text.GleisID {
+	text-anchor	: start;
 }
 
-text.Signal  {
+text.CurveType {
+	text-anchor	: end;
 }
 
 text.Stil {
@@ -2754,6 +2777,14 @@ text.Stil {
 text.Hoehe {
 	text-anchor	: start;
 	font-style: italic;
+}
+
+text.WeicheText {
+	text-anchor	: end;
+}
+
+text.Signal  {
+	text-anchor	: middle;
 }
 
 /* Box zur Anzeige der verwendeten Groesse der Anlage */
@@ -2767,8 +2798,8 @@ text.Hoehe {
 /* Zusätzliche Markierung des Zentrums */
 #center {
 	stroke-width: 0;
-	stroke: #cc0000;
-	fill:   #cc0000;
+	stroke: grey;
+	fill:   grey;
 }
 
 /* Individuelle Formatierung je Gleissystem */
@@ -2981,6 +3012,8 @@ text.Hoehe {
 See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
 <!-- <script type="text/javascript" src="https://raw.githubusercontent.com/ariutta/svg-pan-zoom/master/dist/svg-pan-zoom.js"></script>		-->
 <!-- <script type="text/javascript" src="https://raw.githubusercontent.com/ariutta/svg-pan-zoom/master/dist/svg-pan-zoom.min.js"></script>	-->
+<!-- not tested yet: Load specific version of the library -->
+<!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.0/dist/svg-pan-zoom.min.js"></script>	-->
 
 <script type="text/javascript"> // svg-pan-zoom
 function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
@@ -3068,7 +3101,8 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 			}
 		}
 		// , eventsListenerElement: SVGElement
-		, onUpdatedCTM: null
+		// , onUpdatedCTM: function(){}
+		, onUpdatedCTM: null // callback function which is triggered at the very end of pan or zoom effects
 	});
 
 	// Pan and zoom to used area
@@ -3194,14 +3228,14 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		// Zoom to used area
 		showUsedArea(panZoom);
 	});
-	// Slider strokeWidth
+	// Slider strokeWidth (in case of very large files, it might be better to use "change" event instead of "input" event to switch off live updates)
 	document.getElementById("strokeWidth").addEventListener("input", function(ev) {
 		msg();
 		ev.preventDefault();
 		changeStrokeWidth(ev.target.value);
 		localStorage.setItem('strokeWidth', ev.target.value);
 	});
-	// Slider fontSize
+	// Slider fontSize (in case of very large files, it might be better to use "change" event instead of "input" event to switch off live updates)
 	document.getElementById("fontSize").addEventListener("input", function(ev) {
 		msg();
 		ev.preventDefault();
@@ -3650,6 +3684,8 @@ function showUsedArea(panZoom, pan) {
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
+	
+	// Instead of modifying all elements we could modify CSS rules as well, but it seems that this does not improve performance very much
 	for (const ele of document.getElementById("svg").querySelectorAll(selector)) {
 		if (visible) {
 			ele.classList.remove("hidden");
@@ -3662,9 +3698,6 @@ function toggleElements(selector, visible) {
 // Toggle visibility of marker
 function toggleMarker(visible) {
 	msg();
-	toggleElements("#center", visible);
-	toggleElements(".box", visible);
-
 	// Modify svg css (nice, but only works in the browser, not during PNG export)
 	/*
 	const cssVariables = document.getElementById("css-marker-colors").sheet.rules[0].style;
@@ -3855,7 +3888,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
 			+ `<br>Länge: ${Gleis.Laenge.toFixed(0)}m`
 			+ `<br>Höhe: ${Gleis.mPos[posZ].toFixed(2)}m`
-			+ (Gleis.CurveType == 'classic' || Gleis.CurveType == 'EEPCurve' ? '' : `<br>CurveType: ${Gleis.CurveType}`)
+			+ (Gleis.CurveType == 'classic' || Gleis.CurveType == 'EEPCurve' ? '' : `<br>Gleisart: ${Gleis.CurveType}`)
 			+ connectionText
 			+ objectToHTML(Gleis)
 	});
