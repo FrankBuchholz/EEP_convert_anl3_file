@@ -14,7 +14,7 @@ An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
 Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br/>
 Details anzeigen: Klick auf Gleis, Symbol oder Text
 - wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet
-- wenn zusammen mit <kbd>&#x21E7;alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt
+- wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt
 
 ### Tastaturfunktionen
 <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
