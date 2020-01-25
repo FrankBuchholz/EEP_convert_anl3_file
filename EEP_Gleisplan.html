@@ -236,6 +236,8 @@ function loadFile(file) {
 				} else {
 				}
 			}
+			
+			loadColors();
 
 			// Activate Pan and Zoom
 			global.SvgPanZoom = SvgPanZoom();
@@ -268,10 +270,10 @@ function updateUi(fn) {
 
 // Process root node (sutrackp)
 // EEP: Static texts
-const GleissystemText = { 			// GleissystemID
+const GleissystemText = { 			// GleissystemID : GleissystemCode,
 	1 : "Eisenbahn",
-	2 : "Strassenbahn",
-	3 : "Strasse",
+	2 : "Strassenbahn",				// Bug: "Straßenbahn" funktioniert hier nicht, da ansonsten fill in svg nicht gelöscht wird
+	3 : "Strasse",					// Bug: "Straße" funktioniert hier nicht
 	4 : "Wasserwege",
 	5 : "Steuerstrecken",			// nicht in EEP 9
 	6 : "GBS",						// nicht in EEP 9
@@ -316,8 +318,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	const unsichtbar = [			// unsichtbare Gleisstile
 		17, 						// Wasser, Steuerstrecke
 		28, 34, 562, 1346, 5100,	// Gleis
-		35, 						// Strassenbahn
-		36, 						// Strasse
+		35, 						// Straßenbahn
+		36, 						// Straße
 		5145, 5146, 5147,			// Farm track
 		5602,						// Fence
 		100000,						// Kamerafahrweg
@@ -2359,6 +2361,7 @@ input[type="number"]#jpgQuality {
 <button id="swap">swap</button>
 <!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
 <button id="savePNG">Export PNG/JPG/SVG</button>
+<button id="setColors">Farben</button>
 <br/>
 <button id="zoom-in">+</button>
 <button id="zoom-out">-</button>
@@ -2377,8 +2380,8 @@ Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSi
 <article class="group no-select"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
 <select id="select" >
 	<option value="1">Eisenbahn</option>
-	<option value="2">Strassenbahn</option>
-	<option value="3">Strasse</option>
+	<option value="2">Straßenbahn</option>
+	<option value="3">Straße</option>
 	<option value="4">Wasserwege</option>
 	<option value="5">Steuerstrecken</option>
 	<option value="6">GBS</option>
@@ -2647,9 +2650,9 @@ Cursor: <span id="cursorPosition"> </span>
 	<div class="item Eisenbahn hidden"><label>
 	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
 	<div class="item Strassenbahn hidden"><label>
-	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
+	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('#Strassenbahn', this.checked)">Straßenbahn</label></div>
 	<div class="item Strasse hidden"><label>
-	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
+	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('#Strasse', this.checked)">Straße</label></div>
 	<div class="item Wasserwege hidden"><label>
 	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
 	<div class="item Steuerstrecken hidden"><label>
@@ -2697,7 +2700,7 @@ https://svg-edit.github.io/svgedit/releases/latest/editor/svg-editor.html
 <title>EEP Gleisplan</title>
 <desc>EEP Gleisplan</desc>
 <defs> <!-- style -->
-	<style type="text/css"> /* color per track type */
+	<style type="text/css" id="css-track-colors"> /* dynamic update via Javascript to adjust color per track type */
 	/* <![CDATA[ */
 svg {
 	--Eisenbahn-color: red;
@@ -3265,6 +3268,13 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		ev.preventDefault();
 		showExportWindow();		
 	});
+	// Button setColors
+	document.getElementById("setColors").addEventListener("click", function(ev) {
+		msg();
+		ev.preventDefault();
+		showColorPickerWindow();		
+	});
+	
 	// Button centerItem
 	document.getElementById("centerItem").addEventListener("click", function(ev) {
 		msg();
@@ -4186,6 +4196,10 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 }
 </script>
 <script type="text/javascript"> // toolwindow
+(function(global) {
+// public api
+global.showInfoWindow = showInfoWindow;
+
 let infoWindow = { count: 0, };
 function showInfoWindow(options) {
 	let code = 'default';
@@ -4239,17 +4253,20 @@ function showInfoWindow(options) {
 	}
 	infoWindow[code].show();
 }
+})(this);
 </script>
 </aside>
 
 <aside id="exportPopup"> <!-- Export Window -->
 
 <script type="text/javascript"> // toolwindow
+(function(global) {
+// public api
+global.showExportWindow = showExportWindow;
+
 let exportWindow;
 function showExportWindow() {
-	//const content 	= document.getElementById("exportPopupContent").innerHTML; // Would lead to duplicate id attributes. How to address the input elements? 
 	if (!exportWindow) {
-		const l = "/";
 		const content = `
 <p>Wähle die Größe <input type="number" name="exportSize" id="exportSize" value="3000" min="1" autocomplete="off" \/> und das gewünschte Datenformat:<\/p>
 <dl>
@@ -4431,6 +4448,120 @@ function exportData(dataURL, fileType) {
 	document.body.removeChild(link);
 	return true;
 }
+})(this);
+</script>
+</aside>
+
+<aside id="colorPopup"> <!-- Color Picker Window -->
+<script type="text/javascript"> // colorPicker
+(function(global) {
+// public api
+global.loadColors = loadColors;
+global.showColorPickerWindow = showColorPickerWindow;
+
+let GleissystemFarbe;
+function loadColors() {
+	GleissystemFarbe = JSON.parse(localStorage.getItem('GleissystemFarbe'));
+
+	if (GleissystemFarbe) {
+		setColorsSVG();
+	} else {
+		resetColors();
+	}
+}
+function resetColors() {
+	// default color per track type 
+	GleissystemFarbe = {
+		Eisenbahn		: '#FF0000',	/* red; */
+		Strassenbahn	: '#A9A9A9',	/* darkgray; */
+		Strasse			: '#808080',	/* grey; */
+		Wasserwege		: '#0000FF',	/* blue; */
+		Steuerstrecken	: '#800080',	/* purple; */
+		GBS				: '#A52A2A',	/* brown; */
+	}
+	
+	// purge local storage
+	localStorage.removeItem('GleissystemFarbe');
+	
+	// set SVG CSS variables
+	setColorsSVG();
+}
+function setColorsSVG() {
+	// set SVG CSS variables
+	const defaultColorVariables = `
+		--Eisenbahn-color: ${GleissystemFarbe.Eisenbahn};
+		--Strassenbahn-color: ${GleissystemFarbe.Strassenbahn};
+		--Strasse-color: ${GleissystemFarbe.Strasse};
+		--Wasserwege-color: ${GleissystemFarbe.Wasserwege};
+		--Steuerstrecken-color: ${GleissystemFarbe.Steuerstrecken};
+		--GBS-color: ${GleissystemFarbe.GBS};
+		`;	
+	document.getElementById("css-track-colors").textContent = `svg {` + defaultColorVariables + `}`;	
+}
+
+let colorPickerWindow;
+function showColorPickerWindow() {
+	if (!colorPickerWindow) {
+		const content = `
+<div><label><input type="color" class="colorPicker" name="Eisenbahn">&nbsp;Eisenbahn<\/label><\/div><br>
+<div><label><input type="color" class="colorPicker" name="Strassenbahn">&nbsp;Straßenbahn<\/label><\/div><br>
+<div><label><input type="color" class="colorPicker" name="Strasse">&nbsp;Straße<\/label><\/div><br>
+<div><label><input type="color" class="colorPicker" name="Wasserwege">&nbsp;Wasserwege<\/label><\/div><br>
+<div><label><input type="color" class="colorPicker" name="Steuerstrecken">&nbsp;Steuerstrecken<\/label><\/div><br>
+<div><label><input type="color" class="colorPicker" name="GBS">&nbsp;GBS<\/label><\/div><br>
+			`;
+	
+		colorPickerWindow = new ToolWindow({
+			title: "Farben wählen",
+			//closeButtonText: "x", // ✖ = &#x2716;
+			//top: 120,
+			//left: 120, // optional: when no top or left are given, this window attempts to center itself
+			width: 225, // starting width
+			height: 200, // starting height
+			minWidth: 100, // don't go thinner than this
+			minHeight: 100, // don't go shorter than this
+			//placement: "inside,auto",
+			//relativeToElement: "#container",
+			animated: true,
+			content: {
+				type: "html",
+				value: content,		
+			},
+			buttons: [
+				{
+					text: "Reset",
+					clicked: function() {
+						resetColors();
+						this.hide();
+					},
+				},
+			],
+		});
+	}
+	colorPickerWindow.show();
+
+	const colorPickers = document.getElementsByClassName('colorPicker');
+	for (let i = 0; i < colorPickers.length; i++) {
+		colorPickers[i].value = GleissystemFarbe[colorPickers[i].name];
+		// Add event handlers again (because the pobpu)
+		colorPickers[i].addEventListener("input", setColor);
+	}
+} // end function showColorPickerWindow
+
+function setColor(event){
+	const name 	= event.target.name;
+	const color = event.target.value;
+	
+	// Update color in SVG-CSS
+	const regex = new RegExp('(--' + name + '-color: )(.*)(;)');
+	const colorVariablesSVG = document.getElementById("css-track-colors");	
+	colorVariablesSVG.textContent = colorVariablesSVG.textContent.replace(regex, `$1${color}$3`);
+	
+	// Update color in storage
+	GleissystemFarbe[name] = color;
+	localStorage.setItem('GleissystemFarbe', JSON.stringify(GleissystemFarbe));
+}
+})(this);
 </script>
 </aside>
 
