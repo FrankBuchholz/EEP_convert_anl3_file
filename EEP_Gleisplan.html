@@ -4459,58 +4459,68 @@ function exportData(dataURL, fileType) {
 global.loadColors = loadColors;
 global.showColorPickerWindow = showColorPickerWindow;
 
+const GleissystemFarbDefinition = [{
+	name: 'Eisenbahn',
+	color: '#FF0000'	/* red; */
+}, {
+	displayName: 'Straßenbahn',
+	name: 'Strassenbahn',
+	color: '#A9A9A9'	/* darkgray; */
+}, {
+	displayName: 'Straße',
+	name: 'Strasse',
+	color: '#808080'	/* grey; */
+}, {
+	name: 'Wasserwege',
+	color: '#0000FF'	/* blue; */
+}, {
+	name: 'Steuerstrecken',
+	color: '#800080'	/* purple; */
+}, {
+	name: 'GBS',
+	color: '#A52A2A'	/* brown; */
+}];
 let GleissystemFarbe;
 function loadColors() {
 	GleissystemFarbe = JSON.parse(localStorage.getItem('GleissystemFarbe'));
 
 	if (GleissystemFarbe) {
-		setColorsSVG();
+		setColors();
 	} else {
 		resetColors();
 	}
 }
 function resetColors() {
-	// default color per track type 
-	GleissystemFarbe = {
-		Eisenbahn		: '#FF0000',	/* red; */
-		Strassenbahn	: '#A9A9A9',	/* darkgray; */
-		Strasse			: '#808080',	/* grey; */
-		Wasserwege		: '#0000FF',	/* blue; */
-		Steuerstrecken	: '#800080',	/* purple; */
-		GBS				: '#A52A2A',	/* brown; */
-	}
+	// reset color values
+	GleissystemFarbe = {};
+	GleissystemFarbDefinition.forEach(function(farbe) {
+		GleissystemFarbe[farbe.name] = farbe.color;
+	});
 	
+	// set SVG CSS variables
+	setColors();
+
 	// purge local storage
 	localStorage.removeItem('GleissystemFarbe');
-	
-	// set SVG CSS variables
-	setColorsSVG();
 }
-function setColorsSVG() {
+function setColors() {
 	// set SVG CSS variables
-	const defaultColorVariables = `
-		--Eisenbahn-color: ${GleissystemFarbe.Eisenbahn};
-		--Strassenbahn-color: ${GleissystemFarbe.Strassenbahn};
-		--Strasse-color: ${GleissystemFarbe.Strasse};
-		--Wasserwege-color: ${GleissystemFarbe.Wasserwege};
-		--Steuerstrecken-color: ${GleissystemFarbe.Steuerstrecken};
-		--GBS-color: ${GleissystemFarbe.GBS};
-		`;	
-	document.getElementById("css-track-colors").textContent = `svg {` + defaultColorVariables + `}`;	
+	const defaultColorVariables = GleissystemFarbDefinition.map(function(farbe) {
+		return `--${farbe.name}-color: ${GleissystemFarbe[farbe.name] || farbe.color};`;
+	}).join('');
+	document.getElementById("css-track-colors").textContent = `svg { ${defaultColorVariables} }`;
+
+	// Update color in storage
+	localStorage.setItem('GleissystemFarbe', JSON.stringify(GleissystemFarbe));
 }
 
 let colorPickerWindow;
 function showColorPickerWindow() {
 	if (!colorPickerWindow) {
-		const content = `
-<div><label><input type="color" class="colorPicker" name="Eisenbahn">&nbsp;Eisenbahn<\/label><\/div><br>
-<div><label><input type="color" class="colorPicker" name="Strassenbahn">&nbsp;Straßenbahn<\/label><\/div><br>
-<div><label><input type="color" class="colorPicker" name="Strasse">&nbsp;Straße<\/label><\/div><br>
-<div><label><input type="color" class="colorPicker" name="Wasserwege">&nbsp;Wasserwege<\/label><\/div><br>
-<div><label><input type="color" class="colorPicker" name="Steuerstrecken">&nbsp;Steuerstrecken<\/label><\/div><br>
-<div><label><input type="color" class="colorPicker" name="GBS">&nbsp;GBS<\/label><\/div><br>
-			`;
-	
+		const content = GleissystemFarbDefinition.map(function(farbe) {
+			return `<div><label><input type="color" class="colorPicker" id="colorPicker-${farbe.name}" name="${farbe.name}">&nbsp;${farbe.displayName || farbe.name}<\/label><\/div><br>`;
+		}).join('');
+
 		colorPickerWindow = new ToolWindow({
 			title: "Farben wählen",
 			//closeButtonText: "x", // ✖ = &#x2716;
@@ -4540,26 +4550,20 @@ function showColorPickerWindow() {
 	}
 	colorPickerWindow.show();
 
-	const colorPickers = document.getElementsByClassName('colorPicker');
-	for (let i = 0; i < colorPickers.length; i++) {
-		colorPickers[i].value = GleissystemFarbe[colorPickers[i].name];
-		// Add event handlers again (because the pobpu)
-		colorPickers[i].addEventListener("input", setColor);
-	}
+	GleissystemFarbDefinition.forEach(function(farbe) {
+		const colorPicker = document.getElementById('colorPicker-' +  farbe.name);
+		colorPicker.value = GleissystemFarbe[farbe.name] || farbe.color;
+		// Add event handlers again (because the popup)
+		colorPicker.addEventListener("input", setColor);
+	});
 } // end function showColorPickerWindow
 
-function setColor(event){
+function setColor(event) {
 	const name 	= event.target.name;
 	const color = event.target.value;
-	
-	// Update color in SVG-CSS
-	const regex = new RegExp('(--' + name + '-color: )(.*)(;)');
-	const colorVariablesSVG = document.getElementById("css-track-colors");	
-	colorVariablesSVG.textContent = colorVariablesSVG.textContent.replace(regex, `$1${color}$3`);
-	
-	// Update color in storage
+
 	GleissystemFarbe[name] = color;
-	localStorage.setItem('GleissystemFarbe', JSON.stringify(GleissystemFarbe));
+	setColors();
 }
 })(this);
 </script>
