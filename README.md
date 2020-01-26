@@ -9,26 +9,27 @@ Der Gleisplan zu einer EEP Anlage wird im Browser angezeigt.
 [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html "EEP_Gleisplan.html")
 
 ### Mausfunktionen 
-Verschieben: Klick+Halten+Bewegen<br/>
-An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
-Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br/>
+Verschieben: Klick+Halten+Bewegen<br>
+An der Stelle des Cursors hineinzoomen: Doppelklick<br>
+Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br>
 Details anzeigen: Klick auf Gleis, Symbol oder Text
 - wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet
 - wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt
 
 ### Tastaturfunktionen
-<kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
+<kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br>
 <kbd>+</kbd> <kbd>-</kbd> : Zoomen
 
 ### Interaktive Funktionen
-Wechsel zwischen vertikalen und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br/>
-Zoom-in, -out, -reset<br/>
-Auswahl der anzuzeigenden Gleissysteme und von Informationen wie Texten oder Marker<br/>
-Aktuelles Darstellung als Bild (`.png`/`.jpg`/`.svg`) speichern<br/>
-Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
-Die Positionierung ist auch über das Inventar-Programm möglich!<br/>
-Einstellung der Linien- und Textbreite<br/>
-Auswahl der Gleise mit minimalem und maximalen Höhenfilter
+Wechsel zwischen vertikalen und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br>
+Zoom-in, -out, -reset<br>
+Auswahl der anzuzeigenden Gleissysteme und von Informationen wie Texten oder Marker<br>
+Aktuelles Darstellung als Bild (`.png`/`.jpg`/`.svg`) speichern<br>
+Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
+Die Positionierung ist auch über das Inventar-Programm möglich!<br>
+Einstellung der Linien- und Textbreite<br>
+Auswahl der Gleise mit minimalem und maximalen Höhenfilter<br>
+Farben der Gleissysteme anpassen
 
 ### Tipp zum Export als svg
 
@@ -60,7 +61,7 @@ Der Fortschrittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit
 
 Die interaktive Einstellung der Linien- und Textbreite wird über dynamische Anpassung der CSS-Variablen in den SVG-CSS-Regeln realisiert.
 
-Der doppelte Schieberegler für den Höhenfilter basiert auf [multirange](https://leaverou.github.io/multirange/).<br/>
+Der doppelte Schieberegler für den Höhenfilter basiert auf [multirange](https://leaverou.github.io/multirange/).<br>
 Der Filter wird über dynamische Anpassung der CSS-Klassen von SVG-Gruppenelemente realisiert.
 
 Die Interaktion mit dem Gleisplan-Programm erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
@@ -85,7 +86,7 @@ Man kann die Tabellen (bei Firefox auch mit Strg+A) mit Copy & Paste in ein Tabe
 
 Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.
 
-[Filter-Operatoren](https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators):<br/>
+[Filter-Operatoren](https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators):<br>
 <kbd>&lt;</kbd>, <kbd>&lt;</kbd>, <kbd>=</kbd>, <kbd>&gt;=</kbd>, <kbd>&gt;</kbd>, <kbd>*</kbd>, <kbd>!</kbd> (nicht), <kbd>{</kbd> (beginnt mit), <kbd>}</kbd> (endet mit), <kbd>||</kbd> (oder), <kbd>&amp;&amp;</kbd> (und), <kbd>[empty]</kbd>, <kbd>[nonempty]</kbd>, <kbd>rgx:</kbd> (gefolgt von einer <i>regular expression</i>)
 
 Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers den Gleisplan für die gleiche EEP-Anlage-Datei öffnet, dann kann man über die Links von Gleisen den Gleisplan auf das gewählte Objekt positionieren.

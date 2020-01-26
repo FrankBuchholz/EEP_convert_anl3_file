@@ -88,35 +88,36 @@ Details anzeigen: Klick auf Gleis, Symbol oder Text<br>
 <span class="li">wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt</span>
 </small></p>
 
-<p><small><strong>Tastaturfunktionen</strong><br/>
-<kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
+<p><small><strong>Tastaturfunktionen</strong><br>
+<kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br>
 <kbd>+</kbd> <kbd>-</kbd> : Zoomen</small></p>
 
-<p><small><strong>Interaktive Funktionen</strong><br/>
-Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br/>
-Zoom-in, -out, -reset<br/>
-Auswahl der anzuzeigenden Gleissysteme<br/>
-Auswahl der anzuzeigenden Informationen (GleisID, Gleisart, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Rahmen)<br/>
-Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise)<br/>
-Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br/>
-Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
-Die Positionierung ist auch über das <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm möglich!<br/>
-Einstellung der Linien- und Textbreite<br/>
-Auswahl der Gleise mit minimalem und maximalen Höhenfilter
+<p><small><strong>Interaktive Funktionen</strong><br>
+Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br>
+Zoom-in, -out, -reset<br>
+Auswahl der anzuzeigenden Gleissysteme<br>
+Auswahl der anzuzeigenden Informationen (GleisID, Gleisart, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Rahmen)<br>
+Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise)<br>
+Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br>
+Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
+Die Positionierung ist auch über das <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm möglich!<br>
+Einstellung der Linien- und Textbreite<br>
+Auswahl der Gleise mit minimalem und maximalen Höhenfilter<br>
+Farben der Gleissysteme anpassen
 </small></p>
 
-<p><small><strong>Referenzen / verwandte Programme</strong><br/>
-Diskussionbeitrag im <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br/>
-Entwicklungsprojekt auf <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br/>
-Anzeige einer <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">Inventarliste</a> zu einer EEP-Anlage<br/>
+<p><small><strong>Referenzen / verwandte Programme</strong><br>
+Diskussionbeitrag im <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br>
+Entwicklungsprojekt auf <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
+Anzeige einer <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">Inventarliste</a> zu einer EEP-Anlage<br>
 Übersicht zu den <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">Signalstellungen</a> anhand der extrahierten .ini-Dateien zu Signalen (siehe EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
 </article>
 
 <article>
-<p><small><strong>Technische Beschreibung</strong><br/>
-Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br/>
-Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br/>
-Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br/>
+<p><small><strong>Technische Beschreibung</strong><br>
+Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br>
+Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
+Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br>
 Das Programm läuft in aktuellen Versionen von Google Chome und Firefox, nicht jedoch im Internet Explorer.</small></p>
 </article>
 
@@ -270,10 +271,18 @@ function updateUi(fn) {
 
 // Process root node (sutrackp)
 // EEP: Static texts
-const GleissystemText = { 			// GleissystemID : GleissystemCode,
+const GleissystemText = { 			// GleissystemID : Text,
 	1 : "Eisenbahn",
-	2 : "Strassenbahn",				// Bug: "Straßenbahn" funktioniert hier nicht, da ansonsten fill in svg nicht gelöscht wird
-	3 : "Strasse",					// Bug: "Straße" funktioniert hier nicht
+	2 : "Straßenbahn",
+	3 : "Straße",
+	4 : "Wasserwege",
+	5 : "Steuerstrecken",			// nicht in EEP 9
+	6 : "GBS",						// nicht in EEP 9
+};
+const GleissystemCode = { 			// GleissystemID : Code,
+	1 : "Eisenbahn",
+	2 : "Strassenbahn",
+	3 : "Strasse",
 	4 : "Wasserwege",
 	5 : "Steuerstrecken",			// nicht in EEP 9
 	6 : "GBS",						// nicht in EEP 9
@@ -751,14 +760,14 @@ function process(Gleissystem) {
 	// Append groups to the root node; append other elements to these group nodes
 	const svgGleissystemGroup = svgAppend(fragment, {
 		svg_tag	: `g`,
-		id		: `${GleissystemText[GleissystemID]}`,
+		id		: `${GleissystemCode[GleissystemID]}`,
 	});
 
 	const Gleise = Gleissystem.getElementsByTagName("Gleis");
 
 	// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
 	if (Gleise.length > 0) {
-		for (const ele of document.getElementsByClassName(GleissystemText[GleissystemID])) {
+		for (const ele of document.getElementsByClassName(GleissystemCode[GleissystemID])) {
 			ele.classList.remove("hidden");
 		}
 	}
@@ -2362,7 +2371,7 @@ input[type="number"]#jpgQuality {
 <!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
 <button id="savePNG">Export PNG/JPG/SVG</button>
 <button id="setColors">Farben</button>
-<br/>
+<br>
 <button id="zoom-in">+</button>
 <button id="zoom-out">-</button>
 <button id="resetzoom">reset zoom</button>
@@ -2396,7 +2405,7 @@ Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSi
 </article>
 
 <article class="group"> <!-- Status line -->
-Min/Max Höhe der Anlage: <span id="heightArea"></span><br/>
+Min/Max Höhe der Anlage: <span id="heightArea"></span><br>
 
 <!-- Begin: Two handled slider for min/max height -->
 <!-- https://leaverou.github.io/multirange/ 
@@ -2509,7 +2518,7 @@ API:
 	width: 200px;
 }
 </style>
-<input id="heightRange" type="range" multiple value="0,100" data-drag-middle /><br/>
+<input id="heightRange" type="range" multiple value="0,100" data-drag-middle /><br>
 
 <script type="text/javascript">
 (function() {
@@ -2639,8 +2648,8 @@ if (typeof module === "undefined") {
 </script>
 <!-- End: Two handled slider for min/max height -->
 
-Sichtbarer Bereich: <span id="visibleArea"> </span><br/>
-Zentrum des Bereichs: <span id="centerPosition"> </span><br/>
+Sichtbarer Bereich: <span id="visibleArea"> </span><br>
+Zentrum des Bereichs: <span id="centerPosition"> </span><br>
 Cursor: <span id="cursorPosition"> </span>
 </article>
 
@@ -2709,6 +2718,7 @@ svg {
 	--Wasserwege-color: blue;
 	--Steuerstrecken-color: purple;
 	--GBS-color: brown;
+	--Hintergrund-color: white;							
 }
 	/* ]]> */
 	</style>
@@ -2746,7 +2756,7 @@ svg {
 	<style type="text/css">
 	/* <![CDATA[ */
 svg {
-	background: white;
+	background: var(--Hintergrund-color);
 	border: 0; /* 1px dotted #3983ab; */
 	padding: 0;
 	box-sizing: border-box;
@@ -4331,23 +4341,27 @@ function exportGraphic(fileType) {
 	const svgSize 	= svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
 	svg.setAttribute("width", svgSize.width);
 	svg.setAttribute("height", svgSize.height);
-	const svgString	= new XMLSerializer().serializeToString(svg);
+	let svgString	= new XMLSerializer().serializeToString(svg);
 	svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again
 	svg.removeAttribute("height");
 
-	const svgType = "image/svg+xml;charset=utf-8";
 	if (fileType === 'svg') {
-		// Export svg
-		exportData('data:' + svgType + ',' + encodeURIComponent(svgString), fileType);
-		return;
+		// reduce precission
+		svgString = svgString.replace(/(\.\d{0,5})\d*/g, '$1');
 	}
 
 	// Convert svg to png/jpg and export it
-	const svgBlob 	= new Blob([svgString], {type: svgType});
+	const svgType = "image/svg+xml;charset=utf-8";
+	const svgBlob = new Blob([svgString], {type: svgType});
 	
 	// Create object url
-	const DOMURL = self.URL || self.webkitURL || self;
-	const url = DOMURL.createObjectURL(svgBlob);
+	const url = URL.createObjectURL(svgBlob);
+
+	if (fileType === 'svg') {
+		// Export svg
+		exportData(url, fileType);
+		return;
+	}
 
 	// Create canvas
 	const canvas = document.createElement("canvas");
@@ -4388,6 +4402,9 @@ function exportGraphic(fileType) {
 	img.onload = function() {
 		// Paint image into canvas
 		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+		
+		// Remove temporary data
+		URL.revokeObjectURL(url);
 
 		// Convert canvas to png/jpg
 		// Firefox might raise exception NS_ERROR_FAILURE
@@ -4415,8 +4432,6 @@ function exportGraphic(fileType) {
 		}
 
 		const rc = exportData(DataURL, fileType);
-		// Remove temporary data
-		DOMURL.revokeObjectURL(DataURL);
 		msg(`${fileType}-Graphik in Größe ${canvas.width}x${canvas.height} exportiert`);
 		return rc;
 	};
@@ -4441,11 +4456,12 @@ function exportData(dataURL, fileType) {
 		console.log(err);
 		msg("Zu groß: Export nicht möglich (link.click)");
 		document.body.removeChild(link);
-		DOMURL.revokeObjectURL(dataURL);
+		URL.revokeObjectURL(dataURL);
 		return false;
 	}
 	// Remove temporary data
 	document.body.removeChild(link);
+	URL.revokeObjectURL(dataURL);
 	return true;
 }
 })(this);
@@ -4479,6 +4495,9 @@ const GleissystemFarbDefinition = [{
 }, {
 	name: 'GBS',
 	color: '#A52A2A'	/* brown; */
+}, {
+	name: 'Hintergrund',
+	color: '#FFFFFF'	/* white; */
 }];
 let GleissystemFarbe;
 function loadColors() {
@@ -4565,7 +4584,7 @@ function setColor(event) {
 	GleissystemFarbe[name] = color;
 	setColors();
 }
-})(this);
+})(this); // end module
 </script>
 </aside>
 
