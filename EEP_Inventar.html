@@ -85,11 +85,20 @@ function process_node(sutrackp) {
 	// EEP: Static texts
 	const GleissystemText = { 			// GleissystemID
 		1 : 'Eisenbahn',
-		2 : 'Strassenbahn',
-		3 : 'Strasse',
+		2 : 'Straßenbahn',
+		3 : 'Straße',
 		4 : 'Wasserwege',
 		5 : 'Steuerstrecken',			// nicht in EEP 9
 		6 : 'GBS',						// nicht in EEP 9
+	};
+
+	const GebaeudesammlungText = { 		// GebaeudesammlungID
+		1 : 'Eisenbahn',
+		2 : 'Straßenbahn',
+		3 : 'Straße',
+		4 : 'Immobilien',
+		5 : 'Landschaftselemente',
+		6 : 'Sonstiges',				//  (Wasserwege)
 	};
 
 	const Gleisart = { 					// clsid
@@ -175,6 +184,7 @@ function process_node(sutrackp) {
 
 	// Maps for direct access
 	const GleisMap = new Map();	// Verwendung: Gleis = GleisMap.get(GleissystemID).get(GleisID))
+	const KollektorMap = new Map();	// Verwendung: Kollektor = KollektorMap.get(KollektorID)
 
 	// Signale und Weichen als Kontaktziele
 	const KontaktZiele		= {};
@@ -185,7 +195,8 @@ function process_node(sutrackp) {
 		Signale 	= [], 	// ID (des Signals), Gleissystem, Gleis, Name, Meldung
 		Kontakte 	= [], 	// SetType, Gleissystem, Gleis, Kontakt
 		Zugverbaende = new Map(),//[], 	// ID (des Zugverbandes), Name, Gleisort, rollmaterialien
-		Gleisstile	= [],	// Gleisstil, Datei, Anzahl
+		Gleisstile	 = [],	// Gleisstil, Datei, Anzahl
+		Gleisobjekte = [],	// ID, [{GleissystemID, GleisID}], ImmoIdx, gsbname 
 		Routen		= [],
 		Sounds		= [];
 
@@ -296,7 +307,7 @@ mit
 
 				// Depending on CurveType some adjustments might be required!
 				Gleis.PosX		= +FramePos.getAttribute("x");
-				Gleis.PosY		= -FramePos.getAttribute("y");
+				Gleis.PosY		= +FramePos.getAttribute("y");
 				Gleis.PosZ		= +FramePos.getAttribute("z");
 				
 			} else {  /* EEP 15 */
@@ -308,7 +319,7 @@ mit
 				Laenge = +Charakteristik.getAttribute("Laenge") / 100;
 				
 				Gleis.PosX		= +FramePos.getAttribute("x") / 100;
-				Gleis.PosY		= -FramePos.getAttribute("y") / 100;
+				Gleis.PosY		= +FramePos.getAttribute("y") / 100;
 				Gleis.PosZ		= +FramePos.getAttribute("z") / 100;
 
 			} /* EEP 15 */
@@ -452,6 +463,48 @@ mit
 		});
 	}
 
+	// Extract Gleisobjekt data from Kollektor
+	for (const Kollektor of sutrackp.getElementsByTagName('Kollektor')) {
+		const KollektorID		= Number(Kollektor.getAttribute('id'));
+		
+		KollektorMap.set(KollektorID, Kollektor);
+		
+		Gleisobjekte.push({
+			ID				: KollektorID,  // sort field
+
+			Kollektor 		: Kollektor,
+		});
+
+		// Cross reference
+		for (GleisEntry of Kollektor.getElementsByTagName("Gleis")) {
+			const GleissystemID = GleisEntry.getAttribute('gleissystemID');
+			const GleisID 		= GleisEntry.getAttribute('gleisID');
+		
+			const Gleis = GleisMap.get(GleissystemID).get(GleisID);
+			Gleis.Kollektor = Kollektor;
+		}
+	}
+
+	// Extract Gleisobjekt data from Gebaeudesammlung
+	for (const Gebaeudesammlung of sutrackp.getElementsByTagName('Gebaeudesammlung')) {
+		const GebaudesammlungID	= Gebaeudesammlung.getAttribute('GebaudesammlungID');
+		for (const Immobile of Gebaeudesammlung.getElementsByTagName('Immobile')) {
+			const ImmoIdx		= Immobile.getAttribute('ImmoIdx');
+			const KollektorID 	= Number(Immobile.getAttribute('kollektorID'));
+			const gsbname 		= Immobile.getAttribute('gsbname');
+			
+			if (KollektorID) {
+				const Kollektor = KollektorMap.get(KollektorID);
+				if (Kollektor) {
+					Kollektor.GebaudesammlungID = GebaudesammlungID;
+					Kollektor.Immobile 	= Immobile;
+					Kollektor.ImmoIdx 	= ImmoIdx;
+					Kollektor.gsbname 	= gsbname;
+				}
+			}
+		}
+	}
+
 	// Extract data from Options
 	/*
 	<Options RouteItems="4" SoundItems="0" RouteId_0="1" RouteName_0="Strecke" RouteId_1="2" RouteName_1="Rangieren" RouteId_2="3" RouteName_2="Tausch" RouteId_3="4" RouteName_3="Weiterfahrt" FavTrainCB="0"/>
@@ -504,6 +557,9 @@ mit
 		const SignalData 	= Gleis.getAttribute('SignalData');
 		const NextSigFn1 	= Gleis.getAttribute('NextSigFn1');
 		const NextSigFn2 	= Gleis.getAttribute('NextSigFn2');
+		
+		const Kollektor		= Gleis.Kollektor;
+		const GleisobjektID	= (Kollektor ? Number(Gleis.Kollektor.getAttribute('id')) : false );
 
 		fillTable(thead, tbody, [
 			
@@ -523,6 +579,10 @@ mit
 		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
 		{ th : `Kontaktziel`,		td : (KontaktZiel != 0 ? KontaktZiel : '') },
 		{ th : `Gleisart`,			td : Gleisart[clsid] },
+		{ th : `Gleisobjekt`,		td :  
+			(GleisobjektID ? `<a href="#Gleisobjekt_${GleisobjektID}">${GleisobjektID}<\/a>` : '') 			
+			, html : true
+			},
 		{ th : `Weichenstellung`,	td : weichenstellung + ' ' + WeichenstellungText[weichenstellung] },
 		{ th : `SignalData`,		td : SignalData },
 		{ th : `NextSigFn1`,		td : NextSigFn1 },
@@ -910,6 +970,78 @@ mit
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+	// Anzeige der Gleisobjekte
+	div = createTable({
+		id		: 'Gleisobjekt',
+		title 	: `Gleisobjekte (${Gleisobjekte.length})`,
+		caption	: `Gleisobjekte`,
+		content	: function(thead, tbody) {
+
+		//Gleisobjekte.forEach(Gleisobjekt => { 
+		Gleisobjekte.sort(orderByID).forEach(Gleisobjekt => {
+		
+		const Dreibein	= Gleisobjekt.Kollektor.getElementsByTagName("Dreibein")[0];
+		const FramePos	= Dreibein.getElementsByTagName("Vektor")[0];
+
+		const PosX		= +FramePos.getAttribute("x") / 100;
+		const PosY		= +FramePos.getAttribute("y") / 100;
+		const PosZ		= +FramePos.getAttribute("z") / 100;
+
+		const Gleise	= Gleisobjekt.Kollektor.getElementsByTagName("Gleis");
+		
+		const GebaudesammlungID = Gleisobjekt.Kollektor.GebaudesammlungID || '';
+		const ImmoIdx			= Gleisobjekt.Kollektor.ImmoIdx || '';
+		const Name 				= Gleisobjekt.Kollektor.gsbname || '';
+
+		let GleissystemID;
+		let GleiseText;
+		for (Gleis of Gleise) {
+
+			const GleisSysID = Gleis.getAttribute('gleissystemID');
+			const GleisID 	= Gleis.getAttribute('gleisID');
+			
+			// Check GleissystemID
+			if (GleissystemID && GleissystemID != GleisSysID ) {
+				console.log('Kollektor' 
+					+ ' ' + Gleisobjekt.ID
+					+ ' GleissystemID ' + GleissystemID + " != " + GleisSysID
+				);
+			}
+			GleissystemID = GleisSysID;
+			
+			if (!GleiseText) {
+				GleiseText = GleissystemText[GleissystemID];
+			}
+			GleiseText += ' ' 
+				+ `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleisID
+				+ `<\/a>`;
+		}
+
+		
+		fillTable(thead, tbody, [
+			
+		{ th : `Gleisobjekt`,		td : 
+			`<span id="Gleisobjekt_${Gleisobjekt.ID}">${Gleisobjekt.ID}<\/span>` 			
+			, html : true },
+		{ th : `Anzahl Gleise`,		td : Gleise.length				},
+		{ th : `Gleise`,			td : GleiseText, html : true	},
+		{ th : `x (m)`,				td : PosX.toFixed(0) 			},
+		{ th : `y (m)`,				td : PosY.toFixed(0) 			},
+		{ th : `Immobile`,			td : 
+			//GebaeudesammlungText[GebaudesammlungID] + ' ' + 
+			ImmoIdx
+			},
+		{ th : `Name`,				td : Name		},
+
+		]) }) 
+		
+		return Gleisobjekte.length;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
 	// Allow to sort all tables by clicking on the header
 	prepareSort();
 }
@@ -1114,7 +1246,18 @@ function toggleElements(selector, visible) {
 }
 
 </script>
-<style> /* html page */
+<style> 
+/* Selection screen */
+#fileselector {
+	margin: 15px;
+}
+#fileselector span.li {
+	display: list-item;
+	padding-top: 0.2em;
+	margin-left: 2em;
+}
+
+/* html page */
 .hidden {
 	display: none;
 }
@@ -1205,7 +1348,10 @@ Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.<br
 Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators' target='_blank'>4.-Filter-operators</a> beschrieben.
 </small></p>
 
-<p>Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers den <a href="EEP_Gleisplan.html" target="_blank">Gleisplan</a> für die gleiche EEP-Anlage-Datei öffnet, dann kann man über die Links von Gleisen den Gleisplan auf das gewählte Objekt positionieren.</p>
+<p>Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers den <a href="EEP_Gleisplan.html" target="_blank">Gleisplan</a> für die gleiche EEP-Anlage-Datei öffnet, dann kann man über die Links von Gleisen, Signalen oder Kontakten den Gleisplan auf das gewählte Objekt positionieren und das Info-Popup dort öffnen:
+<span class="li">wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet</span>
+<span class="li">wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt</span>
+</p>
 
 <p><small>(c) Frank Buchholz, 2020</small></p>
 </div> <!-- fileselector -->
@@ -1223,6 +1369,7 @@ Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://gi
 	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)"><a href='#divKontakt'>Kontakt</a></label></div>
 	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)"><a href='#divZugverband'>Zugverband</a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'>Gleisstil</a></label></div>
+	<div class="item"><label><input type='checkbox' name='Gleisobjekt'	checked autocomplete='off' onchange="toggleElements('.Gleisobjekt', this.checked)"><a href='#divGleisobjekt'>Gleisobjekt</a></label></div>
 	|
 	<!-- Hide filter row and filter related icons to make copy&paste to Excel easier -->
 	<div class="item"><label><input type='checkbox' name='Filter'		checked autocomplete='off' onchange="toggleElements('.fltrow,.rdiv', this.checked)">Filter</label></div>
@@ -1245,8 +1392,11 @@ EEPchannel.onmessage = function(ev) {
 
 function postGleisMessage(GleissystemID, GleisID) {					// Gleis
 	EEPchannel.postMessage({
-		GleissystemID: GleissystemID, 
-		GleisID: GleisID,
+		GleissystemID: 	GleissystemID, 
+		GleisID: 		GleisID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
 	});
 }
 
@@ -1255,6 +1405,9 @@ function postIDMessage(ID, GleissystemID, GleisID) {				// Signal oder Weiche
 		ID: 			ID,
 		GleissystemID: 	GleissystemID, 
 		GleisID: 		GleisID, 
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
 	});
 }
 
@@ -1262,9 +1415,35 @@ function postKontaktMessage(KontaktID, GleissystemID, GleisID) {	// Kontakt
 	EEPchannel.postMessage({
 		KontaktID: 		KontaktID, 
 		GleissystemID: 	GleissystemID, 
-		GleisID: 		GleisID, 
+		GleisID: 		GleisID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
 	});
 }
+
+const global = {};
+global.shiftDown 	= false;
+global.strgDown 	= false;
+global.altDown 		= false;
+document.addEventListener('keydown', function(event){
+    if			(event.keyCode === 16 || event.charCode === 16){
+        global.shiftDown = true;
+    } else if	(event.keyCode === 17 || event.charCode === 17){
+        global.strgDown = true;
+    } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = true;
+    }
+});
+document.addEventListener('keyup', function(event){
+    if			(event.keyCode === 16 || event.charCode === 16){
+        global.shiftDown = false;
+    } else if	(event.keyCode === 17 || event.charCode === 17){
+        global.strgDown = false;
+    } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = false;
+    }
+});
 
 // Disconnect the channel
 //EEPchannel.close();

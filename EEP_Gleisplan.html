@@ -139,6 +139,7 @@ Das Programm läuft in aktuellen Versionen von Google Chome und Firefox, nicht j
 <!-- <script type="text/javascript" src="https://unpkg.com/rematrix"></script> --> <!-- latest version -->
 <!-- <script type="text/javascript" src="https://unpkg.com/rematrix@0.4.1/dist/rematrix.min.js"></script> --> <!-- version 0.4.1 -->
 <script type="text/javascript"> // Load and process file
+"use strict";
 
 const global = {}; // Collection of all global variables
 
@@ -157,9 +158,9 @@ function loadFile(file) {
 		global.timestamp = {};
 		global.timestamp.start = Date.now();
 	
-		fr = new FileReader();
-		fr.onload = processFile;
-		fr.readAsText(file);
+		fr = { FileReader: new FileReader() }; // strict mode does not allow to unset read-only property 'result' directly, therfore we have to put the FileReader into an object 
+		fr.FileReader.onload = processFile;
+		fr.FileReader.readAsText(file);
 	}
 
 	// process file (local function to get access to local variable fr)
@@ -177,8 +178,9 @@ function loadFile(file) {
 			// Create parser
 			var parser = new DOMParser();
 			// Parse xml into DOM
-			var xmlDoc = parser.parseFromString(fr.result, "text/xml");
-			fr.result = null; // we do not need this data anymore
+			var xmlDoc = parser.parseFromString(fr.FileReader.result, "text/xml");
+			//fr.FileReader.result = null; 	// we do not need the file content anymore, but in strict mode we cannot unset the property directly
+			delete fr.FileReader;			// however, we can remove the whole thing (see http://perfectionkills.com/understanding-delete/ )
 
 			global.timestamp.fileParsed = Date.now();
 			console.log('parse file:' + (global.timestamp.fileParsed - global.timestamp.fileLoaded) / 1000 + 'sec');
@@ -267,8 +269,8 @@ function updateUi(fn) {
 	});
 }
 </script>
-<script> // DOM2SVG
-
+<script type="text/javascript"> // DOM2SVG
+"use strict";
 // Process root node (sutrackp)
 // EEP: Static texts
 const GleissystemText = { 			// GleissystemID : Text,
@@ -325,15 +327,80 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
 	*/
 	const unsichtbar = [			// unsichtbare Gleisstile
-		17, 						// Wasser, Steuerstrecke
-		28, 34, 562, 1346, 5100,	// Gleis
-		35, 						// Straßenbahn
-		36, 						// Straße
-		5145, 5146, 5147,			// Farm track
-		5602,						// Fence
-		100000,						// Kamerafahrweg
+17,		// \Gleisstile\Sonstiges\Wasserweg_unsichtbar.3dm
+28,		// Gleis
+35,		// Straßenbahn
+34,		// \Gleisstile\Sonstiges\Wasserweg_unsichtbar.3dm
+36,		// \Gleisstile\Strassen\unsichtbar.3dm
+562,	// Gleis
+1346,	// Gleis
+2052,	// \Gleisstile\Gleise\Unsichtbares_Gleis_m_OL_UB3.3dm
+3425, 	// \Gleisstile\Strassen\1Spur_unsichtbar_AS3.3dm
+100000,	// Kamerafahrweg
+/*
+18,		// \Gleisstile\Sonstiges\telegraph.3dm
+70,		// \Gleisstile\Sonstiges\Stuetzmauer_Lauscha.3dm
+85,		// \Gleisstile\Strassen\Leitplanke.3dm
+92,		// \Gleisstile\Gleise\Bahnsteig.3dm
+102,	// \Gleisstile\Sonstiges\Gitterzaun.3dm
+134,	// \Gleisstile\Gleise\Bahnsteig_KoelnHbf.3dm
+184,	// \Gleisstile\Sonstiges\Gelaender.3dm
+264,	// \Gleisstile\Gleise\Bahnsteig_Hohenfels.3dm
+731,	// \Gleisstile\Gleise\Bhst900_Kreihnsdoerp.3dm
+732,	// \Gleisstile\Gleise\Bhst1350_Kreihnsdoerp.def
+851,	// \Gleisstile\Sonstiges\851_Gelaender_mit_Stuetze_AF1.3dm
+927,	// \Gleisstile\Sonstiges\Schallschutzwand.3dm
+1246,	// \Gleisstile\Sonstiges\Sicherheitszaun.3dm
+1307,	// \Gleisstile\Sonstiges\Gleis_Abdeckung_C_LW1.3dm
+1380,	// \Gleisstile\Sonstiges\Fuehrungsschiene_R_LW1.3dm
+1381,	// \Gleisstile\Sonstiges\Nur Fahrdraht_MM_LW1.3dm
+1393,	// \Gleisstile\Sonstiges\LW1_Gleis_Fahrdraht_mitte.3dm
+1399,	// \Gleisstile\Sonstiges\LW1_Gleis_Fahrdraht_ende.3dm
+1401,	// \Gleisstile\Sonstiges\LW1_Gleis_Quertraeger_unten.3dm
+1402,	// \Gleisstile\Sonstiges\LW1_Gleis_Quertraeger_oben.3dm		
+1412,	// \Gleisstile\Sonstiges\LW1_Gleis_Fahrdraht_anf.3dm
+1414,	// \Gleisstile\Sonstiges\LW1_Gleis_Fahrdraht_spann.3dm
+1445,	// \Gleisstile\Sonstiges\LW1_Gleis_Quertraeger_Stahl_LW1.3dm
+1448,	// \Gleisstile\Sonstiges\LW1_Gleis_Quertraeger_leer.3dm
+1449,	// \Gleisstile\Sonstiges\LW1_Gleis_Schallschutz_Stuetzmauer_LW1.3dm
+1450,	// \Gleisstile\Sonstiges\LW1_Gleis_Spannungsver_A.3dm
+1601,	// \Gleisstile\Sonstiges\1601_Gelaender_mit_Stuetze_AF1.3dm
+1738,	// \Gleisstile\Sonstiges\Kabelkanal1_MA1.3dm
+1958,	// \Gleisstile\Sonstiges\3DVersion\Lattenzaun-3D_SM1.3dm
+1959,	// \Gleisstile\Sonstiges\3DVersion\Jaegerzaun-3D_SM1.3dm
+1974,	// \Gleisstile\Sonstiges\Steinmauer3_SM1.3dm
+1978,	// \Gleisstile\Sonstiges\Arkadenmauer-2gl_SM1.3dm
+1979,	// \Gleisstile\Sonstiges\Arkadenmauer-4gl_SM1.3dm
+1982,	// \Gleisstile\Sonstiges\3DVersion\Arkadenmauer-einseitig-3D_SM1.3dm
+1995,	// \Gleisstile\Sonstiges\Schutzmauer_2_MA1.3dm
+2304,	// \Gleisstile\Sonstiges\DB-Gelaender_SB3.3dm
+2381,	// \Gleisstile\Sonstiges\DB-Gelaender_10_SB3.3dm
+2386,	// \Gleisstile\Sonstiges\Schallschutzwand_grau_SB3.3dm
+2387,	// \Gleisstile\Sonstiges\Schallschutzwand_gruen_SB3.3dm
+2581,	// \Gleisstile\Sonstiges\BMauer_eben_0_HW1.3dm
+5008,	// \Gleisstile\Sonstiges\3DVersion\Sicherheitszaun_mit_Stacheldragt_3D.3dm	
+5085,	// \Gleisstile\Sonstiges\3DVersion\Hedge_1m_Cypress.3dm
+5100,	// \Gleisstile\Gleise\Unsichtbar_RB2.3dm
+5138,	// \Gleisstile\Sonstiges\3DVersion\ParkHotel_Harz_Zaun.3dm
+5145, 5146, 5147, // Farm track
+5213,	// \Gleisstile\Sonstiges\3DVersion\Ebrzgl.3dm
+5261,	// \Gleisstile\Sonstiges\3DVersion\Schutzplanke_einfach_MA1.3dm
+5262,	// \Gleisstile\Sonstiges\3DVersion\Schutzplanke_zweifach_MA1.3dm
+5263,	// \Gleisstile\Sonstiges\3DVersion\Schutzplanke_doppel_MA1.3dm
+5271,	// \Gleisstile\Sonstiges\IndZaun_Zaun_AE1.3dm
+5272,	// \Gleisstile\Sonstiges\IndZaun_Zaun_TT1_AE1.3dm
+5274,	// \Gleisstile\Sonstiges\IndZaun_Zaun_TT3_AE1.3dm
+5602,	// Fence
+7411,	// \Gleisstile\Strassen\Leitpl_3D_mit_Pf_UFS_DH1.3dm
+7412,	// \Gleisstile\Sonstiges\Doppel_T_Trg_30x30_blau_DH1.3dm
+*/
 	];
 
+	// Gleisobjekte:
+	// <Gleis> - <Kollektor> - <Immobilie>
+	// konvexe Hülle zu Punkten in 2D berechnen:
+	// https://www.nayuki.io/page/convex-hull-algorithm
+	
 	const Version = sutrackp.getElementsByTagName("Version")[0];
 	if (Version) {
 		global.EEPversion = Version.getAttribute("EEP");	
@@ -538,7 +605,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				let Laenge
 				if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 					const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-					Laenge	= Math.max( +Interval.getAttribute("near"), +Interval.getAttribute("far") ); // assumption: the other attribute has value 0
+					const near		= +Interval.getAttribute("near");
+					const far 		= +Interval.getAttribute("far");
+					Laenge	= Math.abs( far - near );
 				} else {  /* EEP 15 */
 					const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
 					Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
@@ -605,7 +674,9 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 					let Laenge
 					if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 						const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-						Laenge	= Math.max( +Interval.getAttribute("near"), +Interval.getAttribute("far") ); // assumption: the other attribute has value 0
+						const near		= +Interval.getAttribute("near");
+						const far 		= +Interval.getAttribute("far");
+						Laenge	= Math.abs( far - near );
 					} else {  /* EEP 15 */
 						const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
 						Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
@@ -640,8 +711,8 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	global.trackSignals = trackSignals;
 	
 	// Analyse Fuhrpark to identify "active" tracks
-	global.Fuhrpark = sutrackp.getElementsByTagName("Fuhrpark")[0];
-	for (const Zugverband of global.Fuhrpark.getElementsByTagName("Zugverband")) {
+	const Fuhrpark = sutrackp.getElementsByTagName("Fuhrpark")[0];
+	for (const Zugverband of Fuhrpark.getElementsByTagName("Zugverband")) {
 		// <Gleisort gleissystemID="3" gleisID="41" parameter="1177.944" ausrichtung="0"/>
 		const Gleisort		= Zugverband.getElementsByTagName("Gleisort")[0];
 		const GleissystemID	= Gleisort.getAttribute("gleissystemID");
@@ -865,6 +936,24 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 			BinX	= +FrameBin.getAttribute("dx");
 			BinY	= -FrameBin.getAttribute("dy");
 			BinZ	= +FrameBin.getAttribute("dz");
+			
+			if (DirX == 0 && DirY == 0 && DirZ == 1 && NorX != 0 && NorY != 0 && NorZ == 0) { // wrong order Bin - Dir - Nor
+				const FrameBin	= Frame.getElementsByTagName("Vector")[0];
+				const FrameDir	= Frame.getElementsByTagName("Vector")[1];
+				const FrameNor	= Frame.getElementsByTagName("Vector")[2];
+				
+				DirX		= +FrameDir.getAttribute("dx");
+				DirY		= -FrameDir.getAttribute("dy");
+				DirZ		= +FrameDir.getAttribute("dz");
+				
+				NorX		= +FrameNor.getAttribute("dx");
+				NorY		= -FrameNor.getAttribute("dy");
+				NorZ		= +FrameNor.getAttribute("dz");
+				
+				BinX		= +FrameBin.getAttribute("dx");
+				BinY		= -FrameBin.getAttribute("dy");
+				BinZ		= +FrameBin.getAttribute("dz");
+			}			
 /*
 if (DirX == -NorY ) { 
 	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
@@ -926,6 +1015,53 @@ if (BinZ == -1 ) {
 				BinX		= +Frame2Bin.getAttribute("dx");
 				BinY		= -Frame2Bin.getAttribute("dy");
 				BinZ		= +Frame2Bin.getAttribute("dz");
+
+/*
+Problematische Gleise:
+
+Makinista_GRAFENBURG 16
+
+<Gleis GleisID="4944" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="17" gsbname="\Gleisstile\Sonstiges\Wasserweg_unsichtbar.3dm" LockEd="0">
+<Frame>
+<Position x="4.882813E-04" y="6.103516E-03" z="0"/>
+<Vector dx="1" dy="0" dz="0"/>
+<Vector dx="0" dy="1" dz="0"/>
+<Vector dx="0" dy="0" dz="1"/>
+</Frame>
+<Interval near="0" far="2.3"/>
+<Curve>
+<EEPCurve Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Laenge="230" Kurve="0" Anfangsfuehrungsverdrehung="0">
+<Frame>
+<Position x="-572287.6" y="-28208.7" z="4840"/>
+<Vector dx="0" dy="0" dz="1"/>
+<Vector dx="-0.7071068" dy="0.7071068" dz="0"/>
+<Vector dx="-0.7071068" dy="-0.7071068" dz="0"/>
+</Frame>
+</EEPCurve>
+</Curve>
+
+-> Falsche Reihenfolge von EEPCurve Vector: Bin - Dir - Nor
+
+*/
+//if (GleissystemID == "4" && GleisID == "4944") debugger;
+//if (GleissystemID == "4" && GleisID == "5817") debugger;
+				if (DirX == 0 && DirY == 0 && DirZ == 1 && NorX != 0 && NorY != 0 && NorZ == 0) { // wrong order Bin - Dir - Nor
+					const Frame2Bin	= Frame2.getElementsByTagName("Vector")[0];
+					const Frame2Dir	= Frame2.getElementsByTagName("Vector")[1];
+					const Frame2Nor	= Frame2.getElementsByTagName("Vector")[2];
+					
+					DirX		= +Frame2Dir.getAttribute("dx");
+					DirY		= -Frame2Dir.getAttribute("dy");
+					DirZ		= +Frame2Dir.getAttribute("dz");
+					
+					NorX		= +Frame2Nor.getAttribute("dx");
+					NorY		= -Frame2Nor.getAttribute("dy");
+					NorZ		= +Frame2Nor.getAttribute("dz");
+					
+					BinX		= +Frame2Bin.getAttribute("dx");
+					BinY		= -Frame2Bin.getAttribute("dy");
+					BinZ		= +Frame2Bin.getAttribute("dz");
+				}
 
 				//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
 				mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
@@ -1397,7 +1533,14 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 		let Winkel, DeltaX, DeltaY, DeltaZ, svgRotate;
 		const posX = 12, posY = 13, posZ = 14; // Index in mMatrix
-		
+
+		// Log defect data
+		if (isNaN( mMatrix[posX] )) {
+			console.log("NaN Error: "
+				+ ' Gleis ' + GleissystemID + '-' + GleisID
+			);
+		}
+
 		// Group node for Gleis
 		const svgGleisGroup = svgAppend(svgGleissystemGroup, {
 			svg_tag	: `g`,
@@ -1407,7 +1550,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 						+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
 						+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
 						// Ein Kamerafahrweg ist immer unsichtbar
-						+ (stil== 100000 || (unsichtbar.includes(parseInt(stil) && GleisData != 16)) ? " " + "unsichtbar" : ""),
+						+ (stil == 100000 || (unsichtbar.includes(parseInt(stil)) && GleisData != 16) ? " " + "unsichtbar" : ""),
 		});
 
 		// Calculate end point and create svg curve
@@ -1695,7 +1838,8 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		// </Meldung>
 
 		const trackSignalEntries = global.trackSignals[GleissystemID][GleisID];
-		if (trackSignalEntries) for (const trackSignalEntry of trackSignalEntries) {
+		if (trackSignalEntries) { 
+		for (const trackSignalEntry of trackSignalEntries) {
 			const Meldung		= trackSignalEntry.Meldung;
 			const SignalID		= Meldung.getAttribute("Key_Id");
 			const signalType	= trackSignalEntry.signalType;
@@ -1705,11 +1849,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			
 			// Calculate point
 			if (CurveType == "Cubic") {
-console.log("Signal auf Cubic"
-+ ' Gleis ' + GleissystemID + '-' + GleisID
-+ ' Position ' + Position
-)						
-				const t = Laenge / Position;
+				const t = (Laenge ? Position / Laenge : 0);
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
 			} else if (CurveType == 'Clothoid') {
@@ -1739,12 +1879,15 @@ console.log("Signal auf Cubic"
 				DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
 				DeltaZ			= 0;
 			}
-			
+
 			Meldung.mPos = [
 					mMatrix,
 					Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
+					Rematrix.rotateZ( 
+						  Winkel*180/Math.PI	// Rotate to tangent of track
+						+ ParaOderAnti*180 		// Rotate text to the side of the symbol 
+					),												
 				].reduce(Rematrix.multiply);
-			svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})` : '');
 
 			// Group node for Signal
 			const svgSignalGroup = svgAppend(svgGleisGroup, {
@@ -1765,17 +1908,12 @@ console.log("Signal auf Cubic"
 			// Show symbol for Signal / Fahrstraße
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `use`,
-				//class				: `Signal`,
 				href				: (	  signalType === "FStart" 	? "#SymbolFStart" 
 										: signalType === "FZiel" 	? "#SymbolFZiel"
 										: signalType === "pre" 		? "#SymbolPreSignal" 
 										: 							  "#SymbolSignal"
 									  ),
-				x					: DeltaX,
-				y					: -DeltaY,
-				transform 			: matrixToTransform(mMatrix)
-										+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
-										+ ` rotate(${Winkel*(180/Math.PI)} 0 0)` // need to rotate around 0 0 
+				transform 			: matrixToTransform(Meldung.mPos)
 										+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position
 										,
 			});
@@ -1784,24 +1922,19 @@ console.log("Signal auf Cubic"
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `text`,
 				text				: (	  signalType === "FStart"	? "Fs" 
-										: signalType === "FZiel"	 	? "Fz"
+										: signalType === "FZiel"	? "Fz"
 										: signalType === "pre" 		? "S" 
 										: 						  	  "S"  
 									  )
 										+ SignalID 
 										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``),
-				//"dy"				: `${(ParaOderAnti == 0 ? "-2.3" : "1.3em")}`, 	// Shift text if not rotated to the side of the symbol
-				"dy"				: `-2.3`, 										// Shift text if rotated to the side of the symbol
-				class				: `Signal`,
-				x					: DeltaX,
-				y					: -DeltaY,
-				transform 			: matrixToTransform(mMatrix)
-										+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`	// Rotate text to the side of the symbol
-										+ ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+				"dy"				: `-2.3`, 									// Shift text above the symbol
+				transform 			: matrixToTransform(Meldung.mPos)
 										+ ` scale(1 -1)`,
 			});
 
-		} // Signale
+
+		}} // Signale
 
 		// Kontakte
 		for (const Kontakt of Gleis.getElementsByTagName("Kontakt")) {
@@ -1809,6 +1942,9 @@ console.log("Signal auf Cubic"
 			const ParaOderAnti 	= Kontakt.getAttribute("ParaOderAnti"); // Gleisrichtung 1: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 			const fireOnPara  	= Kontakt.getAttribute("fireOnPara"); 	// Kontakt aktiv für Gleisrichtung 1
 			const fireOnAnti  	= Kontakt.getAttribute("fireOnAnti"); 	// Kontakt aktiv für Gleisrichtung 2
+			const SetType 		= Number(Kontakt.getAttribute('SetType'));
+			const SetValue 		= Number(Kontakt.getAttribute('SetValue'));
+			const VolDist 		= Number(Kontakt.getAttribute('VolDist'));
 			const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
 			
 			const KontaktID = global.KontakteArray.length; // arbitrary identfication
@@ -1816,11 +1952,7 @@ console.log("Signal auf Cubic"
 			
 			// Calculate point
 			if (CurveType == "Cubic") {
-console.log("Kontakt auf Cubic"
-+ ' Gleis ' + GleissystemID + '-' + GleisID
-+ ' Position ' + Position
-)						
-				const t = Laenge / Position;
+				const t = (Laenge ? Position / Laenge : 0);
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
 			} else if (CurveType == 'Clothoid') {
@@ -1854,8 +1986,11 @@ console.log("Kontakt auf Cubic"
 			Kontakt.mPos = [
 					mMatrix,
 					Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
+					Rematrix.rotateZ( 
+						  Winkel*180/Math.PI	// Rotate to tangent of track
+						//+ ParaOderAnti*180 		// Rotate text to the side of the symbol 
+					),												
 				].reduce(Rematrix.multiply);
-			svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})` : '');
 
 			// Group node for Kontakt
 			const svgKontaktGroup = svgAppend(svgGleisGroup, {
@@ -1877,13 +2012,9 @@ console.log("Kontakt auf Cubic"
 			if (fireOnPara == 1) {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `use`,
-					//class				: `Kontakt`,
 					"href"				: `#SymbolKontakt`,
-					x					: DeltaX,
-					y					: -DeltaY,
-					transform 			: matrixToTransform(mMatrix)
-											+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
-											+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+					transform 			: matrixToTransform(Kontakt.mPos)
+											+ (ParaOderAnti ? ` rotate(${ParaOderAnti*180})` : '')
 											+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
 											,
 				});
@@ -1891,44 +2022,29 @@ console.log("Kontakt auf Cubic"
 			if (fireOnAnti == 1) {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `use`,
-					//class				: `Kontakt`,
 					"href"				: `#SymbolKontakt`,
-					x					: DeltaX,
-					y					: -DeltaY,
-					transform 			: matrixToTransform(mMatrix)
-											+ ` rotate(${(1-ParaOderAnti) * 180} ${DeltaX} ${DeltaY})`
-											+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+					transform 			: matrixToTransform(Kontakt.mPos)
+											+ (1-ParaOderAnti ? ` rotate(${(1-ParaOderAnti)*180})` : '')
 											+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
 											,
 				});
 			}
 
 			// Show text of Kontakt
+			let KontaktTypText = getKontaktTyp(GleissystemID, SetType, SetValue, VolDist).shortText;
 			if (KontaktZiel > 0) {
 				const Ziel = global.KontaktZiele[KontaktZiel];
-
+				KontaktTypText += (Ziel ? `${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `?${KontaktZiel}`);
+			}
+			if (KontaktTypText != '') {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
-					// text				:  `→${KontaktZiel} ${ParaOderAnti}${fireOnPara}${fireOnAnti}`,
-					text				:  (Ziel ? `→${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `→?${KontaktZiel}`), // → = &rarr; = &#8594;   ⭢ = &#2B62
-					//"dy"				: `${(ParaOderAnti == 0 ? "-2.3" : "1.3em")}`, 	// Shift text if not rotated to the side of the symbol
-					"dy"				: `-2.3`, 										// Shift text if rotated to the side of the symbol
-					class				: `Kontakt`,
-					x					: DeltaX,
-					y					: -DeltaY,
-					transform 			: matrixToTransform(mMatrix)
-											+ ` rotate(${ParaOderAnti*180+(1-fireOnPara)*180} ${DeltaX} ${DeltaY})`	// Rotate text to the side of the symbol
-											+ ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+					text				:  KontaktTypText,
+					"dy"				: `-2.3`, 													// Shift text above the symbol
+					transform 			: matrixToTransform(Kontakt.mPos)
+											+ ` rotate(${ParaOderAnti*180 + (1-fireOnPara)*180})`	// Rotate text to the side of the symbol
 											+ ` scale(1 -1)`,
 				});
-			} else {
-				// SetType=1..7	Fahrzeug 	U+1F686	🚆	U+1f697	🚗	U+26f4	⛴
-				// SetType=8	Halt 	  	U+1f6d1	🛑
-				// SetType=256	Sound 	  	U+1F50A	🔊	U+266B	♫
-				// SetType=512	Kamera		U+1F4F7	📷
-				// SetType=768	Immobilie	U+1F3E0	🏠
-				// SetType=1024	DKW/EKW
-				//...
 			}
 
 		} // Kontakte
@@ -2521,8 +2637,8 @@ API:
 <input id="heightRange" type="range" multiple value="0,100" data-drag-middle /><br>
 
 <script type="text/javascript">
-(function() {
 "use strict";
+(function() {
 
 var supportsMultiple = self.HTMLInputElement && "valueLow" in HTMLInputElement.prototype;
 
@@ -2644,7 +2760,7 @@ if (typeof module === "undefined") {
 	module.exports = multirange;
 }
 
-})();
+})(this);
 </script>
 <!-- End: Two handled slider for min/max height -->
 
@@ -2796,7 +2912,7 @@ text.WeicheText {
 	text-anchor	: end;
 }
 
-text.Signal  {
+.Signal text, .Kontakt text {
 	text-anchor	: middle;
 }
 
@@ -2823,6 +2939,7 @@ text.Signal  {
 	fill:   none;
 	marker-start: url(#EisenbahnMarkerCircle);
 	marker-end:   url(#EisenbahnMarkerArrow);
+	/* stroke-dasharray: 0.2 0.4; */ /* Schwellenabstand von 60cm */
 }
 #EisenbahnMarkerCircle, #EisenbahnMarkerArrow {
 	fill: var(--Eisenbahn-marker-color);
@@ -2924,7 +3041,7 @@ text.Signal  {
 }
 
 .unsichtbar {	/* unsichtbare Gleisstile */
-	stroke-dasharray: 1;
+	stroke-dasharray: 0.4 0.2;
 }
 
 .inactive {		/* inaktive Gleisstile */
@@ -2940,20 +3057,20 @@ text.Signal  {
 
 <defs> <!-- Symbols and Markers -->
 	<!-- Use of symbols requires translate(-10 0) to move the origin M 0 0 to the correct position -->
-	<!-- <path d="M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z" /> -->								<!-- Kreissegment -->
-	<!-- <path d="M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2" /> -->	<!-- Box -->
+	<!-- <path d="M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z" /> --> <!-- Kreissegment -->
+	<!-- <path d="M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2" /> --> <!-- Box -->
+	<!-- <path d="M 0 0 L 0 0.9" /><circle cx="0" cy="1.5" r="0.6" /> --> <!-- Linie mit Kreis -->
 	<symbol id="SymbolSignal" width="20" height="10" viewBox="-10 0 20 10">
-		<path d="M 0 0 L 0 0.9  M 0.25 0.9 L 0.6 1.25 L 0.6 1.75 L 0.25 2.1  L -0.25 2.1 L -0.6 1.75 -0.6 1.25 -0.25 0.9 Z" /> <!-- Linie mit Achteck -->
+		<path d="M 0 0 L 0 0.9  M 0.25 0.9 L 0.6 1.25 L 0.6 1.75 L 0.25 2.1  L -0.25 2.1 L -0.6 1.75 L -0.6 1.25 L -0.25 0.9 Z" /> <!-- Linie mit Achteck --> 
 	</symbol>
 	<symbol id="SymbolPreSignal" width="20" height="10" viewBox="-10 0 20 10">
-	<!--<path d="M 0 0 L 0 0.9" /><circle cx="0" cy="1.5" r="0.6" /> --> 						<!-- Linie mit Kreis -->
-		<path d="M 0 0 L 0 0.9" /><circle cx="0" cy="1.3" r="0.4" />  							<!-- Linie mit kleinem Kreis -->
+		<path d="M 0 0 L 0 0.9" /><circle cx="0" cy="1.3" r="0.4" /> <!-- Linie mit kleinem Kreis -->
 	</symbol>
 	<symbol id="SymbolKontakt" width="20" height="10" viewBox="-10 0 20 10">
-		<path d="M 0 0 L 0 0.9  M 0 0.9 L 0.7 2.1 L -0.7 2.1 Z" />									<!-- Linie mit Dreieck -->
+		<path d="M 0 0 L 0 0.9  M 0 0.9 L 0.7 2.1 L -0.7 2.1 Z" /> <!-- Linie mit Dreieck -->
 	</symbol>
 	<symbol id="SymbolFStart" width="20" height="10" viewBox="-10 0 20 10">
-		<path d="M 0 0 L 0 1.1  M 0 1.1 L 0.41 0.83 L 0.29 1.3 L 0.67 1.6 L 0.17 1.65 L 0 2.1  L -0.17 1.65 L -0.67 1.6 L -0.29 1.3 L -0.41 0.83 Z" /> 	<!-- Linie mit 5er Stern -->
+		<path d="M 0 0 L 0 1.1  M 0 1.1 L 0.41 0.83 L 0.29 1.3 L 0.67 1.6 L 0.17 1.65 L 0 2.1  L -0.17 1.65 L -0.67 1.6 L -0.29 1.3 L -0.41 0.83 Z" /> <!-- Linie mit 5er Stern -->
 	</symbol>
 	<symbol id="SymbolFZiel" width="20" height="10" viewBox="-10 0 20 10">
 		<path d="M 0 0 L 0 0.9  M 0 0.9 L -1.2 0.9 L -1.2 2.1 L 0 2.1 Z  M -0.6 0.9 L -0.6 2.1  M 0 1.5 L -1.2 1.5" /> <!-- Linie mit Flagge -->
@@ -3029,6 +3146,7 @@ See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
 <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.0/dist/svg-pan-zoom.min.js"></script>	-->
 
 <script type="text/javascript"> // svg-pan-zoom
+"use strict";
 function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
@@ -3122,7 +3240,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	showUsedArea(panZoom, true);
 
 	global.timestamp.SvgPanZoom = Date.now();
-	console.log('show svg:' + (global.timestamp.SvgPanZoom - global.timestamp.svgCreated) / 1000 + 'sec');
+	console.log('show svg:' + (global.timestamp.SvgPanZoom - global.timestamp.svgCreated) / 1000 + 'sec');	
 		
 	// resize SvgPanZoom after resizing the window
 	window.addEventListener("resize", function(ev) {
@@ -3319,6 +3437,9 @@ EEPchannel.onmessage = function(ev) {
 	
 	const ID			= ev.data.ID;				// Signal oder Weiche
 	const KontaktID		= ev.data.KontaktID;		// Kontakt
+	global.shiftDown 	= ev.data.shiftDown;		// Status of keys 
+	global.strgDown 	= ev.data.strgDown;
+	global.altDown 		= ev.data.altDown;
 
 	if (ID) {	// Signal oder Weiche
 	
@@ -3701,6 +3822,7 @@ function showUsedArea(panZoom, pan) {
 </script>
 
 <script type="text/javascript"> // Main screen
+"use strict";
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -3830,7 +3952,6 @@ function changeHeightRange(valueLow, valueHigh) {
 		}
 	}
 }
-
 </script>
 
 <link rel="stylesheet" href="toolwindow/toolwindow.css"/>
@@ -3844,6 +3965,7 @@ function changeHeightRange(valueLow, valueHigh) {
 <aside id="infoPopup"> <!-- Info Window -->
 <script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 <script type="text/javascript">  // Show information in Info Box
+"use strict";
 function objectToHTML(object) {
 	let s = '';
 	
@@ -4050,6 +4172,69 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		});
 }
 
+function getKontaktTyp(GleissystemID, SetType, SetValue, VolDist) {
+	// Kontakttyp (SetType)
+	// Achtung: die Variablen v, x, t werden ersetzt
+	const KontaktTyp = { 									// Sometimes the symbol works fine but sometime the unicode-code is neccessary
+		0 	: { text: 'Weiche/Signal',			shortText : '⭢', },			// -							⭢ \u2B62 → \u8594 &rarr; 
+		1 	: { text: 'Fahrzeug +v km/h max',	shortText : '🚆', },		// Geschwindigkeit in km/h		🚆 \u1F686 🚗 \u1f697 ⛴ \u26f4 ⛟ \u26DF 	
+		2 	: { text: 'Fahrzeug +v km/h min',	shortText : '🚆', },		// Geschwindigkeit in km/h
+		3 	: { text: 'Fahrzeug +v km/h soll',	shortText : '🚆', },		// Geschwindigkeit in km/h
+		5 	: { text: 'Fahrzeug -v km/h max',	shortText : '🚆', },		// Geschwindigkeit in km/h
+		6 	: { text: 'Fahrzeug -v km/h min',	shortText : '🚆', },		// Geschwindigkeit in km/h
+		7 	: { text: 'Fahrzeug -v km/h soll',	shortText : '🚆', },		// Geschwindigkeit in km/h
+		8 	: { text: 'RollGleis x m',			shortText : '🛑', },		// Halt nach x m				🛑 \u1f6d1
+		// 17, 33, 34 unbekannt
+		256 : { text: 'Sound',					shortText : '\u266C', },	// Sound_ID						🔊 \u1F50A ♫ \u266B ♬ \u266C 	 	
+		512 : { text: 'Kamera t sek.',			shortText : '📷', },		// Kamerawechsel nach t Sek.	📷 \u1F4F7
+		768 : { text: 'Immobilie',				shortText : '🏠', },		// Verweist auf ImmoIdx			🏠 \u1F3E0	
+		1024 : { text: 'DKW/EKW',				shortText : '\u2387', },	// Verweist auf ImmoIdx			💢 ⎇ \u2387
+		1280 : { text: 'Einfahrt Depot',		shortText : '\u21E5', },	//								⇥ \u21E5 ⍖ \u2356 ⭢
+		1536 : { text: 'Ausfahrt Depot',		shortText : '\u21A6', },	//								↦ \u21A6 ⍏ \u234F ⭢
+		32768 : { text: 'Gruppen KP',			shortText : '\u2042', },	//								⁂ \u2042 ⭢	
+																			// 								⌂ \u2302 ⌥ \u2325 ⭢		
+	}
+				 // → = &rarr; = \u8594;   ⭢ = \u2B62
+	// DKW/EKW Weichenstellung
+	const VolDistText = {
+		0 : 'Umschalter',
+		1 : 'links-links',
+		2 : 'links-rechts',
+		3 : 'rechts-rechts',
+		4 : 'rechts-links',
+	}
+
+	// Spezielle Kontakt-Typen
+	let KontaktTypText 	= (KontaktTyp[SetType] ? KontaktTyp[SetType].text 		: 'unbekannt');
+	let shortText 		= (KontaktTyp[SetType] ? KontaktTyp[SetType].shortText	: '');
+	if 		  (SetType == 0) {
+		//if      (Weichen.find(function(Weiche) { return Weiche.ID == KontaktZiel}) ) 	{ KontaktTypText = 'Weiche'; } 
+		//else if (Signale.find(function(Signal) { return Signal.ID == KontaktZiel}) ) 	{ KontaktTypText = 'Signal'; }
+		//else 																			{ KontaktTypText = 'Kontaktziel nicht gefunden'; }
+	} else if (SetType >= 1 && SetType <= 7) {
+		KontaktTypText = KontaktTypText.replace('v', SetValue);			// 'Fahrzeug +v km/h max'
+		
+		// Eisenbahn:	🚂🚃🚄🚅🚆🚇🚈🚉🚊🚝🚞
+		// Straßenbahn:	🚎🚟🚠🚡
+		// Straße:		🚌🚍🚐🚑🚒🚓🚔🚕🚖🚗🚘🚙🚚🚛🚜🚲🚴🚵
+		// Wasserwege:	⛴🚢🚣🚤⛵🚀🚁✈
+		// Immobilien:	🏠🏡🏢🏣🏤🏥🏦🏧🏨🏩🏪🏫🏬🏭🏮🏯🏰
+		shortText = { 1: '🚂', 2: '🚎', 3: '🚗', 4: '⛴', 5: '🚕', 6: ''}[GleissystemID];	// spezifischer Kurztext je Gleissystem
+		
+	} else if (SetType == 8) {
+		KontaktTypText = KontaktTypText.replace('x', SetValue);			// 'RollGleis x m'
+		
+	} else if (SetType == 512) {
+		KontaktTypText = KontaktTypText.replace('t', SetValue);			// 'Kamera t sek.'
+		
+	} else if (SetType == 1024) {
+		KontaktTypText = KontaktTypText + ' ' + VolDistText[VolDist];	// DKW/EKW Weichenstellung
+		
+	}
+
+	return { text: KontaktTypText, shortText: shortText, }
+}
+
 function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 //<Kontakt Position="2186.82" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="6" LastOfs="2213.881" ConnectF="2" ConnectR="2" VolDist="28" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" SignalData="0" KontaktZiel="1" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
 	const Kontakt		= global.KontakteArray[KontaktID];
@@ -4074,56 +4259,11 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const VolDist 		= Kontakt.getAttribute('VolDist');
 	const SignalData 	= Kontakt.getAttribute('SignalData');
 	const LuaFn 		= Kontakt.getAttribute('LuaFn');
-	
-	// Kontakttyp (SetType)
-	// Achtung: Bei der Anzeige werden die Variablne v, x, t ersetzt
-	const KontaktTyp = { 				// SetValue
-		0 	: 'Weiche/Signal',			// -								U+2B62	⭢
-		1 	: 'Fahrzeug +v km/h max',	// Geschwindigkeit in km/h			U+1F686	🚆	U+1f697	🚗	U+26f4	⛴
-		2 	: 'Fahrzeug +v km/h min',	// Geschwindigkeit in km/h
-		3 	: 'Fahrzeug +v km/h soll',	// Geschwindigkeit in km/h
-		5 	: 'Fahrzeug -v km/h max',	// Geschwindigkeit in km/h
-		6 	: 'Fahrzeug -v km/h min',	// Geschwindigkeit in km/h
-		7 	: 'Fahrzeug -v km/h soll',	// Geschwindigkeit in km/h
-		8 	: 'RollGleis x m',			// Halt nach x m					U+1f6d1	🛑
-		256 : 'Sound',					// Sound_ID							U+1F50A	🔊	U+266B	♫
-		512 : 'Kamera t sek.',			// Kamerawechsel nach t Sekunden	U+1F4F7	📷
-		768 : 'Immobilie',				// Verweist auf ImmoIdx				U+1F3E0	🏠
-		1024 : 'DKW/EKW',				// Verweist auf ImmoIdx
-		1280 : 'Einfahrt Depot',		// ?
-		1536 : 'Ausfahrt Depot',		// ?
-		32768 : 'Gruppen KP',			// ?
-	}
-
-	// DKW/EKW Weichenstellung
-	const VolDistText = {
-		0 : 'Umschalter',
-		1 : 'links-links',
-		2 : 'links-rechts',
-		3 : 'rechts-rechts',
-		4 : 'rechts-links',
-	}
 
 	const TrainSidetext = {
 		0 : 'Spitze',
 		1 : 'Schluss',
 		[-1] : 'GrKP',
-	}
-
-	// Spezielle Kontakt-Typen
-	let KontaktTypText = KontaktTyp[SetType];
-	if 		  (SetType == 0) {
-		//if 		(Weichen.find(function(Weiche) { return Weiche.ID == KontaktZiel}) ) { KontaktTypText = 'Weiche'; } 
-		//else if (Signale.find(function(Signal) { return Signal.ID == KontaktZiel}) ) { KontaktTypText = 'Signal'; }
-		//else { KontaktTypText = 'Kontaktziel nicht gefunden'; }
-	} else if (SetType >= 1 && SetType <= 7) {
-		KontaktTypText = KontaktTypText.replace('v', SetValue);			// 'Fahrzeug +v km/h max'
-	} else if (SetType == 8) {
-		KontaktTypText = KontaktTypText.replace('x', SetValue);			// 'RollGleis x m'
-	} else if (SetType == 512) {
-		KontaktTypText = KontaktTypText.replace('t', SetValue);			// 'Kamera t sek.'
-	} else if (SetType == 1024) {
-		KontaktTypText = KontaktTypText + ' ' + VolDistText[VolDist];	// DKW/EKW Weichenstellung
 	}
 	
 	// SignalData 
@@ -4173,7 +4313,10 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 			`<i>Position: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kontakt.mPos}]);">`
 				+ `${GleissystemText[GleissystemID]} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
-			+ `<br>Kontakttyp ` + SetType + ': ' + KontaktTypText	// KontaktTyp[SetType] mit Modifikation
+			+ `<br>Kontakttyp ` + SetType + ': ' 
+			// KontaktTyp[SetType] mit Modifikation
+			+ getKontaktTyp(GleissystemID, SetType, SetValue, VolDist).shortText + ' '
+			+ getKontaktTyp(GleissystemID, SetType, SetValue, VolDist).text
 			+ ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? `<br>SetValue: ` + SetValue : '') 
 			+ (KontaktZiel != null && KontaktZiel != 0 	
 				? `<br>Kontaktziel ${KontaktZiel}: ` 
@@ -4206,9 +4349,10 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 }
 </script>
 <script type="text/javascript"> // toolwindow
-(function(global) {
+"use strict";
+(function(api) {
 // public api
-global.showInfoWindow = showInfoWindow;
+api.showInfoWindow = showInfoWindow;
 
 let infoWindow = { count: 0, };
 function showInfoWindow(options) {
@@ -4270,9 +4414,10 @@ function showInfoWindow(options) {
 <aside id="exportPopup"> <!-- Export Window -->
 
 <script type="text/javascript"> // toolwindow
-(function(global) {
+"use strict";
+(function(api) {
 // public api
-global.showExportWindow = showExportWindow;
+api.showExportWindow = showExportWindow;
 
 let exportWindow;
 function showExportWindow() {
@@ -4470,10 +4615,11 @@ function exportData(dataURL, fileType) {
 
 <aside id="colorPopup"> <!-- Color Picker Window -->
 <script type="text/javascript"> // colorPicker
-(function(global) {
+"use strict";
+(function(api) {
 // public api
-global.loadColors = loadColors;
-global.showColorPickerWindow = showColorPickerWindow;
+api.loadColors = loadColors;
+api.showColorPickerWindow = showColorPickerWindow;
 
 const GleissystemFarbDefinition = [{
 	name: 'Eisenbahn',
@@ -4594,7 +4740,7 @@ Example:
 CSS mod Gleisplan
 javascript:(function(){ var style = document.createElement(%27style%27), styleContent = document.createTextNode(%27.Prellbock { marker-end: none !important; } .inactive { /* inaktive Gleisstile */ stroke-opacity: 1.0 !important; } .EEPCurve, .Line, .Arc, .Rotator, .Cubic { /* uninteressante Gleisarten .EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Helix */ stroke-width: var(--narrow-stroke-width) !important; stroke-opacity: 0.2 !important; }%27); style.appendChild(styleContent ); var caput = document.getElementsByTagName(%27head%27); caput[0].appendChild(style); })();
 */
-
+}
 
 </style>
 
