@@ -96,7 +96,7 @@ Details anzeigen: Klick auf Gleis, Symbol oder Text<br>
 Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br>
 Zoom-in, -out, -reset<br>
 Auswahl der anzuzeigenden Gleissysteme<br>
-Auswahl der anzuzeigenden Informationen (GleisID, Gleisart, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Rahmen)<br>
+Auswahl der anzuzeigenden Informationen (GleisID, Gleisart, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Kamera, Rahmen)<br>
 Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise)<br>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
@@ -336,6 +336,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 1346,	// Gleis
 2052,	// \Gleisstile\Gleise\Unsichtbares_Gleis_m_OL_UB3.3dm
 3425, 	// \Gleisstile\Strassen\1Spur_unsichtbar_AS3.3dm
+5100,	// \Gleisstile\Gleise\Unsichtbar_RB2.3dm
 100000,	// Kamerafahrweg
 /*
 18,		// \Gleisstile\Sonstiges\telegraph.3dm
@@ -380,7 +381,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 2581,	// \Gleisstile\Sonstiges\BMauer_eben_0_HW1.3dm
 5008,	// \Gleisstile\Sonstiges\3DVersion\Sicherheitszaun_mit_Stacheldragt_3D.3dm	
 5085,	// \Gleisstile\Sonstiges\3DVersion\Hedge_1m_Cypress.3dm
-5100,	// \Gleisstile\Gleise\Unsichtbar_RB2.3dm
 5138,	// \Gleisstile\Sonstiges\3DVersion\ParkHotel_Harz_Zaun.3dm
 5145, 5146, 5147, // Farm track
 5213,	// \Gleisstile\Sonstiges\3DVersion\Ebrzgl.3dm
@@ -434,6 +434,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	global.WeichenMap 		= new Map();
 	global.KontakteArray	= [];
 	global.KontaktZiele		= {};
+	global.KameraMap 		= new Map();
 
 	// Append new svg elements to this root node which we apend to the svg node later
 	const fragment = document.createDocumentFragment();
@@ -712,6 +713,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	
 	// Analyse Fuhrpark to identify "active" tracks
 	const Fuhrpark = sutrackp.getElementsByTagName("Fuhrpark")[0];
+	if (Fuhrpark) {
 	for (const Zugverband of Fuhrpark.getElementsByTagName("Zugverband")) {
 		// <Gleisort gleissystemID="3" gleisID="41" parameter="1177.944" ausrichtung="0"/>
 		const Gleisort		= Zugverband.getElementsByTagName("Gleisort")[0];
@@ -722,6 +724,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		if (!activeTracks[GleissystemID].includes(GleisID)) {
 			 activeTracks[GleissystemID].push(GleisID);
 		}
+	}
 	}
 
 	// Lade Kollektor-Einträge, die Gleise miteinander verbinden, z.B. bei bestimmten Drehscheiben 
@@ -2065,6 +2068,157 @@ function finalize() {
 		global.usedArea.max.x = Math.min( global.usedArea.max.x, Area.min.x + Area.width  );
 		global.usedArea.max.y = Math.min( global.usedArea.max.y, Area.min.y + Area.height );
 
+		// Kamera
+/*
+		Wendelsteins_Kurvenbrueck_v12
+		
+		<Kammera name="Stellwerk West" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="11.96" FOV="0" TakeSwitch="0">
+			<Dreibein>
+				<Vektor x="-25064" y="-25576" z="2098">Pos</Vektor>
+				<Vektor x="0.9711025" y="-0.2179571" z="-9.723549E-02">Dir</Vektor>
+				<Vektor x="0.2189948" y="0.975726" z="0">Nor</Vektor>
+				<Vektor x="0.0948752" y="-2.129407E-02" z="0.9952614">Bin</Vektor>
+			</Dreibein>
+		</Kammera>
+		Position X:					-250.64	PosX
+		Position Y:					-255.76	PosY
+		Position Z:					20.98	PosZ
+		Neigung X:					0.00
+		Neigung Y:					5.58
+		Neigung Z:					-12.65
+		Sichtfeld:					0.00
+		Schärfentiefe:				aus 	DOF (die nachfolgenden Parameter sind dann fix)
+		Brennweite:					100.00	Brennweite[FocalIdx]
+		Blendenwert:				f/3.6	Blende[FStopIdx]
+		Objektentfernung:			100.0	SubDist
+		Hyperfokale Entfernung: 	935.48
+		Vor dem Zielobjekt:			9.65	DOFShiftNear
+		Hinter dem Zielobjekt:		11.96	DOFShiftFar
+		Objektentfernung:			100.0	DOFSubDist
+
+		<Kammera name="Einfahrsignal West" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
+			<Dreibein>
+				<Vektor x="-45815.86" y="-23729.89" z="1437.605">Pos</Vektor>
+				<Vektor x="7403.506" y="-2208.023" z="35.84314">Dir</Vektor>
+				<Vektor x="0.2858036" y="0.9582962" z="3.385832E-08">Nor</Vektor>
+				<Vektor x="-4.623935E-02" y="1.379063E-02" z="0.9988322">Bin</Vektor>
+			</Dreibein>
+		</Kammera>
+		Position X:					-458.16	PosX
+		Position Y:					-237.30	PosY
+		Position Z:					14.38	PosZ
+		Neigung X:					0.00
+		Neigung Y:					-0.27
+		Neigung Z:					-16,61
+		Sichtfeld:					0.00
+		Schärfentiefe:				aus 	DOF (die nachfolgenden Parameter sind dann fix)
+		Brennweite:					100.00	Brennweite[FocalIdx]
+		Blendenwert:				f/3.6	Blende[FStopIdx]
+		Objektentfernung:			100.0	SubDist
+		Hyperfokale Entfernung: 	935.48
+		Vor dem Zielobjekt:			9.65	DOFShiftNear
+		Hinter dem Zielobjekt:		11.96	DOFShiftFar
+		Objektentfernung:			100.0	DOFSubDist
+*/		
+		// Generate matrix command for svg
+		function matrixToTransform(m) {
+			//     `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+			return `matrix(${m[0]} ${m[1]} ${m[4]} ${m[5]} ${m[12]} ${(m[13])})`;
+		}
+		let svgKamerasGroup = svgAppend(fragment, {
+			svg_tag	: `g`,
+			id		: `Kamera`,
+		});
+		const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
+		const Kameras = Kamerasammlung.getElementsByTagName("Kammera");
+		for (const Kamera of Kameras) {
+			const Name 	= Kamera.getAttribute("name");
+			if (Name === 'Leer') {
+				continue;
+			}
+
+			/*
+			<Kammera name="Anlage" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="11.96" FOV="0.6981317" TakeSwitch="0">
+			*/
+			const Dynamic 	= Kamera.getAttribute("Dynamic");
+
+			let Laenge, mMatrix;
+			let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
+			
+			const Dreibein	= Kamera.getElementsByTagName("Dreibein")[0];
+			const FramePos	= Dreibein.getElementsByTagName("Vektor")[0];
+			const FrameDir	= Dreibein.getElementsByTagName("Vektor")[1];
+			const FrameNor	= Dreibein.getElementsByTagName("Vektor")[2];
+			const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
+			
+			PosX		= +FramePos.getAttribute("x") / 100;
+			PosY		= -FramePos.getAttribute("y") / 100;
+			PosZ		= +FramePos.getAttribute("z") / 100;
+			
+			DirX		= +FrameDir.getAttribute("x");
+			DirY		= -FrameDir.getAttribute("y");
+			DirZ		= +FrameDir.getAttribute("z");
+			const norm = Math.sqrt(DirX*DirX + DirY*DirY + DirZ*DirZ);
+			if (norm > 1.01) {	// sometimes we need to normalize the Dir Vector
+console.log('Kamera ' + Name
+	+ ' norm ' + norm.toFixed(4)
+	+ ' DirX ' + DirX.toFixed(4)
+	+ ' DirY ' + DirY.toFixed(4)
+	+ ' DirZ ' + DirZ.toFixed(4)
+)
+				DirX /= norm;
+				DirY /= norm;
+				DirZ /= norm;
+			}
+			
+			NorX		= +FrameNor.getAttribute("x");
+			NorY		= -FrameNor.getAttribute("y");
+			NorZ		= +FrameNor.getAttribute("z");
+			
+			BinX		= +FrameBin.getAttribute("x");
+			BinY		= -FrameBin.getAttribute("y");
+			BinZ		= +FrameBin.getAttribute("z");
+
+			mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
+			Kamera.mPos = mMatrix;
+			
+			global.KameraMap.set(Name, Kamera);
+			
+			Laenge = 40;
+
+			let svgKameraGroup = svgAppend(svgKamerasGroup, {
+				svg_tag	: `g`,
+				id		: Name, 
+				'class'	: `Kamera`,
+			});
+			
+			// Show circle at Point
+			svgAppend(svgKameraGroup, {
+				svg_tag				: `circle`,
+				r					: 2,
+				transform 			: matrixToTransform(Kamera.mPos),
+			});
+
+			// Draw Line
+			svgAppend(svgKameraGroup, {
+				svg_tag				: `path`,
+				d 					: `M 2 0 H ${Laenge}`,
+				transform 			: matrixToTransform(Kamera.mPos)
+			});
+			
+			//Show Name
+			svgAppend(svgKameraGroup, {
+				svg_tag			: `text`,
+				text			: Name,			// 📷 \u1F4F7
+				dx				: `2`, 			// Shift text right
+				dy				: `-0.3em`, 	// Shift text up
+				//dy			: `1em`, 		// Shift text below the track
+				transform 		: matrixToTransform(Kamera.mPos)
+								  + ` scale(1 -1)`,
+			});
+
+		}
+		
 		// Group for additional general elements
 		let svg_general_group = svgAppend(fragment, {
 			svg_tag	: `g`,
@@ -2807,6 +2961,8 @@ Cursor: <span id="cursorPosition"> </span>
 	<div class="item"><label>
 	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)">Marker</label></div>
 	<div class="item"><label>
+	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)">Kamera</label></div>
+	<div class="item"><label>
 	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('#general', this.checked)">Rahmen</label></div>
 </fieldset>
 </article>
@@ -2834,6 +2990,7 @@ svg {
 	--Wasserwege-color: blue;
 	--Steuerstrecken-color: purple;
 	--GBS-color: brown;
+	--Kamera-color: green;
 	--Hintergrund-color: white;							
 }
 	/* ]]> */
@@ -2848,6 +3005,7 @@ svg {
 	--Wasserwege-marker-color: var(--Wasserwege-color);
 	--Steuerstrecken-marker-color: var(--Steuerstrecken-color);
 	--GBS-marker-color: var(--GBS-color);
+	--Kamera-marker-color: var(--Kamera-color);
 }
 	/* ]]> */
 	</style>
@@ -2914,6 +3072,10 @@ text.WeicheText {
 
 .Signal text, .Kontakt text {
 	text-anchor	: middle;
+}
+
+#Kamera text {
+	text-anchor	: start;
 }
 
 /* Box zur Anzeige der verwendeten Groesse der Anlage */
@@ -3018,6 +3180,20 @@ text.WeicheText {
 	fill: var(--GBS-color);
 }
 
+#Kamera {
+	stroke-width: calc(var(--normal-stroke-width) * 1.5);
+	stroke: var(--Kamera-color);
+	fill:   none;
+	/* marker-start: url(#KameraMarkerCircle); */
+	marker-end:   url(#KameraMarkerArrow);
+}
+#KameraMarkerCircle, #KameraMarkerArrow {
+	fill: var(--Kamera-marker-color);
+}
+#Kamera text {
+	fill: var(--Kamera-color);
+}
+
 .Prellbock {
 	marker-end:   url(#Prellbock);
 }
@@ -3100,6 +3276,9 @@ text.WeicheText {
 	<marker id="GBSMarkerCircle" 			markerWidth="5" markerHeight="5" refX="2" refY="3">
 		<circle cx="3" cy="3" r="1" />
 	</marker>
+	<marker id="KameraMarkerCircle" 		markerWidth="5" markerHeight="5" refX="2" refY="3">
+		<circle cx="3" cy="3" r="1" />
+	</marker>
 
 	<marker id="EisenbahnMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
@@ -3117,6 +3296,9 @@ text.WeicheText {
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
 	<marker id="GBSMarkerArrow" 			markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+		<path d="M0,1 L0,5 L3,3 L0,1" />
+	</marker>
+	<marker id="KameraMarkerArrow" 			markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
 		<path d="M0,1 L0,5 L3,3 L0,1" />
 	</marker>
 
@@ -3756,7 +3938,7 @@ target.parentElement		|g:G1-47:Normal
 rangeParent					|g:G1-47:Normal
 rangeParent.parentElement	|g:Eisenbahn:undefined
 */
-	
+
 	if (event.target.parentElement.classList[0] === "Signal") {			// Signal
 		const SignalCode 		= event.target.parentElement.id;
 		const SignalID 			= Number(SignalCode.substring(1));
@@ -3790,6 +3972,11 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 
 		showWeicheInfo(WeicheID, GleissystemID, GleisID);
 
+	} else if (event.target.parentElement.parentElement.id === 'Kamera') {	// Kamera
+		const Name 				= event.target.parentElement.id;
+
+		showKameraInfo(Name);
+	
 	} else if (event.target.parentElement.id !== "general") {			// Gleis (hopefully)
 		const GleisCode 		= event.target.parentElement.id;
 		const GleisTextArray 	= GleisCode.substring(1).split("-");
@@ -3862,6 +4049,7 @@ function toggleMarker(visible) {
 				--Wasserwege-marker-color: var(--Wasserwege-color);
 				--Steuerstrecken-marker-color: var(--Steuerstrecken-color);
 				--GBS-marker-color: var(--GBS-color);
+				--Kamera-marker-color: var(--Kamera-color);
 			}`;
 	} else {
 		document.getElementById("css-marker-colors").textContent =
@@ -3872,6 +4060,7 @@ function toggleMarker(visible) {
 				--Wasserwege-marker-color: none;
 				--Steuerstrecken-marker-color: none;
 				--GBS-marker-color: none;
+				--Kamera-marker-color: none;
 			}`;
 	}	
 }
@@ -4309,7 +4498,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	showInfoWindow({
 		code: 'K' + KontaktID,
 		title: `Kontakt`,
-			content:  
+		content:  
 			`<i>Position: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kontakt.mPos}]);">`
 				+ `${GleissystemText[GleissystemID]} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
@@ -4345,6 +4534,129 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 			+ (SignalData != 0 		? `<br>SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
 			+ (LuaFn !== ''			? `<br>LuaFn: `		 + LuaFn : '') 
 			+ objectToHTML(Kontakt)
+	});
+}
+
+function showKameraInfo(Name) {
+//<Kammera name="..." DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
+	function angle(rad) {
+		return (rad*180/Math.PI).toFixed(1) + '°'
+	}
+
+	const Kamera 		= global.KameraMap.get(Name);
+
+	const [DirX, DirY, DirZ, d0, NorX, NorY, NorZ, n0, BinX, BinY, BinZ, b0, PosX, PosY, PosZ, scale ] = Kamera.mPos;
+
+	// https://www.matheplanet.com/default3.html?call=viewtopic.php?topic=140833&ref=https%3A%2F%2Fwww.google.com%2F
+
+	// https://www.java-forum.org/thema/rotationswinkel-aus-einer-tansformationsmatrix-berechnen.158869/
+	// oder  https://de.wikipedia.org/wiki/Roll-Nick-Gier-Winkel#Berechnung_aus_Rotationsmatrix
+	// beta	= atan2( -r[2][0], sqrt(pow(r[0][0], 2) + pow(r[1][0], 2)) )
+	// if beta <> Math.PI/2
+	// 	 alpha = atan2( r[1][0]/cos(beta), r[0][0]/cos(beta) )
+	// 	 gamma = atan2( r[2][1]/cos(beta), r[2][2]/cos(beta) )
+	// else
+	// 	 alpha = 0
+	// 	 gamma = sign(beta) * atan2( r[0][1], r[1][1] );
+
+/*
+Deep Ocean						X°					Y° 					Z°
+																		Richtung
+								atan2(NorZ, BinZ)	-asin(DirZ)			-Math.acos( DirX/Math.cos(angleY) )
+Anleger ELSA Kurhotel 			X: 0.0° 			Y: -2.4° 			Z: -72.0°
+Bhf Einstädt					X: 0.0° 			Y: 9.6° 			Z: -162.0°
+DANGER! Frachter 				X: 0.0° 			Y: 16.8° 			Z: -150.0°
+Des Käptn´s Häuschen 			X: 0.0° 			Y: 2.4° 			Z: -72.0°
+Industrieruine  				X: 0.0° 			Y: 12.0° 			Z: 36.0°
+Kamerarundblick 				X: 0.0° 			Y: 2.4° 			Z: -90.0°
+Kuhl bleiben 					X: 0.0° 			Y: -4.8° 			Z: -107.9°
+Leuchtturmidylle 				X: 0.0° 			Y: 31.2° 			Z: 126°
+Lokverladung in die VOGELFLUG 	X: 0.0° 			Y: 9.6° 			Z: -113.7°
+Motorbootanleger 				X: 0.0° 			Y: -2.4° 			Z: -138.0°
+Roofer 							X: 0.0° 			Y: 40.8° 			Z: -18.0°
+Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
+*/
+
+	const angleY 	= -Math.asin( DirZ );
+				//	= Math.acos( BinZ );
+				//	= -Math.atan2( DirZ, BinZ );
+				
+	const angleX 	= ( Math.cos(angleY) == 0 ? 0 :  
+						 Math.asin( Math.min(1, Math.max(-1, NorZ/Math.cos(angleY)) )) 	// protect against rounding errors 
+						 );
+				//	= Math.atan2( NorZ, BinZ );
+				
+	const angleZ 	= ( Math.cos(angleY) == 0 ? 'error' : 
+						-Math.acos( Math.min(1, Math.max(-1, DirX/Math.cos(angleY)) )) 	// protect against rounding errors
+						* (DirY<0 ? -1 : 1) );											// adjust sign			
+
+console.log(Name
+//	+ '\nasin( DirX )=\t' + angle( -Math.asin( DirX ) ) 
+//	+ '\nacos( DirX )=\t' + angle( Math.acos( DirX ) )
+	+ '\nY: asin( DirZ )=\t' + angle( -Math.asin( DirZ ) ) 
+//	+ '\nacos( DirZ )=\t' + angle( Math.acos( DirZ ) )
+//	+ '\nasin( BinX )=\t' + angle( -Math.asin( BinX ) ) 
+//	+ '\nacos( BinX )=\t' + angle( Math.acos( BinX ) )
+//	+ '\nasin( BinZ )=\t' + angle( -Math.asin( BinZ ) ) 
+	+ '\nY: acos( BinZ )=\t' + angle( Math.acos( BinZ ) )
+
+//	+ '\natan2( DirX, NorX )=\t' + angle( Math.atan2( DirX, NorX ) )
+//	+ '\natan2( NorX, BinX )=\t' + angle( Math.atan2( NorX, BinX ) )
+//	+ '\natan2( BinX, DirX )=\t' + angle( Math.atan2( BinX, DirX ) )
+
+//	+ '\natan2( DirZ, NorZ )=\t' + angle( Math.atan2( DirZ, NorZ ) )
+	+ '\nX: atan2( NorZ, BinZ )=\t' + angle( Math.atan2( NorZ, BinZ ) )
+//	+ '\natan2( BinZ, DirZ )=\t' + angle( Math.atan2( BinZ, DirZ ) )
+
+//	+ '\natan2( DirX, BinX )=\t' + angle( Math.atan2( DirX, BinX ) )
+//	+ '\natan2( NorX, DirX )=\t' + angle( Math.atan2( NorX, DirX ) )
+//	+ '\natan2( BinX, NorX )=\t' + angle( Math.atan2( BinX, NorX ) )
+
+	+ '\nY: atan2( DirZ, BinZ )=\t' + angle( -Math.atan2( DirZ, BinZ ) )
+//	+ '\natan2( NorZ, DirZ )=\t' + angle( Math.atan2( NorZ, DirZ ) )
+//	+ '\natan2( BinZ, NorZ )=\t' + angle( Math.atan2( BinZ, NorZ ) )
+
+//	+ '\nasin( DirX/cos(y) )=\t' + angle( Math.asin( DirX/Math.cos(angleY) ) )
+//	+ '\nasin( NorX/cos(y) )=\t' + angle( Math.asin( NorX/Math.cos(angleY) ) )
+//	+ '\nasin( BinX/cos(y) )=\t' + angle( Math.asin( BinX/Math.cos(angleY) ) )
+
+//	+ '\nasin( DirY/cos(y) )=\t' + angle( Math.asin( DirY/Math.cos(angleY) ) )
+//	+ '\nasin( NorY/cos(y) )=\t' + angle( Math.asin( NorY/Math.cos(angleY) ) )
+//	+ '\nasin( BinY/cos(y) )=\t' + angle( Math.asin( BinY/Math.cos(angleY) ) )
+	
+//	+ '\nasin( DirZ/cos(y) )=\t' + angle( Math.asin( DirZ/Math.cos(angleY) ) )
+	+ '\nX: nasin( NorZ/cos(y) )=\t' + angle( Math.asin( NorZ/Math.cos(angleY) ) )
+//	+ '\nasin( BinZ/cos(y) )=\t' + angle( Math.asin( BinZ/Math.cos(angleY) ) )
+
+	+ '\nZ: acos( DirX/cos(y) )=\t' + angle( -Math.acos( DirX/Math.cos(angleY) ) * (DirY<0 ? -1 : 1) )
+//	+ '\nacos( NorX/cos(y) )=\t' + angle( Math.acos( NorX/Math.cos(angleY) ) )
+//	+ '\nacos( BinX/cos(y) )=\t' + angle( Math.acos( BinX/Math.cos(angleY) ) )
+
+//	+ '\nacos( DirY/cos(y) )=\t' + angle( Math.acos( DirY/Math.cos(angleY) ) )
+//	+ '\nacos( NorY/cos(y) )=\t' + angle( Math.acos( NorY/Math.cos(angleY) ) )
+//	+ '\nacos( BinY/cos(y) )=\t' + angle( Math.acos( BinY/Math.cos(angleY) ) )
+	
+//	+ '\nacos( DirZ/cos(y) )=\t' + angle( Math.acos( DirZ/Math.cos(angleY) ) )
+//	+ '\nacos( NorZ/cos(y) )=\t' + angle( Math.acos( NorZ/Math.cos(angleY) ) )
+//	+ '\nacos( BinZ/cos(y) )=\t' + angle( Math.acos( BinZ/Math.cos(angleY) ) )
+
+)
+
+	// Kurzform in msg-Element
+	msg(`Kamera ${Name}`);
+
+	// Ausführlich im Info Popup
+	showInfoWindow({
+		code: 'Kamera ' + Name,
+		title: '📷 ' + Name, // 📷 \u1F4F7
+		content: //`<b>${Name}<\/b>` +
+			  `<br>Position: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${-PosY.toFixed(0)}m<\/a>)`			
+			+ `<br>Höhe: ${PosZ.toFixed(0)}m`
+			+ `<br>Blickrichtung: ` 		 + angle( angleZ )			// Neigung Z
+			+ ' ' + ['W', 'WSW', 'SW', 'SSW', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO', 'N', 'NNW', 'NW', 'WNW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)]
+			+ `<br>Neigung: ` 				 + angle( angleY )			// Neigung Y
+			+ (angleX != 0 ? `<br>Kippung: ` + angle( angleX ) : '')	// Neigung X
+			+ objectToHTML(Kamera)
 	});
 }
 </script>
@@ -4641,6 +4953,9 @@ const GleissystemFarbDefinition = [{
 }, {
 	name: 'GBS',
 	color: '#A52A2A'	/* brown; */
+}, {
+	name: 'Kamera',
+	color: '#00FF00'	/* green; */
 }, {
 	name: 'Hintergrund',
 	color: '#FFFFFF'	/* white; */
