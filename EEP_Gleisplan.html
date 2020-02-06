@@ -96,7 +96,7 @@ Details anzeigen: Klick auf Gleis, Symbol oder Text<br>
 Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br>
 Zoom-in, -out, -reset<br>
 Auswahl der anzuzeigenden Gleissysteme<br>
-Auswahl der anzuzeigenden Informationen (GleisID, Gleisart, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Kamera, Rahmen)<br>
+Auswahl der anzuzeigenden Informationen (GleisID, Gleisart, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Gleisobjekte, Kamera, Rahmen)<br>
 Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise)<br>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
@@ -427,17 +427,18 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		max : {x : 0, y : 0, z : 0},
 	};
 
-	// Maps for direct access (Preparation to separate analysis of the file from creating the output.)
-	// Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
-	global.GleissystemMap 	= new Map();
-	global.MeldungenMap 	= new Map();
-	global.WeichenMap 		= new Map();
-	global.KontakteArray	= [];
+	// Collections for direct access
+	global.Gleissysteme 	= {};	// Verwendung: Gleis = Gleissysteme[GleissystemID][GleisID];
+	global.Meldungen 		= {};
+	global.Weichen 			= {};
+	global.Kontakte			= {};
 	global.KontaktZiele		= {};
-	global.KameraMap 		= new Map();
+	global.Kameras 			= {};
+	global.Gleisobjekte		= {};
 
 	// Append new svg elements to this root node which we apend to the svg node later
-	const fragment = document.createDocumentFragment();
+	const fragmentBackground 	= document.createDocumentFragment();
+	const fragment 				= document.createDocumentFragment();
 
 	// Preparation: Collect "active" tracks
 	const activeTracks = [];		// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
@@ -456,7 +457,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		if (!GleissystemID) {
 			GleissystemID 	= Gleissystem.getAttribute("GleissystemID");
 		}
-		global.GleissystemMap.set(GleissystemID, new Map());
+		global.Gleissysteme[GleissystemID] = {};
 		activeTracks[GleissystemID] = [];
 		trackSignals[GleissystemID] = [];
 
@@ -464,11 +465,11 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		for (const Gleis of Gleise) {
 			const GleisID 	= Gleis.getAttribute("GleisID");
 			Gleis.GleissystemID = GleissystemID;
-			global.GleissystemMap.get(GleissystemID).set(GleisID, Gleis);
+			global.Gleissysteme[GleissystemID][GleisID] = Gleis;
 			
 			// Weichen
 			const WeicheID = Number(Gleis.getAttribute("Key_Id"));
-			global.WeichenMap.set(WeicheID, Gleis);
+			global.Weichen[WeicheID] = Gleis;
 
 			// Weichen mit KontaktZiel 
 			const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0];
@@ -489,7 +490,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				const SignalID = Number(Meldung.getAttribute("Key_Id"));
 				Meldung.GleissystemID = GleissystemID;
 				Meldung.GleisID = GleisID;
-				global.MeldungenMap.set(SignalID, Meldung);
+				global.Meldungen[SignalID] = Meldung;
 
 				if (!trackSignals[GleissystemID][GleisID]) {
 					 trackSignals[GleissystemID][GleisID] = [];
@@ -602,7 +603,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 				entry.signalType 	= "pre";						// Vorsignal
 				
 				// Now we can follow the tracks to find the position of the main signal on the track
-				let Gleis 	= global.GleissystemMap.get(GleissystemID).get(currentGleisID);	// current track
+				let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
 				let Laenge
 				if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 					const Interval 	= Gleis.getElementsByTagName("Interval")[0];
@@ -666,7 +667,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 						ParaOderAnti	= (Anschluss !== "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
 					}
 					
-					Gleis 	= global.GleissystemMap.get(GleissystemID).get(nextGleisID);
+					Gleis 	= global.Gleissysteme[GleissystemID][nextGleisID];
 					if (!Gleis) { // should not happen
 						console.log(`Error: Signal ${SignalID} no track for ${GleissystemID}-${nextGleisID}`);
 						break;
@@ -736,6 +737,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		...
 	</Kollektor>
 	*/
+	const Gleisobjekte = {};
 	const KollektorTracks = {};
 	for (const Kollektor of sutrackp.getElementsByTagName("Kollektor")) {
 		const KollektorID = Kollektor.getAttribute("id");
@@ -744,15 +746,33 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 		if (Kollektors.length < 2) {	// So far we only look for Kollektors connecting tracks
 			continue;
 		}
+		
 		for (const Gleis of Kollektors) {
 			const GleissystemID = Gleis.getAttribute("gleissystemID");
 			const GleisID 		= Gleis.getAttribute("gleisID");
+
 			
+			// Gleisobjekte
+			// First entry of Gleissystem
+			if (!Gleisobjekte[GleissystemID]) {
+				Gleisobjekte[GleissystemID] = {};
+			}
+			// First entry of Kollektor
+			if (!Gleisobjekte[GleissystemID][KollektorID]) {
+				Gleisobjekte[GleissystemID][KollektorID] = [];
+			}
+			// Store Gleis of Kollektor
+			Gleisobjekte[GleissystemID][KollektorID].push({GleissystemID : GleissystemID, GleisID : GleisID, });
+			
+			
+			// connected tracks
+			// First entry of Gleissystem
 			if (!KollektorTracks[GleissystemID]) {
 				KollektorTracks[GleissystemID] = {};
 			}
+			// New Gleis (we assume that a Gleis is part of exactly 1 Gleisobjekt only)
 			KollektorTracks[GleissystemID][GleisID] = [];
-
+			// connected tracks
 			for (const Gleis of Kollektor.getElementsByTagName("Gleis")) {
 				const GleissystemID2 = Gleis.getAttribute("gleissystemID");
 				const GleisID2 		 = Gleis.getAttribute("gleisID");
@@ -762,6 +782,7 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			}
 		}
 	}
+	global.Gleisobjekte = Gleisobjekte;
 	global.KollektorTracks = KollektorTracks;
 	
 	// Add connected tracks as "active" tracks because they can be reached by trains as well
@@ -846,6 +867,7 @@ function process(Gleissystem) {
 		}
 	}
 
+	// Process Gleise
 	for (const Gleis of Gleise) {
 
 	/* Example:
@@ -883,12 +905,6 @@ function process(Gleissystem) {
 
 		let CurveType, Laenge, Kruemmung, mMatrix;
 		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
-
-		// Generate matrix command for svg
-		function matrixToTransform(m) {
-			//     `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
-			return `matrix(${m[0]} ${m[1]} ${m[4]} ${m[5]} ${m[12]} ${(m[13])})`;
-		}
 
 		if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 		
@@ -1677,7 +1693,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				mMatrix,
 				Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
 			].reduce(Rematrix.multiply);
-		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})` : '');
+		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : '');
 
 		if (Key_Id) {
 			// Show text of Weiche at the end of the track
@@ -1702,7 +1718,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		if (CurveType == "Cubic") {
 			const t = 0.5;
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
-			svgRotate	= ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`;
+			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})`;
 
 		} else if (CurveType == 'Clothoid') {
 			let svgPath;
@@ -1738,7 +1754,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				mMatrix,
 				Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
 			].reduce(Rematrix.multiply);
-		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})` : '');
+		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : '');
 		
 		// show GleisID in the middle above the track (left-adjusted)
 		svgAppend(svgGleisGroup, {
@@ -1950,8 +1966,12 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			const VolDist 		= Number(Kontakt.getAttribute('VolDist'));
 			const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
 			
-			const KontaktID = global.KontakteArray.length; // arbitrary identfication
-			global.KontakteArray[KontaktID] = Kontakt;
+			if (!global.Kontakte.Anzahl) {
+				global.Kontakte.Anzahl = 0;				// initialization
+			}
+			const KontaktID = global.Kontakte.Anzahl; 	// arbitrary identfication
+			global.Kontakte[KontaktID] = Kontakt;
+			global.Kontakte.Anzahl += 1;
 			
 			// Calculate point
 			if (CurveType == "Cubic") {
@@ -2054,6 +2074,82 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 	} // Gleise
 
+		
+	// Process Gleisobjekte
+	let svgGleisobjekteGroup;
+	for (const GleisobjektID in global.Gleisobjekte[GleissystemID]) {
+		const Gleisobjekt = global.Gleisobjekte[GleissystemID][GleisobjektID];
+		
+		let minX, minY, maxX, maxY;
+		for (const i in Gleisobjekt) {
+			const GleisID = Gleisobjekt[i].GleisID;
+
+			const Gleis = global.Gleissysteme[GleissystemID][GleisID];
+			if (Gleis) {
+				// simplified: calculate outer rectangle
+				const posX = 12, posY = 13;
+
+				if (minX === undefined || 
+					minX > Gleis.mPos[posX]) { minX = Gleis.mPos[posX] };
+				if (maxX === undefined || 
+					maxX < Gleis.mPos[posX]) { maxX = Gleis.mPos[posX] };
+				if (minY === undefined || 
+					minY > Gleis.mPos[posY]) { minY = Gleis.mPos[posY] };
+				if (maxY === undefined ||
+					maxY < Gleis.mPos[posY]) { maxY = Gleis.mPos[posY] };
+
+				if (minX > Gleis.mMid[posX]) { minX = Gleis.mMid[posX] };
+				if (maxX < Gleis.mMid[posX]) { maxX = Gleis.mMid[posX] };
+				if (minY > Gleis.mMid[posY]) { minY = Gleis.mMid[posY] };
+				if (maxY < Gleis.mMid[posY]) { maxY = Gleis.mMid[posY] };
+
+				if (minX > Gleis.mEnd[posX]) { minX = Gleis.mEnd[posX] };
+				if (maxX < Gleis.mEnd[posX]) { maxX = Gleis.mEnd[posX] };
+				if (minY > Gleis.mEnd[posY]) { minY = Gleis.mEnd[posY] };
+				if (maxY < Gleis.mEnd[posY]) { maxY = Gleis.mEnd[posY] };
+				
+				// Collects start- mid- and end-points of Gleise
+				// ...
+			}
+		}
+/*console.log('Gleisobjekt ' + GleisobjektID
+	+ ' min(' + minX.toFixed(1) + ' ' + minY.toFixed(1) + ') max(' + maxX.toFixed(1) + ' ' + maxY.toFixed(1) + ')'
+)*/
+		// Calculate convex hull for collected points
+		// ...
+		
+		// Create svg group node
+		if (!svgGleisobjekteGroup) {		// First Gleisobjekt
+			// Show checkbox
+			document.getElementById("CheckboxGleisobjekt").classList.remove("hidden");
+		
+			// Create svg group node (wrong order: we have to put that to the beginning)
+			svgGleisobjekteGroup = svgAppend(fragmentBackground, {
+				svg_tag	: `g`,
+				'class'	: `${GleissystemCode[GleissystemID]} Gleisobjekt`,
+			});
+		}
+		const svgGleisobjektGroup = svgAppend(svgGleisobjekteGroup, {
+			svg_tag	: `g`,
+			id		: `GO` + GleisobjektID,
+		});
+		// simplified: show outer rectangle
+		// <rect x="50" y="20" width="150" height="150"
+		svgAppend(svgGleisobjektGroup, {
+			svg_tag				: `rect`,
+			x					: minX,
+			y					: minY,
+			width				: maxX - minX,
+			height				: maxY - minY,
+			//transform 			: matrixToTransform(...),
+		});
+		// Create svg for convex hull of Gleisobjekt
+		// ...
+
+		
+	}
+	// End Gleisobjekte
+
 	return incrementProgress();
 }
 
@@ -2068,7 +2164,7 @@ function finalize() {
 		global.usedArea.max.x = Math.min( global.usedArea.max.x, Area.min.x + Area.width  );
 		global.usedArea.max.y = Math.min( global.usedArea.max.y, Area.min.y + Area.height );
 
-		// Kamera
+		// Process Kameras
 /*
 		Wendelsteins_Kurvenbrueck_v12
 		
@@ -2120,21 +2216,25 @@ function finalize() {
 		Hinter dem Zielobjekt:		11.96	DOFShiftFar
 		Objektentfernung:			100.0	DOFSubDist
 */		
-		// Generate matrix command for svg
-		function matrixToTransform(m) {
-			//     `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
-			return `matrix(${m[0]} ${m[1]} ${m[4]} ${m[5]} ${m[12]} ${(m[13])})`;
-		}
-		let svgKamerasGroup = svgAppend(fragment, {
-			svg_tag	: `g`,
-			id		: `Kamera`,
-		});
+		let svgKamerasGroup;
 		const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
 		const Kameras = Kamerasammlung.getElementsByTagName("Kammera");
 		for (const Kamera of Kameras) {
 			const Name 	= Kamera.getAttribute("name");
 			if (Name === 'Leer') {
 				continue;
+			}
+
+			if (!svgKamerasGroup) {		// First Kamera
+				// Show checkbox
+				document.getElementById("CheckboxKamera").classList.remove("hidden");
+			
+				// Create svg group node
+				svgKamerasGroup = svgAppend(fragment, {
+					svg_tag	: `g`,
+					id		: `Kamera`,
+					'class'	: `Kamera`,
+				});
 			}
 
 			/*
@@ -2160,12 +2260,12 @@ function finalize() {
 			DirZ		= +FrameDir.getAttribute("z");
 			const norm = Math.sqrt(DirX*DirX + DirY*DirY + DirZ*DirZ);
 			if (norm > 1.01) {	// sometimes we need to normalize the Dir Vector
-console.log('Kamera ' + Name
+/*console.log('Kamera ' + Name
 	+ ' norm ' + norm.toFixed(4)
 	+ ' DirX ' + DirX.toFixed(4)
 	+ ' DirY ' + DirY.toFixed(4)
 	+ ' DirZ ' + DirZ.toFixed(4)
-)
+)*/
 				DirX /= norm;
 				DirY /= norm;
 				DirZ /= norm;
@@ -2182,14 +2282,14 @@ console.log('Kamera ' + Name
 			mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 			Kamera.mPos = mMatrix;
 			
-			global.KameraMap.set(Name, Kamera);
+
+			global.Kameras[Name] = Kamera;
 			
-			Laenge = 40;
+			Laenge = 40;	// arbitrary length
 
 			let svgKameraGroup = svgAppend(svgKamerasGroup, {
 				svg_tag	: `g`,
 				id		: Name, 
-				'class'	: `Kamera`,
 			});
 			
 			// Show circle at Point
@@ -2218,9 +2318,10 @@ console.log('Kamera ' + Name
 			});
 
 		}
+
 		
 		// Group for additional general elements
-		let svg_general_group = svgAppend(fragment, {
+		let svg_general_group = svgAppend(fragmentBackground, {
 			svg_tag	: `g`,
 			id		: `general`,
 		});
@@ -2255,7 +2356,9 @@ console.log('Kamera ' + Name
 			r		:  `1`,
 		});
 
-		// Now we can append the fragment to the svg node
+		// Now we can append the fragments to the svg node
+		// Order: 1. Gleisobjekte (Flächen), 2. Rahmen, 3. Gleise (Linien), 4. Kameras
+		document.getElementById("sutrackp").appendChild(fragmentBackground);
 		document.getElementById("sutrackp").appendChild(fragment);
 
 		// Test: process all nodes recursivly
@@ -2267,6 +2370,29 @@ console.log('Kamera ' + Name
 		return;
 }
 
+// Generate matrix command for svg
+function matrixToTransform(m) {
+	//       `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+	//return `matrix(${m[0]} ${m[1]} ${m[4]} ${m[5]} ${m[12]} ${(m[13])})`;
+	
+/* https://wiki.selfhtml.org/wiki/SVG/Transformationen#matrix	
+transform="matrix(1,0,0,1,0,0)" ist die Identität. Diese Angabe hat also überhaupt keinen Effekt.
+transform="matrix(1,0,0,1,x,y)" entspricht transform="translate(x,y)".
+transform="matrix(x,0,0,y,0,0)" entspricht transform="scale(x,y)".
+transform="matrix(1,0,tan(α),1,0,0)" entspricht transform="skewX(α)".
+transform="matrix(1,tan(α),0,1,0,0)" entspricht transform="skewY(α)".
+transform="matrix(cos(α),sin(α),-sin(α),cos(α),0,0)" entspricht transform="rotate(α)". 
+Eigentlich entspricht diese Drehmatrix der Drehung gegen den Uhrzeigersinn während rotate im Uhrzeigersinn dreht, sodass der Parameter der trigonometrischen Funktionen -α statt α sein müsste. Jedoch ist in SVG die y-Achse falschherum, wodurch sich dies gegenseitig aufhebt.
+transform="matrix(cos(α),sin(α),-sin(α),cos(α),x,y) matrix(1,0,0,1,-x,-y)" entspricht transform="rotate(α,x,y)"	
+*/
+	
+	const [	DirX, DirY, DirZ, d0, 
+			NorX, NorY, NorZ, n0, 
+			BinX, BinY, BinZ, b0, 
+			PosX, PosY, PosZ, scale ] = m;
+	return `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`;
+}
+		
 function calcBezierCurve(BezierPoints, t) {
 	// BezierPoints = [ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z]];
 	const B1X = BezierPoints[0][0]; // = aX;
@@ -2468,7 +2594,12 @@ function svgAppend(svg_node, obj) {
 
 	// copy all attributes except the tag and the text
 	for (const [key, value] of Object.entries(obj)) {
-		if (key !== "svg_tag" && key !== "text") { element.setAttribute(key, value); }
+		if (key !== "svg_tag" && key !== "text") {
+			// reduce precission of numbers ( simulated floor() operation )
+			const valueString = (''+value).replace(/(\.\d{0,5})\d*/g, '$1');
+
+			element.setAttribute(key, valueString); 
+		}
 	}
 
 	if (obj.svg_tag === "text") {
@@ -2926,42 +3057,44 @@ Cursor: <span id="cursorPosition"> </span>
 <article class="group no-select"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset class="fieldset">
 	<!-- Firefox keeps the status of the checkbox between page loads by default. -->
-	<div class="item Eisenbahn hidden"><label>
+	<div class="item Eisenbahn hidden"><label>					<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
-	<div class="item Strassenbahn hidden"><label>
+	<div class="item Strassenbahn hidden"><label>				<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('#Strassenbahn', this.checked)">Straßenbahn</label></div>
-	<div class="item Strasse hidden"><label>
+	<div class="item Strasse hidden"><label>					<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('#Strasse', this.checked)">Straße</label></div>
-	<div class="item Wasserwege hidden"><label>
+	<div class="item Wasserwege hidden"><label>					<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
-	<div class="item Steuerstrecken hidden"><label>
+	<div class="item Steuerstrecken hidden"><label>				<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Steuerstrecken" checked autocomplete="off" onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
-	<div class="item GBS hidden"><label>
+	<div class="item GBS hidden"><label>						<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="GBS" 			checked autocomplete="off" onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- GleisID -->
 	<input type="checkbox" name="GleisID" 		checked autocomplete="off" onchange="toggleElements('.GleisID', this.checked)">GleisID</label></div>
-	<div class="item hidden" id="CheckboxCurveType"><label>
+	<div class="item hidden" id="CheckboxCurveType"><label>		<!-- only visible if there are elements of that type = EEP 16 -->
 	<input type="checkbox" name="CurveType" 	checked autocomplete="off" onchange="toggleElements('.CurveType', this.checked)">Gleisart</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- Stil -->
 	<input type="checkbox" name="Stil" 			checked autocomplete="off" onchange="toggleElements('.Stil', this.checked)">Stil</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- Hoehe -->
 	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)">Höhe</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- WeicheText -->
 	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)">Weichen</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- Signal -->
 	<input type="checkbox" name="Signal" 		checked autocomplete="off" onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- Kontakt -->
 	<input type="checkbox" name="Kontakt" 		checked autocomplete="off" onchange="toggleElements('.Kontakt', this.checked)">Kontakte</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- active -->
 	<input type="checkbox" name="active" 		checked autocomplete="off" onchange="toggleElements('.active', this.checked)">aktiv</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- inactive -->
 	<input type="checkbox" name="inactive" 		checked autocomplete="off" onchange="toggleElements('.inactive', this.checked)">inaktiv</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- unsichtbar -->
 	<input type="checkbox" name="unsichtbar" 	checked autocomplete="off" onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
-	<div class="item"><label>
+	<div class="item"><label>	<!-- Marker -->
 	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)">Marker</label></div>
-	<div class="item"><label>
-	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)">Kamera</label></div>
+	<div class="item hidden" id="CheckboxGleisobjekt"><label>	<!-- only visible if there are elements of that type -->
+	<input type="checkbox" name="Gleisobjekt" 	checked autocomplete="off" onchange="toggleElements('.Gleisobjekt', this.checked)">Gleisobjekte</label></div>
+	<div class="item hidden" id="CheckboxKamera"><label>		<!-- only visible if there are elements of that type -->
+	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)">Kameras</label></div>
 	<div class="item"><label>
 	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('#general', this.checked)">Rahmen</label></div>
 </fieldset>
@@ -3194,6 +3327,41 @@ text.WeicheText {
 	fill: var(--Kamera-color);
 }
 
+/* Gleisobjekte werden als transparente Flächen in der Farbe der jeweiligen Gleissysteme dargestellt */ 
+.Gleisobjekt {
+	stroke: none;
+	fill: none;
+	fill-opacity: 0.2;
+	marker-start: none;
+	marker-end: none;
+}
+
+.Eisenbahn.Gleisobjekt {
+	fill: var(--Eisenbahn-color);
+}
+
+.Strassenbahn.Gleisobjekt {
+	fill: var(--Strassenbahn-color);
+}
+
+.Strasse.Gleisobjekt {
+	fill: var(--Strasse-color);
+}
+
+.Wasserwege.Gleisobjekt {
+	fill: var(--Wasserwege-color);
+}
+
+.Steuerstrecken.Gleisobjekt {
+	fill: var(--Steuerstrecken-color);
+}
+
+.GBS.Gleisobjekt {
+	fill: var(--GBS-color);
+}
+
+/* Besondere Objekte */
+
 .Prellbock {
 	marker-end:   url(#Prellbock);
 }
@@ -3224,7 +3392,9 @@ text.WeicheText {
 	stroke-opacity: 0.5;
 }
 
-.hidden, .hiddenZ {		/* versteckte Elemente */
+/* versteckte Elemente */
+
+.hidden, .hiddenZ {
 	display: none !important;
 }
 	/* ]]> */
@@ -3606,14 +3776,6 @@ const EEPchannel = new BroadcastChannel('EEP');
 
 // Event handler
 EEPchannel.onmessage = function(ev) {
-
-	// Get the element from a set with a specific attribute value
-	function getElement(Set, Attribute, ID) {
-		for (const Element of Set) {
-			if (Element.getAttribute(Attribute) == ID) return Element; // compare string with number
-		}
-	}
-
 	const GleissystemID = '' + ev.data.GleissystemID;	// Gleis
 	const GleisID		= '' + ev.data.GleisID;
 	
@@ -3625,7 +3787,7 @@ EEPchannel.onmessage = function(ev) {
 
 	if (ID) {	// Signal oder Weiche
 	
-		const Meldung = global.MeldungenMap.get(Number(ID));
+		const Meldung = global.Meldungen[Number(ID)];
 		if (Meldung) {
 			// Signal gefunden
 			centerPosition(Meldung.mPos);
@@ -3635,7 +3797,7 @@ EEPchannel.onmessage = function(ev) {
 			return true;
 		}
 
-		const Gleis = global.WeichenMap.get(Number(ID));
+		const Gleis = global.Weichen[Number(ID)];
 		if (Gleis) {
 			// Weiche gefunden
 			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
@@ -3649,7 +3811,7 @@ EEPchannel.onmessage = function(ev) {
 
 	} else if (KontaktID) {	// Kontakt
 
-		const Kontakt = global.KontakteArray[KontaktID];
+		const Kontakt = global.Kontakte[KontaktID];
 		centerPosition(Kontakt.mPos);
 
 		showKontaktInfo(KontaktID, GleissystemID, GleisID);
@@ -3657,13 +3819,12 @@ EEPchannel.onmessage = function(ev) {
 
 	} else if (GleissystemID && GleisID) {	// Gleis
 
-		const Gleissystem	= getElement(global.sutrackp.getElementsByTagName("Gleissystem"), "GleissystemID", GleissystemID);
+		const Gleissystem = global.Gleissysteme[GleissystemID];
 		if (!Gleissystem) {
-			msg(`Gleissystem ${GleissystemID} existiert nicht`);
+			msg(`Gleissystem ${GleissystemID} ${GleissystemText[GleissystemID]} existiert nicht`);
 			return false;
 		}
-
-		const Gleis 		= getElement(Gleissystem.getElementsByTagName("Gleis"), "GleisID", GleisID);
+		const Gleis = Gleissystem[GleisID];
 		if (!Gleis) {
 			msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
 			return false;
@@ -3691,14 +3852,6 @@ EEPchannel.onmessage = function(ev) {
 	}
 
 function centerItem() {
-
-	// Get the element from a set with a specific attribute value
-	function getElement(Set, Attribute, ID) {
-		for (const Element of Set) {
-			if (Element.getAttribute(Attribute) == ID) return Element; // compare string with number
-		}
-	}
-
 	// Get input values
 	//const text 	= o.options[o.selectedIndex].text;		// e.g. Eisenbahn
 	const o 	= document.getElementById("select");
@@ -3709,13 +3862,13 @@ function centerItem() {
 
 		const GleissystemID = Number(sel);
 		const GleisID 		= val;
-		const Gleissystem	= getElement(global.sutrackp.getElementsByTagName("Gleissystem"), "GleissystemID", GleissystemID);
+
+		const Gleissystem = global.Gleissysteme[GleissystemID];
 		if (!Gleissystem) {
-			msg(`Gleissystem ${GleissystemID} existiert nicht`);
+			msg(`Gleissystem ${GleissystemID} ${GleissystemText[GleissystemID]} existiert nicht`);
 			return false;
 		}
-
-		const Gleis 		= getElement(Gleissystem.getElementsByTagName("Gleis"), "GleisID", GleisID);
+		const Gleis = Gleissystem[GleisID];
 		if (!Gleis) {
 			msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
 			return false;
@@ -3729,7 +3882,7 @@ function centerItem() {
 		// Gleis.getAttribute("Key_Id") bzw. Gleis.getAttribute("Meldung").getAttribute("Key_Id")
 		const ID 		= val;
 
-		const Meldung = global.MeldungenMap.get(Number(ID));
+		const Meldung = global.Meldungen[Number(ID)];
 		if (Meldung) {
 			// Signal gefunden
 			centerPosition(Meldung.mPos);
@@ -3737,7 +3890,7 @@ function centerItem() {
 			return true;
 		}
 
-		const Gleis = global.WeichenMap.get(Number(ID));
+		const Gleis = global.Weichen[Number(ID)];
 		if (Gleis) {
 			// Weiche gefunden
 			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
@@ -3770,9 +3923,18 @@ function centerPosition(Position) {
 
 }
 
+// Handle special keys
 global.shiftDown 	= false;
 global.strgDown 	= false;
 global.altDown 		= false;
+// Clear key status when window gets focus (mainly to omit Alt key)
+window.addEventListener("focus", function(event) { 
+	global.shiftDown 	= false;
+	global.strgDown 	= false;
+	global.altDown 		= false;
+});
+//window.addEventListener("blur", function(event) {});
+// Activate key
 document.addEventListener('keydown', function(event){
     if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = true;
@@ -3782,6 +3944,7 @@ document.addEventListener('keydown', function(event){
         global.altDown = true;
     }
 });
+// Deactivate key
 document.addEventListener('keyup', function(event){
     if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = false;
@@ -4172,10 +4335,12 @@ function objectToHTML(object) {
 }
 
 function showGleisInfo(GleissystemID, GleisID) {
-	const Gleissystem = global.GleissystemMap.get(GleissystemID);
+	const Gleissystem = global.Gleissysteme[GleissystemID];
 	if (!Gleissystem){ return; }
 	
-	const Gleis 	= Gleissystem.get(GleisID);
+	const Gleis 	= Gleissystem[GleisID];
+	if (!Gleis){ return; }
+
 	const clsid 	= Gleis.getAttribute("clsid");		// Gleisart
 	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
 	const gsbname 	= Gleis.getAttribute("gsbname");	// Dateiname
@@ -4198,7 +4363,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 	const connections = global.trackConnections[GleissystemID][GleisID] || {};
 	for (const connection in connections) {
 		const connectedGleisID = connections[connection].GleisID;
-		const connectedGleis = Gleissystem.get(connectedGleisID);
+		const connectedGleis = Gleissystem[connectedGleisID];
 		connectionText += '<br>' + connection
 			+': ' 
 			+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
@@ -4226,10 +4391,12 @@ function showGleisInfo(GleissystemID, GleisID) {
 }
 
 function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
-	const Gleissystem = global.GleissystemMap.get(GleissystemID);
+	const Gleissystem = global.Gleissysteme[GleissystemID];
 	if (!Gleissystem){ return; }
 
-	const Gleis 	= global.GleissystemMap.get(GleissystemID).get(GleisID);
+	const Gleis 	= Gleissystem[GleisID];
+	if (!Gleis){ return; }
+
 	const clsid 	= Gleis.getAttribute("clsid");		// Gleisart
 	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
 	const gsbname 	= Gleis.getAttribute("gsbname");	// Dateiname
@@ -4251,7 +4418,7 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	for (const connection in connections) {
 		if (connection != 'Anfang') {
 			const connectedGleisID = connections[connection].GleisID;
-			const connectedGleis = Gleissystem.get(connectedGleisID);
+			const connectedGleis = Gleissystem[connectedGleisID];
 			connectionText += '<br>' + connection
 				+': ' 
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
@@ -4279,7 +4446,9 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 }
 
 function showSignalInfo(SignalID, GleissystemID, GleisID) {
-	const Meldung 		= global.MeldungenMap.get(SignalID);
+	const Meldung 		= global.Meldungen[SignalID];
+	if (!Meldung) { return; }
+	
 	const File 			= Meldung.getAttribute("name");		// Dateiname
 	const Position		= Meldung.getAttribute('Position') / 100;
 	const ParaOderAnti 	= Meldung.getAttribute('ParaOderAnti');
@@ -4334,7 +4503,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		7: { name: 'orange',	color: 'rgb(220,110,0)',	},
 	}
 	let RoutesText = '';
-	for (Route of RouteList) {
+	for (const Route of RouteList) {
 		const Target 	= Route.getAttribute('Target');
 		const Color 	= Route.getAttribute('Color');
 		
@@ -4426,7 +4595,7 @@ function getKontaktTyp(GleissystemID, SetType, SetValue, VolDist) {
 
 function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 //<Kontakt Position="2186.82" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="6" LastOfs="2213.881" ConnectF="2" ConnectR="2" VolDist="28" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" SignalData="0" KontaktZiel="1" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
-	const Kontakt		= global.KontakteArray[KontaktID];
+	const Kontakt		= global.Kontakte[KontaktID];
 	const SetType 		= Kontakt.getAttribute('SetType');
 	const SetValue 		= Kontakt.getAttribute('SetValue');
 	const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
@@ -4484,8 +4653,8 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	let Meldung, Gleis;
 	const Ziel = global.KontaktZiele[KontaktZiel];
 	if (Ziel) {
-		Meldung = global.MeldungenMap.get(Number(Ziel.ID));
-		Gleis = global.WeichenMap.get(Number(Ziel.ID));
+		Meldung = global.Meldungen[Number(Ziel.ID)];
+		Gleis = global.Weichen[Number(Ziel.ID)];
 	}
 
 	// Zugverband`
@@ -4543,7 +4712,8 @@ function showKameraInfo(Name) {
 		return (rad*180/Math.PI).toFixed(1) + '°'
 	}
 
-	const Kamera 		= global.KameraMap.get(Name);
+	const Kamera 		= global.Kameras[Name];
+	if (!Kamera) { return; }
 
 	const [DirX, DirY, DirZ, d0, NorX, NorY, NorZ, n0, BinX, BinY, BinZ, b0, PosX, PosY, PosZ, scale ] = Kamera.mPos;
 
@@ -4561,8 +4731,8 @@ function showKameraInfo(Name) {
 
 /*
 Deep Ocean						X°					Y° 					Z°
-																		Richtung
-								atan2(NorZ, BinZ)	-asin(DirZ)			-Math.acos( DirX/Math.cos(angleY) )
+													Neigung					Richtung
+								atan2(NorZ, BinZ)	-asin(DirZ)			-acos( DirX/cos(angleY) )
 Anleger ELSA Kurhotel 			X: 0.0° 			Y: -2.4° 			Z: -72.0°
 Bhf Einstädt					X: 0.0° 			Y: 9.6° 			Z: -162.0°
 DANGER! Frachter 				X: 0.0° 			Y: 16.8° 			Z: -150.0°
@@ -4590,7 +4760,7 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 						-Math.acos( Math.min(1, Math.max(-1, DirX/Math.cos(angleY)) )) 	// protect against rounding errors
 						* (DirY<0 ? -1 : 1) );											// adjust sign			
 
-console.log(Name
+/*console.log(Name
 //	+ '\nasin( DirX )=\t' + angle( -Math.asin( DirX ) ) 
 //	+ '\nacos( DirX )=\t' + angle( Math.acos( DirX ) )
 	+ '\nY: asin( DirZ )=\t' + angle( -Math.asin( DirZ ) ) 
@@ -4640,7 +4810,7 @@ console.log(Name
 //	+ '\nacos( NorZ/cos(y) )=\t' + angle( Math.acos( NorZ/Math.cos(angleY) ) )
 //	+ '\nacos( BinZ/cos(y) )=\t' + angle( Math.acos( BinZ/Math.cos(angleY) ) )
 
-)
+)*/
 
 	// Kurzform in msg-Element
 	msg(`Kamera ${Name}`);
@@ -4649,8 +4819,8 @@ console.log(Name
 	showInfoWindow({
 		code: 'Kamera ' + Name,
 		title: '📷 ' + Name, // 📷 \u1F4F7
-		content: //`<b>${Name}<\/b>` +
-			  `<br>Position: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${-PosY.toFixed(0)}m<\/a>)`			
+		content: //`<b>${Name}<\/b><br>` +
+			  `Position: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${-PosY.toFixed(0)}m<\/a>)`			
 			+ `<br>Höhe: ${PosZ.toFixed(0)}m`
 			+ `<br>Blickrichtung: ` 		 + angle( angleZ )			// Neigung Z
 			+ ' ' + ['W', 'WSW', 'SW', 'SSW', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO', 'N', 'NNW', 'NW', 'WNW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)]
@@ -4803,8 +4973,8 @@ function exportGraphic(fileType) {
 	svg.removeAttribute("height");
 
 	if (fileType === 'svg') {
-		// reduce precission
-		svgString = svgString.replace(/(\.\d{0,5})\d*/g, '$1');
+		// reduce precission (not required anymore because already done in svgAppend)
+		// svgString = svgString.replace(/(\.\d{0,5})\d*/g, '$1');
 	}
 
 	// Convert svg to png/jpg and export it
@@ -5049,13 +5219,27 @@ function setColor(event) {
 </script>
 </aside>
 
-<style> /* mod default CSS */
-/* instead of insert CSS modifications here, you yan use the bookmark trick described at http://mcdlr.com/css-inject/ 
-Example:
-CSS mod Gleisplan
-javascript:(function(){ var style = document.createElement(%27style%27), styleContent = document.createTextNode(%27.Prellbock { marker-end: none !important; } .inactive { /* inaktive Gleisstile */ stroke-opacity: 1.0 !important; } .EEPCurve, .Line, .Arc, .Rotator, .Cubic { /* uninteressante Gleisarten .EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Helix */ stroke-width: var(--narrow-stroke-width) !important; stroke-opacity: 0.2 !important; }%27); style.appendChild(styleContent ); var caput = document.getElementsByTagName(%27head%27); caput[0].appendChild(style); })();
+<style id="modCSS"> /* mod default CSS */
+/* Instead of inserting CSS modifications here, you can use the bookmark trick described at http://mcdlr.com/css-inject/ 
+
+Example with 3 modification rules:
+1. remove marker of .Prellbock
+2. show .inactive track like other tracks
+3. highlight specific track type .Helix after reducing the visibility of all track types .EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Helix
+Title: mod EEP
+Code (6 lines):
+javascript:(function(){document.getElementById(%27modCSS%27).textContent=%27
+.Prellbock { marker-end: none} 
+.inactive { stroke-opacity: 1.0} 
+.EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Helix { stroke-width: calc(var(--normal-stroke-width)/2); stroke-opacity: 0.2; }
+.Helix { stroke-width: calc(var(--normal-stroke-width)*2); stroke-opacity: 1.0; }
+%27;})();
+
+Example to reset modifications:
+Title: 	reset EEP
+Code:	javascript:(function(){document.getElementById(%27modCSS%27).textContent=%27%27;})();
+
 */
-}
 
 </style>
 
