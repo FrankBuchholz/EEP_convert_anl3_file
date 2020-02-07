@@ -850,7 +850,7 @@ function process(Gleissystem) {
 	// Append groups to the root node; append other elements to these group nodes
 	const svgGleissystemGroup = svgAppend(fragment, {
 		svg_tag	: `g`,
-		id		: `${GleissystemCode[GleissystemID]}`,
+		'class'	: `${GleissystemCode[GleissystemID]}`,
 	});
 
 	const Gleise = Gleissystem.getElementsByTagName("Gleis");
@@ -2103,10 +2103,28 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				if (minY > Gleis.mEnd[posY]) { minY = Gleis.mEnd[posY] };
 				if (maxY < Gleis.mEnd[posY]) { maxY = Gleis.mEnd[posY] };
 				
-				// Collects start- mid- and end-points of Gleise
-				points.push({ x: Gleis.mPos[posX], y: Gleis.mPos[posY], });
-				points.push({ x: Gleis.mMid[posX], y: Gleis.mMid[posY], });
-				points.push({ x: Gleis.mEnd[posX], y: Gleis.mEnd[posY], });
+				// Collect start- mid- and end-points of Gleise to calculate the convex hull
+				//points.push({ x: Gleis.mPos[posX], y: Gleis.mPos[posY], });
+				//points.push({ x: Gleis.mMid[posX], y: Gleis.mMid[posY], });
+				//points.push({ x: Gleis.mEnd[posX], y: Gleis.mEnd[posY], });
+
+				// Extend the area of the hull a litte bit
+				const d = 1;
+				points.push({ x: Gleis.mPos[posX]+d, y: Gleis.mPos[posY]+d, });
+				points.push({ x: Gleis.mMid[posX]+d, y: Gleis.mMid[posY]+d, });
+				points.push({ x: Gleis.mEnd[posX]+d, y: Gleis.mEnd[posY]+d, });
+				
+				points.push({ x: Gleis.mPos[posX]+d, y: Gleis.mPos[posY]-d, });
+				points.push({ x: Gleis.mMid[posX]+d, y: Gleis.mMid[posY]-d, });
+				points.push({ x: Gleis.mEnd[posX]+d, y: Gleis.mEnd[posY]-d, });
+
+				points.push({ x: Gleis.mPos[posX]-d, y: Gleis.mPos[posY]+d, });
+				points.push({ x: Gleis.mMid[posX]-d, y: Gleis.mMid[posY]+d, });
+				points.push({ x: Gleis.mEnd[posX]-d, y: Gleis.mEnd[posY]+d, });
+				
+				points.push({ x: Gleis.mPos[posX]-d, y: Gleis.mPos[posY]-d, });
+				points.push({ x: Gleis.mMid[posX]-d, y: Gleis.mMid[posY]-d, });
+				points.push({ x: Gleis.mEnd[posX]-d, y: Gleis.mEnd[posY]-d, });
 			}
 		}
 /*console.log('Gleisobjekt ' + GleisobjektID
@@ -2118,18 +2136,20 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			// Show checkbox
 			document.getElementById("CheckboxGleisobjekt").classList.remove("hidden");
 		
-			// Create svg group node (wrong order: we have to put that to the beginning)
+			// Create svg group node
 			svgGleisobjekteGroup = svgAppend(fragmentBackground, {
 				svg_tag	: `g`,
-				'class'	: `${GleissystemCode[GleissystemID]} Gleisobjekt`,
+				'class'	: `Gleisobjekt`,
 			});
 		}
 		const svgGleisobjektGroup = svgAppend(svgGleisobjekteGroup, {
 			svg_tag	: `g`,
 			id		: `GO` + GleisobjektID,
+			'class'				: `${GleissystemCode[GleissystemID]}`,
 		});
 		// simplified: show outer rectangle
 		// <rect x="50" y="20" width="150" height="150"
+		/*
 		svgAppend(svgGleisobjektGroup, {
 			svg_tag				: `rect`,
 			x					: minX,
@@ -2138,12 +2158,13 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			height				: maxY - minY,
 			//transform 			: matrixToTransform(...),
 		});
+		*/
 		// Create svg for convex hull of Gleisobjekt
 		// see https://www.nayuki.io/page/convex-hull-algorithm		
 		const hull = convexhull.makeHull(points);
 		const svgPath = hull.map(function(point, i) {
-								return (i == 0 ? "M" : "L") + point.x + "," + point.y;
-					}		).join("") + "Z";		
+								return (i == 0 ? "M" : " L") + point.x + " " + point.y;
+							}).join("") + "Z";		
 		svgAppend(svgGleisobjektGroup, {
 			svg_tag				: `path`,
 			d					: svgPath,
@@ -2651,6 +2672,9 @@ function svgAppendTextPath(svg_node, obj) {
 </script>
 
 <script type="text/javascript"> <!-- https://www.nayuki.io/page/convex-hull-algorithm -->
+/* Explanations and animation of the algorithm
+https://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Monotone_chain
+*/   
 /* 
  * Convex hull algorithm - Library (JavaScript)
  * 
@@ -2674,77 +2698,81 @@ function svgAppendTextPath(svg_node, obj) {
 
 "use strict";
 
-
-var convexhull = new function() {
+const convexhull = new function() {
 	
 	// Returns a new array of points representing the convex hull of
 	// the given set of points. The convex hull excludes collinear points.
 	// This algorithm runs in O(n log n) time.
 	this.makeHull = function(points) {
-		var newPoints = points.slice();
-		newPoints.sort(this.POINT_COMPARATOR);
+		const newPoints = points.slice();					// copy array
+		newPoints.sort(this.POINT_COMPARATOR);				// sort first by x-coordinate, and in case of a tie, by y-coordinate
 		return this.makeHullPresorted(newPoints);
 	};
 	
 	
 	// Returns the convex hull, assuming that each points[i] <= points[i + 1]. Runs in O(n) time.
 	this.makeHullPresorted = function(points) {
-		if (points.length <= 1)
+		if (points.length <= 1) {							// just 0 or 1 point
 			return points.slice();
+		}
 		
 		// Andrew's monotone chain algorithm. Positive y coordinates correspond to "up"
 		// as per the mathematical convention, instead of "down" as per the computer
 		// graphics convention. This doesn't affect the correctness of the result.
 		
-		var upperHull = [];
-		for (var i = 0; i < points.length; i++) {
-			var p = points[i];
-			while (upperHull.length >= 2) {
-				var q = upperHull[upperHull.length - 1];
-				var r = upperHull[upperHull.length - 2];
-				if ((q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x))
-					upperHull.pop();
-				else
+		// The upper hull is the part of the convex hull, which is visible from above. 
+		const upperHull = [];
+		for (let i = 0; i < points.length; i++) {			// inspect all points from left to right
+			const p = points[i];							// current point
+			while (upperHull.length >= 2) {					// do we at least have 2 more points in this part of the hull
+				const q = upperHull[upperHull.length - 1];	// last point in this part of the hull
+				const r = upperHull[upperHull.length - 2];	// pre-last point in this part of the hull
+				if ( this.cross(q, p, r) ) {				// check turn direction of these 3 points
+					upperHull.pop();						// wrong turn direction -> remove inner point q
+				} else {
 					break;
+				}
 			}
-			upperHull.push(p);
+			upperHull.push(p);								// add current point temporarily to this part of the hull
 		}
-		upperHull.pop();
+		upperHull.pop();									// Remove the last point of each list (it's the same as the first point of the other list).
 		
-		var lowerHull = [];
-		for (var i = points.length - 1; i >= 0; i--) {
-			var p = points[i];
-			while (lowerHull.length >= 2) {
-				var q = lowerHull[lowerHull.length - 1];
-				var r = lowerHull[lowerHull.length - 2];
-				if ((q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x))
-					lowerHull.pop();
-				else
+		// The lower hull is the part of the convex hull, which is visible from below. 
+		const lowerHull = [];
+		for (let i = points.length - 1; i >= 0; i--) {		// inspect all points from right to left
+			const p = points[i];							// current point
+			while (lowerHull.length >= 2) {					// do we at least have 2 more points in this part of the hull
+				const q = lowerHull[lowerHull.length - 1];	// last point in this part of the hull
+				const r = lowerHull[lowerHull.length - 2];	// pre-last point in this part of the hull
+				if ( this.cross(q, p, r) ) {				// check turn direction of these 3 points
+					lowerHull.pop();						// wrong turn direction -> remove inner point q
+				} else {
 					break;
+				}
 			}
-			lowerHull.push(p);
+			lowerHull.push(p);								// add current point temporarily to this part of the hull
 		}
-		lowerHull.pop();
+		lowerHull.pop();									// Remove the last point of each list (it's the same as the first point of the other list).
 		
-		if (upperHull.length == 1 && lowerHull.length == 1 && upperHull[0].x == lowerHull[0].x && upperHull[0].y == lowerHull[0].y)
-			return upperHull;
-		else
-			return upperHull.concat(lowerHull);
+		if (upperHull.length == 1 && lowerHull.length == 1 && upperHull[0].x == lowerHull[0].x && upperHull[0].y == lowerHull[0].y) {
+			return upperHull;					// just 1 point
+		} else {
+			return upperHull.concat(lowerHull);	// multiple points in the result will be listed in counter-clockwise order.
+		}
 	};
-	
 	
 	this.POINT_COMPARATOR = function(a, b) {
-		if (a.x < b.x)
-			return -1;
-		else if (a.x > b.x)
-			return +1;
-		else if (a.y < b.y)
-			return -1;
-		else if (a.y > b.y)
-			return +1;
-		else
-			return 0;
+		// return a.x == b.x ? a.y - b.y : a.x - b.x;
+		if 		(a.x < b.x)	return -1;			// sort first by x-coordinate, 
+		else if (a.x > b.x)	return +1;
+		else if (a.y < b.y)	return -1;			// and in case of a tie, by y-coordinate
+		else if (a.y > b.y)	return +1;
+		else				return 0;			// identical points
 	};
+	
+	this.cross = function cross(q, p, r) {
+		return 	(q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x);
+	}
 	
 };
 </script>
@@ -3159,17 +3187,17 @@ Cursor: <span id="cursorPosition"> </span>
 <fieldset class="fieldset">
 	<!-- Firefox keeps the status of the checkbox between page loads by default. -->
 	<div class="item Eisenbahn hidden"><label>					<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
+	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('.Eisenbahn', this.checked)">Eisenbahn</label></div>
 	<div class="item Strassenbahn hidden"><label>				<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('#Strassenbahn', this.checked)">Straßenbahn</label></div>
+	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('.Strassenbahn', this.checked)">Straßenbahn</label></div>
 	<div class="item Strasse hidden"><label>					<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('#Strasse', this.checked)">Straße</label></div>
+	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('.Strasse', this.checked)">Straße</label></div>
 	<div class="item Wasserwege hidden"><label>					<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
+	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('.Wasserwege', this.checked)">Wasserwege</label></div>
 	<div class="item Steuerstrecken hidden"><label>				<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Steuerstrecken" checked autocomplete="off" onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
+	<input type="checkbox" name="Steuerstrecken" checked autocomplete="off" onchange="toggleElements('.Steuerstrecken', this.checked)">Steuerstrecken</label></div>
 	<div class="item GBS hidden"><label>						<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="GBS" 			checked autocomplete="off" onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
+	<input type="checkbox" name="GBS" 			checked autocomplete="off" onchange="toggleElements('.GBS', this.checked)">GBS</label></div>
 	<div class="item"><label>	<!-- GleisID -->
 	<input type="checkbox" name="GleisID" 		checked autocomplete="off" onchange="toggleElements('.GleisID', this.checked)">GleisID</label></div>
 	<div class="item hidden" id="CheckboxCurveType"><label>		<!-- only visible if there are elements of that type = EEP 16 -->
@@ -3329,7 +3357,7 @@ text.WeicheText {
 
 /* Individuelle Formatierung je Gleissystem */
 
-#Eisenbahn {
+.Eisenbahn {
 	stroke-width: var(--normal-stroke-width);
 	stroke: var(--Eisenbahn-color);
 	fill:   none;
@@ -3340,11 +3368,11 @@ text.WeicheText {
 #EisenbahnMarkerCircle, #EisenbahnMarkerArrow {
 	fill: var(--Eisenbahn-marker-color);
 }
-#Eisenbahn text {
+.Eisenbahn text {
 	fill: var(--Eisenbahn-color);
 }
 
-#Strassenbahn {
+.Strassenbahn {
 	stroke-width: var(--normal-stroke-width);
 	stroke: var(--Strassenbahn-color);
 	fill:   none;
@@ -3354,11 +3382,11 @@ text.WeicheText {
 #StrassenbahnMarkerCircle, #StrassenbahnMarkerArrow {
 	fill: var(--Strassenbahn-marker-color) ;
 }
-#Strassenbahn text {
+.Strassenbahn text {
 	fill: var(--Strassenbahn-color) ;
 }
 
-#Strasse {
+.Strasse {
 	stroke-width: var(--normal-stroke-width);
 	stroke: var(--Strasse-color);
 	fill:   none;
@@ -3368,11 +3396,11 @@ text.WeicheText {
 #StrasseMarkerCircle, #StrasseMarkerArrow {
 	fill: var(--Strasse-marker-color);
 }
-#Strasse text {
+.Strasse text {
 	fill: var(--Strasse-color);
 }
 
-#Wasserwege {
+.Wasserwege {
 	stroke-width: var(--narrow-stroke-width);
 	stroke: var(--Wasserwege-color);
 	fill:   none;
@@ -3382,11 +3410,11 @@ text.WeicheText {
 #WasserwegeMarkerCircle, #WasserwegeMarkerArrow {
 	fill: var(--Wasserwege-marker-color);
 }
-#Wasserwege text {
+.Wasserwege text {
 	fill: var(--Wasserwege-color);
 }
 
-#Steuerstrecken {
+.Steuerstrecken {
 	stroke-width: var(--narrow-stroke-width);
 	stroke: var(--Steuerstrecken-color);
 	fill:   none;
@@ -3396,11 +3424,11 @@ text.WeicheText {
 #SteuerstreckenMarkerCircle, #SteuerstreckenMarkerArrow {
 	fill: var(--Steuerstrecken-marker-color);
 }
-#Steuerstrecken text {
+.Steuerstrecken text {
 	fill: var(--Steuerstrecken-color);
 }
 
-#GBS {
+.GBS {
 	stroke-width: var(--narrow-stroke-width);
 	stroke: var(--GBS-color);
 	fill:   none;
@@ -3410,7 +3438,7 @@ text.WeicheText {
 #GBSMarkerCircle, #GBSMarkerArrow {
 	fill: var(--GBS-marker-color);
 }
-#GBS text {
+.GBS text {
 	fill: var(--GBS-color);
 }
 
@@ -3429,35 +3457,58 @@ text.WeicheText {
 }
 
 /* Gleisobjekte werden als transparente Flächen in der Farbe der jeweiligen Gleissysteme dargestellt */ 
+
 .Gleisobjekt {
-	stroke: none;
-	fill: none;
-	fill-opacity: 0.2;
-	marker-start: none;
-	marker-end: none;
 }
 
-.Eisenbahn.Gleisobjekt {
+.Gleisobjekt rect {
+	fill-opacity: 0;		/* hide it */
+	filter: url(#blur);   	/* #blur #dilate #dilate+blur */
+}
+.Gleisobjekt path {
+	fill-opacity: 0.2;
+	filter: url(#blur);  	/* #blur #dilate #dilate+blur */
+}
+
+.Gleisobjekt .Eisenbahn {
+	stroke: none;
+	marker-start: none;
+	marker-end: none;
 	fill: var(--Eisenbahn-color);
 }
 
-.Strassenbahn.Gleisobjekt {
+.Gleisobjekt .Strassenbahn {
+	stroke: none;
+	marker-start: none;
+	marker-end: none;
 	fill: var(--Strassenbahn-color);
 }
 
-.Strasse.Gleisobjekt {
+.Gleisobjekt .Strasse {
+	stroke: none;
+	marker-start: none;
+	marker-end: none;
 	fill: var(--Strasse-color);
 }
 
-.Wasserwege.Gleisobjekt {
+.Gleisobjekt .Wasserwege {
+	stroke: none;
+	marker-start: none;
+	marker-end: none;
 	fill: var(--Wasserwege-color);
 }
 
-.Steuerstrecken.Gleisobjekt {
+.Gleisobjekt .Steuerstrecken {
+	stroke: none;
+	marker-start: none;
+	marker-end: none;
 	fill: var(--Steuerstrecken-color);
 }
 
-.GBS.Gleisobjekt {
+.Gleisobjekt .GBS {
+	stroke: none;
+	marker-start: none;
+	marker-end: none;
 	fill: var(--GBS-color);
 }
 
@@ -3502,7 +3553,19 @@ text.WeicheText {
 	</style>
 </defs>
 
-<defs> <!-- Symbols and Markers -->
+<defs> <!-- Filters, Symbols and Markers -->
+	<!-- Dilate and blur Gleisobjekte -->
+	<filter id="dilate">
+		<feMorphology operator="dilate" radius="3" />
+	</filter>
+	<filter id="blur">
+		<feGaussianBlur stdDeviation="0.2" />
+	</filter>
+	<filter id="dilate+blur">
+		<feMorphology operator="dilate" radius="2" />
+		<feGaussianBlur stdDeviation="1" />
+	</filter>
+
 	<!-- Use of symbols requires translate(-10 0) to move the origin M 0 0 to the correct position -->
 	<!-- <path d="M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z" /> --> <!-- Kreissegment -->
 	<!-- <path d="M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2" /> --> <!-- Box -->
