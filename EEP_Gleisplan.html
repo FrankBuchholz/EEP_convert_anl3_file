@@ -320,6 +320,16 @@ const WeichenstellungText = {
 	5 : 'Spezial',
 };
 
+const GebaeudesammlungText = {		// GebaeudesammlungID : Text,
+	1 : 'Eisenbahn', 
+	2 : 'Straßenbahn', 
+	3 : 'Gleisobjekte Straßen', 
+	4 : 'Immobilien',
+	5 : 'Landschaftselemente', 
+	6 : 'Sonstiges', 
+}
+
+
 function svgCreate(sutrackp, initProgress, incrementProgress) {
 
 	/* Gleisstile:
@@ -733,32 +743,32 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	</Kollektor>
 	*/
 	const Gleisobjekte = {};
+	let countGleisobjekte = 0;
 	const KollektorTracks = {};
 	for (const Kollektor of sutrackp.getElementsByTagName("Kollektor")) {
 		const KollektorID = Kollektor.getAttribute("id");
+
+		const Dreibein 	= Kollektor.getElementsByTagName("Dreibein")[0];
+		const Vektor 	= Dreibein.getElementsByTagName("Vektor")[0];
+		const PosZ 		= +Vektor.getAttribute("z") / 100;
+
 		const Kollektors = Kollektor.getElementsByTagName("Gleis");
-		
-		if (Kollektors.length < 2) {	// So far we only look for Kollektors connecting tracks
-			continue;
-		}
 		
 		for (const Gleis of Kollektors) {
 			const GleissystemID = Gleis.getAttribute("gleissystemID");
 			const GleisID 		= Gleis.getAttribute("gleisID");
 
-			
-			// Gleisobjekte
-			// First entry of Gleissystem
-			if (!Gleisobjekte[GleissystemID]) {
-				Gleisobjekte[GleissystemID] = {};
-			}
 			// First entry of Kollektor
-			if (!Gleisobjekte[GleissystemID][KollektorID]) {
-				Gleisobjekte[GleissystemID][KollektorID] = [];
+			if (!Gleisobjekte[KollektorID]) {
+				countGleisobjekte += 1;
+				Gleisobjekte[KollektorID] = { 
+					GleissystemID 	: GleissystemID, 
+					PosZ 			: PosZ, 
+					Gleise 			: [],
+				};
 			}
 			// Store Gleis of Kollektor
-			Gleisobjekte[GleissystemID][KollektorID].push({GleissystemID : GleissystemID, GleisID : GleisID, });
-			
+			Gleisobjekte[KollektorID].Gleise.push({GleissystemID : GleissystemID, GleisID : GleisID, });
 			
 			// connected tracks
 			// First entry of Gleissystem
@@ -767,12 +777,39 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 			}
 			// New Gleis (we assume that a Gleis is part of exactly 1 Gleisobjekt only)
 			KollektorTracks[GleissystemID][GleisID] = [];
+			KollektorTracks[GleissystemID][GleisID].KollektorID = KollektorID;
 			// connected tracks
 			for (const Gleis of Kollektor.getElementsByTagName("Gleis")) {
 				const GleissystemID2 = Gleis.getAttribute("gleissystemID");
 				const GleisID2 		 = Gleis.getAttribute("gleisID");
 				if (GleisID !== GleisID2) {
-					KollektorTracks[GleissystemID][GleisID].push({GleissystemID : GleissystemID2, GleisID : GleisID2, });
+					KollektorTracks[GleissystemID][GleisID].push({
+						GleissystemID : GleissystemID2, 
+						GleisID : GleisID2, 
+					});
+				}
+			}
+		}
+	}
+
+	// Load Immobilien if there exist Gleisobjekte
+	if (countGleisobjekte > 0) { //# How to identity empty objects?
+		for (const Gebaeudesammlung of sutrackp.getElementsByTagName("Gebaeudesammlung")) {
+			const GebaudesammlungID = Gebaeudesammlung.getAttribute("GebaudesammlungID");
+			for (const Immobile of sutrackp.getElementsByTagName("Immobile")) {
+				const KollektorID 	= Immobile.getAttribute("kollektorID");
+				if (KollektorID) {
+					const ImmoIdx 	= Immobile.getAttribute("ImmoIdx");
+					const gsbname 	= Immobile.getAttribute("gsbname");
+					
+					// Take care of inconsistend data: Immobilie without Kollektor 
+					if (!Gleisobjekte[KollektorID]) {
+						Gleisobjekte[KollektorID] = { Error : 'missing Kollector', };
+					}
+					
+					Gleisobjekte[KollektorID].GebaudesammlungID	= GebaudesammlungID;
+					Gleisobjekte[KollektorID].ImmoIdx 			= ImmoIdx;
+					Gleisobjekte[KollektorID].gsbname 			= gsbname;
 				}
 			}
 		}
@@ -1559,7 +1596,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		const svgGleisGroup = svgAppend(svgGleissystemGroup, {
 			svg_tag	: `g`,
 			id		: `G${GleissystemID}-${GleisID}`,
-			class	: Gleisart[clsid]
+			'class'	: Gleisart[clsid]
 						+ " " + CurveType
 						+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
 						+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
@@ -2069,18 +2106,37 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 	} // Gleise
 
+	return incrementProgress();
+}
+
+function finalize() {
+	// Show min/max height
+	const text = (global.usedArea.min.z).toFixed(0) + " .. " + (global.usedArea.max.z).toFixed(0);
+	document.getElementById("heightArea").textContent = text;
+
+	// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
+	global.usedArea.min.x = Math.max( global.usedArea.min.x, Area.min.x );
+	global.usedArea.min.y = Math.max( global.usedArea.min.y, Area.min.y );
+	global.usedArea.max.x = Math.min( global.usedArea.max.x, Area.min.x + Area.width  );
+	global.usedArea.max.y = Math.min( global.usedArea.max.y, Area.min.y + Area.height );
+
 	// Process Gleisobjekte
+	// to be discussed: should Gleisobjekt get aktiv/inaktiv status? (current: no - this could be a feature)
+	// missing: use Kollektor.Dreibein.Pos.Z to set height 
 	let svgGleisobjekteGroup;
-	for (const GleisobjektID in global.Gleisobjekte[GleissystemID]) {
-		const Gleisobjekt = global.Gleisobjekte[GleissystemID][GleisobjektID];
+	for (const GleisobjektID in global.Gleisobjekte) {
+		const Gleisobjekt = global.Gleisobjekte[GleisobjektID];
+		const GleissystemID = Gleisobjekt.GleissystemID;				// GleissystemID of Gleisobjekt
 		
 		let minX, minY, maxX, maxY;
 		const points = [];
-		for (const i in Gleisobjekt) {
-			const GleisID = Gleisobjekt[i].GleisID;
+		for (const i in Gleisobjekt.Gleise) {
+			const GleissystemID = Gleisobjekt.Gleise[i].GleissystemID;	// GleissystemID of Gleis
+			const GleisID 		= Gleisobjekt.Gleise[i].GleisID;
 
 			const Gleis = global.Gleissysteme[GleissystemID][GleisID];
 			if (Gleis) {
+		
 				// simplified: calculate outer rectangle
 				const posX = 12, posY = 13;
 
@@ -2145,7 +2201,8 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		const svgGleisobjektGroup = svgAppend(svgGleisobjekteGroup, {
 			svg_tag	: `g`,
 			id		: `GO` + GleisobjektID,
-			'class'				: `${GleissystemCode[GleissystemID]}`,
+			'class'	: `${GleissystemCode[GleissystemID]}`
+						+ ` height=${Gleisobjekt.PosZ.toFixed(2)}`	// Height
 		});
 		// simplified: show outer rectangle
 		// <rect x="50" y="20" width="150" height="150"
@@ -2173,21 +2230,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 	}
 	// End Gleisobjekte
 
-	return incrementProgress();
-}
-
-function finalize() {
-		// Show min/max height
-		const text = (global.usedArea.min.z).toFixed(0) + " .. " + (global.usedArea.max.z).toFixed(0);
-		document.getElementById("heightArea").textContent = text;
-	
-		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
-		global.usedArea.min.x = Math.max( global.usedArea.min.x, Area.min.x );
-		global.usedArea.min.y = Math.max( global.usedArea.min.y, Area.min.y );
-		global.usedArea.max.x = Math.min( global.usedArea.max.x, Area.min.x + Area.width  );
-		global.usedArea.max.y = Math.min( global.usedArea.max.y, Area.min.y + Area.height );
-
-		// Process Kameras
+	// Process Kameras
 /*
 		Wendelsteins_Kurvenbrueck_v12
 		
@@ -2239,158 +2282,158 @@ function finalize() {
 		Hinter dem Zielobjekt:		11.96	DOFShiftFar
 		Objektentfernung:			100.0	DOFSubDist
 */		
-		let svgKamerasGroup;
-		const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
-		const Kameras = Kamerasammlung.getElementsByTagName("Kammera");
-		for (const Kamera of Kameras) {
-			const Name 	= Kamera.getAttribute("name");
-			if (Name === 'Leer') {
-				continue;
-			}
-
-			if (!svgKamerasGroup) {		// First Kamera
-				// Show checkbox
-				document.getElementById("CheckboxKamera").classList.remove("hidden");
-			
-				// Create svg group node
-				svgKamerasGroup = svgAppend(fragment, {
-					svg_tag	: `g`,
-					id		: `Kamera`,
-					'class'	: `Kamera`,
-				});
-			}
-
-			/*
-			<Kammera name="Anlage" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="11.96" FOV="0.6981317" TakeSwitch="0">
-			*/
-			const Dynamic 	= Kamera.getAttribute("Dynamic");
-
-			let Laenge, mMatrix;
-			let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
-			
-			const Dreibein	= Kamera.getElementsByTagName("Dreibein")[0];
-			const FramePos	= Dreibein.getElementsByTagName("Vektor")[0];
-			const FrameDir	= Dreibein.getElementsByTagName("Vektor")[1];
-			const FrameNor	= Dreibein.getElementsByTagName("Vektor")[2];
-			const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
-			
-			PosX		= +FramePos.getAttribute("x") / 100;
-			PosY		= -FramePos.getAttribute("y") / 100;
-			PosZ		= +FramePos.getAttribute("z") / 100;
-			
-			DirX		= +FrameDir.getAttribute("x");
-			DirY		= -FrameDir.getAttribute("y");
-			DirZ		= +FrameDir.getAttribute("z");
-			const norm = Math.sqrt(DirX*DirX + DirY*DirY + DirZ*DirZ);
-			if (norm > 1.01) {	// sometimes we need to normalize the Dir Vector
-/*console.log('Kamera ' + Name
-	+ ' norm ' + norm.toFixed(4)
-	+ ' DirX ' + DirX.toFixed(4)
-	+ ' DirY ' + DirY.toFixed(4)
-	+ ' DirZ ' + DirZ.toFixed(4)
-)*/
-				DirX /= norm;
-				DirY /= norm;
-				DirZ /= norm;
-			}
-			
-			NorX		= +FrameNor.getAttribute("x");
-			NorY		= -FrameNor.getAttribute("y");
-			NorZ		= +FrameNor.getAttribute("z");
-			
-			BinX		= +FrameBin.getAttribute("x");
-			BinY		= -FrameBin.getAttribute("y");
-			BinZ		= +FrameBin.getAttribute("z");
-
-			mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
-			Kamera.mPos = mMatrix;
-			
-
-			global.Kameras[Name] = Kamera;
-			
-			Laenge = 40;	// arbitrary length
-
-			let svgKameraGroup = svgAppend(svgKamerasGroup, {
-				svg_tag	: `g`,
-				id		: Name, 
-			});
-			
-			// Show circle at Point
-			svgAppend(svgKameraGroup, {
-				svg_tag				: `circle`,
-				r					: 2,
-				transform 			: matrixToTransform(Kamera.mPos),
-			});
-
-			// Draw Line
-			svgAppend(svgKameraGroup, {
-				svg_tag				: `path`,
-				d 					: `M 2 0 H ${Laenge}`,
-				transform 			: matrixToTransform(Kamera.mPos)
-			});
-			
-			//Show Name
-			svgAppend(svgKameraGroup, {
-				svg_tag			: `text`,
-				text			: Name,			// 📷 \u1F4F7
-				dx				: `2`, 			// Shift text right
-				dy				: `-0.3em`, 	// Shift text up
-				//dy			: `1em`, 		// Shift text below the track
-				transform 		: matrixToTransform(Kamera.mPos)
-								  + ` scale(1 -1)`,
-			});
-
+	let svgKamerasGroup;
+	const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
+	const Kameras = Kamerasammlung.getElementsByTagName("Kammera");
+	for (const Kamera of Kameras) {
+		const Name 	= Kamera.getAttribute("name");
+		if (Name === 'Leer') {
+			continue;
 		}
 
+		if (!svgKamerasGroup) {		// First Kamera
+			// Show checkbox
+			document.getElementById("CheckboxKamera").classList.remove("hidden");
 		
-		// Group for additional general elements
-		let svg_general_group = svgAppend(fragmentBackground, {
+			// Create svg group node
+			svgKamerasGroup = svgAppend(fragment, {
+				svg_tag	: `g`,
+				id		: `Kamera`,
+				'class'	: `Kamera`,
+			});
+		}
+
+		/*
+		<Kammera name="Anlage" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="11.96" FOV="0.6981317" TakeSwitch="0">
+		*/
+		const Dynamic 	= Kamera.getAttribute("Dynamic");
+
+		let Laenge, mMatrix;
+		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
+		
+		const Dreibein	= Kamera.getElementsByTagName("Dreibein")[0];
+		const FramePos	= Dreibein.getElementsByTagName("Vektor")[0];
+		const FrameDir	= Dreibein.getElementsByTagName("Vektor")[1];
+		const FrameNor	= Dreibein.getElementsByTagName("Vektor")[2];
+		const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
+		
+		PosX		= +FramePos.getAttribute("x") / 100;
+		PosY		= -FramePos.getAttribute("y") / 100;
+		PosZ		= +FramePos.getAttribute("z") / 100;
+		
+		DirX		= +FrameDir.getAttribute("x");
+		DirY		= -FrameDir.getAttribute("y");
+		DirZ		= +FrameDir.getAttribute("z");
+		const norm = Math.sqrt(DirX*DirX + DirY*DirY + DirZ*DirZ);
+		if (norm > 1.01) {	// sometimes we need to normalize the Dir Vector
+/*console.log('Kamera ' + Name
++ ' norm ' + norm.toFixed(4)
++ ' DirX ' + DirX.toFixed(4)
++ ' DirY ' + DirY.toFixed(4)
++ ' DirZ ' + DirZ.toFixed(4)
+)*/
+			DirX /= norm;
+			DirY /= norm;
+			DirZ /= norm;
+		}
+		
+		NorX		= +FrameNor.getAttribute("x");
+		NorY		= -FrameNor.getAttribute("y");
+		NorZ		= +FrameNor.getAttribute("z");
+		
+		BinX		= +FrameBin.getAttribute("x");
+		BinY		= -FrameBin.getAttribute("y");
+		BinZ		= +FrameBin.getAttribute("z");
+
+		mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
+		Kamera.mPos = mMatrix;
+		
+
+		global.Kameras[Name] = Kamera;
+		
+		Laenge = 40;	// arbitrary length
+
+		let svgKameraGroup = svgAppend(svgKamerasGroup, {
 			svg_tag	: `g`,
-			id		: `general`,
+			id		: Name, 
+		});
+		
+		// Show circle at Point
+		svgAppend(svgKameraGroup, {
+			svg_tag				: `circle`,
+			r					: 2,
+			transform 			: matrixToTransform(Kamera.mPos),
 		});
 
-		// Box zur Anzeige der Groesse der Anlage
-		// <rect class="box" x="-503" y="-303" width="1006" height="606" />
-		svgAppend(svg_general_group, {
-			svg_tag	: `rect`,
-			"class"	: `box`,
-			x		:  Area.min.x,
-			y		:  Area.min.y,
-			width	:  Area.width,
-			height	:  Area.height,
+		// Draw Line
+		svgAppend(svgKameraGroup, {
+			svg_tag				: `path`,
+			d 					: `M 2 0 H ${Laenge}`,
+			transform 			: matrixToTransform(Kamera.mPos)
 		});
-		// Box zur Anzeige des verwendeten Teils der Anlage
-		// <rect class="box" x="-175" y="-140" width="382" height="305" />
-		svgAppend(svg_general_group, {
-			svg_tag	: `rect`,
-			"class"	: `box`,
-			x		:  global.usedArea.min.x,
-			y		:  global.usedArea.min.y,
-			width	:  global.usedArea.max.x - global.usedArea.min.x,
-			height	:  global.usedArea.max.y - global.usedArea.min.y,
-		});
-		// Zusätzliche Markierung des Zentrums
-		// <circle id="center" cx="0" cy="0" r="1" />
-		svgAppend(svg_general_group, {
-			svg_tag	: `circle`,
-			id		: `center`,
-			cx		:  `0`,
-			cy		:  `0`,
-			r		:  `1`,
+		
+		//Show Name
+		svgAppend(svgKameraGroup, {
+			svg_tag			: `text`,
+			text			: Name,			// 📷 \u1F4F7
+			dx				: `2`, 			// Shift text right
+			dy				: `-0.3em`, 	// Shift text up
+			//dy			: `1em`, 		// Shift text below the track
+			transform 		: matrixToTransform(Kamera.mPos)
+							  + ` scale(1 -1)`,
 		});
 
-		// Now we can append the fragments to the svg node
-		// Order: 1. Gleisobjekte (Flächen), 2. Rahmen, 3. Gleise (Linien), 4. Kameras
-		document.getElementById("sutrackp").appendChild(fragmentBackground);
-		document.getElementById("sutrackp").appendChild(fragment);
+	}
 
-		// Test: process all nodes recursivly
-		//process_node(sutrackp);
-
-		global.timestamp.svgCreated = Date.now();
-		console.log('create svg:' + (global.timestamp.svgCreated - global.timestamp.fileParsed) / 1000 + 'sec');
 	
-		return;
+	// Group for additional general elements
+	let svg_general_group = svgAppend(fragmentBackground, {
+		svg_tag	: `g`,
+		id		: `general`,
+	});
+
+	// Box zur Anzeige der Groesse der Anlage
+	// <rect class="box" x="-503" y="-303" width="1006" height="606" />
+	svgAppend(svg_general_group, {
+		svg_tag	: `rect`,
+		"class"	: `box`,
+		x		:  Area.min.x,
+		y		:  Area.min.y,
+		width	:  Area.width,
+		height	:  Area.height,
+	});
+	// Box zur Anzeige des verwendeten Teils der Anlage
+	// <rect class="box" x="-175" y="-140" width="382" height="305" />
+	svgAppend(svg_general_group, {
+		svg_tag	: `rect`,
+		"class"	: `box`,
+		x		:  global.usedArea.min.x,
+		y		:  global.usedArea.min.y,
+		width	:  global.usedArea.max.x - global.usedArea.min.x,
+		height	:  global.usedArea.max.y - global.usedArea.min.y,
+	});
+	// Zusätzliche Markierung des Zentrums
+	// <circle id="center" cx="0" cy="0" r="1" />
+	svgAppend(svg_general_group, {
+		svg_tag	: `circle`,
+		id		: `center`,
+		cx		:  `0`,
+		cy		:  `0`,
+		r		:  `1`,
+	});
+
+	// Now we can append the fragments to the svg node
+	// Order: 1. Gleisobjekte (Flächen), 2. Rahmen, 3. Gleise (Linien), 4. Kameras
+	document.getElementById("sutrackp").appendChild(fragmentBackground);
+	document.getElementById("sutrackp").appendChild(fragment);
+
+	// Test: process all nodes recursivly
+	//process_node(sutrackp);
+
+	global.timestamp.svgCreated = Date.now();
+	console.log('create svg:' + (global.timestamp.svgCreated - global.timestamp.fileParsed) / 1000 + 'sec');
+
+	return;
 }
 
 // Generate matrix command for svg
@@ -2671,7 +2714,7 @@ function svgAppendTextPath(svg_node, obj) {
 
 </script>
 
-<script type="text/javascript"> <!-- https://www.nayuki.io/page/convex-hull-algorithm -->
+<script type="text/javascript"> // https://www.nayuki.io/page/convex-hull-algorithm
 /* Explanations and animation of the algorithm
 https://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Monotone_chain
 */   
@@ -2705,7 +2748,7 @@ const convexhull = new function() {
 	// This algorithm runs in O(n log n) time.
 	this.makeHull = function(points) {
 		const newPoints = points.slice();					// copy array
-		newPoints.sort(this.POINT_COMPARATOR);				// sort first by x-coordinate, and in case of a tie, by y-coordinate
+		newPoints.sort(POINT_COMPARATOR);					// sort first by x-coordinate, and in case of a tie, by y-coordinate
 		return this.makeHullPresorted(newPoints);
 	};
 	
@@ -2727,7 +2770,7 @@ const convexhull = new function() {
 			while (upperHull.length >= 2) {					// do we at least have 2 more points in this part of the hull
 				const q = upperHull[upperHull.length - 1];	// last point in this part of the hull
 				const r = upperHull[upperHull.length - 2];	// pre-last point in this part of the hull
-				if ( this.cross(q, p, r) ) {				// check turn direction of these 3 points
+				if ( cross(q, p, r) ) {						// check turn direction of these 3 points
 					upperHull.pop();						// wrong turn direction -> remove inner point q
 				} else {
 					break;
@@ -2744,7 +2787,7 @@ const convexhull = new function() {
 			while (lowerHull.length >= 2) {					// do we at least have 2 more points in this part of the hull
 				const q = lowerHull[lowerHull.length - 1];	// last point in this part of the hull
 				const r = lowerHull[lowerHull.length - 2];	// pre-last point in this part of the hull
-				if ( this.cross(q, p, r) ) {				// check turn direction of these 3 points
+				if ( cross(q, p, r) ) {						// check turn direction of these 3 points
 					lowerHull.pop();						// wrong turn direction -> remove inner point q
 				} else {
 					break;
@@ -2761,7 +2804,7 @@ const convexhull = new function() {
 		}
 	};
 	
-	this.POINT_COMPARATOR = function(a, b) {
+	function POINT_COMPARATOR(a, b) {
 		// return a.x == b.x ? a.y - b.y : a.x - b.x;
 		if 		(a.x < b.x)	return -1;			// sort first by x-coordinate, 
 		else if (a.x > b.x)	return +1;
@@ -2770,7 +2813,7 @@ const convexhull = new function() {
 		else				return 0;			// identical points
 	};
 	
-	this.cross = function cross(q, p, r) {
+	function cross(q, p, r) {
 		return 	(q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x);
 	}
 	
@@ -3458,7 +3501,10 @@ text.WeicheText {
 
 /* Gleisobjekte werden als transparente Flächen in der Farbe der jeweiligen Gleissysteme dargestellt */ 
 
-.Gleisobjekt {
+.Gleisobjekt * {
+	stroke: none;
+	marker-start: none;
+	marker-end: none;
 }
 
 .Gleisobjekt rect {
@@ -3471,44 +3517,26 @@ text.WeicheText {
 }
 
 .Gleisobjekt .Eisenbahn {
-	stroke: none;
-	marker-start: none;
-	marker-end: none;
 	fill: var(--Eisenbahn-color);
 }
 
 .Gleisobjekt .Strassenbahn {
-	stroke: none;
-	marker-start: none;
-	marker-end: none;
 	fill: var(--Strassenbahn-color);
 }
 
 .Gleisobjekt .Strasse {
-	stroke: none;
-	marker-start: none;
-	marker-end: none;
 	fill: var(--Strasse-color);
 }
 
 .Gleisobjekt .Wasserwege {
-	stroke: none;
-	marker-start: none;
-	marker-end: none;
 	fill: var(--Wasserwege-color);
 }
 
 .Gleisobjekt .Steuerstrecken {
-	stroke: none;
-	marker-start: none;
-	marker-end: none;
 	fill: var(--Steuerstrecken-color);
 }
 
 .Gleisobjekt .GBS {
-	stroke: none;
-	marker-start: none;
-	marker-end: none;
 	fill: var(--GBS-color);
 }
 
@@ -3643,10 +3671,6 @@ text.WeicheText {
 </g>
 
 </svg>
-<style>
-#container {
-}
-</style>
 
 </section> <!-- container -->
 
@@ -4516,6 +4540,20 @@ function showGleisInfo(GleissystemID, GleisID) {
 														// 16: Zentrale Strecken einer Straßen-T-Kreuzung
 														// 20: Weichen einer Straßen-T-Kreuzung
 
+	let GleisobjektText = '';
+	let KollektorID;
+	if (global.KollektorTracks[GleissystemID]) {
+		if (global.KollektorTracks[GleissystemID][GleisID]) {
+			KollektorID = global.KollektorTracks[GleissystemID][GleisID].KollektorID;
+		}
+	}
+	if (KollektorID) {
+		const Gleisobjekt = global.Gleisobjekte[KollektorID];
+		
+		GleisobjektText = '<br>Gleisobjekt: ' + Gleisobjekt.gsbname
+			+ '<br>Immobilie: ' + GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + ' ' + Gleisobjekt.ImmoIdx
+	}
+
 	// Kurzform in msg-Element
 	msg(`${GleissystemText[GleissystemID]} ${GleisID}, ${Gleisart[clsid]}, Stil ${stil}, ${gsbname}`);
 
@@ -4546,6 +4584,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ (GleisData != 0 ? `<br>${GleisDataText[GleisData]}` : '')
 			+ `<br>Stil: ${stil}`
 			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
+			+ GleisobjektText
 			+ `<br>Länge: ${Gleis.Laenge.toFixed(0)}m`
 			+ `<br>Höhe: ${Gleis.mPos[posZ].toFixed(2)}m`
 			+ (Gleis.CurveType == 'classic' || Gleis.CurveType == 'EEPCurve' ? '' : `<br>Gleisart: ${Gleis.CurveType}`)
