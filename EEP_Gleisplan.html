@@ -192,7 +192,7 @@ function loadFile(file) {
 			// Process root node (documentElement always represents the root node)
 			const sutrackp = xmlDoc.documentElement;
 			global.sutrackp = sutrackp;
-			return svgCreate(sutrackp, initProgress, incrementProgress);
+			return createSVG(sutrackp, initProgress, incrementProgress);
 
 			function initProgress(progressMax) {
 				return updateUi(function() {
@@ -212,9 +212,6 @@ function loadFile(file) {
 
 			// Show main area
 			document.getElementById("main").classList.remove("hidden");
-			if (global.EEPversion && global.EEPversion >= 16) {
-				document.getElementById("CheckboxCurveType").classList.remove("hidden");
-			}
 
 			// Show file name
 			document.getElementById("filename").textContent = file.name.substring(0, file.name.length -1 -1 -3);
@@ -329,14 +326,11 @@ const GebaeudesammlungText = {		// GebaeudesammlungID : Text,
 	6 : 'Sonstiges', 
 }
 
-
-function svgCreate(sutrackp, initProgress, incrementProgress) {
-
-	/* Gleisstile:
-	http://up.picr.de/33875489iu.pdf
-	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
-	*/
-	const unsichtbar = [			// unsichtbare Gleisstile
+/* Gleisstile:
+http://up.picr.de/33875489iu.pdf
+http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
+*/
+const unsichtbar = [			// unsichtbare Gleisstile
 17,		// \Gleisstile\Sonstiges\Wasserweg_unsichtbar.3dm
 28,		// Gleis
 35,		// Straßenbahn
@@ -405,32 +399,48 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 7412,	// \Gleisstile\Sonstiges\Doppel_T_Trg_30x30_blau_DH1.3dm
 */
 	];
-	
-	const Version = sutrackp.getElementsByTagName("Version")[0];
-	if (Version) {
-		global.EEPversion = Version.getAttribute("EEP");	
-		if (global.EEPversion && global.EEPversion >= 16) {
-			//return;
-		}
-	}
-	
-	const Schandlaft 	= sutrackp.getElementsByTagName("Schandlaft")[0];
 
-	// Groesse der Anlage (alle Positionsangaben in m statt cm)
-	const Area = {
-		min : {
-			x : Schandlaft.getAttribute("posX") / 100,
-			y : Schandlaft.getAttribute("posY") / 100,
-		},
-		width  	: Math.abs(Schandlaft.getAttribute("posX") * 2 / 100),
-		height 	: Math.abs(Schandlaft.getAttribute("posY") * 2 / 100),
-	};
+function createSVG(sutrackp, initProgress, incrementProgress) {
+	const Gleissysteme = prepareGleissysteme(sutrackp);
+
+	// Append new svg elements to this root node which we append to the svg node later
+	const SVGfragment = document.createDocumentFragment();
+
+	return initProgress(Gleissysteme.length).then(function() {
+		let promise = null;
+		for (const Gleissystem of Gleissysteme) {
+			if (promise === null) {
+				createSVGforGleissystem(Gleissystem, SVGfragment);
+				promise = incrementProgress();
+			} else {
+				promise = promise.then(function() { 
+					createSVGforGleissystem(Gleissystem, SVGfragment); 
+					return incrementProgress(); 
+				});
+			}
+		}
+		return promise;
+
+	}).then(function() { 
+		createSVGfinalize(SVGfragment);
+		return;
+	});
+
+function prepareGleissysteme(sutrackp) {
 
 	// Verwendeter Bereich der Anlage
 	global.usedArea = {
 		min : {x : 0, y : 0, z : 0},
 		max : {x : 0, y : 0, z : 0},
 	};
+
+	const Version = sutrackp.getElementsByTagName("Version")[0];
+	if (Version) {
+		global.EEPversion = Version.getAttribute("EEP");	
+		if (global.EEPversion >= 16) {
+			document.getElementById("CheckboxCurveType").classList.remove("hidden");
+		}
+	}
 
 	// Collections for direct access
 	global.Gleissysteme 	= {};	// Verwendung: Gleis = Gleissysteme[GleissystemID][GleisID];
@@ -440,10 +450,6 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	global.KontaktZiele		= {};
 	global.Kameras 			= {};
 	global.Gleisobjekte		= {};
-
-	// Append new svg elements to this root node which we apend to the svg node later
-	const fragmentBackground 	= document.createDocumentFragment();
-	const fragment 				= document.createDocumentFragment();
 
 	// Preparation: Collect "active" tracks
 	const activeTracks = [];		// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
@@ -856,28 +862,11 @@ function svgCreate(sutrackp, initProgress, incrementProgress) {
 	}
 	// Now we are able to mark all "active" tracks in the svg-output
 	global.activeTracks = activeTracks;
-
-	return initProgress(Gleissysteme.length).then(function() {
-		let promise = null;
-		for (const Gleissystem of Gleissysteme) {
-			if (promise === null) {
-				promise = process(Gleissystem);
-			} else {
-				promise = promise.then(function() { 
-					return process(Gleissystem); 
-				});
-			}
-		}
-		return promise;
-
-	}).then(function() { 
-		return finalize();
-	});
-
-function initialize(sutrackp) {
+	
+	return Gleissysteme;
 }
 
-function process(Gleissystem) {
+function createSVGforGleissystem(Gleissystem, SVGfragment) {
 	// Use attribute TrackSystemNumber instead of GleissystemID if available
 	let GleissystemID 	= Gleissystem.getAttribute("TrackSystemNumber");
 	if (!GleissystemID) {
@@ -885,7 +874,7 @@ function process(Gleissystem) {
 	}
 
 	// Append groups to the root node; append other elements to these group nodes
-	const svgGleissystemGroup = svgAppend(fragment, {
+	const svgGleissystemGroup = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
 		'class'	: `${GleissystemCode[GleissystemID]}`,
 	});
@@ -2105,24 +2094,45 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		} // Kontakte
 
 	} // Gleise
-
-	return incrementProgress();
 }
 
-function finalize() {
-	// Show min/max height
-	const text = (global.usedArea.min.z).toFixed(0) + " .. " + (global.usedArea.max.z).toFixed(0);
-	document.getElementById("heightArea").textContent = text;
+function createSVGfinalize(SVGfragment) {
 
-	// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
-	global.usedArea.min.x = Math.max( global.usedArea.min.x, Area.min.x );
-	global.usedArea.min.y = Math.max( global.usedArea.min.y, Area.min.y );
-	global.usedArea.max.x = Math.min( global.usedArea.max.x, Area.min.x + Area.width  );
-	global.usedArea.max.y = Math.min( global.usedArea.max.y, Area.min.y + Area.height );
+	const SVGfragmentBackground 	= document.createDocumentFragment();
 
+	createSVGforGleisobjekte(SVGfragmentBackground);
+	createSVGforRahmen(SVGfragmentBackground);
+
+	createSVGforKameras(SVGfragment);
+
+	// Now we can append the fragments to the svg node
+	// Order: 1. Gleisobjekte (Flächen), 2. Rahmen, 3. Gleise (Linien), 4. Kameras
+	document.getElementById("sutrackp").appendChild(SVGfragmentBackground);
+	document.getElementById("sutrackp").appendChild(SVGfragment);
+
+	// Test: process all nodes recursivly
+	//process_node(sutrackp);
+
+	global.timestamp.svgCreated = Date.now();
+	console.log('create svg:' + (global.timestamp.svgCreated - global.timestamp.fileParsed) / 1000 + 'sec');
+}
+
+function createSVGforGleisobjekte(SVGfragment) {
+/*
+	in:
+		global.Gleisobjekte
+		global.Gleissysteme
+		GleissystemCode
+	
+	mod:
+		document.getElementById("CheckboxGleisobjekt")
+		SVGfragment
+	
+*/
+	
 	// Process Gleisobjekte
 	// to be discussed: should Gleisobjekt get aktiv/inaktiv status? (current: no - this could be a feature)
-	// missing: use Kollektor.Dreibein.Pos.Z to set height 
+
 	let svgGleisobjekteGroup;
 	for (const GleisobjektID in global.Gleisobjekte) {
 		const Gleisobjekt = global.Gleisobjekte[GleisobjektID];
@@ -2193,7 +2203,7 @@ function finalize() {
 			document.getElementById("CheckboxGleisobjekt").classList.remove("hidden");
 		
 			// Create svg group node
-			svgGleisobjekteGroup = svgAppend(fragmentBackground, {
+			svgGleisobjekteGroup = svgAppend(SVGfragment, {
 				svg_tag	: `g`,
 				'class'	: `Gleisobjekt`,
 			});
@@ -2228,8 +2238,17 @@ function finalize() {
 		});
 		
 	}
-	// End Gleisobjekte
+}
 
+function createSVGforKameras(SVGfragment) {
+/*
+	in:
+		sutrackp.getElementsByTagName("Kammerasammlung")
+	
+	mod:
+		SVGfragment
+	
+*/
 	// Process Kameras
 /*
 		Wendelsteins_Kurvenbrueck_v12
@@ -2296,7 +2315,7 @@ function finalize() {
 			document.getElementById("CheckboxKamera").classList.remove("hidden");
 		
 			// Create svg group node
-			svgKamerasGroup = svgAppend(fragment, {
+			svgKamerasGroup = svgAppend(SVGfragment, {
 				svg_tag	: `g`,
 				id		: `Kamera`,
 				'class'	: `Kamera`,
@@ -2383,11 +2402,55 @@ function finalize() {
 							  + ` scale(1 -1)`,
 		});
 
-	}
+		// show Hoehe in the middle below the track (left-adjusted)
+		svgAppend(svgKameraGroup, {
+			svg_tag			: `text`,
+			text			: `[${PosZ.toFixed(0)}m]`,
+			dx				: `2`, 		// Shift text right a little bit
+			dy				: `1em`, 		// Shift text below the track
+			"class"			: `Hoehe`,
+			transform 		: matrixToTransform(Kamera.mPos)
+							  + ` scale(1 -1)`,
+		});					
 
+	}
+}
+
+function createSVGforRahmen(SVGfragment) {
+/*
+	in:
+		sutrackp.getElementsByTagName("Schandlaft")
+		global.usedArea
+	
+	mod:
+		document.getElementById("heightArea")
+		global.usedArea
+		SVGfragment
+	
+*/
+	// Show min/max height
+	const text = (global.usedArea.min.z).toFixed(0) + " .. " + (global.usedArea.max.z).toFixed(0);
+	document.getElementById("heightArea").textContent = text;
+
+	// Groesse der Anlage (alle Positionsangaben in m statt cm)
+	const Schandlaft 	= sutrackp.getElementsByTagName("Schandlaft")[0];
+	const Area = {
+		min : {
+			x : Schandlaft.getAttribute("posX") / 100,
+			y : Schandlaft.getAttribute("posY") / 100,
+		},
+		width  	: Math.abs(Schandlaft.getAttribute("posX") * 2 / 100),
+		height 	: Math.abs(Schandlaft.getAttribute("posY") * 2 / 100),
+	};
+
+	// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
+	global.usedArea.min.x = Math.max( global.usedArea.min.x, Area.min.x );
+	global.usedArea.min.y = Math.max( global.usedArea.min.y, Area.min.y );
+	global.usedArea.max.x = Math.min( global.usedArea.max.x, Area.min.x + Area.width  );
+	global.usedArea.max.y = Math.min( global.usedArea.max.y, Area.min.y + Area.height );
 	
 	// Group for additional general elements
-	let svg_general_group = svgAppend(fragmentBackground, {
+	let svg_general_group = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
 		id		: `general`,
 	});
@@ -2421,19 +2484,6 @@ function finalize() {
 		cy		:  `0`,
 		r		:  `1`,
 	});
-
-	// Now we can append the fragments to the svg node
-	// Order: 1. Gleisobjekte (Flächen), 2. Rahmen, 3. Gleise (Linien), 4. Kameras
-	document.getElementById("sutrackp").appendChild(fragmentBackground);
-	document.getElementById("sutrackp").appendChild(fragment);
-
-	// Test: process all nodes recursivly
-	//process_node(sutrackp);
-
-	global.timestamp.svgCreated = Date.now();
-	console.log('create svg:' + (global.timestamp.svgCreated - global.timestamp.fileParsed) / 1000 + 'sec');
-
-	return;
 }
 
 // Generate matrix command for svg
@@ -2677,7 +2727,7 @@ function svgAppend(svg_node, obj) {
 	return element;
 }
 
-} // end function svgCreate
+} // end function createSVG
 
 /* Not used anymore
 function svgAppendTextPath(svg_node, obj) {
@@ -4744,7 +4794,7 @@ function getKontaktTyp(GleissystemID, SetType, SetValue, VolDist) {
 		5 	: { text: 'Fahrzeug -v km/h max',	shortText : '🚆', },		// Geschwindigkeit in km/h
 		6 	: { text: 'Fahrzeug -v km/h min',	shortText : '🚆', },		// Geschwindigkeit in km/h
 		7 	: { text: 'Fahrzeug -v km/h soll',	shortText : '🚆', },		// Geschwindigkeit in km/h
-		8 	: { text: 'RollGleis x m',			shortText : '🛑', },		// Halt nach x m				🛑 \u1f6d1
+		8 	: { text: 'Halt x m',				shortText : '🛑', },		// Halt nach x m				🛑 \u1f6d1
 		// 17, 33, 34 unbekannt
 		256 : { text: 'Sound',					shortText : '\u266C', },	// Sound_ID						🔊 \u1F50A ♫ \u266B ♬ \u266C 	 	
 		512 : { text: 'Kamera t sek.',			shortText : '📷', },		// Kamerawechsel nach t Sek.	📷 \u1F4F7
@@ -4783,7 +4833,10 @@ function getKontaktTyp(GleissystemID, SetType, SetValue, VolDist) {
 		shortText = { 1: '🚂', 2: '🚎', 3: '🚗', 4: '⛴', 5: '🚕', 6: ''}[GleissystemID];	// spezifischer Kurztext je Gleissystem
 		
 	} else if (SetType == 8) {
-		KontaktTypText = KontaktTypText.replace('x', SetValue);			// 'RollGleis x m'
+		KontaktTypText = KontaktTypText.replace('x', SetValue);			// 'Halt x m'
+		
+	} else if (SetType == 256) {										// Sound
+		//...
 		
 	} else if (SetType == 512) {
 		KontaktTypText = KontaktTypText.replace('t', SetValue);			// 'Kamera t sek.'
