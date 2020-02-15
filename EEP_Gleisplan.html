@@ -71,7 +71,7 @@ kbd {
 
 <article>
 <form action="#" onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better -->
-	<label for="fileinput">Wähle und lade eine EEP-Anlage-Datei (.anl3)</label>
+	<label for="fileinput">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3)</label>
 	<input type="file" id="fileinput" accept=".anl3" onchange="loadFile(this.files && this.files[0])">
 	<!-- An extra button is not neccessary -->
 	<!-- <input type="button" id="btnLoad" value="Load" onclick="loadFile();"> -->
@@ -443,13 +443,33 @@ function prepareGleissysteme(sutrackp) {
 	}
 
 	// Collections for direct access
-	global.Gleissysteme 	= {};	// Verwendung: Gleis = Gleissysteme[GleissystemID][GleisID];
+	global.Gleissysteme 	= {};	// Verwendung: Gleis = global.Gleissysteme[GleissystemID][GleisID];
 	global.Meldungen 		= {};
 	global.Weichen 			= {};
 	global.Kontakte			= {};
 	global.KontaktZiele		= {};
-	global.Kameras 			= {};
+	global.Kameras 			= {};	// Verwendung: Kamera = global.Kameras[Name];
+	global.KameraSet 		= {};	// Verwendung: Kamera = global.KameraSet[index];
 	global.Gleisobjekte		= {};
+	global.Routen			= {};
+	global.Sounds			= {};
+
+	// <Options RouteItems="5" SndId_0="6" SndName_0="ZIEGEN.WAV" SoundItems="1" RouteId_0="1" RouteName_0="Nahverkehr" RouteId_1="2" RouteName_1="Schnellzug" RouteId_2="3" RouteName_2="Gueter" RouteId_3="4" RouteName_3="Nebenbahn" RouteId_4="5" RouteName_4="Sonderzug"/>
+	const Options = sutrackp.getElementsByTagName("Options")[0];
+	const RouteItems = +Options.getAttribute('RouteItems');
+	for (let i = 0; i < RouteItems; i++) {
+		const RouteID	= Options.getAttribute('RouteId_' + i);
+		const RouteName = Options.getAttribute('RouteName_' + i);
+		
+		global.Routen[RouteID] = RouteName;
+	}	
+	const SoundItems 	= +Options.getAttribute("SoundItems");
+	for (let i = 0; i < SoundItems; i++) {
+		const SoundID 	= Options.getAttribute("SndId_" + i);
+		const SoundName = Options.getAttribute("SndName_" + i);
+		
+		global.Sounds[SoundID] = SoundName;
+	}
 
 	// Preparation: Collect "active" tracks
 	const activeTracks = [];		// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
@@ -1984,7 +2004,6 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			const fireOnAnti  	= Kontakt.getAttribute("fireOnAnti"); 	// Kontakt aktiv für Gleisrichtung 2
 			const SetType 		= Number(Kontakt.getAttribute('SetType'));
 			const SetValue 		= Number(Kontakt.getAttribute('SetValue'));
-			const VolDist 		= Number(Kontakt.getAttribute('VolDist'));
 			const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
 			
 			if (!global.Kontakte.Anzahl) {
@@ -2075,8 +2094,8 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			}
 
 			// Show text of Kontakt
-			let KontaktTypText = getKontaktTyp(GleissystemID, SetType, SetValue, VolDist).shortText;
-			if (KontaktZiel > 0) {
+			let KontaktTypText = getKontaktIcon(GleissystemID, SetType, SetValue);
+			if (KontaktZiel > 0 ) {
 				const Ziel = global.KontaktZiele[KontaktZiel];
 				KontaktTypText += (Ziel ? `${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `?${KontaktZiel}`);
 			}
@@ -2304,12 +2323,22 @@ function createSVGforKameras(SVGfragment) {
 	let svgKamerasGroup;
 	const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
 	const Kameras = Kamerasammlung.getElementsByTagName("Kammera");
+	let KameraID = 0;
 	for (const Kamera of Kameras) {
+		KameraID += 1;
+
 		const Name 	= Kamera.getAttribute("name");
 		if (Name === 'Leer') {
 			continue;
 		}
 
+		// Store Kamera
+		Kamera.Name 				= Name;
+		Kamera.KameraID 			= KameraID;
+		global.Kameras[Name] 		= Kamera;
+		global.KameraSet[KameraID] 	= Kamera;
+
+		// Process Kamera
 		if (!svgKamerasGroup) {		// First Kamera
 			// Show checkbox
 			document.getElementById("CheckboxKamera").classList.remove("hidden");
@@ -2336,39 +2365,29 @@ function createSVGforKameras(SVGfragment) {
 		const FrameNor	= Dreibein.getElementsByTagName("Vektor")[2];
 		const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
 		
-		PosX		= +FramePos.getAttribute("x") / 100;
-		PosY		= -FramePos.getAttribute("y") / 100;
-		PosZ		= +FramePos.getAttribute("z") / 100;
+		PosX = +FramePos.getAttribute("x") / 100;
+		PosY = -FramePos.getAttribute("y") / 100;
+		PosZ = +FramePos.getAttribute("z") / 100;
 		
-		DirX		= +FrameDir.getAttribute("x");
-		DirY		= -FrameDir.getAttribute("y");
-		DirZ		= +FrameDir.getAttribute("z");
+		// Bei den Kameras gibt der Dir-Vektor zum Teil sowohl die Blickrichtung wie auch die Sichtweite an und muss daher normalisiert werden
+		DirX = +FrameDir.getAttribute("x");
+		DirY = -FrameDir.getAttribute("y");
+		DirZ = +FrameDir.getAttribute("z");
 		const norm = Math.sqrt(DirX*DirX + DirY*DirY + DirZ*DirZ);
-		if (norm > 1.01) {	// sometimes we need to normalize the Dir Vector
-/*console.log('Kamera ' + Name
-+ ' norm ' + norm.toFixed(4)
-+ ' DirX ' + DirX.toFixed(4)
-+ ' DirY ' + DirY.toFixed(4)
-+ ' DirZ ' + DirZ.toFixed(4)
-)*/
-			DirX /= norm;
-			DirY /= norm;
-			DirZ /= norm;
-		}
+		DirX /= norm;
+		DirY /= norm;
+		DirZ /= norm;
 		
-		NorX		= +FrameNor.getAttribute("x");
-		NorY		= -FrameNor.getAttribute("y");
-		NorZ		= +FrameNor.getAttribute("z");
+		NorX = +FrameNor.getAttribute("x");
+		NorY = -FrameNor.getAttribute("y");
+		NorZ = +FrameNor.getAttribute("z");
 		
-		BinX		= +FrameBin.getAttribute("x");
-		BinY		= -FrameBin.getAttribute("y");
-		BinZ		= +FrameBin.getAttribute("z");
+		BinX = +FrameBin.getAttribute("x");
+		BinY = -FrameBin.getAttribute("y");
+		BinZ = +FrameBin.getAttribute("z");
 
 		mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 		Kamera.mPos = mMatrix;
-		
-
-		global.Kameras[Name] = Kamera;
 		
 		Laenge = 40;	// arbitrary length
 
@@ -4019,6 +4038,7 @@ EEPchannel.onmessage = function(ev) {
 	
 	const ID			= ev.data.ID;				// Signal oder Weiche
 	const KontaktID		= ev.data.KontaktID;		// Kontakt
+	const KameraID		= ev.data.KameraID;			// Kamera
 	global.shiftDown 	= ev.data.shiftDown;		// Status of keys 
 	global.strgDown 	= ev.data.strgDown;
 	global.altDown 		= ev.data.altDown;
@@ -4053,6 +4073,19 @@ EEPchannel.onmessage = function(ev) {
 		centerPosition(Kontakt.mPos);
 
 		showKontaktInfo(KontaktID, GleissystemID, GleisID);
+		return true;
+
+	} else if (KameraID) {	// Kamera
+
+		const Kamera = global.KameraSet[KameraID];
+		if (!Kamera) {
+			msg(`Kamera ${KameraID} existiert nicht`);
+			return false;
+		}
+
+		centerPosition(Kamera.mPos);
+
+		showKameraInfo(Kamera.Name);
 		return true;
 
 	} else if (GleissystemID && GleisID) {	// Gleis
@@ -4783,70 +4816,163 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		});
 }
 
-function getKontaktTyp(GleissystemID, SetType, SetValue, VolDist) {
-	// Kontakttyp (SetType)
-	// Achtung: die Variablen v, x, t werden ersetzt
-	const KontaktTyp = { 									// Sometimes the symbol works fine but sometime the unicode-code is neccessary
-		0 	: { text: 'Weiche/Signal',			shortText : '⭢', },			// -							⭢ \u2B62 → \u8594 &rarr; 
-		1 	: { text: 'Fahrzeug +v km/h max',	shortText : '🚆', },		// Geschwindigkeit in km/h		🚆 \u1F686 🚗 \u1f697 ⛴ \u26f4 ⛟ \u26DF 	
-		2 	: { text: 'Fahrzeug +v km/h min',	shortText : '🚆', },		// Geschwindigkeit in km/h
-		3 	: { text: 'Fahrzeug +v km/h soll',	shortText : '🚆', },		// Geschwindigkeit in km/h
-		5 	: { text: 'Fahrzeug -v km/h max',	shortText : '🚆', },		// Geschwindigkeit in km/h
-		6 	: { text: 'Fahrzeug -v km/h min',	shortText : '🚆', },		// Geschwindigkeit in km/h
-		7 	: { text: 'Fahrzeug -v km/h soll',	shortText : '🚆', },		// Geschwindigkeit in km/h
-		8 	: { text: 'Halt x m',				shortText : '🛑', },		// Halt nach x m				🛑 \u1f6d1
+function getKontaktIcon(GleissystemID, SetType, SetValue) {
+	// https://www.compart.com/de/unicode/category/So
+	const KontaktIcon = { 	// Sometimes the symbol works fine but sometime the unicode-code is neccessary in Notepad++
+		0 		: '⭢', 		// Weiche/Signal			⭢ \u2B62 → \u8594 &rarr; 
+		1 		: '🚆', 	// Fahrzeug +v km/h max		🚆 \u1F686 🚗 \u1f697 ⛴ \u26f4 ⛟ \u26DF 	
+		2 		: '🚆', 	// Fahrzeug +v km/h min
+		3 		: '🚆', 	// Fahrzeug +v km/h soll
+		//4		: '',		// not used 
+		5 		: '🚆', 	// Fahrzeug -v km/h max
+		6 		: '🚆', 	// Fahrzeug -v km/h min
+		7 		: '🚆', 	// Fahrzeug -v km/h soll
+		8 		: '🛑', 	// Halt nach x m			🛑 \u1f6d1
 		// 17, 33, 34 unbekannt
-		256 : { text: 'Sound',					shortText : '\u266C', },	// Sound_ID						🔊 \u1F50A ♫ \u266B ♬ \u266C 	 	
-		512 : { text: 'Kamera t sek.',			shortText : '📷', },		// Kamerawechsel nach t Sek.	📷 \u1F4F7
-		768 : { text: 'Immobilie',				shortText : '🏠', },		// Verweist auf ImmoIdx			🏠 \u1F3E0	
-		1024 : { text: 'DKW/EKW',				shortText : '\u2387', },	// Verweist auf ImmoIdx			💢 ⎇ \u2387
-		1280 : { text: 'Einfahrt Depot',		shortText : '\u21E5', },	//								⇥ \u21E5 ⍖ \u2356 ⭢
-		1536 : { text: 'Ausfahrt Depot',		shortText : '\u21A6', },	//								↦ \u21A6 ⍏ \u234F ⭢
-		32768 : { text: 'Gruppen KP',			shortText : '\u2042', },	//								⁂ \u2042 ⭢	
-																			// 								⌂ \u2302 ⌥ \u2325 ⭢		
-	}
-				 // → = &rarr; = \u8594;   ⭢ = \u2B62
-	// DKW/EKW Weichenstellung
-	const VolDistText = {
-		0 : 'Umschalter',
-		1 : 'links-links',
-		2 : 'links-rechts',
-		3 : 'rechts-rechts',
-		4 : 'rechts-links',
+		128 	: '🧍', 		// Omegas					🧍 \u1F9CD						
+		256 	: '\u266C', // Sound					🔊 \u1F50A ♫ \u266B ♬ \u266C 	 	
+		512 	: '📷', 	// Kamera 					📷 \u1F4F7
+		768 	: '🏠', 	// Immobilie				🏠 \u1F3E0	
+		1024 	: '\u2387', // DKW/EKW					💢 ⎇ \u2387
+		1280 	: '\u21E5', // Einfahrt Depot			⇥ \u21E5 ⍖ \u2356 ⭢
+		1536 	: '\u21A6', // Ausfahrt Depot			↦ \u21A6 ⍏ \u234F ⭢
+		2048 	: '\u2398', // Animationen				⮔ 2B94 ⎘ \u2398 ↬ \u21AC ↝ \u219D
+		32768	: '\u2042',	// Gruppe					⁂ \u2042 ⭢	
+							// 							⌂ \u2302 ⌥ \u2325   → = &rarr; = \u8594;   ⭢ = \u2B62		
 	}
 
+	let Icon = (KontaktIcon[SetType] ? KontaktIcon[SetType] : '');
+
+	// spezielle Kontakte
+	if (SetType >= 1 && SetType <= 7) {				// Fahrzeug je nach Gleissystem
+		// Eisenbahn:	🚂🚃🚄🚅🚆🚇🚈🚉🚊🚝🚞
+		// Straßenbahn:	🚎🚟🚠🚡
+		// Straße:		🚌🚍🚐🚑🚒🚓🚔🚕🚖🚗🚘🚙🚚🚛🚜🚲🚴🚵⛟
+		// Wasserwege:	⛴🚢🚣🚤⛵🚀🚁✈
+		// Immobilien:	🏠🏡🏢🏣🏤🏥🏦🏧🏨🏩🏪🏫🏬🏭🏮🏯🏰
+		Icon = { 1: '🚂', 2: '🚎', 3: '🚗', 4: '⛴', 5: '🚕', 6: ''}[GleissystemID];
+
+	} else if (SetType == 256 && SetValue && global.Sounds[SetValue]) { // Sound vorhanden
+			Icon = '🔊';
+	}
+
+	return Icon;
+}
+
+function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
+	// Achtung: die Variablen v, x, t werden ersetzt
+	const KontaktText = {
+		0 		: 'Weiche/Signal',
+		1 		: 'Fahrzeug +v km/h max',	
+		2 		: 'Fahrzeug +v km/h min',
+		3 		: 'Fahrzeug +v km/h soll',
+		//4		: '',							// not used 
+		5 		: 'Fahrzeug -v km/h max',
+		6 		: 'Fahrzeug -v km/h min',
+		7 		: 'Fahrzeug -v km/h soll',
+		8 		: 'Halt x m',
+		// 17, 33, 34 unbekannt
+		128 	: 'Omegas',						
+		256 	: 'Sound',	 	
+		512 	: 'Kamera',
+		768 	: 'Immobilie',
+		1024 	: 'DKW/EKW',
+		1280 	: 'Einfahrt Depot',
+		1536 	: 'Ausfahrt Depot',
+		2048 	: 'Animationen',
+		32768 	: 'Gruppen KP',
+	}
+
+	let Text 	= (KontaktText[SetType] ? KontaktText[SetType] : 'unbekannt');
+
 	// Spezielle Kontakt-Typen
-	let KontaktTypText 	= (KontaktTyp[SetType] ? KontaktTyp[SetType].text 		: 'unbekannt');
-	let shortText 		= (KontaktTyp[SetType] ? KontaktTyp[SetType].shortText	: '');
-	if 		  (SetType == 0) {
+	if 		  (SetType == 0) {	// Weiche/Signal
 		//if      (Weichen.find(function(Weiche) { return Weiche.ID == KontaktZiel}) ) 	{ KontaktTypText = 'Weiche'; } 
 		//else if (Signale.find(function(Signal) { return Signal.ID == KontaktZiel}) ) 	{ KontaktTypText = 'Signal'; }
 		//else 																			{ KontaktTypText = 'Kontaktziel nicht gefunden'; }
-	} else if (SetType >= 1 && SetType <= 7) {
-		KontaktTypText = KontaktTypText.replace('v', SetValue);			// 'Fahrzeug +v km/h max'
-		
-		// Eisenbahn:	🚂🚃🚄🚅🚆🚇🚈🚉🚊🚝🚞
-		// Straßenbahn:	🚎🚟🚠🚡
-		// Straße:		🚌🚍🚐🚑🚒🚓🚔🚕🚖🚗🚘🚙🚚🚛🚜🚲🚴🚵
-		// Wasserwege:	⛴🚢🚣🚤⛵🚀🚁✈
-		// Immobilien:	🏠🏡🏢🏣🏤🏥🏦🏧🏨🏩🏪🏫🏬🏭🏮🏯🏰
-		shortText = { 1: '🚂', 2: '🚎', 3: '🚗', 4: '⛴', 5: '🚕', 6: ''}[GleissystemID];	// spezifischer Kurztext je Gleissystem
+
+	} else if (SetType >= 1 && SetType <= 7) {	// Fahrzeug
+		Text = Text.replace('v', SetValue);		// 'Fahrzeug +v km/h max'
 		
 	} else if (SetType == 8) {
-		KontaktTypText = KontaktTypText.replace('x', SetValue);			// 'Halt x m'
+		Text = Text.replace('x', SetValue);		// 'Halt x m'
 		
-	} else if (SetType == 256) {										// Sound
-		//...
+	} else if (SetType == 256 && SetValue && global.Sounds[SetValue]) {	// Sound vorhanden
+			Text 	= global.Sounds[SetValue];
 		
-	} else if (SetType == 512) {
-		KontaktTypText = KontaktTypText.replace('t', SetValue);			// 'Kamera t sek.'
+	} else if (SetType == 512) {	// Kamera
+		/* ConnectF: 4 Byte Ganzzahl
+			Byte 1 (LSB):	KameraID Start
+			Byte 2:			Perspektive Start
+			Byte 3:			KameraID Ende
+			Byte 4:			Perspektive Ende
+			*/	
+			const Perspektive = {		
+				0 : 'keine Perspektive festgelegt', 
+				1 : 'Fahrzeug von links',
+				2 : 'Fahrzeug von rechts',
+				3 : 'Fahrzeug von links oben',
+				4 : 'Fahrzeug von rechts oben',
+				5 : 'Sicht in Fahrtrichtung',
+				6 : 'Rückwärtige Sicht',
+				7 : 'Folgemodus',
+				8 : 'Sicht in Kabine',
+			}
+			
+		// convert 32bit int to array of 4 bytes
+		function convertIntToBytes( x ) {
+			const bytes = [0, 0, 0, 0,];
+			let i = 4;
+			do {
+				bytes[--i] = x & (255);
+				x = x>>8;
+			} while ( i && x > 0 )
+			return bytes;
+		}
+
+		if (ConnectF) {
+			const [EndePerspektive, EndeKameraID, StartPerspektive, StartKameraID] = convertIntToBytes( ConnectF );
+			const StartKamera = global.KameraSet[StartKameraID];
+			const EndeKamera = global.KameraSet[EndeKameraID];
+
+console.log('Kamera'
+	+ ' StartKameraID=' + StartKameraID
+	+ ' StartPerspektive=' + StartPerspektive
+	+ ' EndeKameraID=' + EndeKameraID
+	+ ' EndePerspektive=' + EndePerspektive
+)
+	
+			Text = ''		// <Kamera Icon> <Start Kamera> [<Perspektive>] / <Ende Kamera> nach <t> Sek. [<Perspektive>]
+				+ (StartKamera	
+					? `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${StartKamera.mPos}])">${StartKamera.Name}<\/a>`		
+					: '' )
+				+ (StartPerspektive > 0 
+					? ` [${Perspektive[StartPerspektive]}]`	
+					: '' )
+				+ (EndeKamera
+					? ` / <a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${EndeKamera.mPos}])">${EndeKamera.Name}<\/a> nach ${SetValue} Sek.`			
+					: '' )
+				+ (EndePerspektive > 0 	
+					? ` [${Perspektive[EndePerspektive]}]` 	
+					: '' );	
+		} else {
+			Text = 'Kamera';
+		}
 		
-	} else if (SetType == 1024) {
-		KontaktTypText = KontaktTypText + ' ' + VolDistText[VolDist];	// DKW/EKW Weichenstellung
+	} else if (SetType == 1024) {	// DKW/EKW Weichenstellung
+		const VolDistText = {
+			0 : 'Umschalter',
+			1 : 'links-links',
+			2 : 'links-rechts',
+			3 : 'rechts-rechts',
+			4 : 'rechts-links',
+		}
+		
+		Text += ' ' + VolDistText[VolDist];
 		
 	}
 
-	return { text: KontaktTypText, shortText: shortText, }
+	return Text;
 }
 
 function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
@@ -4870,6 +4996,8 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const TrainNewName 	= Kontakt.getAttribute('TrainNewName');
 	const zuStellung 	= Kontakt.getAttribute('zuStellung');
 	const Wechseln 		= Kontakt.getAttribute('Wechseln');
+	const ConnectF 		= Kontakt.getAttribute('ConnectF');
+	const ConnectR 		= Kontakt.getAttribute('ConnectR');
 	const VolDist 		= Kontakt.getAttribute('VolDist');
 	const SignalData 	= Kontakt.getAttribute('SignalData');
 	const LuaFn 		= Kontakt.getAttribute('LuaFn');
@@ -4929,10 +5057,11 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 				+ `${GleissystemText[GleissystemID]} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
 			+ `<br>Kontakttyp ` + SetType + ': ' 
 			// KontaktTyp[SetType] mit Modifikation
-			+ getKontaktTyp(GleissystemID, SetType, SetValue, VolDist).shortText + ' '
-			+ getKontaktTyp(GleissystemID, SetType, SetValue, VolDist).text
-			+ ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? `<br>SetValue: ` + SetValue : '') 
-			+ (KontaktZiel != null && KontaktZiel != 0 	
+			+ getKontaktIcon(GleissystemID, SetType, SetValue) + ' '
+			+ getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF)
+			+ (SetType == 768 ||  SetType == 1024 ? `<br>ImmoIdx: ` + SetValue : '')	// Verweis auf ImmoIdx 
+			//+ (SetType == 512 && ConnectF != 0 ? `<br>ConnectF: ` + ConnectF : '')
+			+ (KontaktZiel != null && KontaktZiel != 0 
 				? `<br>Kontaktziel ${KontaktZiel}: ` 
 					+ ( Ziel ? 
 							`<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
@@ -4951,13 +5080,13 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 			+ (Delay != 0 			? `<br>Zeitverzögerung: `	+ Delay : '')
 			+ (ActDelay != 0 		? `<br>Zeit abgelaufen: `	+ ActDelay : '')
 			+ `<br>Zugposition: `		+ (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
-			+ (RouteID != 0 		? `<br>für Route: ` + RouteID /* + ' ' + Routen[RouteID] */ : '') 
+			+ (RouteID != 0 		? `<br>für Route: ` + global.Routen[RouteID] : '') 
 			+ (TrainID != 0 		? `<br>für Zug: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : '') 
 			+ (NameFilter !== ''	? `<br>Zug-Filter: `		 + NameFilter : '') 
 			+ (TrainNewName !== ''	? `<br>Neuer Zugname: `	 + TrainNewName : '')
 			+ (zuStellung > 0 && Wechseln == 0 ? `<br>zu Stellung: ` + zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) 
 			+ (SignalData != 0 		? `<br>SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
-			+ (LuaFn !== ''			? `<br>LuaFn: `		 + LuaFn : '') 
+			+ (LuaFn && LuaFn !== '' ? `<br>LuaFn: ${LuaFn}` : '') 
 			+ objectToHTML(Kontakt)
 	});
 }
@@ -4970,6 +5099,8 @@ function showKameraInfo(Name) {
 
 	const Kamera 		= global.Kameras[Name];
 	if (!Kamera) { return; }
+
+	const Dynamic 	= Kamera.getAttribute("Dynamic");
 
 	const [DirX, DirY, DirZ, d0, NorX, NorY, NorZ, n0, BinX, BinY, BinZ, b0, PosX, PosY, PosZ, scale ] = Kamera.mPos;
 
@@ -5081,7 +5212,8 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			+ `<br>Blickrichtung: ` 		 + angle( angleZ )			// Neigung Z
 			+ ' ' + ['W', 'WSW', 'SW', 'SSW', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO', 'N', 'NNW', 'NW', 'WNW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)]
 			+ `<br>Neigung: ` 				 + angle( angleY )			// Neigung Y
-			+ (angleX != 0 ? `<br>Kippung: ` + angle( angleX ) : '')	// Neigung X
+			+ (angleX < -0.01 || angleX > 0.01 ? `<br>Kippung: ` + angle( angleX ) : '')	// Neigung X
+			+ (Dynamic == 0 ? `<br>statisch` : `<br>dynamisch`)
 			+ objectToHTML(Kamera)
 	});
 }
