@@ -31,8 +31,9 @@ https://www.tablefilter.com/data-types.html
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script type="text/javascript"> // Load file
+"use strict";
 function loadFile(file) {
-	var fr;
+	let fr;	// upvalue for function processFile
 	if (typeof window.FileReader !== 'function') {
 		e(null, "p", "The file API isn't supported on this browser yet.");
 		return;
@@ -40,22 +41,21 @@ function loadFile(file) {
 
 	if (!file) {
 		e(null, "p", "Please select a file before clicking 'Load'");
-	}
-	else {
-		fr = new FileReader();
-		fr.onload = processFile;
-		fr.readAsText(file);
-//		console.log(fr.result);
+	} else {
+		fr = { FileReader: new FileReader() }; // strict mode does not allow to unset read-only property 'result' directly, therfore we have to put the FileReader into an object 
+		fr.FileReader.onload = processFile;
+		fr.FileReader.readAsText(file);
 	}
 
 	// process file (local function to get access to local variable fr)
 	function processFile() {
 
 		// Create parser
-		var parser = new DOMParser();
+		const parser = new DOMParser();
 		// Parse xml into DOM
-		var xmlDoc = parser.parseFromString(fr.result, "text/xml");
-		fr.result = null; // we do not need this data anymore
+		const xmlDoc = parser.parseFromString(fr.FileReader.result, "text/xml");
+		//fr.FileReader.result = null; 	// we do not need the file content anymore, but in strict mode we cannot unset the property directly
+		delete fr.FileReader;			// however, we can remove the whole thing (see http://perfectionkills.com/understanding-delete/ )
 
 		// Hide header
 		document.getElementById('header').classList.add('hidden');
@@ -78,7 +78,7 @@ function loadFile(file) {
 <script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 
 <script type="text/javascript"> // process_node
-
+"use strict";
 function process_node(sutrackp) {
 //console.log(sutrackp.nodeName);
 
@@ -479,7 +479,7 @@ mit
 		});
 
 		// Cross reference
-		for (GleisEntry of Kollektor.getElementsByTagName("Gleis")) {
+		for (const GleisEntry of Kollektor.getElementsByTagName("Gleis")) {
 			const GleissystemID = GleisEntry.getAttribute('gleissystemID');
 			const GleisID 		= GleisEntry.getAttribute('gleisID');
 		
@@ -678,7 +678,7 @@ mit
 			7: { name: 'orange',	color: 'rgb(220,110,0)',	},
 		}
 		let RoutesText = '';
-		for (Route of RouteList) {
+		for (const Route of RouteList) {
 			const Target 	= Route.getAttribute('Target');
 			const Color 	= Route.getAttribute('Color');
 			
@@ -1078,7 +1078,7 @@ mit
 
 		let GleissystemID;
 		let GleiseText;
-		for (Gleis of Gleise) {
+		for (const Gleis of Gleise) {
 
 			const GleisSysID = Gleis.getAttribute('gleissystemID');
 			const GleisID 	= Gleis.getAttribute('gleisID');
@@ -1357,7 +1357,7 @@ function prepareSort() {
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script type="text/javascript"> // html page
-
+"use strict";
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	for (const ele of document.getElementById('container').querySelectorAll(selector)) {
@@ -1458,7 +1458,7 @@ button {
 <div id='fileselector'>
 <form action='#' onsubmit='return false;'> <!-- better not to use inline listener, explizit register is better -->
 	<label for='fileinput'>Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3)</label>
-	<input type='file' id='fileinput' accept='.anl3' onchange='loadFile(this.files && this.files[0])'>
+	<input type='file' id='fileinput' accept='.anl3' onchange='loadFile(this.files && this.files[0])' />
 	<!-- An extra button is not neccessary -->
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>
@@ -1504,6 +1504,7 @@ Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://gi
 </div> <!-- container -->
 
 <script type="text/javascript"> // Broadcast Channel 
+"use strict";
 // https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
 
 // Initialization: Connection to a broadcast channel
