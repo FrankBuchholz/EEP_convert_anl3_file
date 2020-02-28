@@ -1912,7 +1912,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
 			} else if (CurveType == 'Clothoid') {
-				let svgPath;
+				let points, svgPath;
 				[points, svgPath] = calcClothoidCurve(
 					Gleis.Clothoid.A, 
 					0, 
@@ -2018,7 +2018,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
 			} else if (CurveType == 'Clothoid') {
-				let svgPath;
+				let points, svgPath;
 				[points, svgPath] = calcClothoidCurve(
 					Gleis.Clothoid.A, 
 					0, 
