@@ -1640,7 +1640,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			});
 
 		} else if (CurveType == 'Clothoid') {
-			let svgPath;
+			let points, svgPath;
 			[points, svgPath] = calcClothoidCurve(
 				Gleis.Clothoid.A, 
 				Gleis.Clothoid.L1, 
@@ -1761,7 +1761,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})`;
 
 		} else if (CurveType == 'Clothoid') {
-			let svgPath;
+			let points, svgPath;
 			[points, svgPath] = calcClothoidCurve(
 				Gleis.Clothoid.A, 
 				0, 
