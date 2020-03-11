@@ -60,6 +60,13 @@ kbd {
 	font-size: 0.85em;
 }
 
+.flexRow {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: baseline;
+}
+
 /* switch language https://codepen.io/mynimi/pen/eEAwc */
 .langBtn, 
 .langBtn:visited {
@@ -92,22 +99,19 @@ kbd {
 	box-shadow: 0px 1px 0px 0px #01192e;
 }
 
-.langBtn ~ input[type=radio] { /* Checkbox Hack */
-	opacity: 0;
+.hiddenRadio { /* Checkbox Hack: Do not show the radio button but show the label only */
+	display: none;	
 }
 
-/* Toggle state depending on checkbox */
-#german:checked ~ .langWrapper [lang="de"]{		display: block;	}
-#german:checked ~ .langWrapper [lang="en"]{		display: none;	}
-#german:checked ~ .langWrapper [lang="fr"]{		display: none;	}
-
-#english:checked ~ .langWrapper [lang="de"]{	display: none;	}
-#english:checked ~ .langWrapper [lang="en"]{	display: block;	}
-#english:checked ~ .langWrapper [lang="fr"]{	display: none;	}
-
-#french:checked ~ .langWrapper [lang="de"]{		display: none;	}
-#french:checked ~ .langWrapper [lang="en"]{		display: none;	}
-#french:checked ~ .langWrapper [lang="fr"]{		display: block;	}
+/* Toggle state depending on checkbox (I do not know why the selectors for body and article are neccessary) */
+body [lang]{
+	display: none;
+}
+#german:checked~article [lang="de"],
+#english:checked~article [lang="en"],
+#french:checked~article [lang="fr"]{
+	display: block;	
+}
 
 </style>
 </head>
@@ -116,19 +120,32 @@ kbd {
 <body>
 <section id="fileselector"> <!-- Selection screen --> 
 
-<header> <!-- It'S not possible to put the buttons into the header element (or into any other element) --> 
+<!-- The hidden radio buttons need to stay on top level -->
+<input type="radio" name="lang" class="hiddenRadio" id="german" checked>
+<input type="radio" name="lang" class="hiddenRadio" id="english">
+<input type="radio" name="lang" class="hiddenRadio" id="french">
+
+<header>
 </header>
-<label for="german" class="langBtn">Deutsch</label><input type="radio" name="lang" id="german" checked>
-<label for="english" class="langBtn">English</label><input type="radio" name="lang" id="english">
-<label for="french" class="langBtn">Français</label><input type="radio" name="lang" id="french">
 
-<article class="langWrapper">
-
+<article class="flexRow">
+<div> <!-- left part -->
 <h3>
 <div lang="de">EEP Gleisplan</div>
 <div lang="en">EEP Track plan</div>
 <div lang="fr">EEP Plan des voies</div>
 </h3>
+</div>
+
+<div> <!-- right part -->
+<label for="german" class="langBtn">Deutsch</label>
+<label for="english" class="langBtn">English</label>
+<label for="french" class="langBtn">Français</label>
+</div>
+
+</article>
+
+<article>
 
 <form action="#" onsubmit="return false;"> <!-- better not to use inline listener, explicit register is better -->
 <label for="fileinput">
@@ -277,10 +294,6 @@ Ensuite le graphique du plan de voies est reconstitué dynamiquement en javascri
 Le navigateur est capable d‘afficher directement les graphiques SVG. En plus celui-ci utilise les bibliothèques <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> pour les déplacements et le zooming, ainsi que <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> pour visualiser les pop-ups.<br>
 Le programme fonctionne correctement avec les versions actuelles de  Google Chrome et Firefox. Internet Explorer / MS Edge n‘est plus supporté.</small></p>
 
-</article> <!-- class="langWrapper" --> 	
-
-
-<footer class="langWrapper">
 <hr>
 
 <p lang="de">
@@ -292,8 +305,10 @@ Le programme fonctionne correctement avec les versions actuelles de  Google Chro
 <p lang="fr">
 <small>(c) Frank Buchholz, 2020, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> aussi <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Plan des voies), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français)</small></p>
 
+</article>
 
-</footer> <!-- class="langWrapper" --> 
+<footer>
+</footer>
 
 <style> /* Selection screen */
 #fileselector {
