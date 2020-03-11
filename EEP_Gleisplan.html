@@ -60,7 +60,7 @@ kbd {
 	font-size: 0.85em;
 }
 
-/* switch language */
+/* switch language https://codepen.io/mynimi/pen/eEAwc */
 .langBtn, 
 .langBtn:visited {
 	padding: 4px 10px;
@@ -136,7 +136,7 @@ kbd {
 <form action="#" onsubmit="return false;"> <!-- better not to use inline listener, explicit register is better -->
 <label for="fileinput">
 <div lang="de" class="german">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3).</div>
-<div lang="en" class="english">Choose (as well using Drag&amp;Drop) and load an EEP file (.anl3).</div>
+<div lang="en" class="english">Choose (or use Drag&amp;Drop) and load an EEP file (.anl3).</div>
 <div lang="fr" class="french">Sélectionnez (utiliser la fonction glisser-déposer également possible) et chargez un réseau EEP (nom_du_réseau.anl3).</div>
 </label>
 	<input type="file" id="fileinput" accept=".anl3" onchange="loadFile(this.files && this.files[0])" />
@@ -159,7 +159,7 @@ Details anzeigen: Klick auf Gleis, Symbol oder Text<br>
 Move: Click+Hold+Move<br>
 Zoon in at position of the cursor: Double click<br>
 Zoom out: <kbd>&#x21E7; Shift</kbd>+Double click<br>
-Show details: Click on trck, symbol or text<br>
+Show details: Click on track, symbol or text<br>
 <span class="li">if together with <kbd>&#x21E7; Shift</kbd>, then you get another new popup window</span>
 <span class="li">if together with <kbd>alt</kbd>, then you will get the code from the file for this object, too</span>
 </small></p>
@@ -211,11 +211,11 @@ Farben der Gleissysteme anpassen
 Switch between vertical and horizontal alignment (Full screen using <kbd>F11</kbd>)<br>
 Zoom-in, -out, -reset<br>
 Choose displayed track systems<br>
-Choose displayed informationen (TrackID, curce type, track style, height, switches, signals, contacts, marker, track objects, cameras, border)<br>
+Choose displayed information (TrackID, curve type, track style, height, switches, signals, contacts, marker, track objects, cameras, border)<br>
 Choose displayed tracks (active/inactive tracks with/without rolling stocks, visible/invisible tracks)<br>
 Store current view as picture (png/jpg/svg)<br>
 Position track plan at specific track, respective track of a signal or switch<br>
-You can use the <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm as well to position the view!<br>
+You can use the <a href="EEP_Inventar.html" target="_blank">inventory</a> program as well to position the view!<br>
 Define line thickness and font size<br>
 Filter tracks by min./max. height<br>
 Define colors of the track systems
@@ -230,7 +230,7 @@ Sélection des informations à visualiser (ID voie, variante de voie, style de v
 Sélection des voies à visualiser (voies actives/inactives. avec/sansmatériels roulants)<br>
 Mémoriser l‘image actuelle au format (png/jpg/svg)<br>
 Concentrer la vue sur une voie déterminée, resp. sur la voie d‘un signal ou d‘un aiguillage<br>
-Le postionnement est également possible par le programme Inventaire <a href="EEP_Inventar.html" target="_blank">Inventaire</a>!<br>
+Le postionnement est également possible par le programme <a href="EEP_Inventar.html" target="_blank">Inventaire</a>!<br>
 Réglage de la largeur des lignes et des textes<br>
 Sélection des voies à l‘aide du filtre de hauteur minimale et maximale<br>
 Adapter les couleurs des systèmes de voie
@@ -248,8 +248,8 @@ Anzeige einer <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP
 <small><strong>References / related programs</strong><br>
 Thread in the <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP Forum</a><br>
 Development project at <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
-Show <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">inventar list</a> of an EEP file<br>
-Overview about <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">signal positions</a> according to the extraced data from the .ini files of signals (see EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
+Show <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">inventory list</a> of an EEP file<br>
+Overview about <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">signal positions</a> according to the extracted data from the .ini files of signals (see EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
 
 <p lang="fr" class="french">
 <small><strong>Références / Programmes associés</strong><br>
@@ -264,21 +264,21 @@ Aperçu des <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_S
 Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
 Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br>
-Das Programm läuft in aktuellen Versionen von Google Chrome und Firefox (und wohl auch in MS Edge), nicht jedoch im Internet Explorer.</small></p>
+Das Programm läuft in aktuellen Versionen von Google Chrome und Firefox, nicht jedoch im Internet Explorer oder MS Edge.</small></p>
 
 <p lang="en" class="english">
 <small><strong>Technical description</strong><br>
 This program uses the Javascript function <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> to analyse an <i>.anl3</i> file of EEP,  which contains <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> structured data, and to transform it into the <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
-Then it dynamically creates the graphic of the track plan using Javascript using <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a> commands. The fomatting of the graphical elements using the SVG variant of <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a> is separated from the definition of the graphic.<br>
+Then it dynamically creates the graphic of the track plan using Javascript using <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a> commands. The formatting of the graphical elements using the SVG variant of <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a> is separated from the definition of the graphic.<br>
 The Browser shows such SVG graphics directly. The programs uses the libraries <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> for pan  and zoom and <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> to show popup windows.<br>
-The program runs with current versions of Google Chrome and Firefox (and MS Edge), but not with Internet Explorer.</small></p>
+The program runs with current versions of Google Chrome and Firefox, but not with Internet Explorer or MS Edge.</small></p>
 
 <p lang="fr" class="french">
-<p><small><strong>Description technique</strong><br>
+<small><strong>Description technique</strong><br>
 Ce programme utilise la fonction javascript <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> pour interpréter un fichier <i>.anl3</i> de EEP conçu en <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a>, pour le transformer au format <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
 Ensuite le graphique du plan de voies est reconstitué dynamiquement en javascript avec des instructions <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>. Le formatage des éléments graphiques s‘effectue séparément de la définition du graphique avec la variante SVG de <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
 Le navigateur est capable d‘afficher directement les graphiques SVG. En plus celui-ci utilise les bibliothèques <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> pour les déplacements et le zooming, ainsi que <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> pour visualiser les pop-ups.<br>
-Le programme fonctionne correctement avec les versions actuelles de  Google Chrome et Firefox (et MS Edge). Internet Explorer n‘est plus supporté.</small></p>
+Le programme fonctionne correctement avec les versions actuelles de  Google Chrome et Firefox. Internet Explorer / MS Edge n‘est plus supporté.</small></p>
 
 </article> <!-- class="langWrapper" --> 	
 
@@ -290,7 +290,7 @@ Le programme fonctionne correctement avec les versions actuelles de  Google Chro
 <small>(c) Frank Buchholz, 2020, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> sowie <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Anlagen), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (französische Übersetzung)</small></p>
 
 <p lang="en" class="english">
-<small>(c) Frank Buchholz, 2020, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> as well as <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 track plans), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (french translation)</small></p>
+<small>(c) Frank Buchholz, 2020, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> as well as <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 track plans), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (French translation)</small></p>
 
 <p lang="fr" class="french">
 <small>(c) Frank Buchholz, 2020, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> aussi <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Plan des voies), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français)</small></p>
