@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="de">
+<!-- https://www.w3.org/International/questions/qa-html-language-declarations -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Interaktive Anzeige des Gleisplans zu einer EEP-Anlage-Datei (.anl)</title>
-<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit SVG-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von CSS. Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken svg-pan-zoom zum Verschieben und Zoomen und toolwindow zur Anzeige von Popups verwendet.">
+<title>Interaktive Anzeige des Gleisplans zu einer EEP-Anlage-Datei (.anl3)</title>
+<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl3-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit SVG-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von CSS. Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken svg-pan-zoom zum Verschieben und Zoomen und toolwindow zur Anzeige von Popups verwendet.">
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,Gleisplan" />
 <meta name="language" content="de" />
@@ -30,7 +31,7 @@ body {
 	display: none;
 }
 
- /* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not relilaby. */
+ /* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not reliably. */
 .no-select,
 fieldset,
 select,
@@ -58,28 +59,93 @@ kbd {
 	font-family: inherit; 
 	font-size: 0.85em;
 }
+
+/* switch language */
+.langBtn, 
+.langBtn:visited {
+	padding: 4px 10px;
+	vertical-align: middle;
+	text-align: center;
+	line-height: 100%;
+
+	color: #fff;
+	background: #005899;
+
+	border-radius: 20px;
+
+	box-shadow: 0px 3px 0px 0px #01192e;
+	text-shadow: 0 3px rgba(0, 0, 0, 0.4);
+
+	display:inline-block;
+	cursor: pointer;
+}
+
+.langBtn:hover, 
+.langBtn:visited:hover,
+.langBtn:focus, 
+.langBtn:visited:focus {
+	background: #00467b;
+}
+
+.langBtn:active, 
+.langBtn:visited:active {
+	box-shadow: 0px 1px 0px 0px #01192e;
+}
+
+.langBtn ~ input[type=radio] { /* Checkbox Hack */
+	opacity: 0;
+}
+
+/* Toggle state depending on checkbox */
+#german 		~ .langWrapper .german{		display: none;	}
+#german:checked ~ .langWrapper .german{		display: block;	}
+#german:checked ~ .langWrapper .english{	display: none;	}
+#german:checked ~ .langWrapper .french{		display: none;	}
+
+#english 		 ~ .langWrapper .english{	display: none;	}
+#english:checked ~ .langWrapper .german{	display: none;	}
+#english:checked ~ .langWrapper .english{	display: block;	}
+#english:checked ~ .langWrapper .french{	display: none;	}
+
+#french 		~ .langWrapper .french{		display: none;	}
+#french:checked ~ .langWrapper .german{		display: none;	}
+#french:checked ~ .langWrapper .english{	display: none;	}
+#french:checked ~ .langWrapper .french{		display: block;	}
+
 </style>
 </head>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <body>
-
 <section id="fileselector"> <!-- Selection screen --> 
-<header>
-<h3>EEP Gleisplan</h3>
-</header>
 
-<article>
-<form action="#" onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better -->
-	<label for="fileinput">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3)</label>
+<header> <!-- It'S not possible to put the buttons into the header element (or into any other element) --> 
+</header>
+<label for="german" class="langBtn">Deutsch</label><input type="radio" name="lang" id="german" checked>
+<label for="english" class="langBtn">English</label><input type="radio" name="lang" id="english">
+<label for="french" class="langBtn">Français</label><input type="radio" name="lang" id="french">
+
+<article class="langWrapper">
+
+<h3>
+<div lang="de" class="german">EEP Gleisplan</div>
+<div lang="en" class="english">EEP Track plan</div>
+<div lang="fr" class="french">EEP Plan des voies</div>
+</h3>
+
+<form action="#" onsubmit="return false;"> <!-- better not to use inline listener, explicit register is better -->
+<label for="fileinput">
+<div lang="de" class="german">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3).</div>
+<div lang="en" class="english">Choose (as well using Drag&amp;Drop) and load an EEP file (.anl3).</div>
+<div lang="fr" class="french">Sélectionnez (utiliser la fonction glisser-déposer également possible) et chargez un réseau EEP (nom_du_réseau.anl3).</div>
+</label>
 	<input type="file" id="fileinput" accept=".anl3" onchange="loadFile(this.files && this.files[0])" />
-	<!-- An extra button is not neccessary -->
+	<!-- An extra button is not necessary -->
 	<!-- <input type="button" id="btnLoad" value="Load" onclick="loadFile();"> -->
 </form>
-</article>
-
-<article>
-<p><small><strong>Mausfunktionen</strong><br>
+	
+<p lang="de" class="german">
+<small><strong>Mausfunktionen</strong><br>
 Verschieben: Klick+Halten+Bewegen<br>
 An der Stelle des Cursors hineinzoomen: Doppelklick<br>
 Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br>
@@ -88,42 +154,149 @@ Details anzeigen: Klick auf Gleis, Symbol oder Text<br>
 <span class="li">wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt</span>
 </small></p>
 
-<p><small><strong>Tastaturfunktionen</strong><br>
+<p lang="en" class="english">
+<small><strong>Mouse functions</strong><br>
+Move: Click+Hold+Move<br>
+Zoon in at position of the cursor: Double click<br>
+Zoom out: <kbd>&#x21E7; Shift</kbd>+Double click<br>
+Show details: Click on trck, symbol or text<br>
+<span class="li">if together with <kbd>&#x21E7; Shift</kbd>, then you get another new popup window</span>
+<span class="li">if together with <kbd>alt</kbd>, then you will get the code from the file for this object, too</span>
+</small></p>
+
+<p lang="fr" class="french">
+<small><strong>Fonctions de la souris</strong><br>
+Déplacer: Clic+Tenir+Mouvoir<br>
+Zoomer à l‘endroit précis du curseur: double-clic<br>
+Dézoomer: <kbd>&#x21E7; Shift</kbd>+double-clic<br>
+Afficher les détails: Clic sur voie, symbole ou texte<br>
+<span class="li">en appuyant simultanément sur <kbd>&#x21E7; Shift</kbd>, un nouveau pop-up s‘ouvrira</span>
+<span class="li">wen appuyant simultanément également sur <kbd>alt</kbd>, tout le code du fichier *.anl3 correspondant à cet objet s‘affichera</span>
+</small></p>
+
+
+<p lang="de" class="german">
+<small><strong>Tastaturfunktionen</strong><br>
 <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br>
 <kbd>+</kbd> <kbd>-</kbd> : Zoomen</small></p>
 
-<p><small><strong>Interaktive Funktionen</strong><br>
+<p lang="en" class="english">
+<small><strong>Key functions</strong><br>
+<kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Move graphic (if together with <kbd>&#x21E7; Shift</kbd>, then you move it by half of a page)<br>
+<kbd>+</kbd> <kbd>-</kbd> : Zoom</small></p>
+
+<p lang="fr" class="french">
+<small><strong>Fonctions du clavier</strong><br>
+<kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Déplacer le graphique (ensemble avec la touche <kbd>&#x21E7; Shift</kbd>, alors d‘une demi-page à la fois)<br>
+<kbd>+</kbd> <kbd>-</kbd> : Zoomer</small></p>
+
+
+<p lang="de" class="german">
+<small><strong>Interaktive Funktionen</strong><br>
 Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br>
 Zoom-in, -out, -reset<br>
 Auswahl der anzuzeigenden Gleissysteme<br>
-Auswahl der anzuzeigenden Informationen (GleisID, Gleisart, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Gleisobjekte, Kamera, Rahmen)<br>
+Auswahl der anzuzeigenden Informationen (GleisID, Kurventyp, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Gleisobjekte, Kamera, Rahmen)<br>
 Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise)<br>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
 Die Positionierung ist auch über das <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm möglich!<br>
-Einstellung der Linien- und Textbreite<br>
+Einstellung der Linienbreite und der Schriftgröße<br>
 Auswahl der Gleise mit minimalem und maximalen Höhenfilter<br>
 Farben der Gleissysteme anpassen
 </small></p>
 
-<p><small><strong>Referenzen / verwandte Programme</strong><br>
-Diskussionbeitrag im <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br>
+<p lang="en" class="english">
+<small><strong>Interactive functions</strong><br>
+Switch between vertical and horizontal alignment (Full screen using <kbd>F11</kbd>)<br>
+Zoom-in, -out, -reset<br>
+Choose displayed track systems<br>
+Choose displayed informationen (TrackID, curce type, track style, height, switches, signals, contacts, marker, track objects, cameras, border)<br>
+Choose displayed tracks (active/inactive tracks with/without rolling stocks, visible/invisible tracks)<br>
+Store current view as picture (png/jpg/svg)<br>
+Position track plan at specific track, respective track of a signal or switch<br>
+You can use the <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm as well to position the view!<br>
+Define line thickness and font size<br>
+Filter tracks by min./max. height<br>
+Define colors of the track systems
+</small></p>
+
+<p lang="fr" class="french">
+<small><strong>Fonctions interactives</strong><br>
+Alterner la position de la barre entre horizontale et verticale (<kbd>F11</kbd> pour plein écran)<br>
+Zoom-in, -out, -reset<br>
+Sélection des systèmes de voies<br>
+Sélection des informations à visualiser (ID voie, variante de voie, style de voie, hauteur, aiguillages, signaux, contacts,marqueurs,objets de voie, caméras, cadre)<br>
+Sélection des voies à visualiser (voies actives/inactives. avec/sansmatériels roulants)<br>
+Mémoriser l‘image actuelle au format (png/jpg/svg)<br>
+Concentrer la vue sur une voie déterminée, resp. sur la voie d‘un signal ou d‘un aiguillage<br>
+Le postionnement est également possible par le programme Inventaire <a href="EEP_Inventar.html" target="_blank">Inventaire</a>!<br>
+Réglage de la largeur des lignes et des textes<br>
+Sélection des voies à l‘aide du filtre de hauteur minimale et maximale<br>
+Adapter les couleurs des systèmes de voie
+</small></p>
+
+
+<p lang="de" class="german">
+<small><strong>Referenzen / verwandte Programme</strong><br>
+Diskussionsbeitrag im <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br>
 Entwicklungsprojekt auf <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
 Anzeige einer <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">Inventarliste</a> zu einer EEP-Anlage<br>
 Übersicht zu den <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">Signalstellungen</a> anhand der extrahierten .ini-Dateien zu Signalen (siehe EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
-</article>
 
-<article>
-<p><small><strong>Technische Beschreibung</strong><br>
-Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br>
+<p lang="en" class="english">
+<small><strong>References / related programs</strong><br>
+Thread in the <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP Forum</a><br>
+Development project at <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
+Show <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">inventar list</a> of an EEP file<br>
+Overview about <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">signal positions</a> according to the extraced data from the .ini files of signals (see EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
+
+<p lang="fr" class="french">
+<small><strong>Références / Programmes associés</strong><br>
+Discussions dans le <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br>
+Projet de développement sur <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
+Afficher une <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">liste de l‘inventaire</a> d‘un réseau EEP<br>
+Aperçu des <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">positions de signaux</a> à l‘aide des données extraites des fichiers *.ini des signaux (voir EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
+
+
+<p lang="de" class="german">
+<small><strong>Technische Beschreibung</strong><br>
+Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
 Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br>
-Das Programm läuft in aktuellen Versionen von Google Chome und Firefox, nicht jedoch im Internet Explorer.</small></p>
-</article>
+Das Programm läuft in aktuellen Versionen von Google Chrome und Firefox (und wohl auch in MS Edge), nicht jedoch im Internet Explorer.</small></p>
 
-<footer>
-<p><small>(c) Frank Buchholz, 2020, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a></small></p>
-</footer>
+<p lang="en" class="english">
+<small><strong>Technical description</strong><br>
+This program uses the Javascript function <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> to analyse an <i>.anl3</i> file of EEP,  which contains <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> structured data, and to transform it into the <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
+Then it dynamically creates the graphic of the track plan using Javascript using <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a> commands. The fomatting of the graphical elements using the SVG variant of <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a> is separated from the definition of the graphic.<br>
+The Browser shows such SVG graphics directly. The programs uses the libraries <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> for pan  and zoom and <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> to show popup windows.<br>
+The program runs with current versions of Google Chrome and Firefox (and MS Edge), but not with Internet Explorer.</small></p>
+
+<p lang="fr" class="french">
+<p><small><strong>Description technique</strong><br>
+Ce programme utilise la fonction javascript <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> pour interpréter un fichier <i>.anl3</i> de EEP conçu en <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a>, pour le transformer au format <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
+Ensuite le graphique du plan de voies est reconstitué dynamiquement en javascript avec des instructions <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>. Le formatage des éléments graphiques s‘effectue séparément de la définition du graphique avec la variante SVG de <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
+Le navigateur est capable d‘afficher directement les graphiques SVG. En plus celui-ci utilise les bibliothèques <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> pour les déplacements et le zooming, ainsi que <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> pour visualiser les pop-ups.<br>
+Le programme fonctionne correctement avec les versions actuelles de  Google Chrome et Firefox (et MS Edge). Internet Explorer n‘est plus supporté.</small></p>
+
+</article> <!-- class="langWrapper" --> 	
+
+
+<footer class="langWrapper">
+<hr>
+
+<p lang="de" class="german">
+<small>(c) Frank Buchholz, 2020, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> sowie <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Anlagen), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (französische Übersetzung)</small></p>
+
+<p lang="en" class="english">
+<small>(c) Frank Buchholz, 2020, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> as well as <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 track plans), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (french translation)</small></p>
+
+<p lang="fr" class="french">
+<small>(c) Frank Buchholz, 2020, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> aussi <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Plan des voies), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français)</small></p>
+
+
+</footer> <!-- class="langWrapper" --> 
 
 <style> /* Selection screen */
 #fileselector {
@@ -296,8 +469,8 @@ const Gleisart = { 					// clsid
 // GleisData
 const GleisDataText = {
 	1	: 'Oberleitung',
-	2	: 'Weichenlaterne verstecken ',
-	3	: 'Oberleitung, Weichenlaterne verstecken ',
+	2	: 'Weichenlaterne verstecken',
+	3	: 'Oberleitung, Weichenlaterne verstecken',
 	4	: 'Weichenlaterne rechts',
 	5	: 'Oberleitung, Weichenlaterne rechts',
 	8	: 'Weichenlaterne links',
@@ -601,7 +774,7 @@ function prepareGleissysteme(sutrackp) {
 			for (const entry of trackSignals[GleissystemID][GleisID]) {
 				if (entry.signalType) { continue; } // we have added the entry during the loop, however, for..of does not process new entries anyway
 
-				let currentGleisID 	= GleisID;	// Let"s start with the current track
+				let currentGleisID 	= GleisID;	// Let's start with the current track
 				
 				const SignalID		= entry.Meldung.getAttribute("Key_Id");
 				let   Position		= entry.Meldung.getAttribute("Position") / 100; 	// Wert zwischen 0 und Gleis.Laenge
@@ -928,7 +1101,7 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 	Die Spiegelung ließe sich über CSS einfach zurücknehmen:
 	svg { transform: scale(1,-1); }
 	Damit würde allerdings auch der Text gespiegelt und müsste daher erneut gespiegelt und verschoben werden.
-	Daher werden hier stattdessten alle y-Koordinaten und y-Winkel negativ angegeben (also z.Z. -PosY -DirY -NorY)
+	Daher werden hier stattdessen alle y-Koordinaten und y-Winkel negativ angegeben (also z.Z. -PosY -DirY -NorY)
 	Statt cm soll als Einheit m verwendet werden, daher wird Laenge, Kruemmung, PosX und PosY geeignet skaliert.
 	*/
 
@@ -1815,7 +1988,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
 			text				: `${CurveType}`,
-			dx					: `-0.7em`, 	// Shift text left to geta away from GleisID
+			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `CurveType`,
 			x					: DeltaX,
@@ -3041,7 +3214,7 @@ Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSi
 -->
 </select>
 <input type="number" id="number" value="1" min="1">
-<button id="centerItem">Zeige Objekt </button>
+<button id="centerItem">Zeige Objekt</button>
 <div id="message"></div>
 </article>
 
@@ -3312,7 +3485,7 @@ Cursor: <span id="cursorPosition"> </span>
 	<div class="item"><label>	<!-- GleisID -->
 	<input type="checkbox" name="GleisID" 		checked autocomplete="off" onchange="toggleElements('.GleisID', this.checked)">GleisID</label></div>
 	<div class="item hidden" id="CheckboxCurveType"><label>		<!-- only visible if there are elements of that type = EEP 16 -->
-	<input type="checkbox" name="CurveType" 	checked autocomplete="off" onchange="toggleElements('.CurveType', this.checked)">Gleisart</label></div>
+	<input type="checkbox" name="CurveType" 	checked autocomplete="off" onchange="toggleElements('.CurveType', this.checked)">Kurventyp</label></div>
 	<div class="item"><label>	<!-- Stil -->
 	<input type="checkbox" name="Stil" 			checked autocomplete="off" onchange="toggleElements('.Stil', this.checked)">Stil</label></div>
 	<div class="item"><label>	<!-- Hoehe -->
@@ -3343,7 +3516,7 @@ Cursor: <span id="cursorPosition"> </span>
 </nav> <!-- controls -->
 </section>  <!-- heading -->
 
-<section id="container"> <!-- The container takes the remainig part of the screen to show the graphic -->
+<section id="container"> <!-- The container takes the remaining part of the screen to show the graphic -->
 <!-- 
 svg editor: https://github.com/SVG-Edit/svgedit
 https://svg-edit.github.io/svgedit/releases/latest/editor/svg-editor.html
@@ -4593,8 +4766,8 @@ function objectToHTML(object) {
 	
 	if (global.altDown) {							// only if alt-key is pressed
 		s = object.outerHTML;						// get HTML representation of object
-		s = s.replace(/</g,"&lt;");					// escapeing of < is required
-		s = s.replace(/>(?![a-zA-Z0-9])/g,"&gt;<br>");	// escapeing of > is optional but allows adding line breaks (unless followed by Pos, Dir, Nor or Bin)
+		s = s.replace(/</g,"&lt;");					// escaping of < is required
+		s = s.replace(/>(?![a-zA-Z0-9])/g,"&gt;<br>");	// escaping of > is optional but allows adding line breaks (unless followed by Pos, Dir, Nor or Bin)
 		s = s.replace(/\t/g," ");					// replace tabs
 		s = s.replace(/\s{2,}/g, ' ');				// replace duplicate spaces
 		s = s.replace(/(\r\n|\n|\r)/g,"");			// remove line breaks
@@ -4821,7 +4994,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 
 function getKontaktIcon(GleissystemID, SetType, SetValue) {
 	// https://www.compart.com/de/unicode/category/So
-	const KontaktIcon = { 	// Sometimes the symbol works fine but sometime the unicode-code is neccessary in Notepad++
+	const KontaktIcon = { 	// Sometimes the symbol works fine but sometime the unicode-code is necessary in Notepad++
 		0 		: '⭢', 		// Weiche/Signal			⭢ \u2B62 → \u8594 &rarr; 
 		1 		: '🚆', 	// Fahrzeug +v km/h max		🚆 \u1F686 🚗 \u1f697 ⛴ \u26f4 ⛟ \u26DF 	
 		2 		: '🚆', 	// Fahrzeug +v km/h min
@@ -5216,7 +5389,7 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			+ ' ' + ['W', 'WSW', 'SW', 'SSW', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO', 'N', 'NNW', 'NW', 'WNW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)]
 			+ `<br>Neigung: ` 				 + angle( angleY )			// Neigung Y
 			+ (angleX < -0.01 || angleX > 0.01 ? `<br>Kippung: ` + angle( angleX ) : '')	// Neigung X
-			+ (Dynamic == 0 ? `<br>statisch` : `<br>dynamisch`)
+			+ `<br>` + (Dynamic == 0 ? `statisch` : `dynamisch`)
 			+ objectToHTML(Kamera)
 	});
 }
