@@ -10,6 +10,8 @@
 <meta name="language" content="de" />
 <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
 
+<script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
+
 <style> /* html page */
 html, body { /* deactivate default settings */
 	margin: 0;
@@ -103,14 +105,20 @@ kbd {
 	display: none;	
 }
 
-/* Toggle state depending on checkbox (I do not know why the selectors for body and article are neccessary) */
-body [lang]{
-	display: none;
-}
-#german:checked~article [lang="de"],
-#english:checked~article [lang="en"],
-#french:checked~article [lang="fr"]{
-	display: block;	
+/* Toggle translations depending on checkbox (I do not know why the selectors for section and main are neccessary) */
+#german:checked~section [lang="en"],
+#german:checked~section [lang="fr"],
+#german:checked~main 	[lang="en"],
+#german:checked~main 	[lang="fr"],
+#english:checked~section [lang="de"],
+#english:checked~section [lang="fr"],
+#english:checked~main    [lang="de"],
+#english:checked~main    [lang="fr"],
+#french:checked~section [lang="de"],
+#french:checked~section [lang="en"],
+#french:checked~main    [lang="de"],
+#french:checked~main    [lang="en"]	{
+	display: none;	
 }
 
 </style>
@@ -118,23 +126,17 @@ body [lang]{
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <body>
-<section id="fileselector"> <!-- Selection screen --> 
 
 <!-- The hidden radio buttons need to stay on top level -->
-<input type="radio" name="lang" class="hiddenRadio" id="german" checked>
-<input type="radio" name="lang" class="hiddenRadio" id="english">
-<input type="radio" name="lang" class="hiddenRadio" id="french">
+<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" checked >
+<input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage(`EN`)">
+<input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage(`FR`)">
 
-<header>
-</header>
+<section id="fileselector"> <!-- Selection screen --> 
 
-<article class="flexRow">
+<header class="flexRow">
 <div> <!-- left part -->
-<h3>
-<div lang="de">EEP Gleisplan</div>
-<div lang="en">EEP Track plan</div>
-<div lang="fr">EEP Plan des voies</div>
-</h3>
+<h3><span lang="de">EEP-Gleisplan</span><span lang="en">EEP Track plan</span><span lang="fr">EEP Plan des voies</span></h3>
 </div>
 
 <div> <!-- right part -->
@@ -142,23 +144,21 @@ body [lang]{
 <label for="english" class="langBtn">English</label>
 <label for="french" class="langBtn">Français</label>
 </div>
-
-</article>
+</header>
 
 <article>
-
 <form action="#" onsubmit="return false;"> <!-- better not to use inline listener, explicit register is better -->
 <label for="fileinput">
-<div lang="de">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3).</div>
-<div lang="en">Choose (or use Drag&amp;Drop) and load an EEP file (.anl3).</div>
-<div lang="fr">Sélectionnez (utiliser la fonction glisser-déposer également possible) et chargez un réseau EEP (nom_du_réseau.anl3).</div>
+<span lang="de">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3).</span>
+<span lang="en">Choose (or use Drag&amp;Drop) and load an EEP file (.anl3).</span>
+<span lang="fr">Sélectionnez (utiliser la fonction glisser-déposer également possible) et chargez un réseau EEP (nom_du_réseau.anl3).</span>
 </label>
 	<input type="file" id="fileinput" accept=".anl3" onchange="loadFile(this.files && this.files[0])" />
 	<!-- An extra button is not necessary -->
 	<!-- <input type="button" id="btnLoad" value="Load" onclick="loadFile();"> -->
 </form>
 	
-<p lang="de">
+<p lang="de">	<!-- Mausfunktionen -->
 <small><strong>Mausfunktionen</strong><br>
 Verschieben: Klick+Halten+Bewegen<br>
 An der Stelle des Cursors hineinzoomen: Doppelklick<br>
@@ -189,7 +189,7 @@ Afficher les détails: Clic sur voie, symbole ou texte<br>
 </small></p>
 
 
-<p lang="de">
+<p lang="de">	<!-- Tastaturfunktionen -->
 <small><strong>Tastaturfunktionen</strong><br>
 <kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br>
 <kbd>+</kbd> <kbd>-</kbd> : Zoomen</small></p>
@@ -205,7 +205,7 @@ Afficher les détails: Clic sur voie, symbole ou texte<br>
 <kbd>+</kbd> <kbd>-</kbd> : Zoomer</small></p>
 
 
-<p lang="de">
+<p lang="de">	<!-- Interaktive Funktionen -->
 <small><strong>Interaktive Funktionen</strong><br>
 Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br>
 Zoom-in, -out, -reset<br>
@@ -251,7 +251,7 @@ Adapter les couleurs des systèmes de voie
 </small></p>
 
 
-<p lang="de">
+<p lang="de">	<!-- Referenzen / verwandte Programme -->
 <small><strong>Referenzen / verwandte Programme</strong><br>
 Diskussionsbeitrag im <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br>
 Entwicklungsprojekt auf <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
@@ -273,7 +273,7 @@ Afficher une <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_
 Aperçu des <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">positions de signaux</a> à l‘aide des données extraites des fichiers *.ini des signaux (voir EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
 
 
-<p lang="de">
+<p lang="de">	<!-- Technische Beschreibung -->
 <small><strong>Technische Beschreibung</strong><br>
 Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
@@ -294,6 +294,9 @@ Ensuite le graphique du plan de voies est reconstitué dynamiquement en javascri
 Le navigateur est capable d‘afficher directement les graphiques SVG. En plus celui-ci utilise les bibliothèques <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> pour les déplacements et le zooming, ainsi que <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> pour visualiser les pop-ups.<br>
 Le programme fonctionne correctement avec les versions actuelles de  Google Chrome et Firefox. Internet Explorer / MS Edge n‘est plus supporté.</small></p>
 
+</article>
+
+<footer>
 <hr>
 
 <p lang="de">
@@ -304,10 +307,6 @@ Le programme fonctionne correctement avec les versions actuelles de  Google Chro
 
 <p lang="fr">
 <small>(c) Frank Buchholz, 2020, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> aussi <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Plan des voies), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français)</small></p>
-
-</article>
-
-<footer>
 </footer>
 
 <style> /* Selection screen */
@@ -320,6 +319,7 @@ Le programme fonctionne correctement avec les versions actuelles de  Google Chro
 	margin-left: 2em;
 }
 </style>
+
 <script type="text/javascript" src="rematrix/rematrix.js"></script> <!-- https://github.com/jlmakes/rematrix -->
 <!-- <script type="text/javascript" src="https://unpkg.com/rematrix"></script> --> <!-- latest version -->
 <!-- <script type="text/javascript" src="https://unpkg.com/rematrix@0.4.1/dist/rematrix.min.js"></script> --> <!-- version 0.4.1 -->
@@ -331,12 +331,12 @@ const global = {}; // Collection of all global variables
 function loadFile(file) {
 	let fr;	// upvalue for function processFile
 	if (typeof window.FileReader !== "function") {
-		bodyAppend("p", "The file API isn't supported on this browser yet.");
+		bodyAppend("p", _("err", '001')); // The file API isn't supported on this browser yet.
 		return;
 	}
 
 	if (!file) {
-		bodyAppend("p", "Please select a file before clicking 'Load'");
+		bodyAppend("p", _('err', '002')); // Please select a file before clicking 'Load'
 		return;
 	} else {
 		global.timestamp = {};
@@ -431,7 +431,11 @@ function loadFile(file) {
 			
 		}, function(err) {
 			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use "</pre>"
-			document.getElementById("loading").innerHTML = `Fehler beim Lesen der Datei:<br>${err.name}: "${err.message}" in line ${err.lineNumber}<br><pre>${err.stack}` + "</pre>";
+			document.getElementById("loading").innerHTML = 
+				_('err', '003') // Fehler beim Lesen der Datei
+				+ `:<br>${err.name}: "${err.message}"`
+				+ _('err', '003a') // in line 
+				+ `${err.lineNumber}<br><pre>${err.stack}` + "</pre>";
 			console.log(err);
 		});
 	}
@@ -3189,31 +3193,31 @@ input[type="number"]#jpgQuality {
 <nav id="controls">
 
 <header class="group">
-<h3 id="filename">EEP Gleisplan</h3>
+<h3 id="filename"></h3>
 </header>
 
 <article class="group no-select"> <!-- Buttons, line and font size -->
-<button id="swap">swap</button>
+<button id="swap"><span lang="de">Tauschen</span><span lang="en">Swap</span><span lang="fr">Échanger</span></button>
 <!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
-<button id="savePNG">Export PNG/JPG/SVG</button>
-<button id="setColors">Farben</button>
+<button id="savePNG"><span lang="de">Export</span><span lang="en">Export</span><span lang="fr">Exp.</span> PNG/JPG/SVG</button>
+<button id="setColors"><span lang="de">Farben</span><span lang="en">Colours</span><span lang="fr">Couleurs</span></button>
 <br>
 <button id="zoom-in">+</button>
 <button id="zoom-out">-</button>
-<button id="resetzoom">reset zoom</button>
-<button id="reset">reset all</button>
+<button id="resetzoom"><span lang="de">Zoom zurücksetzen</span><span lang="en">Reset zoom</span><span lang="fr">Réinit. le zoom</span></button>
+<button id="reset"><span lang="de">Alles zurücksetzen</span><span lang="en">Reset all</span><span lang="fr">Réinit. tout</span></button>
 <!-- enable/disable of controls of SvgPanZoom within the graphic
 	<button id="enable">enable controls</button>
 	<button id="disable">disable controls</button>
 -->
 <br>
-Linie <input type="range" min="1" max="150" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
+<span lang="de">Linie</span><span lang="en">Line</span><span lang="fr">Ligne</span>&nbsp;<input type="range" min="1" max="150" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
 <br>
-Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
+<span lang="de">Schrift</span><span lang="en">Font</span><span lang="fr">Écriture</span>&nbsp;<input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
 </article>
 
 <article class="group no-select"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
-<select id="select" >
+<select id="select" >	<!-- How to translate options? -->
 	<option value="1">Eisenbahn</option>
 	<option value="2">Straßenbahn</option>
 	<option value="3">Straße</option>
@@ -3226,12 +3230,12 @@ Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSi
 -->
 </select>
 <input type="number" id="number" value="1" min="1">
-<button id="centerItem">Zeige Objekt</button>
+<button id="centerItem"><span lang="de">Zeige Objekt</span><span lang="en">Show object</span><span lang="fr">Afficher l'objet</span></button>
 <div id="message"></div>
 </article>
 
 <article class="group"> <!-- Status line -->
-Min/Max Höhe der Anlage: <span id="heightArea"></span><br>
+<span lang="de">Min/Max Höhe der Anlage</span><span lang="en">Min / Max height of the system</span><span lang="fr">Hauteur min / max du système</span>: <span id="heightArea"></span><br>
 
 <!-- Begin: Two handled slider for min/max height -->
 <!-- https://leaverou.github.io/multirange/ 
@@ -3474,54 +3478,54 @@ if (typeof module === "undefined") {
 </script>
 <!-- End: Two handled slider for min/max height -->
 
-Sichtbarer Bereich: <span id="visibleArea"> </span><br>
-Zentrum des Bereichs: <span id="centerPosition"> </span><br>
-Cursor: <span id="cursorPosition"> </span>
+<span lang="de">Sichtbarer Bereich</span><span lang="en">Visible area</span><span lang="fr">Zone visible</span>: <span id="visibleArea"> </span><br>
+<span lang="de">Zentrum des Bereichs</span><span lang="en">Center of the area</span><span lang="fr">Centre de la zone</span>: <span id="centerPosition"> </span><br>
+<span lang="de">Cursor</span><span lang="en">Cursor</span><span lang="fr">Curseur</span>: <span id="cursorPosition"> </span>
 </article>
 
 <article class="group no-select"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset class="fieldset">
 	<!-- Firefox keeps the status of the checkbox between page loads by default. -->
 	<div class="item Eisenbahn hidden"><label>					<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('.Eisenbahn', this.checked)">Eisenbahn</label></div>
+	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('.Eisenbahn', this.checked)"><span lang="de">Eisenbahn</span><span lang="en">Railroad</span><span lang="fr">Chemin de fer</span></label></div>
 	<div class="item Strassenbahn hidden"><label>				<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('.Strassenbahn', this.checked)">Straßenbahn</label></div>
+	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('.Strassenbahn', this.checked)"><span lang="de">Straßenbahn</span><span lang="en">Tram</span><span lang="fr">Tram</span></label></div>
 	<div class="item Strasse hidden"><label>					<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('.Strasse', this.checked)">Straße</label></div>
+	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('.Strasse', this.checked)"><span lang="de">Straße</span><span lang="en">Road</span><span lang="fr">Rue</span></label></div>
 	<div class="item Wasserwege hidden"><label>					<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('.Wasserwege', this.checked)">Wasserwege</label></div>
+	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('.Wasserwege', this.checked)"><span lang="de">Wasserwege</span><span lang="en">Waterways</span><span lang="fr">Voies navigables</span></label></div>
 	<div class="item Steuerstrecken hidden"><label>				<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Steuerstrecken" checked autocomplete="off" onchange="toggleElements('.Steuerstrecken', this.checked)">Steuerstrecken</label></div>
+	<input type="checkbox" name="Steuerstrecken" checked autocomplete="off" onchange="toggleElements('.Steuerstrecken', this.checked)"><span lang="de">Steuerstrecken</span><span lang="en">Control routes</span><span lang="fr">Itinéraires de contrôle</span></label></div>
 	<div class="item GBS hidden"><label>						<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="GBS" 			checked autocomplete="off" onchange="toggleElements('.GBS', this.checked)">GBS</label></div>
+	<input type="checkbox" name="GBS" 			checked autocomplete="off" onchange="toggleElements('.GBS', this.checked)"><span lang="de">GBS</span><span lang="en">GBS</span><span lang="fr">GBS</span></label></div>
 	<div class="item"><label>	<!-- GleisID -->
-	<input type="checkbox" name="GleisID" 		checked autocomplete="off" onchange="toggleElements('.GleisID', this.checked)">GleisID</label></div>
+	<input type="checkbox" name="GleisID" 		checked autocomplete="off" onchange="toggleElements('.GleisID', this.checked)"><span lang="de">Gleis ID</span><span lang="en">Track ID</span><span lang="fr">ID de piste</span></label></div>
 	<div class="item hidden" id="CheckboxCurveType"><label>		<!-- only visible if there are elements of that type = EEP 16 -->
-	<input type="checkbox" name="CurveType" 	checked autocomplete="off" onchange="toggleElements('.CurveType', this.checked)">Kurventyp</label></div>
+	<input type="checkbox" name="CurveType" 	checked autocomplete="off" onchange="toggleElements('.CurveType', this.checked)"><span lang="de">Kurventyp</span><span lang="en">Curve type</span><span lang="fr">Type de courbe</span></label></div>
 	<div class="item"><label>	<!-- Stil -->
-	<input type="checkbox" name="Stil" 			checked autocomplete="off" onchange="toggleElements('.Stil', this.checked)">Stil</label></div>
+	<input type="checkbox" name="Stil" 			checked autocomplete="off" onchange="toggleElements('.Stil', this.checked)"><span lang="de">Stil</span><span lang="en">Style</span><span lang="fr">Style</span></label></div>
 	<div class="item"><label>	<!-- Hoehe -->
-	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)">Höhe</label></div>
+	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)"><span lang="de">Höhe</span><span lang="en">Height</span><span lang="fr">Hauteur</span></label></div>
 	<div class="item"><label>	<!-- WeicheText -->
-	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)">Weichen</label></div>
+	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)"><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Commutateurs</span></label></div>
 	<div class="item"><label>	<!-- Signal -->
-	<input type="checkbox" name="Signal" 		checked autocomplete="off" onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
+	<input type="checkbox" name="Signal" 		checked autocomplete="off" onchange="toggleElements('.Signal', this.checked)"><span lang="de">Signale</span><span lang="en">Signals</span><span lang="fr">Signaux</span></label></div>
 	<div class="item"><label>	<!-- Kontakt -->
-	<input type="checkbox" name="Kontakt" 		checked autocomplete="off" onchange="toggleElements('.Kontakt', this.checked)">Kontakte</label></div>
+	<input type="checkbox" name="Kontakt" 		checked autocomplete="off" onchange="toggleElements('.Kontakt', this.checked)"><span lang="de">Kontakte</span><span lang="en">Contacts</span><span lang="fr">Contacts</span></label></div>
 	<div class="item"><label>	<!-- active -->
-	<input type="checkbox" name="active" 		checked autocomplete="off" onchange="toggleElements('.active', this.checked)">aktiv</label></div>
+	<input type="checkbox" name="active" 		checked autocomplete="off" onchange="toggleElements('.active', this.checked)"><span lang="de">aktiv</span><span lang="en">active</span><span lang="fr">actif</span></label></div>
 	<div class="item"><label>	<!-- inactive -->
-	<input type="checkbox" name="inactive" 		checked autocomplete="off" onchange="toggleElements('.inactive', this.checked)">inaktiv</label></div>
+	<input type="checkbox" name="inactive" 		checked autocomplete="off" onchange="toggleElements('.inactive', this.checked)"><span lang="de">inaktiv</span><span lang="en">inactive</span><span lang="fr">inactif</span></label></div>
 	<div class="item"><label>	<!-- unsichtbar -->
-	<input type="checkbox" name="unsichtbar" 	checked autocomplete="off" onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
+	<input type="checkbox" name="unsichtbar" 	checked autocomplete="off" onchange="toggleElements('.unsichtbar', this.checked)"><span lang="de">unsichtbar</span><span lang="en">invisible</span><span lang="fr">invisible</span></label></div>
 	<div class="item"><label>	<!-- Marker -->
-	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)">Marker</label></div>
+	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)"><span lang="de">Marker</span><span lang="en">Marker</span><span lang="fr">Marqueurs</span></label></div>
 	<div class="item hidden" id="CheckboxGleisobjekt"><label>	<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Gleisobjekt" 	checked autocomplete="off" onchange="toggleElements('.Gleisobjekt', this.checked)">Gleisobjekte</label></div>
+	<input type="checkbox" name="Gleisobjekt" 	checked autocomplete="off" onchange="toggleElements('.Gleisobjekt', this.checked)"><span lang="de">Gleisobjekte</span><span lang="en">Track objects</span><span lang="fr">Suivre les objets</span></label></div>
 	<div class="item hidden" id="CheckboxKamera"><label>		<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)">Kameras</label></div>
+	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)"><span lang="de">Kameras</span><span lang="en">Cameras</span><span lang="fr">Caméras</span></label></div>
 	<div class="item"><label>
-	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('#general', this.checked)">Rahmen</label></div>
+	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('#general', this.checked)"><span lang="de">Rahmen</span><span lang="en">Frame</span><span lang="fr">Cadre</span></label></div>
 </fieldset>
 </article>
 
@@ -4050,7 +4054,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	// another solution to deal with multiple keys at same time: 
 	// https://stackoverflow.com/questions/5203407/how-to-detect-if-multiple-keys-are-pressed-at-once-using-javascript
 	window.addEventListener("keydown", function(ev) {
-		//msg('Target: ' + ev.target.nodeName + ' Key: ' + ev.key);
+		//msg("", 'Target: ' + ev.target.nodeName, 'Key: ' + ev.key);
 		if (ev.target.nodeName !== "BODY" && ev.target.nodeName !== "BUTTON") { return; }
 		
 		// Check active keys
@@ -4095,7 +4099,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 				y: 0,
 			});
 		} else {
-			msg('nothing to do');
+			msg("", 'nothing to do');
 			return;
 		}
 		showArea(panZoom);
@@ -4233,7 +4237,8 @@ EEPchannel.onmessage = function(ev) {
 		if (Meldung) {
 			// Signal gefunden
 			centerPosition(Meldung.mPos);
-			msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			//msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			msg('SignalLocation', ID, GleissystemText[Meldung.GleissystemID], Meldung.GleisID);
 			
 			showSignalInfo(ID, GleissystemID, GleisID);
 			return true;
@@ -4245,7 +4250,8 @@ EEPchannel.onmessage = function(ev) {
 			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
 			const GleisID = Gleis.getAttribute("GleisID");
 			centerPosition(Gleis.mEnd);
-			msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
+			//msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
+			msg('SwitchLocation', ID, GleissystemText[Meldung.GleissystemID], Meldung.GleisID);
 			
 			showWeicheInfo(ID, GleissystemID, GleisID);
 			return true;
@@ -4263,7 +4269,8 @@ EEPchannel.onmessage = function(ev) {
 
 		const Kamera = global.KameraSet[KameraID];
 		if (!Kamera) {
-			msg(`Kamera ${KameraID} existiert nicht`);
+			//msg(`Kamera ${KameraID} existiert nicht`);
+			msg('CameraNotExists', KameraID);
 			return false;
 		}
 
@@ -4276,17 +4283,20 @@ EEPchannel.onmessage = function(ev) {
 
 		const Gleissystem = global.Gleissysteme[GleissystemID];
 		if (!Gleissystem) {
-			msg(`Gleissystem ${GleissystemID} ${GleissystemText[GleissystemID]} existiert nicht`);
+			//msg(`Gleissystem ${GleissystemID} ${GleissystemText[GleissystemID]} existiert nicht`);
+			msg('TrackSystemNotExists', GleissystemID, GleissystemText[GleissystemID]);
 			return false;
 		}
 		const Gleis = Gleissystem[GleisID];
 		if (!Gleis) {
-			msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
+			//msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
+			msg('TrackNotExists', GleissystemText[GleissystemID], GleisID);
 			return false;
 		}
 
 		centerPosition(Gleis.mMid); // Mitte des Gleises
-		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+		//msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+		msg('Positioning', GleissystemText[GleissystemID], GleisID);
 
 		showGleisInfo(GleissystemID, GleisID);
 		return true;
@@ -4320,17 +4330,20 @@ function centerItem() {
 
 		const Gleissystem = global.Gleissysteme[GleissystemID];
 		if (!Gleissystem) {
-			msg(`Gleissystem ${GleissystemID} ${GleissystemText[GleissystemID]} existiert nicht`);
+			//msg(`Gleissystem ${GleissystemID} ${GleissystemText[GleissystemID]} existiert nicht`);
+			msg('TrackSystemNotExists', GleissystemID, GleissystemText[GleissystemID]);
 			return false;
 		}
 		const Gleis = Gleissystem[GleisID];
 		if (!Gleis) {
-			msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
+			//msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
+			msg('TrackNotExists', GleissystemText[GleissystemID], GleisID);
 			return false;
 		}
 
 		centerPosition(Gleis.mMid); // Mitte des Gleises
-		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+		//msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+		msg('Positioning', GleissystemText[GleissystemID], GleisID);
 		return true;
 
 	} else if (sel === "I" || sel === 'S' || sel === 'W') {		// I = Signal/Weiche (Nummern übergreifend über alle Gleissysteme)
@@ -4341,7 +4354,8 @@ function centerItem() {
 		if (Meldung) {
 			// Signal gefunden
 			centerPosition(Meldung.mPos);
-			msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			//msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			msg('SignalLocation', ID, GleissystemText[Meldung.GleissystemID], Meldung.GleisID);
 			return true;
 		}
 
@@ -4351,11 +4365,13 @@ function centerItem() {
 			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
 			const GleisID = Gleis.getAttribute("GleisID");
 			centerPosition(Gleis.mEnd);
-			msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
+			//msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
+			msg('SwitchLocation', ID, GleissystemText[Gleis.GleissystemID], GleisID);
 			return true;
 		}
 
-		msg(`Signal/Weiche ${ID} existiert nicht`);
+		//msg(`Signal/Weiche ${ID} existiert nicht`);
+		msg('SignalSwitchNotExists', ID);
 		return false; // Signal/Weiche nicht gefunden
 
 	} else if (sel === "K") {		// Kontakt
@@ -4683,9 +4699,13 @@ function toggleMarker(visible) {
 	}	
 }
 
-function msg(text) {
-	if (text) {
-		document.getElementById("message").textContent = text; // Text only therefore we do not need to use innerHTML
+function msg(key, ...args) {
+	if (key) {
+		// Get translated text for topic 'msg'
+		// Show text only therefore we do not need to use innerHTML
+		document.getElementById("message").textContent = EEP_Texts.getText('msg', key, ...args);
+	} else if (key === "") {	// show literal text
+		document.getElementById("message").textContent = args.reduce((a, b) => { return a + ', ' + b;});
 	} else {
 		document.getElementById("message").textContent = "";
 	}
@@ -4817,12 +4837,16 @@ function showGleisInfo(GleissystemID, GleisID) {
 	if (KollektorID) {
 		const Gleisobjekt = global.Gleisobjekte[KollektorID];
 		
-		GleisobjektText = '<br>Gleisobjekt: ' + Gleisobjekt.gsbname
-			+ '<br>Immobilie: ' + GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + ' ' + Gleisobjekt.ImmoIdx
+		GleisobjektText = '<br>' + _('Gleisobjekt') + ': ' + Gleisobjekt.gsbname
+			+ '<br>' + _('Immobilie') + ': ' + GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + ' ' + Gleisobjekt.ImmoIdx
 	}
 
 	// Kurzform in msg-Element
-	msg(`${GleissystemText[GleissystemID]} ${GleisID}, ${Gleisart[clsid]}, Stil ${stil}, ${gsbname}`);
+	msg("", GleissystemText[GleissystemID] + ' ' + GleisID, 
+			Gleisart[clsid], 
+			_('Stil') + ' ' + stil, 
+			gsbname
+	);
 
 	// Ausführlich im Info Popup
 	const posX = 12, posY = 13, posZ = 14;
@@ -4833,7 +4857,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 	for (const connection in connections) {
 		const connectedGleisID = connections[connection].GleisID;
 		const connectedGleis = Gleissystem[connectedGleisID];
-		connectionText += '<br>' + connection
+		connectionText += '<br>' + _(connection)
 			+': ' 
 			+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
 			+ ' ' + ( connections[connection].Flags ? 'virtuell' : '' )
@@ -4844,17 +4868,17 @@ function showGleisInfo(GleissystemID, GleisID) {
 		code: 'G' + GleissystemID + '-' + GleisID,
 		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
 		content: 
-			`Position Anfang: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[posX].toFixed(0)}m, ${-Gleis.mPos[posY].toFixed(0)}m<\/a>)`
-			+ `<br>Mitte: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[posX].toFixed(0)}m, ${-Gleis.mMid[posY].toFixed(0)}m<\/a>)`
-			+ `<br>Ende: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}])">${Gleis.mEnd[posX].toFixed(0)}m, ${-Gleis.mEnd[posY].toFixed(0)}m<\/a>)`
-			+ `<br>Typ: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
-			+ (GleisData != 0 ? `<br>${GleisDataText[GleisData]}` : '')
-			+ `<br>Stil: ${stil}`
-			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
+			`${_('Position')} ${_('Anfang')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[posX].toFixed(0)}m, ${-Gleis.mPos[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Mitte')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[posX].toFixed(0)}m, ${-Gleis.mMid[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Ende')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}])">${Gleis.mEnd[posX].toFixed(0)}m, ${-Gleis.mEnd[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Gleisart')}: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
+			+ (GleisData != 0 ? `<br>${GleisDataText[GleisData]}` : "")
+			+ `<br>${_('Stil')}: ${stil}`
+			+ (gsbname != null ? `<br>${_('Datei')}: ${gsbname}` : "")
 			+ GleisobjektText
-			+ `<br>Länge: ${Gleis.Laenge.toFixed(0)}m`
-			+ `<br>Höhe: ${Gleis.mPos[posZ].toFixed(2)}m`
-			+ (Gleis.CurveType == 'classic' || Gleis.CurveType == 'EEPCurve' ? '' : `<br>Gleisart: ${Gleis.CurveType}`)
+			+ `<br>${_('Länge')}: ${Gleis.Laenge.toFixed(0)}m`
+			+ `<br>${_('Höhe')}: ${Gleis.mPos[posZ].toFixed(2)}m`
+			+ (Gleis.CurveType == 'classic' || Gleis.CurveType == 'EEPCurve' ? "" : `<br>Kurventyp: ${Gleis.CurveType}`)
 			+ connectionText
 			+ objectToHTML(Gleis)
 	});
@@ -4880,7 +4904,8 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 														// 20: Weichen einer Straßen-T-Kreuzung
 
 	// Kurzform in msg-Element
-	msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+	//msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+	msg('SwitchLocation', WeicheID, GleissystemText[GleissystemID], GleisID);
 	
 	// Show connected tracks
 	let connectionText = '';
@@ -4889,7 +4914,7 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 		if (connection != 'Anfang') {
 			const connectedGleisID = connections[connection].GleisID;
 			const connectedGleis = Gleissystem[connectedGleisID];
-			connectionText += '<br>' + connection
+			connectionText += '<br>' + _(connection)
 				+': ' 
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
 				+ ' ' + ( connections[connection].Flags ? 'virtuell' : '' )
@@ -4899,17 +4924,17 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	// Ausführlich im Info Popup
 	showInfoWindow({
 		code: 'W' + WeicheID,
-		title: `Weiche ${WeicheID}`,
+		title: _('Weiche') + ' ' + WeicheID,
 		content: 
-			`<i>Position: `
+			`<i>${_('Position')}: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}]);">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
 				+ `<\/i>`
-			+ `<br>Gleisart: ${Gleisart[clsid]}`
-			+ (GleisData   != 0 ? `<br>` + GleisDataText[GleisData] : '')
-			+ `<br>Weichenstellung: ${WeichenstellungText[weichenstellung]}`
-			+ `<br>Stil: ${stil}`
-			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
-			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>KontaktZiel: ${KontaktZiel}` : '')
+			+ `<br>${_('Gleisart')}: ${Gleisart[clsid]}`
+			+ (GleisData   != 0 ? `<br>` + GleisDataText[GleisData] : "")
+			+ `<br>${_('Weichenstellung')}: ${WeichenstellungText[weichenstellung]}`
+			+ `<br>${_('Stil')}: ${stil}`
+			+ (gsbname != null ? `<br>${_('Datei')}: ${gsbname}` : "")
+			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
 			+ connectionText
 			+ objectToHTML(Gleis)
 		});
@@ -4933,7 +4958,7 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const Routes		= Meldung.getAttribute('Routes');
 	const RouteList	 	= Meldung.getElementsByTagName("Route");
 
-	const SignalType 	= (File === 'system\\Route_SignalS.3ds' ? 'Fahrstraße Startsignal' 
+	const SignalType 	= (File === 'system\\Route_SignalS.3ds' ? 'Fahrstraße Startsignal' //###
 							: (File === 'system\\Route_SignalZ.3ds' ? 'Fahrstraße Endesignal'
 								: 'Signal' ));
 	
@@ -4954,8 +4979,8 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		}
 	}
 	
-	// Kurzform in msg-Element
-	msg(`${SignalType} ${SignalID} ${File} auf ${GleissystemText[GleissystemID]} ${GleisID}` 
+	// Kurzform in msg-Element //###
+	msg("", `${SignalType} ${SignalID} ${File} auf ${GleissystemText[GleissystemID]} ${GleisID}` 
 		+ `, Stellung ${Stellung} ${SignalstellungText}` 
 		+ (KontaktZiel != null && KontaktZiel != 0 ? `, Kontaktziel=` + KontaktZiel : ""));
 
@@ -4977,28 +5002,28 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		const Target 	= Route.getAttribute('Target');
 		const Color 	= Route.getAttribute('Color');
 		
-		RoutesText 	+= `<br>Zielsignal: `
+		RoutesText 	+= `<br>${_('Zielsignal')}: `
 					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${global.Meldungen[Target].mPos}]);">`
 					+ Target 
 					+ `<\/a>, ` 
-					+ `<span style="color:${ColorText[Color%8].color};">Farbe: ${Color} ${ColorText[Color%8].name}<\/span>`;
+					+ `<span style="color:${ColorText[Color%8].color};">${_('Farbe')}: ${Color} ${ColorText[Color%8].name}<\/span>`;
 	}
 
 	showInfoWindow({
 		code: 'S' + SignalID,
 		title: `${SignalType} ${SignalID}`,
 		content:
-			`<i>Position: `
+			`<i>${_('Position')}: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${GleissystemText[GleissystemID]} ${GleisID}`
 				+ ` +${Position.toFixed(1)}m<\/a><\/i>`
-			+ `<br>Name: ${File}`
+			+ `<br>${_('Name')}: ${File}`
 			+ (Signalstellung[File] && File !== Signalstellung[File].Name ? `<br>${Signalstellung[File].Name}` : "")
-			+ `<br>Stellung ${Stellung}: ${SignalstellungText}`
-			+ (Distanz !=0 ? `<br>Distanz zum Hauptsignal: ${Distanz.toFixed(0)}m` : '')
-			+ `<br>Gleisrichtung: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung')
-			+ (SignalData != null ? `<br>SignalData: ${SignalData}` : '')			
-			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>Kontaktziel: ${KontaktZiel}` : "")
-			+ (Routes ? `<br>Fahrstraßen: ${Routes}` : "")
+			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
+			+ (Distanz !=0 ? `<br>${_('Distanz zum Hauptsignal')}: ${Distanz.toFixed(0)}m` : '')
+			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
+			+ (SignalData != null ? `<br>${_('SignalData')}: ${SignalData}` : '')			
+			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
+			+ (Routes ? `<br>${_('Fahrstraßen')}: ${Routes}` : "")
 			+ (RoutesText !== '' ? RoutesText : '')
 			+ objectToHTML(Meldung)
 		});
@@ -5144,7 +5169,7 @@ console.log('Kamera'
 					? ` [${Perspektive[EndePerspektive]}]` 	
 					: '' );	
 		} else {
-			Text = 'Kamera';
+			Text = _('Kamera');
 		}
 		
 	} else if (SetType == 1024) {	// DKW/EKW Weichenstellung
@@ -5233,48 +5258,49 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	//const Zugverband = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
 
 	// Kurzform in msg-Element
-	msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+	//msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+	msg('ContactLocation', GleissystemText[GleissystemID], GleisID);
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
 		code: 'K' + KontaktID,
-		title: `Kontakt`,
+		title: _('Kontakt'),
 		content:  
-			`<i>Position: `
+			`<i>${_('Position')}: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kontakt.mPos}]);">`
 				+ `${GleissystemText[GleissystemID]} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
-			+ `<br>Kontakttyp ` + SetType + ': ' 
+			+ `<br>${_('Kontakttyp')} ` + SetType + ': ' 
 			// KontaktTyp[SetType] mit Modifikation
 			+ getKontaktIcon(GleissystemID, SetType, SetValue) + ' '
 			+ getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF)
-			+ (SetType == 768 ||  SetType == 1024 ? `<br>ImmoIdx: ` + SetValue : '')	// Verweis auf ImmoIdx 
+			+ (SetType == 768 ||  SetType == 1024 ? `<br>${_('ImmoIdx')}: ` + SetValue : '')	// Verweis auf ImmoIdx 
 			//+ (SetType == 512 && ConnectF != 0 ? `<br>ConnectF: ` + ConnectF : '')
 			+ (KontaktZiel != null && KontaktZiel != 0 
-				? `<br>Kontaktziel ${KontaktZiel}: ` 
+				? `<br>${_('Kontaktziel')} ${KontaktZiel}: ` 
 					+ ( Ziel ? 
 							`<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
 							+ `${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
 							+ `<\/a>` 
-						  : 'unbekannt'
+						  : _('unbekannt')
 					  )
 				: '') 
-			+ `<br>Auslösung: `		+ (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
-											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
-												: ( fireOnPara == 1 && fireOnAnti == 1 ? 'beide Richtungen' : '' )
+			+ `<br>${_('Auslösung')}: `		+ (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung')) 
+											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? _('in Gleisrichtung') : _('gegen Gleisrichtung')) 
+												: ( fireOnPara == 1 && fireOnAnti == 1 ? _('beide Richtungen') : '' )
 											  )
 										  ) 
-			+ (Teiler != 0 			? `<br>Zug-Zähler: ` + Teiler : '')
-			+ (ActTeiler != 0 		? `<br>Zählerstand: `		+ ActTeiler : '')
-			+ (Delay != 0 			? `<br>Zeitverzögerung: `	+ Delay : '')
-			+ (ActDelay != 0 		? `<br>Zeit abgelaufen: `	+ ActDelay : '')
+			+ (Teiler != 0 			? `<br>${_('Zug-Zähler')}: ` + Teiler : '')
+			+ (ActTeiler != 0 		? `<br>${_('Zählerstand')}: `		+ ActTeiler : '')
+			+ (Delay != 0 			? `<br>${_('Zeitverzögerung')}: `	+ Delay : '')
+			+ (ActDelay != 0 		? `<br>${_('Zeit abgelaufen')}: `	+ ActDelay : '')
 			+ `<br>Zugposition: `		+ (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
-			+ (RouteID != 0 		? `<br>für Route: ` + global.Routen[RouteID] : '') 
-			+ (TrainID != 0 		? `<br>für Zug: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : '') 
-			+ (NameFilter !== ''	? `<br>Zug-Filter: `		 + NameFilter : '') 
-			+ (TrainNewName !== ''	? `<br>Neuer Zugname: `	 + TrainNewName : '')
-			+ (zuStellung > 0 && Wechseln == 0 ? `<br>zu Stellung: ` + zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) 
-			+ (SignalData != 0 		? `<br>SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
-			+ (LuaFn && LuaFn !== '' ? `<br>LuaFn: ${LuaFn}` : '') 
+			+ (RouteID != 0 		? `<br>${_('für Route')}: ` + global.Routen[RouteID] : '') 
+			+ (TrainID != 0 		? `<br>${_('für Zug')}: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : '') 
+			+ (NameFilter !== ''	? `<br>${_('Zug-Filter')}: `		 + NameFilter : '') 
+			+ (TrainNewName !== ''	? `<br>${_('Neuer Zugname')}: `	 + TrainNewName : '')
+			+ (zuStellung > 0 && Wechseln == 0 ? `<br>${_('zu Stellung')}: ` + zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) 
+			+ (SignalData != 0 		? `<br>${_('SignalData')}: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
+			+ (LuaFn && LuaFn !== '' ? `<br>${_('LuaFn')}: ${LuaFn}` : '') 
 			+ objectToHTML(Kontakt)
 	});
 }
@@ -5388,20 +5414,21 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 )*/
 
 	// Kurzform in msg-Element
-	msg(`Kamera ${Name}`);
+	//msg(`Kamera ${Name}`);
+	msg('Camera', Name);
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: 'Kamera ' + Name,
+		code: _('Kamera') + ' ' + Name,
 		title: '📷 ' + Name, // 📷 \u1F4F7
 		content: //`<b>${Name}<\/b><br>` +
-			  `Position: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${-PosY.toFixed(0)}m<\/a>)`			
-			+ `<br>Höhe: ${PosZ.toFixed(0)}m`
-			+ `<br>Blickrichtung: ` 		 + angle( angleZ )			// Neigung Z
+			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${-PosY.toFixed(0)}m<\/a>)`			
+			+ `<br>${_('Höhe')}: ${PosZ.toFixed(0)}m`
+			+ `<br>${_('Blickrichtung')}: ` 		 + angle( angleZ )			// Neigung Z
 			+ ' ' + ['W', 'WSW', 'SW', 'SSW', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO', 'N', 'NNW', 'NW', 'WNW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)]
-			+ `<br>Neigung: ` 				 + angle( angleY )			// Neigung Y
-			+ (angleX < -0.01 || angleX > 0.01 ? `<br>Kippung: ` + angle( angleX ) : '')	// Neigung X
-			+ `<br>` + (Dynamic == 0 ? `statisch` : `dynamisch`)
+			+ `<br>${_('Neigung')}: ` 				 + angle( angleY )			// Neigung Y
+			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : '')	// Neigung X
+			+ `<br>` + (Dynamic == 0 ? _('statisch') : _('dynamisch'))
 			+ objectToHTML(Kamera)
 	});
 }
@@ -5614,8 +5641,8 @@ function exportGraphic(fileType) {
 		let mimeType;
 		if 		(fileType === 'png') { mimeType = "image/png"; }
 		else if (fileType === 'jpg') { mimeType = "image/jpeg"; }
-		else {
-			msg("Dateityp nicht unterstützt: " + fileType);
+		else { //################
+			msg('', "Dateityp nicht unterstützt: " + fileType);
 			return false;
 		}
 		
@@ -5625,17 +5652,17 @@ function exportGraphic(fileType) {
 			DataURL = canvas.toDataURL(mimeType, encoderOptions);
 		} catch(err){
 			console.log(err);
-			msg("Zu groß: Export nicht möglich (toDataURL()): " + mimeType);
+			msg('', "Zu groß: Export nicht möglich (toDataURL()): " + mimeType);
 			return false;
 		}
 		// We might get a very short result which is another type of error
 		if ( DataURL.length <= 6 ) {
-			msg("Zu groß, Export nicht möglich (DataURL.length): " + mimeType)
+			msg('', "Zu groß, Export nicht möglich (DataURL.length): " + mimeType)
 			return false;
 		}
 
 		const rc = exportData(DataURL, fileType);
-		msg(`${fileType}-Graphik in Größe ${canvas.width}x${canvas.height} exportiert`);
+		msg('', `${fileType}-Graphik in Größe ${canvas.width}x${canvas.height} exportiert`); //#####
 		return rc;
 	};
 	// Load img
@@ -5657,7 +5684,7 @@ function exportData(dataURL, fileType) {
 		link.click(); // We might get a network error in case of very huge results (but it's not possible to catch the error)
 	} catch(err){
 		console.log(err);
-		msg("Zu groß: Export nicht möglich (link.click)");
+		msg('', "Zu groß: Export nicht möglich (link.click)"); //##########
 		document.body.removeChild(link);
 		URL.revokeObjectURL(dataURL);
 		return false;

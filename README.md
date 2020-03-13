@@ -3,7 +3,7 @@
 ## Programm: EEP_Gleisplan.html
 Anzeige eines EEP-Gleisplans im Browser
 
-Der Gleisplan zu einer EEP Anlage wird im Browser angezeigt.
+Der Gleisplan zu einer EEP-Anlage wird im Browser angezeigt.
 
 ### Aufruf
 [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html "EEP_Gleisplan.html")
@@ -27,7 +27,7 @@ Auswahl der anzuzeigenden Gleissysteme und von Informationen wie Texten oder Mar
 Aktuelles Darstellung als Bild (`.png`/`.jpg`/`.svg`) speichern<br>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
 Die Positionierung ist auch über das Inventar-Programm möglich!<br>
-Einstellung der Linien- und Textbreite<br>
+Einstellung der Linienbreite und der Schriftgröße<br>
 Auswahl der Gleise mit minimalem und maximalen Höhenfilter<br>
 Farben der Gleissysteme anpassen
 
@@ -47,7 +47,7 @@ Nun kann man das svg-Element aus der Zwischenablage in ein leeres Textdokument p
 Diskussionbeitrag im [EEP-Forum](https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt).
 
 ### Technik
-Dieses Programm nutzt die Javascript-Funktion [`DOMParser`](https://www.w3schools.com/xml/xml_parser.asp) um eine `.anl`-Datei von EEP, die aus [XML](https://www.w3schools.com/xml/xml_tree.asp) aufgebaut ist, zu interpretieren und in das [Document Object Model (DOM)](https://www.w3schools.com/xml/xml_dom.asp) umzuwandeln.
+Dieses Programm nutzt die Javascript-Funktion [`DOMParser`](https://www.w3schools.com/xml/xml_parser.asp) um eine `.anl3`-Datei von EEP, die aus [XML](https://www.w3schools.com/xml/xml_tree.asp) aufgebaut ist, zu interpretieren und in das [Document Object Model (DOM)](https://www.w3schools.com/xml/xml_dom.asp) umzuwandeln.
 
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit [SVG](https://www.w3schools.com/html/html5_svg.asp)-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von [CSS](https://www.w3schools.com/html/html_css.asp).
 
@@ -79,7 +79,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 ### Aufruf
 [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html")
 
-Zur Zeit wird eine Liste der Weichen, Signale, kontakte, Zugverbände und verwendeter Gleisstile ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
+Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, Zugverbände und verwendeter Gleisstile ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
 
 ### Interaktive Funktionen
 Man kann die Tabellen (bei Firefox auch mit Strg+A) mit Copy & Paste in ein Tabellenverarbeitungsprogramm übertragen. Dazu schaltet man am Besten zuvor die Anzeige der Filter-Zeile aus.
@@ -94,7 +94,7 @@ Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers 
 - wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt
 
 ### Technik
-Dieses Programm nutzt die Javascript-Funktion [`DOMParser`](https://www.w3schools.com/xml/xml_parser.asp), um eine`.anl`-Datei von EEP, die aus [XML](https://www.w3schools.com/xml/xml_tree.asp) aufgebaut ist, zu interpretieren und in das [Document Object Model (DOM)](https://www.w3schools.com/xml/xml_dom.asp) umzuwandeln.
+Dieses Programm nutzt die Javascript-Funktion [`DOMParser`](https://www.w3schools.com/xml/xml_parser.asp), um eine`.anl3`-Datei von EEP, die aus [XML](https://www.w3schools.com/xml/xml_tree.asp) aufgebaut ist, zu interpretieren und in das [Document Object Model (DOM)](https://www.w3schools.com/xml/xml_dom.asp) umzuwandeln.
 
 Zusätzlich wird die GitHub-Bibliothek [`TableFilter`](https://github.com/koalyptus/TableFilter) verwendet, um interaktive Funktionen zur Anzeige der Tabellen anzubieten.
 
