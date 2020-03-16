@@ -1326,10 +1326,7 @@ function e(target, tagName, content, html) {
 	target.appendChild(element);
 	return element;
 }
-</script>
 
-<script type="text/javascript">
-//"use strict";	// does not work for prepareSort() because of following code: this.asc = !this.asc
 // Sort table, https://stackoverflow.com/questions/14267781/sorting-html-table-with-javascript
 function prepareSort() {
 
@@ -1351,7 +1348,7 @@ function prepareSort() {
 			const table = th.closest('table');
 			const tbody = table.querySelector('tbody');
 			Array.from(tbody.querySelectorAll('tr'))
-				.sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
+				.sort(comparer(Array.from(th.parentNode.children).indexOf(th), th.asc = !th.asc)) // th.asc instead of this.asc to allow strict mode 
 				.forEach(tr => tbody.appendChild(tr) );
 		}))
 	);
