@@ -105,19 +105,30 @@ kbd {
 	display: none;	
 }
 
-/* Toggle translations depending on checkbox (I do not know why the selectors for section and main are neccessary) */
-#german:checked~section [lang="en"],
-#german:checked~section [lang="fr"],
-#german:checked~main 	[lang="en"],
-#german:checked~main 	[lang="fr"],
+/* Toggle translations (I do not know why the selectors for section and main are neccessary or why a star would not work) */
+#german:checked~section  [lang="en"],
+#german:checked~section  [lang="fr"],
+#german:checked~main 	 [lang="en"],
+#german:checked~main 	 [lang="fr"],
 #english:checked~section [lang="de"],
 #english:checked~section [lang="fr"],
 #english:checked~main    [lang="de"],
 #english:checked~main    [lang="fr"],
-#french:checked~section [lang="de"],
-#french:checked~section [lang="en"],
-#french:checked~main    [lang="de"],
-#french:checked~main    [lang="en"]	{
+#french:checked~section  [lang="de"],
+#french:checked~section  [lang="en"],
+#french:checked~main     [lang="de"],
+#french:checked~main     [lang="en"]	{
+	display: none;	
+}
+
+/* Experiment to translate options, however, this works only partially: it it possible to hide the options in other languages: the default value still shows the first text 
+*/
+#german:checked~#selectObject options[lang="en"],
+#german:checked~#selectObject options[lang="fr"],
+#english:checked~#selectObject options[lang="de"],
+#english:checked~#selectObject options[lang="fr"],
+#french:checked~#selectObject options[lang="de"],
+#french:checked~#selectObject options[lang="en"]	{
 	display: none;	
 }
 
@@ -128,9 +139,9 @@ kbd {
 <body>
 
 <!-- The hidden radio buttons need to stay on top level -->
-<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" checked >
-<input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage(`EN`)">
-<input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage(`FR`)">
+<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" autocomplete="off" checked >
+<input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage(`EN`)" autocomplete="off" >
+<input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage(`FR`)" autocomplete="off" >
 
 <section id="fileselector"> <!-- Selection screen --> 
 
@@ -336,7 +347,7 @@ function loadFile(file) {
 	}
 
 	if (!file) {
-		bodyAppend("p", _('err', '002')); // Please select a file before clicking 'Load'
+		bodyAppend("p", EEP_Texts.getText('err', '002')); // Please select a file before clicking 'Load'
 		return;
 	} else {
 		global.timestamp = {};
@@ -432,9 +443,9 @@ function loadFile(file) {
 		}, function(err) {
 			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use "</pre>"
 			document.getElementById("loading").innerHTML = 
-				_('err', '003') // Fehler beim Lesen der Datei
+				EEP_Texts.getText('err', '003') // Fehler beim Lesen der Datei
 				+ `:<br>${err.name}: "${err.message}"`
-				+ _('err', '003a') // in line 
+				+ EEP_Texts.getText('err', '003a') // in line 
 				+ `${err.lineNumber}<br><pre>${err.stack}` + "</pre>";
 			console.log(err);
 		});
@@ -458,14 +469,60 @@ function updateUi(fn) {
 "use strict";
 // Process root node (sutrackp)
 // EEP: Static texts
-const GleissystemText = { 			// GleissystemID : Text,
-	1 : "Eisenbahn",
-	2 : "Straßenbahn",
-	3 : "Straße",
-	4 : "Wasserwege",
-	5 : "Steuerstrecken",			// nicht in EEP 9
-	6 : "GBS",						// nicht in EEP 9
+let GleissystemText, Gleisart, GleisDataText, WeichenstellungText, GebaeudesammlungText;
+
+function loadStaticTexts() {
+
+GleissystemText = { 			// GleissystemID : Text,
+	1 : _('Eisenbahn'),
+	2 : _('Strassenbahn'),
+	3 : _('Strasse'),
+	4 : _('Wasserwege'),
+	5 : _('Steuerstrecken'),		// nicht in EEP 9
+	6 : _('GBS'),					// nicht in EEP 9
 };
+
+Gleisart = { 					// clsid
+	"2E25C8E2-ADCD-469A-942E-7484556FF932" : _('Normal'),
+	"C889EADB-63B5-44A2-AAB9-457424CFF15F" : _('Weiche'),
+	"B0818DD8-5DFD-409F-8022-993FD3C90759" : _('3-Weg-Weiche'),
+	"06D80C90-4E4B-469B-BFE0-509A573EBC99" : _('Prellbock'),
+};
+	
+// GleisData
+GleisDataText = {
+	1	: _('Oberleitung'),
+	2	: _('Weichenlaterne verstecken'),
+	3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),
+	4	: _('Weichenlaterne rechts'),
+	5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),
+	8	: _('Weichenlaterne links'),
+	9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),
+	16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),
+	18	: _('Doppelkreuzungsweiche'),
+	19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),
+	20	: _('Straßen-T-Kreuzung'),
+};
+
+// Weichenstellung
+WeichenstellungText = { 	
+	1 : _('Durchfahrt'),
+	2 : _('Abzweig'),
+	3 : _('KoAbzweig'),
+	5 : _('Spezial'),
+};
+
+GebaeudesammlungText = {		// GebaeudesammlungID : Text,
+	1 : _('Eisenbahn'), 
+	2 : _('Strassenbahn'), 
+	3 : _('Gleisobjekte Straßen'), 
+	4 : _('Immobilien'),
+	5 : _('Landschaftselemente'), 
+	6 : _('Sonstiges'), 
+}
+
+}
+
 const GleissystemCode = { 			// GleissystemID : Code,
 	1 : "Eisenbahn",
 	2 : "Strassenbahn",
@@ -474,45 +531,6 @@ const GleissystemCode = { 			// GleissystemID : Code,
 	5 : "Steuerstrecken",			// nicht in EEP 9
 	6 : "GBS",						// nicht in EEP 9
 };
-
-const Gleisart = { 					// clsid
-	"2E25C8E2-ADCD-469A-942E-7484556FF932" : "Normal",
-	"C889EADB-63B5-44A2-AAB9-457424CFF15F" : "Weiche",
-	"B0818DD8-5DFD-409F-8022-993FD3C90759" : "3-Weg-Weiche",
-	"06D80C90-4E4B-469B-BFE0-509A573EBC99" : "Prellbock",
-};
-	
-// GleisData
-const GleisDataText = {
-	1	: 'Oberleitung',
-	2	: 'Weichenlaterne verstecken',
-	3	: 'Oberleitung, Weichenlaterne verstecken',
-	4	: 'Weichenlaterne rechts',
-	5	: 'Oberleitung, Weichenlaterne rechts',
-	8	: 'Weichenlaterne links',
-	9	: 'Oberleitung, Weichenlaterne links',
-	16	: 'Weichenlaterne als Immobilie/Straßen-T-Kreuzung',
-	18	: 'Doppelkreuzungsweiche',
-	19	: 'Oberleitung, Doppelkreuzungsweiche',
-	20	: 'Straßen-T-Kreuzung',
-};
-
-// Weichenstellung
-const WeichenstellungText = { 	
-	1 : 'Durchfahrt',
-	2 : 'Abzweig',
-	3 : 'KoAbzweig',
-	5 : 'Spezial',
-};
-
-const GebaeudesammlungText = {		// GebaeudesammlungID : Text,
-	1 : 'Eisenbahn', 
-	2 : 'Straßenbahn', 
-	3 : 'Gleisobjekte Straßen', 
-	4 : 'Immobilien',
-	5 : 'Landschaftselemente', 
-	6 : 'Sonstiges', 
-}
 
 /* Gleisstile:
 http://up.picr.de/33875489iu.pdf
@@ -589,6 +607,8 @@ const unsichtbar = [			// unsichtbare Gleisstile
 	];
 
 function createSVG(sutrackp, initProgress, incrementProgress) {
+	loadStaticTexts();
+
 	const Gleissysteme = prepareGleissysteme(sutrackp);
 
 	// Append new svg elements to this root node which we append to the svg node later
@@ -636,7 +656,6 @@ function prepareGleissysteme(sutrackp) {
 	global.Weichen 			= {};
 	global.Kontakte			= {};
 	global.KontaktZiele		= {};
-	global.Kameras 			= {};	// Verwendung: Kamera = global.Kameras[Name];
 	global.KameraSet 		= {};	// Verwendung: Kamera = global.KameraSet[index];
 	global.Gleisobjekte		= {};
 	global.Routen			= {};
@@ -1018,7 +1037,7 @@ function prepareGleissysteme(sutrackp) {
 					
 					// Take care of inconsistend data: Immobilie without Kollektor 
 					if (!Gleisobjekte[KollektorID]) {
-						Gleisobjekte[KollektorID] = { Error : 'missing Kollector', };
+						Gleisobjekte[KollektorID] = { Error : 'missing Collector', };
 					}
 					
 					Gleisobjekte[KollektorID].GebaudesammlungID	= GebaudesammlungID;
@@ -2523,7 +2542,6 @@ function createSVGforKameras(SVGfragment) {
 		// Store Kamera
 		Kamera.Name 				= Name;
 		Kamera.KameraID 			= KameraID;
-		global.Kameras[Name] 		= Kamera;
 		global.KameraSet[KameraID] 	= Kamera;
 
 		// Process Kamera
@@ -2581,7 +2599,7 @@ function createSVGforKameras(SVGfragment) {
 
 		let svgKameraGroup = svgAppend(svgKamerasGroup, {
 			svg_tag	: `g`,
-			id		: Name, 
+			id		: KameraID, 
 		});
 		
 		// Show circle at Point
@@ -3079,7 +3097,7 @@ const convexhull = new function() {
 </section>  <!-- Selection screen --> 
 
 <section id="loading" class="hidden"> <!-- Progress bar screen --> 
-Lade... <progress id="progress" class="hidden" max="100"></progress>
+<span lang="de">Lade</span><span lang="en">Load</span><span lang="fr">Charge</span>... <progress id="progress" class="hidden" max="100"></progress>
 <style> /* Progress bar screen */
 #loading {						/* progress bar */
 	text-align: center;
@@ -3217,7 +3235,41 @@ input[type="number"]#jpgQuality {
 </article>
 
 <article class="group no-select"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
-<select id="select" >	<!-- How to translate options? -->
+<!-- How to translate options? 
+This CSS rule does not work because the default option still shows just the first option: 
+#selectObject option[lang=de] {display: none;} 
+It does not work if I put span elements inside of the options.
+-->
+<!-- 
+<select id="selectObject" >
+	<option value="1" lang="de" checked>Eisenbahn</option>	
+	<option value="1" lang="en" checked>Railroad</option>
+	<option value="1" lang="fr" checked>Chemin de fer</option>
+	<option value="2" lang="de">Straßenbahn</option>
+	<option value="2" lang="en">Tram</option>
+	<option value="2" lang="fr">Tram</option>
+	<option value="3" lang="de">Straße</option>
+	<option value="3" lang="en">Road</option>
+	<option value="3" lang="fr">Rue</option>
+	<option value="4" lang="de">Wasserwege</option>
+	<option value="4" lang="en">Waterways</option>
+	<option value="4" lang="fr">Voies navigables</option>
+	<option value="5" lang="de">Steuerstrecken</option>
+	<option value="5" lang="en">Control routes</option>
+	<option value="5" lang="fr">Control routes</option>
+	<option value="6" lang="de">GBS</option>
+	<option value="6" lang="en">GBS</option>
+	<option value="6" lang="fr">GBS</option>
+	<option value="I" lang="de">Signal/Weiche</option>
+	<option value="I" lang="en">Signal/Switch</option>
+	<option value="I" lang="fr">Signal/Aiguillage</option>
+	<option value="K">Kontakt</option>
+	<option value="K">Contact</option>
+	<option value="K">Contact</option>
+</select>
+-->
+<!-- This workround using multiple selects works well -->
+<select lang="de" id="selectObjectDE" >	
 	<option value="1">Eisenbahn</option>
 	<option value="2">Straßenbahn</option>
 	<option value="3">Straße</option>
@@ -3227,6 +3279,30 @@ input[type="number"]#jpgQuality {
 	<option value="I">Signal/Weiche</option>
 <!--
 	<option value="K">Kontakt</option>
+-->
+</select>
+<select lang="en" id="selectObjectEN" >
+	<option value="1">Railroad</option>
+	<option value="2">Tram</option>
+	<option value="3">Road</option>
+	<option value="4">Waterways</option>
+	<option value="5">Control routes</option>
+	<option value="6">GBS</option>
+	<option value="I">Signal/Switch</option>
+<!--
+	<option value="K">Contact</option>
+-->
+</select>
+<select lang="fr" id="selectObjectFR" >
+	<option value="1">Chemin de fer</option>
+	<option value="2">Tram</option>
+	<option value="3">Rue</option>
+	<option value="4">Voies navigables</option>
+	<option value="5">Control routes</option>
+	<option value="6">GBS</option>
+	<option value="I">Signal/Aiguillage</option>
+<!--
+	<option value="K">Contact</option>
 -->
 </select>
 <input type="number" id="number" value="1" min="1">
@@ -3507,7 +3583,7 @@ if (typeof module === "undefined") {
 	<div class="item"><label>	<!-- Hoehe -->
 	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)"><span lang="de">Höhe</span><span lang="en">Height</span><span lang="fr">Hauteur</span></label></div>
 	<div class="item"><label>	<!-- WeicheText -->
-	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)"><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Commutateurs</span></label></div>
+	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)"><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aguillage</span></label></div>
 	<div class="item"><label>	<!-- Signal -->
 	<input type="checkbox" name="Signal" 		checked autocomplete="off" onchange="toggleElements('.Signal', this.checked)"><span lang="de">Signale</span><span lang="en">Signals</span><span lang="fr">Signaux</span></label></div>
 	<div class="item"><label>	<!-- Kontakt -->
@@ -4276,7 +4352,7 @@ EEPchannel.onmessage = function(ev) {
 
 		centerPosition(Kamera.mPos);
 
-		showKameraInfo(Kamera.Name);
+		showKameraInfo(KameraID);
 		return true;
 
 	} else if (GleissystemID && GleisID) {	// Gleis
@@ -4319,7 +4395,7 @@ EEPchannel.onmessage = function(ev) {
 function centerItem() {
 	// Get input values
 	//const text 	= o.options[o.selectedIndex].text;		// e.g. Eisenbahn
-	const o 	= document.getElementById("select");
+	const o 	= document.getElementById("selectObject" + EEP_Texts.getLanguage());
 	const sel 	= o.options[o.selectedIndex].value;			// e.g. 1-6, I (statt W, S), K
 	const val 	= Number(document.getElementById("number").value);
 
@@ -4607,9 +4683,10 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 		showWeicheInfo(WeicheID, GleissystemID, GleisID);
 
 	} else if (event.target.parentElement.parentElement.id === 'Kamera') {	// Kamera
-		const Name 				= event.target.parentElement.id;
+		const KameraID 				= event.target.parentElement.id;
 
-		showKameraInfo(Name);
+		// Issue: Name is not an unique key
+		showKameraInfo(KameraID);
 	
 	} else if (event.target.parentElement.id !== "general") {			// Gleis (hopefully)
 		const GleisCode 		= event.target.parentElement.id;
@@ -4865,7 +4942,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 	
 	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
-		code: 'G' + GleissystemID + '-' + GleisID,
+		code: 'Gleis ' + GleissystemID + '-' + GleisID,
 		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
 		content: 
 			`${_('Position')} ${_('Anfang')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[posX].toFixed(0)}m, ${-Gleis.mPos[posY].toFixed(0)}m<\/a>)`
@@ -4923,7 +5000,7 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: 'W' + WeicheID,
+		code: 'Weiche ' + WeicheID,
 		title: _('Weiche') + ' ' + WeicheID,
 		content: 
 			`<i>${_('Position')}: `
@@ -4958,13 +5035,14 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const Routes		= Meldung.getAttribute('Routes');
 	const RouteList	 	= Meldung.getElementsByTagName("Route");
 
-	const SignalType 	= (File === 'system\\Route_SignalS.3ds' ? 'Fahrstraße Startsignal' //###
-							: (File === 'system\\Route_SignalZ.3ds' ? 'Fahrstraße Endesignal'
-								: 'Signal' ));
-	
-	let SignalstellungText = "";
-	// Die Bedeutung der Signalstellung für Fahrstraßen ist noch unklar
-	if (SignalType === 'Signal') {
+	let SignalTypeText;
+	let SignalstellungText = "";	// Die Bedeutung der Signalstellung für Fahrstraßen ist noch unklar
+	if (File === 'system\\Route_SignalS.3ds') {
+		SignalTypeText = _('Fahrstraße') + ' ' + _('Startsignal');
+	} else if (File === 'system\\Route_SignalZ.3ds') {
+		SignalTypeText = _('Fahrstraße') + ' ' + _('Endesignal');
+	} else {
+		SignalTypeText = _('Signal');
 		if (Signalstellung[File]) {
 			// 1st try: Get texts (case sensitive file name)
 			SignalstellungText = Signalstellung[File].Pos[Stellung];
@@ -4979,23 +5057,23 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		}
 	}
 	
-	// Kurzform in msg-Element //###
-	msg("", `${SignalType} ${SignalID} ${File} auf ${GleissystemText[GleissystemID]} ${GleisID}` 
-		+ `, Stellung ${Stellung} ${SignalstellungText}` 
-		+ (KontaktZiel != null && KontaktZiel != 0 ? `, Kontaktziel=` + KontaktZiel : ""));
+	// Kurzform in msg-Element
+	msg("", `${SignalTypeText} ${SignalID} ${File} ${_('auf')} ${GleissystemText[GleissystemID]} ${GleisID}` 
+		+ `, ${_('Signalstellung')} ${Stellung} ${SignalstellungText}` 
+		+ (KontaktZiel != null && KontaktZiel != 0 ? `, ${_('Kontaktziel')}=${KontaktZiel}` : ""));
 
 	// Ausführlich im Info Popup
 
 	// Fahrstraßen
 	const ColorText = { // <color> modulo 8
-		0: { name: 'grau',		color: 'rgb(180,180,180)', 	},
-		1: { name: 'rot',		color: 'rgb(220,0,0)', 		},
-		2: { name: 'grün',		color: 'rgb(0,220,0)', 		},
-		3: { name: 'blau',		color: 'rgb(0,0,220)', 		},
-		4: { name: 'gelb',		color: 'rgb(220,220,0)', 	},
-		5: { name: 'pink',		color: 'rgb(220,0,220)', 	},
-		6: { name: 'hellblau', 	color: 'rgb(0,180,220)', 	},
-		7: { name: 'orange',	color: 'rgb(220,110,0)',	},
+		0: { name: _('grau'),		color: 'rgb(180,180,180)', 	},
+		1: { name: _('rot'),		color: 'rgb(220,0,0)', 		},
+		2: { name: _('grün'),		color: 'rgb(0,220,0)', 		},
+		3: { name: _('blau'),		color: 'rgb(0,0,220)', 		},
+		4: { name: _('gelb'),		color: 'rgb(220,220,0)', 	},
+		5: { name: _('pink'),		color: 'rgb(220,0,220)', 	},
+		6: { name: _('hellblau'), 	color: 'rgb(0,180,220)', 	},
+		7: { name: _('orange'),		color: 'rgb(220,110,0)',	},
 	}
 	let RoutesText = '';
 	for (const Route of RouteList) {
@@ -5010,8 +5088,8 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 	}
 
 	showInfoWindow({
-		code: 'S' + SignalID,
-		title: `${SignalType} ${SignalID}`,
+		code: 'Signal ' + SignalID,
+		title: `${SignalTypeText} ${SignalID}`,
 		content:
 			`<i>${_('Position')}: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${GleissystemText[GleissystemID]} ${GleisID}`
@@ -5075,25 +5153,25 @@ function getKontaktIcon(GleissystemID, SetType, SetValue) {
 function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
 	// Achtung: die Variablen v, x, t werden ersetzt
 	const KontaktText = {
-		0 		: 'Weiche/Signal',
-		1 		: 'Fahrzeug +v km/h max',	
-		2 		: 'Fahrzeug +v km/h min',
-		3 		: 'Fahrzeug +v km/h soll',
+		0 		: _('Weiche/Signal'),
+		1 		: _('Fahrzeug +$1 km/h max'),	
+		2 		: _('Fahrzeug +$1 km/h min'),
+		3 		: _('Fahrzeug +$1 km/h soll'),
 		//4		: '',							// not used 
-		5 		: 'Fahrzeug -v km/h max',
-		6 		: 'Fahrzeug -v km/h min',
-		7 		: 'Fahrzeug -v km/h soll',
-		8 		: 'Halt x m',
+		5 		: _('Fahrzeug -$1 km/h max'),
+		6 		: _('Fahrzeug -$1 km/h min'),
+		7 		: _('Fahrzeug -$1 km/h soll'),
+		8 		: _('Halt $1 m'),
 		// 17, 33, 34 unbekannt
-		128 	: 'Omegas',						
-		256 	: 'Sound',	 	
-		512 	: 'Kamera',
-		768 	: 'Immobilie',
-		1024 	: 'DKW/EKW',
-		1280 	: 'Einfahrt Depot',
-		1536 	: 'Ausfahrt Depot',
-		2048 	: 'Animationen',
-		32768 	: 'Gruppen KP',
+		128 	: _('Omegas'),						
+		256 	: _('Sound'),	 	
+		512 	: _('Kamera'),
+		768 	: _('Immobilie'),
+		1024 	: _('DKW/EKW'),
+		1280 	: _('Einfahrt Depot'),
+		1536 	: _('Ausfahrt Depot'),
+		2048 	: _('Animationen'),
+		32768 	: _('Gruppen-Kontaktpunkt'),
 	}
 
 	let Text 	= (KontaktText[SetType] ? KontaktText[SetType] : 'unbekannt');
@@ -5105,10 +5183,10 @@ function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
 		//else 																			{ KontaktTypText = 'Kontaktziel nicht gefunden'; }
 
 	} else if (SetType >= 1 && SetType <= 7) {	// Fahrzeug
-		Text = Text.replace('v', SetValue);		// 'Fahrzeug +v km/h max'
+		Text = Text.replace('$1', SetValue);		// 'Fahrzeug +$1 km/h max'
 		
 	} else if (SetType == 8) {
-		Text = Text.replace('x', SetValue);		// 'Halt x m'
+		Text = Text.replace('$1', SetValue);		// 'Halt $1 m'
 		
 	} else if (SetType == 256 && SetValue && global.Sounds[SetValue]) {	// Sound vorhanden
 			Text 	= global.Sounds[SetValue];
@@ -5121,15 +5199,15 @@ function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
 			Byte 4:			Perspektive Ende
 			*/	
 			const Perspektive = {		
-				0 : 'keine Perspektive festgelegt', 
-				1 : 'Fahrzeug von links',
-				2 : 'Fahrzeug von rechts',
-				3 : 'Fahrzeug von links oben',
-				4 : 'Fahrzeug von rechts oben',
-				5 : 'Sicht in Fahrtrichtung',
-				6 : 'Rückwärtige Sicht',
-				7 : 'Folgemodus',
-				8 : 'Sicht in Kabine',
+				0 : _('keine Perspektive festgelegt'), 
+				1 : _('Fahrzeug von links'),
+				2 : _('Fahrzeug von rechts'),
+				3 : _('Fahrzeug von links oben'),
+				4 : _('Fahrzeug von rechts oben'),
+				5 : _('Sicht in Fahrtrichtung'),
+				6 : _('Rückwärtige Sicht'),
+				7 : _('Folgemodus'),
+				8 : _('Sicht in Kabine'),
 			}
 			
 		// convert 32bit int to array of 4 bytes
@@ -5163,7 +5241,7 @@ console.log('Kamera'
 					? ` [${Perspektive[StartPerspektive]}]`	
 					: '' )
 				+ (EndeKamera
-					? ` / <a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${EndeKamera.mPos}])">${EndeKamera.Name}<\/a> nach ${SetValue} Sek.`			
+					? ` / <a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${EndeKamera.mPos}])">${EndeKamera.Name}<\/a> ${_('nach')} ${SetValue} ${_('Sekunden')}`			
 					: '' )
 				+ (EndePerspektive > 0 	
 					? ` [${Perspektive[EndePerspektive]}]` 	
@@ -5174,11 +5252,11 @@ console.log('Kamera'
 		
 	} else if (SetType == 1024) {	// DKW/EKW Weichenstellung
 		const VolDistText = {
-			0 : 'Umschalter',
-			1 : 'links-links',
-			2 : 'links-rechts',
-			3 : 'rechts-rechts',
-			4 : 'rechts-links',
+			0 : _('Umschalter'),
+			1 : _('links-links'),
+			2 : _('links-rechts'),
+			3 : _('rechts-rechts'),
+			4 : _('rechts-links'),
 		}
 		
 		Text += ' ' + VolDistText[VolDist];
@@ -5216,9 +5294,9 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const LuaFn 		= Kontakt.getAttribute('LuaFn');
 
 	const TrainSidetext = {
-		0 : 'Spitze',
-		1 : 'Schluss',
-		[-1] : 'GrKP',
+		0 : _('Spitze'),
+		1 : _('Schluss'),
+		[-1] : _('Gruppen-Kontaktpunkt'),
 	}
 	
 	// SignalData 
@@ -5263,7 +5341,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: 'K' + KontaktID,
+		code: 'Kontakt ' + KontaktID,
 		title: _('Kontakt'),
 		content:  
 			`<i>${_('Position')}: `
@@ -5293,25 +5371,25 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 			+ (ActTeiler != 0 		? `<br>${_('Zählerstand')}: `		+ ActTeiler : '')
 			+ (Delay != 0 			? `<br>${_('Zeitverzögerung')}: `	+ Delay : '')
 			+ (ActDelay != 0 		? `<br>${_('Zeit abgelaufen')}: `	+ ActDelay : '')
-			+ `<br>Zugposition: `		+ (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
+			+ `<br>${_('Zugposition')}: ` + (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
 			+ (RouteID != 0 		? `<br>${_('für Route')}: ` + global.Routen[RouteID] : '') 
 			+ (TrainID != 0 		? `<br>${_('für Zug')}: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : '') 
 			+ (NameFilter !== ''	? `<br>${_('Zug-Filter')}: `		 + NameFilter : '') 
 			+ (TrainNewName !== ''	? `<br>${_('Neuer Zugname')}: `	 + TrainNewName : '')
 			+ (zuStellung > 0 && Wechseln == 0 ? `<br>${_('zu Stellung')}: ` + zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) 
-			+ (SignalData != 0 		? `<br>${_('SignalData')}: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
-			+ (LuaFn && LuaFn !== '' ? `<br>${_('LuaFn')}: ${LuaFn}` : '') 
+			+ (SignalData != 0 		? `<br>${_('SignalData')}: ID=${SignalDataID} ${_('Signalstellung')}=${SignalDataStellung}` : '') 
+			+ (LuaFn && LuaFn !== '' ? `<br>${_('LuaFn')}: <kbd>${LuaFn}<\/kbd>` : '') 
 			+ objectToHTML(Kontakt)
 	});
 }
 
-function showKameraInfo(Name) {
+function showKameraInfo(KameraID) {
 //<Kammera name="..." DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
 	function angle(rad) {
 		return (rad*180/Math.PI).toFixed(1) + '°'
 	}
 
-	const Kamera 		= global.Kameras[Name];
+	const Kamera 		= global.KameraSet[KameraID];
 	if (!Kamera) { return; }
 
 	const Dynamic 	= Kamera.getAttribute("Dynamic");
@@ -5361,7 +5439,7 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 						-Math.acos( Math.min(1, Math.max(-1, DirX/Math.cos(angleY)) )) 	// protect against rounding errors
 						* (DirY<0 ? -1 : 1) );											// adjust sign			
 
-/*console.log(Name
+/*console.log(Kamera.Name
 //	+ '\nasin( DirX )=\t' + angle( -Math.asin( DirX ) ) 
 //	+ '\nacos( DirX )=\t' + angle( Math.acos( DirX ) )
 	+ '\nY: asin( DirZ )=\t' + angle( -Math.asin( DirZ ) ) 
@@ -5414,14 +5492,14 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 )*/
 
 	// Kurzform in msg-Element
-	//msg(`Kamera ${Name}`);
-	msg('Camera', Name);
+	//msg(`Kamera ${Kamera.Name}`);
+	msg('Camera', Kamera.Name);
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: _('Kamera') + ' ' + Name,
-		title: '📷 ' + Name, // 📷 \u1F4F7
-		content: //`<b>${Name}<\/b><br>` +
+		code: 'Kamera ' + KameraID + ' ' + Kamera.Name,
+		title: '📷 ' + Kamera.Name, // 📷 \u1F4F7
+		content: //`<b>${Kamera.Name}<\/b><br>` +
 			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${-PosY.toFixed(0)}m<\/a>)`			
 			+ `<br>${_('Höhe')}: ${PosZ.toFixed(0)}m`
 			+ `<br>${_('Blickrichtung')}: ` 		 + angle( angleZ )			// Neigung Z
@@ -5507,8 +5585,13 @@ api.showExportWindow = showExportWindow;
 let exportWindow;
 function showExportWindow() {
 	if (!exportWindow) {
-		const content = `
-<p>Wähle die Größe <input type="number" name="exportSize" id="exportSize" value="3000" min="1" autocomplete="off" \/> und das gewünschte Datenformat:<\/p>
+		const content = _('exportWindow',
+			`<input type="number" name="exportSize" id="exportSize" value="3000" min="1" autocomplete="off" \/>`,
+			`<input type="number" name="jpgQuality" id="jpgQuality" value="92" min="1" max="100" step="1" autocomplete="off" \/>`,
+			`href="https:\/\/www.eepforum.de\/gallery\/" target="_blank"`
+		);
+/*
+`<p>Wähle die Größe <input type="number" name="exportSize" id="exportSize" value="3000" min="1" autocomplete="off" \/> und das gewünschte Datenformat:<\/p>
 <dl>
 <dt>PNG<\/dt>
 <dd>Verlustfreie Pixel-Graphik in bestimmter Größe; ideal für Computergraphik<\/dd>
@@ -5519,11 +5602,11 @@ Nur Bilder in diesem Format können direkt in das <a href="https:\/\/www.eepforu
 <dt>SVG<\/dt>
 <dd>Beliebig zoombare, verlustfreie Vektor-Graphik; ideal zur Weiterverarbeitung in anderen Programmen<br>
 Beim Export wird die gesamte Graphik exportiert auch wenn dann nur der gewählte Ausschnitt gezeigt wird.<\/dd>
-<\/dl>
-				`;
-	
+<\/dl>`;
+*/
+
 		exportWindow = new ToolWindow({
-			title: "Gleisplan exportieren",
+			title: _('Gleisplan exportieren'),
 			//closeButtonText: "x", // ✖ = &#x2716;
 			//top: 120+exportWindow,
 			//left: 120+exportWindow, // optional: when no top or left are given, this window attempts to center itself
@@ -5641,8 +5724,8 @@ function exportGraphic(fileType) {
 		let mimeType;
 		if 		(fileType === 'png') { mimeType = "image/png"; }
 		else if (fileType === 'jpg') { mimeType = "image/jpeg"; }
-		else { //################
-			msg('', "Dateityp nicht unterstützt: " + fileType);
+		else {
+			msg('Dateityp nicht unterstützt', fileType);
 			return false;
 		}
 		
@@ -5652,17 +5735,17 @@ function exportGraphic(fileType) {
 			DataURL = canvas.toDataURL(mimeType, encoderOptions);
 		} catch(err){
 			console.log(err);
-			msg('', "Zu groß: Export nicht möglich (toDataURL()): " + mimeType);
+			msg('Zu groß, Export nicht möglich', " (toDataURL()): " + mimeType);
 			return false;
 		}
 		// We might get a very short result which is another type of error
 		if ( DataURL.length <= 6 ) {
-			msg('', "Zu groß, Export nicht möglich (DataURL.length): " + mimeType)
+			msg('Zu groß, Export nicht möglich', " (DataURL.length): " + mimeType)
 			return false;
 		}
 
 		const rc = exportData(DataURL, fileType);
-		msg('', `${fileType}-Graphik in Größe ${canvas.width}x${canvas.height} exportiert`); //#####
+		msg('Graphik-Export', fileType, `${canvas.width}x${canvas.height}`);
 		return rc;
 	};
 	// Load img
@@ -5684,7 +5767,7 @@ function exportData(dataURL, fileType) {
 		link.click(); // We might get a network error in case of very huge results (but it's not possible to catch the error)
 	} catch(err){
 		console.log(err);
-		msg('', "Zu groß: Export nicht möglich (link.click)"); //##########
+		msg('Zu groß, Export nicht möglich', " (link.click)");
 		document.body.removeChild(link);
 		URL.revokeObjectURL(dataURL);
 		return false;
@@ -5710,11 +5793,9 @@ const GleissystemFarbDefinition = [{
 	name: 'Eisenbahn',
 	color: '#FF0000'	/* red; */
 }, {
-	displayName: 'Straßenbahn',
 	name: 'Strassenbahn',
 	color: '#A9A9A9'	/* darkgray; */
 }, {
-	displayName: 'Straße',
 	name: 'Strasse',
 	color: '#808080'	/* grey; */
 }, {
@@ -5771,11 +5852,11 @@ let colorPickerWindow;
 function showColorPickerWindow() {
 	if (!colorPickerWindow) {
 		const content = GleissystemFarbDefinition.map(function(farbe) {
-			return `<div><label><input type="color" class="colorPicker" id="colorPicker-${farbe.name}" name="${farbe.name}">&nbsp;${farbe.displayName || farbe.name}<\/label><\/div><br>`;
+			return `<div><label><input type="color" class="colorPicker" id="colorPicker-${farbe.name}" name="${farbe.name}">&nbsp;${_(farbe.name)}<\/label><\/div><br>`;
 		}).join('');
 
 		colorPickerWindow = new ToolWindow({
-			title: "Farben wählen",
+			title: _('Farben wählen'),
 			//closeButtonText: "x", // ✖ = &#x2716;
 			//top: 120,
 			//left: 120, // optional: when no top or left are given, this window attempts to center itself
@@ -5792,7 +5873,7 @@ function showColorPickerWindow() {
 			},
 			buttons: [
 				{
-					text: "Reset",
+					text: _('Reset'),
 					clicked: function() {
 						resetColors();
 						this.hide();
