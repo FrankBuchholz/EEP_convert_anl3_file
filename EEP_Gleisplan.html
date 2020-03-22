@@ -139,9 +139,17 @@ kbd {
 <body>
 
 <!-- The hidden radio buttons need to stay on top level -->
-<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" autocomplete="off" checked >
+<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" autocomplete="off" >
 <input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage(`EN`)" autocomplete="off" >
 <input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage(`FR`)" autocomplete="off" >
+<script type="text/javascript">
+"use strict";
+switch (EEP_Texts.getLanguage()) {	// do it as early as possible
+	case "DE" : document.getElementById("german").checked = true; break;
+	case "EN" : document.getElementById("english").checked = true; break;
+	case "FR" : document.getElementById("french").checked = true; break;
+}
+</script>
 
 <section id="fileselector"> <!-- Selection screen --> 
 
@@ -161,8 +169,8 @@ kbd {
 <form action="#" onsubmit="return false;"> <!-- better not to use inline listener, explicit register is better -->
 <label for="fileinput">
 <span lang="de">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3).</span>
-<span lang="en">Choose (or use Drag&amp;Drop) and load an EEP file (.anl3).</span>
-<span lang="fr">Sélectionnez (utiliser la fonction glisser-déposer également possible) et chargez un réseau EEP (nom_du_réseau.anl3).</span>
+<span lang="en">Select (or use Drag&amp;Drop) and load an EEP file (.anl3).</span>
+<span lang="fr">Sélectionnez un réseau EEP (nom_du_réseau.anl3) ou utilisez la fonction glisser-déposer.</span>
 </label>
 	<input type="file" id="fileinput" accept=".anl3" onchange="loadFile(this.files && this.files[0])" />
 	<!-- An extra button is not necessary -->
@@ -194,9 +202,9 @@ Show details: Click on track, symbol or text<br>
 Déplacer: Clic+Tenir+Mouvoir<br>
 Zoomer à l‘endroit précis du curseur: double-clic<br>
 Dézoomer: <kbd>&#x21E7; Shift</kbd>+double-clic<br>
-Afficher les détails: Clic sur voie, symbole ou texte<br>
-<span class="li">en appuyant simultanément sur <kbd>&#x21E7; Shift</kbd>, un nouveau pop-up s‘ouvrira</span>
-<span class="li">wen appuyant simultanément également sur <kbd>alt</kbd>, tout le code du fichier *.anl3 correspondant à cet objet s‘affichera</span>
+Afficher les détails: Cliquer sur voie, symbole ou texte<br>
+<span class="li">en appuyant simultanément également sur <kbd>&#x21E7; Shift</kbd>, un nouveau pop-up s‘ouvrira</span>
+<span class="li">en appuyant simultanément également sur <kbd>alt</kbd>, tout le code du fichier *.anl3 correspondant à cet objet s‘affichera</span>
 </small></p>
 
 
@@ -342,12 +350,12 @@ const global = {}; // Collection of all global variables
 function loadFile(file) {
 	let fr;	// upvalue for function processFile
 	if (typeof window.FileReader !== "function") {
-		bodyAppend("p", _("err", '001')); // The file API isn't supported on this browser yet.
+		bodyAppend("p", _("err", "001")); // The file API isn't supported on this browser yet.
 		return;
 	}
 
 	if (!file) {
-		bodyAppend("p", EEP_Texts.getText('err', '002')); // Please select a file before clicking 'Load'
+		bodyAppend("p", EEP_Texts.getText("err", "002")); // Please select a file before clicking 'Load'
 		return;
 	} else {
 		global.timestamp = {};
@@ -412,9 +420,9 @@ function loadFile(file) {
 			document.getElementById("filename").textContent = file.name.substring(0, file.name.length -1 -1 -3);
 
 			// Read settings from localStorage
-			const strokeWidth = localStorage.getItem('strokeWidth') || document.getElementById("strokeWidth").value;					
+			const strokeWidth = localStorage.getItem("strokeWidth") || document.getElementById("strokeWidth").value;					
 			document.getElementById("strokeWidth").value = strokeWidth;
-			const fontSize = localStorage.getItem('fontSize') || document.getElementById("fontSize").value;
+			const fontSize = localStorage.getItem("fontSize") || document.getElementById("fontSize").value;
 			document.getElementById("fontSize").value = fontSize;
 					
 			for (let i = 0; i < localStorage.length; i++) {
@@ -443,9 +451,9 @@ function loadFile(file) {
 		}, function(err) {
 			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use "</pre>"
 			document.getElementById("loading").innerHTML = 
-				EEP_Texts.getText('err', '003') // Fehler beim Lesen der Datei
+				EEP_Texts.getText("err", "003") // Fehler beim Lesen der Datei
 				+ `:<br>${err.name}: "${err.message}"`
-				+ EEP_Texts.getText('err', '003a') // in line 
+				+ EEP_Texts.getText("err", "003a") // in line 
 				+ `${err.lineNumber}<br><pre>${err.stack}` + "</pre>";
 			console.log(err);
 		});
@@ -663,10 +671,10 @@ function prepareGleissysteme(sutrackp) {
 
 	// <Options RouteItems="5" SndId_0="6" SndName_0="ZIEGEN.WAV" SoundItems="1" RouteId_0="1" RouteName_0="Nahverkehr" RouteId_1="2" RouteName_1="Schnellzug" RouteId_2="3" RouteName_2="Gueter" RouteId_3="4" RouteName_3="Nebenbahn" RouteId_4="5" RouteName_4="Sonderzug"/>
 	const Options = sutrackp.getElementsByTagName("Options")[0];
-	const RouteItems = +Options.getAttribute('RouteItems');
+	const RouteItems = +Options.getAttribute("RouteItems");
 	for (let i = 0; i < RouteItems; i++) {
-		const RouteID	= Options.getAttribute('RouteId_' + i);
-		const RouteName = Options.getAttribute('RouteName_' + i);
+		const RouteID	= Options.getAttribute("RouteId_" + i);
+		const RouteName = Options.getAttribute("RouteName_" + i);
 		
 		global.Routen[RouteID] = RouteName;
 	}	
@@ -715,7 +723,7 @@ function prepareGleissysteme(sutrackp) {
 				const KontaktZiel 	= KontaktZielEntry.textContent;
 				if (KontaktZiel != null && KontaktZiel != 0) {
 					global.KontaktZiele[KontaktZiel] = { 
-						Typ				: 'Weiche',
+						Typ				: _('Weiche'),	// 1st letter is used to show an svg text.
 						ID				: WeicheID,
 						GleissystemID 	: GleissystemID,
 						GleisID			: GleisID,
@@ -741,7 +749,7 @@ function prepareGleissysteme(sutrackp) {
 					const KontaktZiel 	= KontaktZielEntry.textContent;
 					if (KontaktZiel != null && KontaktZiel != 0) {
 						global.KontaktZiele[KontaktZiel] = { 
-							Typ 			: 'Signal',
+							Typ 			: _('Signal'),	// 1st letter is used to show an svg text.
 							ID				: SignalID,
 							GleissystemID 	: GleissystemID,
 							GleisID			: GleisID,
@@ -832,7 +840,7 @@ function prepareGleissysteme(sutrackp) {
 				} else if (Name === "system\\Route_SignalZ.3ds") {
 					entry.signalType 	= "FZiel";					// Fahrstraße Ziel
 					continue;
-				} else if (Distanz == 0) {
+				} else if (Distanz === 0) {
 					entry.signalType 	= "single";					// Einzel-Signal
 					continue;
 				}
@@ -1103,7 +1111,7 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 	// Append groups to the root node; append other elements to these group nodes
 	const svgGleissystemGroup = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
-		'class'	: `${GleissystemCode[GleissystemID]}`,
+		"class"	: `${GleissystemCode[GleissystemID]}`,
 	});
 
 	const Gleise = Gleissystem.getElementsByTagName("Gleis");
@@ -1204,7 +1212,7 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 			BinY	= -FrameBin.getAttribute("dy");
 			BinZ	= +FrameBin.getAttribute("dz");
 			
-			if (DirX == 0 && DirY == 0 && DirZ == 1 && NorX != 0 && NorY != 0 && NorZ == 0) { // wrong order Bin - Dir - Nor
+			if (DirX === 0 && DirY === 0 && DirZ === 1 && NorX !== 0 && NorY !== 0 && NorZ === 0) { // wrong order Bin - Dir - Nor
 				const FrameBin	= Frame.getElementsByTagName("Vector")[0];
 				const FrameDir	= Frame.getElementsByTagName("Vector")[1];
 				const FrameNor	= Frame.getElementsByTagName("Vector")[2];
@@ -1312,7 +1320,7 @@ Makinista_GRAFENBURG 16
 */
 //if (GleissystemID == "4" && GleisID == "4944") debugger;
 //if (GleissystemID == "4" && GleisID == "5817") debugger;
-				if (DirX == 0 && DirY == 0 && DirZ == 1 && NorX != 0 && NorY != 0 && NorZ == 0) { // wrong order Bin - Dir - Nor
+				if (DirX === 0 && DirY === 0 && DirZ === 1 && NorX !== 0 && NorY !== 0 && NorZ === 0) { // wrong order Bin - Dir - Nor
 					const Frame2Bin	= Frame2.getElementsByTagName("Vector")[0];
 					const Frame2Dir	= Frame2.getElementsByTagName("Vector")[1];
 					const Frame2Nor	= Frame2.getElementsByTagName("Vector")[2];
@@ -1508,7 +1516,7 @@ if ( ((PosX2 != 0 || PosY2 != 0) && (DirX2 != 1 || DirY2 != 0))		// generic
 
 				// I do not know why this works in most cases ... but not in all cases ...
 				//if (PosX2 == 0 && PosY2 == 0 && PosZ2 == 0) {
-				if (PosY2 == 0) {
+				if (PosY2 === 0) {
 					// Start point need adjustment
 					const DirAngle = ( DirX2 === 1 && DirY2 === 0 ? 0 : Math.atan2(DirY2, DirX2)*180/Math.PI );
 					const NorAngle = ( NorX2 === 1 && NorY2 === 0 ? 0 : Math.atan2(NorY2, NorX2)*180/Math.PI );
@@ -1812,7 +1820,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		const svgGleisGroup = svgAppend(svgGleissystemGroup, {
 			svg_tag	: `g`,
 			id		: `G${GleissystemID}-${GleisID}`,
-			'class'	: Gleisart[clsid]
+			"class"	: Gleisart[clsid]
 						+ " " + CurveType
 						+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
 						+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
@@ -1821,7 +1829,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		});
 
 		// Calculate end point and create svg curve
-		if (CurveType == 'Cubic') {
+		if (CurveType === 'Cubic') {
 			const t = 1;
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
@@ -1847,7 +1855,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				transform 			: matrixToTransform(mMatrix)
 			});
 
-		} else if (CurveType == 'Clothoid') {
+		} else if (CurveType === 'Clothoid') {
 			let points, svgPath;
 			[points, svgPath] = calcClothoidCurve(
 				Gleis.Clothoid.A, 
@@ -1916,7 +1924,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			PosEndY = DeltaY	Y-Koordinate des Endpunktes
 
 			Dies ergibt folgende vereinfachte Form:
-			<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
+			<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY" />
 			*/
 			Winkel 	= Kruemmung * Laenge;
 			const Radius	= 1 / Kruemmung;
@@ -1941,7 +1949,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				mMatrix,
 				Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
 			].reduce(Rematrix.multiply);
-		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : '');
+		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
 		if (Key_Id) {
 			// Show text of Weiche at the end of the track
@@ -1963,12 +1971,12 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		}
 			
 		// Calculate mid point
-		if (CurveType == "Cubic") {
+		if (CurveType === "Cubic") {
 			const t = 0.5;
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})`;
 
-		} else if (CurveType == 'Clothoid') {
+		} else if (CurveType === 'Clothoid') {
 			let points, svgPath;
 			[points, svgPath] = calcClothoidCurve(
 				Gleis.Clothoid.A, 
@@ -2002,7 +2010,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				mMatrix,
 				Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
 			].reduce(Rematrix.multiply);
-		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : '');
+		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 		
 		// show GleisID in the middle above the track (left-adjusted)
 		svgAppend(svgGleisGroup, {
@@ -2115,11 +2123,11 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			const ParaOderAnti 	= trackSignalEntry.ParaOderAnti; //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 			
 			// Calculate point
-			if (CurveType == "Cubic") {
+			if (CurveType === "Cubic") {
 				const t = (Laenge ? Position / Laenge : 0);
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
-			} else if (CurveType == 'Clothoid') {
+			} else if (CurveType === 'Clothoid') {
 				let points, svgPath;
 				[points, svgPath] = calcClothoidCurve(
 					Gleis.Clothoid.A, 
@@ -2188,10 +2196,10 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			// Show text of Signal / Fahrstraße
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `text`,
-				text				: (	  signalType === "FStart"	? "Fs" 
-										: signalType === "FZiel"	? "Fz"
-										: signalType === "pre" 		? "S" 
-										: 						  	  "S"  
+				text				: (	  signalType === "FStart"	? 'Fs' // ### Translation needed
+										: signalType === "FZiel"	? 'Fz'
+										: signalType === "pre" 		? 'S' 
+										: 						  	  'S'  
 									  )
 										+ SignalID 
 										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``),
@@ -2209,9 +2217,9 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			const ParaOderAnti 	= Kontakt.getAttribute("ParaOderAnti"); // Gleisrichtung 1: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 			const fireOnPara  	= Kontakt.getAttribute("fireOnPara"); 	// Kontakt aktiv für Gleisrichtung 1
 			const fireOnAnti  	= Kontakt.getAttribute("fireOnAnti"); 	// Kontakt aktiv für Gleisrichtung 2
-			const SetType 		= Number(Kontakt.getAttribute('SetType'));
-			const SetValue 		= Number(Kontakt.getAttribute('SetValue'));
-			const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
+			const SetType 		= Number(Kontakt.getAttribute("SetType"));
+			const SetValue 		= Number(Kontakt.getAttribute("SetValue"));
+			const KontaktZiel 	= Number(Kontakt.getAttribute("KontaktZiel"));
 			
 			if (!global.Kontakte.Anzahl) {
 				global.Kontakte.Anzahl = 0;				// initialization
@@ -2221,11 +2229,11 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			global.Kontakte.Anzahl += 1;
 			
 			// Calculate point
-			if (CurveType == "Cubic") {
+			if (CurveType === "Cubic") {
 				const t = (Laenge ? Position / Laenge : 0);
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
-			} else if (CurveType == 'Clothoid') {
+			} else if (CurveType === 'Clothoid') {
 				let points, svgPath;
 				[points, svgPath] = calcClothoidCurve(
 					Gleis.Clothoid.A, 
@@ -2284,7 +2292,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 					svg_tag				: `use`,
 					"href"				: `#SymbolKontakt`,
 					transform 			: matrixToTransform(Kontakt.mPos)
-											+ (ParaOderAnti ? ` rotate(${ParaOderAnti*180})` : '')
+											+ (ParaOderAnti ? ` rotate(${ParaOderAnti*180})` : "")
 											+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
 											,
 				});
@@ -2294,7 +2302,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 					svg_tag				: `use`,
 					"href"				: `#SymbolKontakt`,
 					transform 			: matrixToTransform(Kontakt.mPos)
-											+ (1-ParaOderAnti ? ` rotate(${(1-ParaOderAnti)*180})` : '')
+											+ (1-ParaOderAnti ? ` rotate(${(1-ParaOderAnti)*180})` : "")
 											+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
 											,
 				});
@@ -2306,7 +2314,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				const Ziel = global.KontaktZiele[KontaktZiel];
 				KontaktTypText += (Ziel ? `${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `?${KontaktZiel}`);
 			}
-			if (KontaktTypText != '') {
+			if (KontaktTypText != "") {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
 					text				:  KontaktTypText,
@@ -2431,13 +2439,13 @@ function createSVGforGleisobjekte(SVGfragment) {
 			// Create svg group node
 			svgGleisobjekteGroup = svgAppend(SVGfragment, {
 				svg_tag	: `g`,
-				'class'	: `Gleisobjekt`,
+				"class"	: `Gleisobjekt`,
 			});
 		}
 		const svgGleisobjektGroup = svgAppend(svgGleisobjekteGroup, {
 			svg_tag	: `g`,
 			id		: `GO` + GleisobjektID,
-			'class'	: `${GleissystemCode[GleissystemID]}`
+			"class"	: `${GleissystemCode[GleissystemID]}`
 						+ ` height=${Gleisobjekt.PosZ.toFixed(2)}`	// Height
 		});
 		// simplified: show outer rectangle
@@ -2456,7 +2464,7 @@ function createSVGforGleisobjekte(SVGfragment) {
 		// see https://www.nayuki.io/page/convex-hull-algorithm		
 		const hull = convexhull.makeHull(points);
 		const svgPath = hull.map(function(point, i) {
-								return (i == 0 ? "M" : " L") + point.x + " " + point.y;
+								return (i === 0 ? "M" : " L") + point.x + " " + point.y;
 							}).join("") + "Z";		
 		svgAppend(svgGleisobjektGroup, {
 			svg_tag				: `path`,
@@ -2535,7 +2543,7 @@ function createSVGforKameras(SVGfragment) {
 		KameraID += 1;
 
 		const Name 	= Kamera.getAttribute("name");
-		if (Name === 'Leer') {
+		if (Name === "Leer") {
 			continue;
 		}
 
@@ -2553,7 +2561,7 @@ function createSVGforKameras(SVGfragment) {
 			svgKamerasGroup = svgAppend(SVGfragment, {
 				svg_tag	: `g`,
 				id		: `Kamera`,
-				'class'	: `Kamera`,
+				"class"	: `Kamera`,
 			});
 		}
 
@@ -2835,7 +2843,7 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 
 		const f = 4;	// limit 4: max 45°, 3: max 60°
 		if ( (b1 && Math.abs(w - b1.w) > (Math.PI / f)) 			// Draw new curve if difference of the angles exceeds limit  
-			|| i == STEPCOUNT )  {									// or to cover the last point
+			|| i === STEPCOUNT )  {									// or to cover the last point
 			// if yes, draw the next part
 			
 			b4 = { x: p2.x,  y: p2.y,  dx: dx,  dy: dy,  w: w, };			// 4. Bezier point 
@@ -2868,11 +2876,11 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 
 	// Create svg path command
 	let i;
-	let svgBezierPath = 'M ' + pathPoints[0].x + ' ' + pathPoints[0].y; // Complete path e.g. 'M 60 -100 C 100 100 421 154 406 249 C ...'
+	let svgBezierPath = "M " + pathPoints[0].x + " " + pathPoints[0].y; // Complete path e.g. "M 60 -100 C 100 100 421 154 406 249 C ..."
 	for (i=1; i<pathPoints.length; i=i+3) {
-		svgBezierPath += ' C ' + pathPoints[i].x + ' ' + pathPoints[i].y 
-					  +  ' '   + pathPoints[i+1].x + ' ' + pathPoints[i+1].y
-					  +  ' '   + pathPoints[i+2].x + ' ' + pathPoints[i+2].y;
+		svgBezierPath += " C " + pathPoints[i].x + " " + pathPoints[i].y 
+					  +  " "   + pathPoints[i+1].x + " " + pathPoints[i+1].y
+					  +  " "   + pathPoints[i+2].x + " " + pathPoints[i+2].y;
 	}
 	
 	// Get start and end point
@@ -2937,7 +2945,7 @@ function svgAppend(svg_node, obj) {
 	for (const [key, value] of Object.entries(obj)) {
 		if (key !== "svg_tag" && key !== "text") {
 			// reduce precission of numbers ( simulated floor() operation )
-			const valueString = (''+value).replace(/(\.\d{0,5})\d*/g, '$1');
+			const valueString = (""+value).replace(/(\.\d{0,5})\d*/g, "$1");
 
 			element.setAttribute(key, valueString); 
 		}
@@ -3072,7 +3080,7 @@ const convexhull = new function() {
 		}
 		lowerHull.pop();									// Remove the last point of each list (it's the same as the first point of the other list).
 		
-		if (upperHull.length == 1 && lowerHull.length == 1 && upperHull[0].x == lowerHull[0].x && upperHull[0].y == lowerHull[0].y) {
+		if (upperHull.length === 1 && lowerHull.length === 1 && upperHull[0].x === lowerHull[0].x && upperHull[0].y === lowerHull[0].y) {
 			return upperHull;					// just 1 point
 		} else {
 			return upperHull.concat(lowerHull);	// multiple points in the result will be listed in counter-clockwise order.
@@ -3540,7 +3548,7 @@ multirange.init = function() {
 
 if (typeof module === "undefined") {
 	self.multirange = multirange;
-	if (document.readyState == "loading") {
+	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", multirange.init);
 	}
 	else {
@@ -3575,7 +3583,7 @@ if (typeof module === "undefined") {
 	<div class="item GBS hidden"><label>						<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="GBS" 			checked autocomplete="off" onchange="toggleElements('.GBS', this.checked)"><span lang="de">GBS</span><span lang="en">GBS</span><span lang="fr">GBS</span></label></div>
 	<div class="item"><label>	<!-- GleisID -->
-	<input type="checkbox" name="GleisID" 		checked autocomplete="off" onchange="toggleElements('.GleisID', this.checked)"><span lang="de">Gleis ID</span><span lang="en">Track ID</span><span lang="fr">ID de piste</span></label></div>
+	<input type="checkbox" name="GleisID" 		checked autocomplete="off" onchange="toggleElements('.GleisID', this.checked)"><span lang="de">Gleis ID</span><span lang="en">Track ID</span><span lang="fr">ID de voie</span></label></div>
 	<div class="item hidden" id="CheckboxCurveType"><label>		<!-- only visible if there are elements of that type = EEP 16 -->
 	<input type="checkbox" name="CurveType" 	checked autocomplete="off" onchange="toggleElements('.CurveType', this.checked)"><span lang="de">Kurventyp</span><span lang="en">Curve type</span><span lang="fr">Type de courbe</span></label></div>
 	<div class="item"><label>	<!-- Stil -->
@@ -4067,7 +4075,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		// , fit: true // enable or disable viewport fit in SVG (default true)
 		// , contain: false // enable or disable viewport contain the svg (default false)
 		// , center: true // enable or disable viewport centering in SVG (default true)
-		// , refreshRate: "auto" // Maximum number of frames per second (altering SVG"s viewport)
+		// , refreshRate: "auto" // Maximum number of frames per second (altering SVG viewport)
 		// , beforeZoom: function(oldZoom, newZoom){return true;}
 		// , onZoom: function(ZoomScale){}
 		, onZoom: onZoom
@@ -4139,11 +4147,11 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		}
 
 		// Zoom
-		if 		  (ev.key === '+') {
+		if 		  (ev.key === "+") {
 			panZoom.zoomIn();
 			ev.preventDefault();
 			return false;
-		} else if (ev.key === '-') {
+		} else if (ev.key === "-") {
 			panZoom.zoomOut();
 			ev.preventDefault();
 			return false;
@@ -4154,22 +4162,22 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 											// viewBox (x y width height)
 											// realZoom = min(width/viewBox.width, height/viewBox.height)
 		//const zoom 	= panZoom.getZoom();		// zoom factor
-		if 		  (ev.key === 'ArrowUp') {
+		if 		  (ev.key === "ArrowUp") {
 			panZoom.panBy({
 				x: 0,
 				y: (global.shiftDown ? +sizes.height / 2 : +5),
 			});
-		} else if (ev.key === 'ArrowDown') {
+		} else if (ev.key === "ArrowDown") {
 			panZoom.panBy({
 				x: 0,
 				y: (global.shiftDown ? -sizes.height / 2 : -5),
 			});
-		} else if (ev.key === 'ArrowLeft') {
+		} else if (ev.key === "ArrowLeft") {
 			panZoom.panBy({
 				x: (global.shiftDown ? +sizes.width  / 2 : +5),
 				y: 0,
 			});
-		} else if (ev.key === 'ArrowRight') {
+		} else if (ev.key === "ArrowRight") {
 			panZoom.panBy({
 				x: (global.shiftDown ? -sizes.width  / 2 : -5),
 				y: 0,
@@ -4237,14 +4245,14 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		msg();
 		ev.preventDefault();
 		changeStrokeWidth(ev.target.value);
-		localStorage.setItem('strokeWidth', ev.target.value);
+		localStorage.setItem("strokeWidth", ev.target.value);
 	});
 	// Slider fontSize (in case of very large files, it might be better to use "change" event instead of "input" event to switch off live updates)
 	document.getElementById("fontSize").addEventListener("input", function(ev) {
 		msg();
 		ev.preventDefault();
 		changefontSize(ev.target.value);
-		localStorage.setItem('fontSize', ev.target.value);
+		localStorage.setItem("fontSize", ev.target.value);
 	});
 	// Button "enable controls"
 /*
@@ -4293,12 +4301,12 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 // https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
 
 // // Initialization: Connection to a broadcast channel
-const EEPchannel = new BroadcastChannel('EEP');
+const EEPchannel = new BroadcastChannel("EEP");
 
 // Event handler
 EEPchannel.onmessage = function(ev) {
-	const GleissystemID = '' + ev.data.GleissystemID;	// Gleis
-	const GleisID		= '' + ev.data.GleisID;
+	const GleissystemID = "" + ev.data.GleissystemID;	// Gleis
+	const GleisID		= "" + ev.data.GleisID;
 	
 	const ID			= ev.data.ID;				// Signal oder Weiche
 	const KontaktID		= ev.data.KontaktID;		// Kontakt
@@ -4327,7 +4335,7 @@ EEPchannel.onmessage = function(ev) {
 			const GleisID = Gleis.getAttribute("GleisID");
 			centerPosition(Gleis.mEnd);
 			//msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
-			msg('SwitchLocation', ID, GleissystemText[Meldung.GleissystemID], Meldung.GleisID);
+			msg('SwitchLocation', ID, GleissystemText[Gleis.GleissystemID], Gleis.GleisID);
 			
 			showWeicheInfo(ID, GleissystemID, GleisID);
 			return true;
@@ -4482,7 +4490,7 @@ window.addEventListener("focus", function(event) {
 });
 //window.addEventListener("blur", function(event) {});
 // Activate key
-document.addEventListener('keydown', function(event){
+document.addEventListener("keydown", function(event){
     if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = true;
     } else if	(event.keyCode === 17 || event.charCode === 17){
@@ -4492,7 +4500,7 @@ document.addEventListener('keydown', function(event){
     }
 });
 // Deactivate key
-document.addEventListener('keyup', function(event){
+document.addEventListener("keyup", function(event){
     if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = false;
     } else if	(event.keyCode === 17 || event.charCode === 17){
@@ -4682,7 +4690,7 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 
 		showWeicheInfo(WeicheID, GleissystemID, GleisID);
 
-	} else if (event.target.parentElement.parentElement.id === 'Kamera') {	// Kamera
+	} else if (event.target.parentElement.parentElement.id === "Kamera") {	// Kamera
 		const KameraID 				= event.target.parentElement.id;
 
 		// Issue: Name is not an unique key
@@ -4780,9 +4788,9 @@ function msg(key, ...args) {
 	if (key) {
 		// Get translated text for topic 'msg'
 		// Show text only therefore we do not need to use innerHTML
-		document.getElementById("message").textContent = EEP_Texts.getText('msg', key, ...args);
+		document.getElementById("message").textContent = EEP_Texts.getText("msg", key, ...args);
 	} else if (key === "") {	// show literal text
-		document.getElementById("message").textContent = args.reduce((a, b) => { return a + ', ' + b;});
+		document.getElementById("message").textContent = args.reduce((a, b) => { return a + ", " + b;});
 	} else {
 		document.getElementById("message").textContent = "";
 	}
@@ -4833,7 +4841,7 @@ function changeHeightRange(valueLow, valueHigh) {
 		return;
 	}
 
-	// localStorage.setItem('heightRange', valueLow + ','+ valueHigh);
+	// localStorage.setItem("heightRange", valueLow + ","+ valueHigh);
 
 	// Show min/max height
 	const delta = ( global.usedArea.max.z - global.usedArea.min.z) / 100; // valueLow, valueHigh run from 0 to 100
@@ -4845,7 +4853,7 @@ function changeHeightRange(valueLow, valueHigh) {
 	const svgElem = document.getElementById("svg");
 	for (const groupElem of svgElem.getElementsByTagName("g")) {
 		for (const className of groupElem.classList){
-			if (className.substring(0,7) == "height=") {  // Example: "height=123"
+			if (className.substring(0,7) === "height=") {  // Example: "height=123"
 				const height = +className.substring(7);
 				if (height < minZ || height > maxZ) {
 					groupElem.classList.add("hiddenZ");
@@ -4871,16 +4879,16 @@ function changeHeightRange(valueLow, valueHigh) {
 <script type="text/javascript">  // Show information in Info Box
 "use strict";
 function objectToHTML(object) {
-	let s = '';
+	let s = "";
 	
 	if (global.altDown) {							// only if alt-key is pressed
 		s = object.outerHTML;						// get HTML representation of object
 		s = s.replace(/</g,"&lt;");					// escaping of < is required
 		s = s.replace(/>(?![a-zA-Z0-9])/g,"&gt;<br>");	// escaping of > is optional but allows adding line breaks (unless followed by Pos, Dir, Nor or Bin)
 		s = s.replace(/\t/g," ");					// replace tabs
-		s = s.replace(/\s{2,}/g, ' ');				// replace duplicate spaces
+		s = s.replace(/\s{2,}/g, " ");				// replace duplicate spaces
 		s = s.replace(/(\r\n|\n|\r)/g,"");			// remove line breaks
-		s = '<br><br><code>' + s + '</code>';		// <br> at the end allows easy copy & paste
+		s = "<br><br><code>" + s + "</code>";		// <br> at the end allows easy copy & paste
 	}
 
 	return s;
@@ -4904,7 +4912,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 														// 16: Zentrale Strecken einer Straßen-T-Kreuzung
 														// 20: Weichen einer Straßen-T-Kreuzung
 
-	let GleisobjektText = '';
+	let GleisobjektText = "";
 	let KollektorID;
 	if (global.KollektorTracks[GleissystemID]) {
 		if (global.KollektorTracks[GleissystemID][GleisID]) {
@@ -4914,14 +4922,14 @@ function showGleisInfo(GleissystemID, GleisID) {
 	if (KollektorID) {
 		const Gleisobjekt = global.Gleisobjekte[KollektorID];
 		
-		GleisobjektText = '<br>' + _('Gleisobjekt') + ': ' + Gleisobjekt.gsbname
-			+ '<br>' + _('Immobilie') + ': ' + GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + ' ' + Gleisobjekt.ImmoIdx
+		GleisobjektText = "<br>" + _('Gleisobjekt') + ": " + Gleisobjekt.gsbname
+			+ "<br>" + _('Immobilie') + ": " + GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + " " + Gleisobjekt.ImmoIdx
 	}
 
 	// Kurzform in msg-Element
-	msg("", GleissystemText[GleissystemID] + ' ' + GleisID, 
+	msg("", GleissystemText[GleissystemID] + " " + GleisID, 
 			Gleisart[clsid], 
-			_('Stil') + ' ' + stil, 
+			_('Stil') + " " + stil, 
 			gsbname
 	);
 
@@ -4929,20 +4937,20 @@ function showGleisInfo(GleissystemID, GleisID) {
 	const posX = 12, posY = 13, posZ = 14;
 	
 	// Show connected tracks
-	let connectionText = '';
+	let connectionText = "";
 	const connections = global.trackConnections[GleissystemID][GleisID] || {};
 	for (const connection in connections) {
 		const connectedGleisID = connections[connection].GleisID;
 		const connectedGleis = Gleissystem[connectedGleisID];
-		connectionText += '<br>' + _(connection)
-			+': ' 
+		connectionText += "<br>" + _(connection)
+			+": " 
 			+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
-			+ ' ' + ( connections[connection].Flags ? 'virtuell' : '' )
+			+ " " + ( connections[connection].Flags ? _('virtuell') : "" )
 	}
 	
 	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
-		code: 'Gleis ' + GleissystemID + '-' + GleisID,
+		code: "Gleis " + GleissystemID + "-" + GleisID,
 		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
 		content: 
 			`${_('Position')} ${_('Anfang')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[posX].toFixed(0)}m, ${-Gleis.mPos[posY].toFixed(0)}m<\/a>)`
@@ -4955,7 +4963,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ GleisobjektText
 			+ `<br>${_('Länge')}: ${Gleis.Laenge.toFixed(0)}m`
 			+ `<br>${_('Höhe')}: ${Gleis.mPos[posZ].toFixed(2)}m`
-			+ (Gleis.CurveType == 'classic' || Gleis.CurveType == 'EEPCurve' ? "" : `<br>Kurventyp: ${Gleis.CurveType}`)
+			+ (Gleis.CurveType === 'classic' || Gleis.CurveType === 'EEPCurve' ? "" : `<br>${_('Kurventyp')}: ${Gleis.CurveType}`)
 			+ connectionText
 			+ objectToHTML(Gleis)
 	});
@@ -4972,8 +4980,8 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
 	const gsbname 	= Gleis.getAttribute("gsbname");	// Dateiname
 
-	const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
-	const weichenstellung = Gleis.getAttribute('weichenstellung');
+	const KontaktZiel 	= Gleis.getElementsByTagName("KontaktZiel")[0].textContent;
+	const weichenstellung = Gleis.getAttribute("weichenstellung");
 	const GleisData	= Gleis.getAttribute("data"); 		// Bitfeld einer Weiche
 														// 1: Oberleitung
 														// 18: DKW (Weichen und zentrale Gleise)
@@ -4985,23 +4993,23 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	msg('SwitchLocation', WeicheID, GleissystemText[GleissystemID], GleisID);
 	
 	// Show connected tracks
-	let connectionText = '';
+	let connectionText = "";
 	const connections = global.trackConnections[GleissystemID][GleisID] || {};
 	for (const connection in connections) {
-		if (connection != 'Anfang') {
+		if (connection != "Anfang") {
 			const connectedGleisID = connections[connection].GleisID;
 			const connectedGleis = Gleissystem[connectedGleisID];
-			connectionText += '<br>' + _(connection)
-				+': ' 
+			connectionText += "<br>" + _(connection)
+				+": " 
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
-				+ ' ' + ( connections[connection].Flags ? 'virtuell' : '' )
+				+ " " + ( connections[connection].Flags ? _('virtuell') : "" )
 		}
 	}
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: 'Weiche ' + WeicheID,
-		title: _('Weiche') + ' ' + WeicheID,
+		code: "Weiche " + WeicheID,
+		title: _('Weiche') + " " + WeicheID,
 		content: 
 			`<i>${_('Position')}: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}]);">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
@@ -5022,25 +5030,25 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	if (!Meldung) { return; }
 	
 	const File 			= Meldung.getAttribute("name");		// Dateiname
-	const Position		= Meldung.getAttribute('Position') / 100;
-	const ParaOderAnti 	= Meldung.getAttribute('ParaOderAnti');
+	const Position		= Meldung.getAttribute("Position") / 100;
+	const ParaOderAnti 	= Meldung.getAttribute("ParaOderAnti");
 
 	const KontaktZiel 	= Meldung.getElementsByTagName("KontaktZiel")[0].textContent;
 
 	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
-	const SignalData	= Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData');
- 	const Distanz		= Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
+	const SignalData	= Meldung.getElementsByTagName("Signal")[0].getAttribute("SignalData");
+ 	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
 
 	// Fahrstraßen
-	const Routes		= Meldung.getAttribute('Routes');
+	const Routes		= Meldung.getAttribute("Routes");
 	const RouteList	 	= Meldung.getElementsByTagName("Route");
 
 	let SignalTypeText;
 	let SignalstellungText = "";	// Die Bedeutung der Signalstellung für Fahrstraßen ist noch unklar
-	if (File === 'system\\Route_SignalS.3ds') {
-		SignalTypeText = _('Fahrstraße') + ' ' + _('Startsignal');
-	} else if (File === 'system\\Route_SignalZ.3ds') {
-		SignalTypeText = _('Fahrstraße') + ' ' + _('Endesignal');
+	if (File === "system\\Route_SignalS.3ds") {
+		SignalTypeText = _('Fahrstraße') + " " + _('Startsignal');
+	} else if (File === "system\\Route_SignalZ.3ds") {
+		SignalTypeText = _('Fahrstraße') + " " + _('Endesignal');
 	} else {
 		SignalTypeText = _('Signal');
 		if (Signalstellung[File]) {
@@ -5050,7 +5058,7 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 			// 2nd try: Get texts (case insensitive file name)
 			for (const SignalFile in Signalstellung) {
 console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(SignalFile.toLowerCase()) + ' == ' + typeof(File.toLowerCase()));
-				if (SignalFile.toLowerCase() == File.toLowerCase()) {
+				if (SignalFile.toLowerCase() === File.toLowerCase()) {
 					SignalstellungText = Signalstellung[SignalFile].Pos[Stellung];
 				}
 			}
@@ -5066,19 +5074,19 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 
 	// Fahrstraßen
 	const ColorText = { // <color> modulo 8
-		0: { name: _('grau'),		color: 'rgb(180,180,180)', 	},
-		1: { name: _('rot'),		color: 'rgb(220,0,0)', 		},
-		2: { name: _('grün'),		color: 'rgb(0,220,0)', 		},
-		3: { name: _('blau'),		color: 'rgb(0,0,220)', 		},
-		4: { name: _('gelb'),		color: 'rgb(220,220,0)', 	},
-		5: { name: _('pink'),		color: 'rgb(220,0,220)', 	},
-		6: { name: _('hellblau'), 	color: 'rgb(0,180,220)', 	},
-		7: { name: _('orange'),		color: 'rgb(220,110,0)',	},
+		0: { name: _('grau'),		color: "rgb(180,180,180)", 	},
+		1: { name: _('rot'),		color: "rgb(220,0,0)", 		},
+		2: { name: _('grün'),		color: "rgb(0,220,0)", 		},
+		3: { name: _('blau'),		color: "rgb(0,0,220)", 		},
+		4: { name: _('gelb'),		color: "rgb(220,220,0)", 	},
+		5: { name: _('pink'),		color: "rgb(220,0,220)", 	},
+		6: { name: _('hellblau'), 	color: "rgb(0,180,220)", 	},
+		7: { name: _('orange'),		color: "rgb(220,110,0)",	},
 	}
-	let RoutesText = '';
+	let RoutesText = "";
 	for (const Route of RouteList) {
-		const Target 	= Route.getAttribute('Target');
-		const Color 	= Route.getAttribute('Color');
+		const Target 	= Route.getAttribute("Target");
+		const Color 	= Route.getAttribute("Color");
 		
 		RoutesText 	+= `<br>${_('Zielsignal')}: `
 					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${global.Meldungen[Target].mPos}]);">`
@@ -5088,7 +5096,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 	}
 
 	showInfoWindow({
-		code: 'Signal ' + SignalID,
+		code: "Signal " + SignalID,
 		title: `${SignalTypeText} ${SignalID}`,
 		content:
 			`<i>${_('Position')}: `
@@ -5097,12 +5105,12 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			+ `<br>${_('Name')}: ${File}`
 			+ (Signalstellung[File] && File !== Signalstellung[File].Name ? `<br>${Signalstellung[File].Name}` : "")
 			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
-			+ (Distanz !=0 ? `<br>${_('Distanz zum Hauptsignal')}: ${Distanz.toFixed(0)}m` : '')
+			+ (Distanz !=0 ? `<br>${_('Distanz zum Hauptsignal')}: ${Distanz.toFixed(0)}m` : "")
 			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
-			+ (SignalData != null ? `<br>${_('SignalData')}: ${SignalData}` : '')			
+			+ (SignalData != null ? `<br>${_('SignalData')}: ${SignalData}` : "")			
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
 			+ (Routes ? `<br>${_('Fahrstraßen')}: ${Routes}` : "")
-			+ (RoutesText !== '' ? RoutesText : '')
+			+ (RoutesText !== "" ? RoutesText : "")
 			+ objectToHTML(Meldung)
 		});
 }
@@ -5132,7 +5140,7 @@ function getKontaktIcon(GleissystemID, SetType, SetValue) {
 							// 							⌂ \u2302 ⌥ \u2325   → = &rarr; = \u8594;   ⭢ = \u2B62		
 	}
 
-	let Icon = (KontaktIcon[SetType] ? KontaktIcon[SetType] : '');
+	let Icon = (KontaktIcon[SetType] ? KontaktIcon[SetType] : "");
 
 	// spezielle Kontakte
 	if (SetType >= 1 && SetType <= 7) {				// Fahrzeug je nach Gleissystem
@@ -5141,7 +5149,7 @@ function getKontaktIcon(GleissystemID, SetType, SetValue) {
 		// Straße:		🚌🚍🚐🚑🚒🚓🚔🚕🚖🚗🚘🚙🚚🚛🚜🚲🚴🚵⛟
 		// Wasserwege:	⛴🚢🚣🚤⛵🚀🚁✈
 		// Immobilien:	🏠🏡🏢🏣🏤🏥🏦🏧🏨🏩🏪🏫🏬🏭🏮🏯🏰
-		Icon = { 1: '🚂', 2: '🚎', 3: '🚗', 4: '⛴', 5: '🚕', 6: ''}[GleissystemID];
+		Icon = { 1: '🚂', 2: '🚎', 3: '🚗', 4: '⛴', 5: '🚕', 6: ""}[GleissystemID];
 
 	} else if (SetType == 256 && SetValue && global.Sounds[SetValue]) { // Sound vorhanden
 			Icon = '🔊';
@@ -5174,19 +5182,19 @@ function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
 		32768 	: _('Gruppen-Kontaktpunkt'),
 	}
 
-	let Text 	= (KontaktText[SetType] ? KontaktText[SetType] : 'unbekannt');
+	let Text 	= (KontaktText[SetType] ? KontaktText[SetType] : _('unbekannt'));
 
 	// Spezielle Kontakt-Typen
 	if 		  (SetType == 0) {	// Weiche/Signal
-		//if      (Weichen.find(function(Weiche) { return Weiche.ID == KontaktZiel}) ) 	{ KontaktTypText = 'Weiche'; } 
-		//else if (Signale.find(function(Signal) { return Signal.ID == KontaktZiel}) ) 	{ KontaktTypText = 'Signal'; }
+		//if      (Weichen.find(function(Weiche) { return Weiche.ID == KontaktZiel}) ) 	{ KontaktTypText = _('Weiche'); } 
+		//else if (Signale.find(function(Signal) { return Signal.ID == KontaktZiel}) ) 	{ KontaktTypText = _('Signal'); }
 		//else 																			{ KontaktTypText = 'Kontaktziel nicht gefunden'; }
 
 	} else if (SetType >= 1 && SetType <= 7) {	// Fahrzeug
-		Text = Text.replace('$1', SetValue);		// 'Fahrzeug +$1 km/h max'
+		Text = Text.replace("$1", SetValue);		// 'Fahrzeug +$1 km/h max'
 		
 	} else if (SetType == 8) {
-		Text = Text.replace('$1', SetValue);		// 'Halt $1 m'
+		Text = Text.replace("$1", SetValue);		// 'Halt $1 m'
 		
 	} else if (SetType == 256 && SetValue && global.Sounds[SetValue]) {	// Sound vorhanden
 			Text 	= global.Sounds[SetValue];
@@ -5233,19 +5241,19 @@ console.log('Kamera'
 	+ ' EndePerspektive=' + EndePerspektive
 )
 	
-			Text = ''		// <Kamera Icon> <Start Kamera> [<Perspektive>] / <Ende Kamera> nach <t> Sek. [<Perspektive>]
+			Text = ""		// <Kamera Icon> <Start Kamera> [<Perspektive>] / <Ende Kamera> nach <t> Sek. [<Perspektive>]
 				+ (StartKamera	
 					? `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${StartKamera.mPos}])">${StartKamera.Name}<\/a>`		
-					: '' )
+					: "" )
 				+ (StartPerspektive > 0 
 					? ` [${Perspektive[StartPerspektive]}]`	
-					: '' )
+					: "" )
 				+ (EndeKamera
 					? ` / <a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${EndeKamera.mPos}])">${EndeKamera.Name}<\/a> ${_('nach')} ${SetValue} ${_('Sekunden')}`			
-					: '' )
+					: "" )
 				+ (EndePerspektive > 0 	
 					? ` [${Perspektive[EndePerspektive]}]` 	
-					: '' );	
+					: "" );	
 		} else {
 			Text = _('Kamera');
 		}
@@ -5259,7 +5267,7 @@ console.log('Kamera'
 			4 : _('rechts-links'),
 		}
 		
-		Text += ' ' + VolDistText[VolDist];
+		Text += " " + VolDistText[VolDist];
 		
 	}
 
@@ -5269,29 +5277,29 @@ console.log('Kamera'
 function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 //<Kontakt Position="2186.82" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="6" LastOfs="2213.881" ConnectF="2" ConnectR="2" VolDist="28" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" SignalData="0" KontaktZiel="1" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
 	const Kontakt		= global.Kontakte[KontaktID];
-	const SetType 		= Kontakt.getAttribute('SetType');
-	const SetValue 		= Kontakt.getAttribute('SetValue');
-	const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
-	const Position		= Kontakt.getAttribute('Position') / 100;
-	const ParaOderAnti 	= Kontakt.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
-	const fireOnPara 	= Kontakt.getAttribute('fireOnPara');
-	const fireOnAnti 	= Kontakt.getAttribute('fireOnAnti');
-	const Teiler 		= Kontakt.getAttribute('Teiler');
-	const ActTeiler 	= Kontakt.getAttribute('ActTeiler');
-	const Delay 		= Kontakt.getAttribute('Delay');
-	const ActDelay 		= Kontakt.getAttribute('ActDelay');
-	const TrainSide 	= Kontakt.getAttribute('TrainSide');
-	const RouteID 		= Kontakt.getAttribute('Route');
-	const TrainID 		= Kontakt.getAttribute('TrainID');
-	const NameFilter 	= Kontakt.getAttribute('NameFilter');
-	const TrainNewName 	= Kontakt.getAttribute('TrainNewName');
-	const zuStellung 	= Kontakt.getAttribute('zuStellung');
-	const Wechseln 		= Kontakt.getAttribute('Wechseln');
-	const ConnectF 		= Kontakt.getAttribute('ConnectF');
-	const ConnectR 		= Kontakt.getAttribute('ConnectR');
-	const VolDist 		= Kontakt.getAttribute('VolDist');
-	const SignalData 	= Kontakt.getAttribute('SignalData');
-	const LuaFn 		= Kontakt.getAttribute('LuaFn');
+	const SetType 		= Kontakt.getAttribute("SetType");
+	const SetValue 		= Kontakt.getAttribute("SetValue");
+	const KontaktZiel 	= Number(Kontakt.getAttribute("KontaktZiel"));
+	const Position		= Kontakt.getAttribute("Position") / 100;
+	const ParaOderAnti 	= Kontakt.getAttribute("ParaOderAnti"); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
+	const fireOnPara 	= Kontakt.getAttribute("fireOnPara");
+	const fireOnAnti 	= Kontakt.getAttribute("fireOnAnti");
+	const Teiler 		= Kontakt.getAttribute("Teiler");
+	const ActTeiler 	= Kontakt.getAttribute("ActTeiler");
+	const Delay 		= Kontakt.getAttribute("Delay");
+	const ActDelay 		= Kontakt.getAttribute("ActDelay");
+	const TrainSide 	= Kontakt.getAttribute("TrainSide");
+	const RouteID 		= Kontakt.getAttribute("Route");
+	const TrainID 		= Kontakt.getAttribute("TrainID");
+	const NameFilter 	= Kontakt.getAttribute("NameFilter");
+	const TrainNewName 	= Kontakt.getAttribute("TrainNewName");
+	const zuStellung 	= Kontakt.getAttribute("zuStellung");
+	const Wechseln 		= Kontakt.getAttribute("Wechseln");
+	const ConnectF 		= Kontakt.getAttribute("ConnectF");
+	const ConnectR 		= Kontakt.getAttribute("ConnectR");
+	const VolDist 		= Kontakt.getAttribute("VolDist");
+	const SignalData 	= Kontakt.getAttribute("SignalData");
+	const LuaFn 		= Kontakt.getAttribute("LuaFn");
 
 	const TrainSidetext = {
 		0 : _('Spitze'),
@@ -5341,44 +5349,44 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: 'Kontakt ' + KontaktID,
+		code: "Kontakt " + KontaktID,
 		title: _('Kontakt'),
 		content:  
 			`<i>${_('Position')}: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kontakt.mPos}]);">`
 				+ `${GleissystemText[GleissystemID]} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
-			+ `<br>${_('Kontakttyp')} ` + SetType + ': ' 
+			+ `<br>${_('Kontakttyp')} ` + SetType + ": " 
 			// KontaktTyp[SetType] mit Modifikation
-			+ getKontaktIcon(GleissystemID, SetType, SetValue) + ' '
+			+ getKontaktIcon(GleissystemID, SetType, SetValue) + " "
 			+ getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF)
-			+ (SetType == 768 ||  SetType == 1024 ? `<br>${_('ImmoIdx')}: ` + SetValue : '')	// Verweis auf ImmoIdx 
-			//+ (SetType == 512 && ConnectF != 0 ? `<br>ConnectF: ` + ConnectF : '')
+			+ (SetType == 768 ||  SetType == 1024 ? `<br>${_('ImmoIdx')}: ` + SetValue : "")	// Verweis auf ImmoIdx 
+			//+ (SetType == 512 && ConnectF != 0 ? `<br>ConnectF: ` + ConnectF : "")
 			+ (KontaktZiel != null && KontaktZiel != 0 
 				? `<br>${_('Kontaktziel')} ${KontaktZiel}: ` 
 					+ ( Ziel ? 
 							`<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
-							+ `${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
+							+ `${Ziel.Typ} ${Ziel.ID} ${_('auf')} ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
 							+ `<\/a>` 
 						  : _('unbekannt')
 					  )
-				: '') 
+				: "") 
 			+ `<br>${_('Auslösung')}: `		+ (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung')) 
 											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? _('in Gleisrichtung') : _('gegen Gleisrichtung')) 
-												: ( fireOnPara == 1 && fireOnAnti == 1 ? _('beide Richtungen') : '' )
+												: ( fireOnPara == 1 && fireOnAnti == 1 ? _('beide Richtungen') : "" )
 											  )
 										  ) 
-			+ (Teiler != 0 			? `<br>${_('Zug-Zähler')}: ` + Teiler : '')
-			+ (ActTeiler != 0 		? `<br>${_('Zählerstand')}: `		+ ActTeiler : '')
-			+ (Delay != 0 			? `<br>${_('Zeitverzögerung')}: `	+ Delay : '')
-			+ (ActDelay != 0 		? `<br>${_('Zeit abgelaufen')}: `	+ ActDelay : '')
+			+ (Teiler != 0 			? `<br>${_('Zug-Zähler')}: ` + Teiler : "")
+			+ (ActTeiler != 0 		? `<br>${_('Zählerstand')}: `		+ ActTeiler : "")
+			+ (Delay != 0 			? `<br>${_('Zeitverzögerung')}: `	+ Delay : "")
+			+ (ActDelay != 0 		? `<br>${_('Zeit abgelaufen')}: `	+ ActDelay : "")
 			+ `<br>${_('Zugposition')}: ` + (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
-			+ (RouteID != 0 		? `<br>${_('für Route')}: ` + global.Routen[RouteID] : '') 
-			+ (TrainID != 0 		? `<br>${_('für Zug')}: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : '') 
-			+ (NameFilter !== ''	? `<br>${_('Zug-Filter')}: `		 + NameFilter : '') 
-			+ (TrainNewName !== ''	? `<br>${_('Neuer Zugname')}: `	 + TrainNewName : '')
-			+ (zuStellung > 0 && Wechseln == 0 ? `<br>${_('zu Stellung')}: ` + zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) 
-			+ (SignalData != 0 		? `<br>${_('SignalData')}: ID=${SignalDataID} ${_('Signalstellung')}=${SignalDataStellung}` : '') 
-			+ (LuaFn && LuaFn !== '' ? `<br>${_('LuaFn')}: <kbd>${LuaFn}<\/kbd>` : '') 
+			+ (RouteID != 0 		? `<br>${_('für Route')}: ` + global.Routen[RouteID] : "") 
+			+ (TrainID != 0 		? `<br>${_('für Zug')}: ` + TrainID /*+ " " + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : "") 
+			+ (NameFilter !== ""	? `<br>${_('Zug-Filter')}: `		 + NameFilter : "") 
+			+ (TrainNewName !== ""	? `<br>${_('Neuer Zugname')}: `	 + TrainNewName : "")
+			+ (zuStellung > 0 && Wechseln == 0 ? `<br>${_('zu Stellung')}: ` + zuStellung : (Wechseln == 1 ? _('Umschalter') : "")) 
+			+ (SignalData != 0 		? `<br>${_('SignalData')}: ID=${SignalDataID} ${_('Signalstellung')}=${SignalDataStellung}` : "") 
+			+ (LuaFn && LuaFn !== "" ? `<br>${_('LuaFn')}: <kbd>${LuaFn}<\/kbd>` : "") 
 			+ objectToHTML(Kontakt)
 	});
 }
@@ -5386,7 +5394,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 function showKameraInfo(KameraID) {
 //<Kammera name="..." DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
 	function angle(rad) {
-		return (rad*180/Math.PI).toFixed(1) + '°'
+		return (rad*180/Math.PI).toFixed(1) + "°"
 	}
 
 	const Kamera 		= global.KameraSet[KameraID];
@@ -5430,12 +5438,12 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 				//	= Math.acos( BinZ );
 				//	= -Math.atan2( DirZ, BinZ );
 				
-	const angleX 	= ( Math.cos(angleY) == 0 ? 0 :  
+	const angleX 	= ( Math.cos(angleY) === 0 ? 0 :  
 						 Math.asin( Math.min(1, Math.max(-1, NorZ/Math.cos(angleY)) )) 	// protect against rounding errors 
 						 );
 				//	= Math.atan2( NorZ, BinZ );
 				
-	const angleZ 	= ( Math.cos(angleY) == 0 ? 'error' : 
+	const angleZ 	= ( Math.cos(angleY) === 0 ? 'error' : 
 						-Math.acos( Math.min(1, Math.max(-1, DirX/Math.cos(angleY)) )) 	// protect against rounding errors
 						* (DirY<0 ? -1 : 1) );											// adjust sign			
 
@@ -5497,15 +5505,15 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
-		code: 'Kamera ' + KameraID + ' ' + Kamera.Name,
+		code: "Kamera " + KameraID + " " + Kamera.Name,
 		title: '📷 ' + Kamera.Name, // 📷 \u1F4F7
 		content: //`<b>${Kamera.Name}<\/b><br>` +
 			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${-PosY.toFixed(0)}m<\/a>)`			
 			+ `<br>${_('Höhe')}: ${PosZ.toFixed(0)}m`
 			+ `<br>${_('Blickrichtung')}: ` 		 + angle( angleZ )			// Neigung Z
-			+ ' ' + ['W', 'WSW', 'SW', 'SSW', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO', 'N', 'NNW', 'NW', 'WNW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)]
+			+ " " + ['W', 'WSW', 'SW', 'SSW', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO', 'N', 'NNW', 'NW', 'WNW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)]
 			+ `<br>${_('Neigung')}: ` 				 + angle( angleY )			// Neigung Y
-			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : '')	// Neigung X
+			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : "")	// Neigung X
 			+ `<br>` + (Dynamic == 0 ? _('statisch') : _('dynamisch'))
 			+ objectToHTML(Kamera)
 	});
@@ -5519,7 +5527,7 @@ api.showInfoWindow = showInfoWindow;
 
 let infoWindow = { count: 0, };
 function showInfoWindow(options) {
-	let code = 'default';
+	let code = "default";
 	if (global.shiftDown) {
 		code = options.code;
 	}
@@ -5542,13 +5550,13 @@ function showInfoWindow(options) {
 				value: options.content,
 			},
 			buttons: [/*{	//  to omit all buttons
-				text: "Dismiss",
+				text: 'Dismiss',
 				clicked: function() {
 					// button click handlers are invoked with the infoWindow as the `this` parameter
 					this.hide();
 				}
 				}, {
-				text: "Refresh",
+				text: 'Refresh',
 				clicked: function() {
 					// note that we can completely replace the content
 					// here and that content.value can be any one of:
@@ -5557,7 +5565,7 @@ function showInfoWindow(options) {
 					// - async function producing a string (ie, promise)
 					this.content = {
 						type: "html",
-						value: "<hr/>This is html<hr/>"
+						value: '<hr/>This is html<hr/>'
 					};
 					this.refresh();
 				}
@@ -5658,9 +5666,9 @@ function exportGraphic(fileType) {
 	svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again
 	svg.removeAttribute("height");
 
-	if (fileType === 'svg') {
+	if (fileType === "svg") {
 		// reduce precission (not required anymore because already done in svgAppend)
-		// svgString = svgString.replace(/(\.\d{0,5})\d*/g, '$1');
+		// svgString = svgString.replace(/(\.\d{0,5})\d*/g, "$1");
 	}
 
 	// Convert svg to png/jpg and export it
@@ -5670,7 +5678,7 @@ function exportGraphic(fileType) {
 	// Create object url
 	const url = URL.createObjectURL(svgBlob);
 
-	if (fileType === 'svg') {
+	if (fileType === "svg") {
 		// Export svg
 		exportData(url, fileType);
 		return;
@@ -5683,7 +5691,7 @@ function exportGraphic(fileType) {
 	const ratio = svgSize.width / svgSize.height;
 
 	if (ratio > 1) {
-		if (fileType === 'jpg') {
+		if (fileType === "jpg") {
 			exportSize 	= Math.max(800, Math.min(1920, exportSize));
 			if (exportSize / ratio < 500) {
 				exportSize = 500 * ratio
@@ -5695,7 +5703,7 @@ function exportGraphic(fileType) {
 		canvas.width 	= exportSize;
 		canvas.height 	= exportSize / ratio;
 	} else {
-		if (fileType === 'jpg') {
+		if (fileType === "jpg") {
 			exportSize 	= Math.max(500, Math.min(1080, exportSize));
 			if (exportSize / ratio < 800) {
 				exportSize = 800 * ratio
@@ -5722,8 +5730,8 @@ function exportGraphic(fileType) {
 		// Convert canvas to png/jpg
 		// Firefox might raise exception NS_ERROR_FAILURE
 		let mimeType;
-		if 		(fileType === 'png') { mimeType = "image/png"; }
-		else if (fileType === 'jpg') { mimeType = "image/jpeg"; }
+		if 		(fileType === "png") { mimeType = "image/png"; }
+		else if (fileType === "jpg") { mimeType = "image/jpeg"; }
 		else {
 			msg('Dateityp nicht unterstützt', fileType);
 			return false;
@@ -5790,33 +5798,33 @@ api.loadColors = loadColors;
 api.showColorPickerWindow = showColorPickerWindow;
 
 const GleissystemFarbDefinition = [{
-	name: 'Eisenbahn',
-	color: '#FF0000'	/* red; */
+	name: "Eisenbahn",
+	color: "#FF0000"	/* red; */
 }, {
-	name: 'Strassenbahn',
-	color: '#A9A9A9'	/* darkgray; */
+	name: "Strassenbahn",
+	color: "#A9A9A9"	/* darkgray; */
 }, {
-	name: 'Strasse',
-	color: '#808080'	/* grey; */
+	name: "Strasse",
+	color: "#808080"	/* grey; */
 }, {
-	name: 'Wasserwege',
-	color: '#0000FF'	/* blue; */
+	name: "Wasserwege",
+	color: "#0000FF"	/* blue; */
 }, {
-	name: 'Steuerstrecken',
-	color: '#800080'	/* purple; */
+	name: "Steuerstrecken",
+	color: "#800080"	/* purple; */
 }, {
-	name: 'GBS',
-	color: '#A52A2A'	/* brown; */
+	name: "GBS",
+	color: "#A52A2A"	/* brown; */
 }, {
-	name: 'Kamera',
-	color: '#00FF00'	/* green; */
+	name: "Kamera",
+	color: "#00FF00"	/* green; */
 }, {
-	name: 'Hintergrund',
-	color: '#FFFFFF'	/* white; */
+	name: "Hintergrund",
+	color: "#FFFFFF"	/* white; */
 }];
 let GleissystemFarbe;
 function loadColors() {
-	GleissystemFarbe = JSON.parse(localStorage.getItem('GleissystemFarbe'));
+	GleissystemFarbe = JSON.parse(localStorage.getItem("GleissystemFarbe"));
 
 	if (GleissystemFarbe) {
 		setColors();
@@ -5835,17 +5843,17 @@ function resetColors() {
 	setColors();
 
 	// purge local storage
-	localStorage.removeItem('GleissystemFarbe');
+	localStorage.removeItem("GleissystemFarbe");
 }
 function setColors() {
 	// set SVG CSS variables
 	const defaultColorVariables = GleissystemFarbDefinition.map(function(farbe) {
 		return `--${farbe.name}-color: ${GleissystemFarbe[farbe.name] || farbe.color};`;
-	}).join('');
+	}).join("");
 	document.getElementById("css-track-colors").textContent = `svg { ${defaultColorVariables} }`;
 
 	// Update color in storage
-	localStorage.setItem('GleissystemFarbe', JSON.stringify(GleissystemFarbe));
+	localStorage.setItem("GleissystemFarbe", JSON.stringify(GleissystemFarbe));
 }
 
 let colorPickerWindow;
@@ -5853,7 +5861,7 @@ function showColorPickerWindow() {
 	if (!colorPickerWindow) {
 		const content = GleissystemFarbDefinition.map(function(farbe) {
 			return `<div><label><input type="color" class="colorPicker" id="colorPicker-${farbe.name}" name="${farbe.name}">&nbsp;${_(farbe.name)}<\/label><\/div><br>`;
-		}).join('');
+		}).join("");
 
 		colorPickerWindow = new ToolWindow({
 			title: _('Farben wählen'),
@@ -5885,7 +5893,7 @@ function showColorPickerWindow() {
 	colorPickerWindow.show();
 
 	GleissystemFarbDefinition.forEach(function(farbe) {
-		const colorPicker = document.getElementById('colorPicker-' +  farbe.name);
+		const colorPicker = document.getElementById("colorPicker-" +  farbe.name);
 		colorPicker.value = GleissystemFarbe[farbe.name] || farbe.color;
 		// Add event handlers again (because the popup)
 		colorPicker.addEventListener("input", setColor);

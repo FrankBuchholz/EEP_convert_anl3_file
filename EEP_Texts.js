@@ -771,6 +771,11 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		EN : `End`, 
 		FR : `Fin`, 
 	},
+	virtuell : {	// Gleisverbindung
+		DE : `virtuell`, 
+		EN : `virtual`, 
+		FR : `virtuel`, 
+	},
 	X : {
 		DE : ``, 
 		EN : ``, 
@@ -893,13 +898,20 @@ Additional texts in EEP_Gleisplan.html
 	// Get language of the html document: document.documentElement.lang (as defined with html tag)
 	
 	const masterLanguage = 'DE';
-	let language = masterLanguage;
+	let language;
 	function getLanguage() {
+		if (!language) {
+			language = localStorage.getItem("language");
+			if (!language) {
+				language = masterLanguage;
+			}
+		}
 		return language;
 	}
 	function setLanguage(langu) {
 		document.documentElement.lang = langu.toLowerCase();
-		language = langu.toUpperCase(langu);
+		language = langu.toUpperCase();
+		localStorage.setItem("language", language);
 	}
 
 	function getText(topic, key, ...args) {
