@@ -93,6 +93,21 @@ msg : {
 	},
 },
 info : {
+	Gleissystem : {
+		DE : `Gleissystem`, 
+		EN : `Track system`, 
+		FR : `Système de voies`, 
+	},
+	Gleis : {
+		DE : `Gleis`, 
+		EN : `Track`, 
+		FR : `Voie`, 
+	},
+	Gleise : {
+		DE : `Gleise`, 
+		EN : `Tracks`, 
+		FR : `Voies`, 
+	},
 	Eisenbahn : {
 		DE : `Eisenbahn`, 
 		EN : `Railroad`, 
@@ -168,6 +183,11 @@ info : {
 		EN : `Track object`, 
 		FR : `Objet de voie`,
 	},
+	'Gleisobjekte' : {
+		DE : `Gleisobjekte`, 
+		EN : `Track objects`, 
+		FR : `Objets de voie`, 
+	},
 	'Gleisobjekte Straßen' : {
 		DE : `Gleisobjekte Straßen`, 
 		EN : `Objects of roadtracks`, 
@@ -184,9 +204,14 @@ info : {
 		FR : `Immobilier`, 
 	},
 	Stil : {	// Gleisstil, attribute: stil
-		DE : `Stil`, 
-		EN : `Style`, 
-		FR : `Style`, 
+		DE : `Gleisstil`, 
+		EN : `Track style`, 
+		FR : `Style de voie`, 
+	},
+	Gleisstile : {
+		DE : `Gleisstile`, 
+		EN : `Track styles`, 
+		FR : `Styles de voie`, 
 	},
 	Position : {
 		DE : `Position`, 
@@ -268,6 +293,11 @@ info : {
 		EN : `Switch`, 
 		FR : `Aiguillage`,
 	},
+	Weichen : {
+		DE : `Weichen`, 
+		EN : `Switches`, 
+		FR : `Aiguillages`, 
+	},
 	Weichenstellung : {
 		DE : `Weichenstellung`, 
 		EN : `Switch position`, 
@@ -283,6 +313,11 @@ info : {
 		EN : `Signal`, 
 		FR : `Signal`, 
 	},
+	Signale : {
+		DE : `Signale`, 
+		EN : `Signals`, 
+		FR : `Signaux`, 
+	},
 	Name : {
 		DE : `Name`, 
 		EN : `Name`, 
@@ -297,6 +332,11 @@ info : {
 		DE : `Signalstellung`, 
 		EN : `Signal position`,		// Falls Signalzustand gemeint ist, dann state, resp. état
 		FR : `Position du signal`, 
+	},
+	Signalstellungen : {
+		DE : `Signalstellungen`, 
+		EN : `Signal positions`,
+		FR : `Positions du signal`, 
 	},
 	'Distanz zum Hauptsignal' : {
 		DE : `Distanz zum Hauptsignal`, 
@@ -368,10 +408,20 @@ info : {
 		EN : `Camera`, 
 		FR : `Caméra`, 
 	},
+	Kameras : {
+		DE : `Kameras`, 
+		EN : `Cameras`, 
+		FR : `Caméras`, 
+	},
 	Kontakt : {
 		DE : `Kontakt`, 
 		EN : `Contact`, 
 		FR : `Contact`, 
+	},
+	Kontakte : {
+		DE : `Kontakte`, 
+		EN : `Contacts`, 
+		FR : `Contacts`, 
 	},
 	unbekannt : {
 		DE : `unbekannt`, 
@@ -382,6 +432,11 @@ info : {
 		DE : `Umschalter`, 
 		EN : `Changeover switch`, 
 		FR : `Commutateur`, 
+	},
+	Kameratyp : {
+		DE : `Kameratyp`, 
+		EN : `Camera type`, 
+		FR : `Type de caméra`, 
 	},
 	statisch : {
 		DE : `statisch`, 
@@ -398,7 +453,7 @@ info : {
 		EN : `after`, 
 		FR : `après`, 
 	},
-	Sekunden : {			// Sekunden
+	Sekunden : {
 		DE : `Sekunden`, 
 		EN : `seconds`, 
 		FR : `secondes`, 
@@ -776,23 +831,230 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		EN : `virtual`, 
 		FR : `virtuel`, 
 	},
+	
+	// EEP_Inventar.html
+
+	'EEP-Version' : {
+		DE : `EEP-Version`,
+		EN : `EEP-version`,
+		FR : `Version d'EEP`,
+	},
+	Anzahl : {
+		DE : `Anzahl`,
+		EN : `Number`,
+		FR : `Nombre`,
+	},
+	'Anzahl Objekte' : {
+		DE : `Anzahl Objekte`,
+		EN : `Number of objects`,
+		FR : `Nombre d'objets`,
+	},
+	'Anzahl Gleise' : {
+		DE : `Anzahl Gleise`,
+		EN : `Number of tracks`,
+		FR : `Nombre de voies`,
+	},
+	'Anzahl Rollmaterialien' : {
+		DE : `Anzahl Rollmaterialien`,
+		EN : `Number of rolling stock`,
+		FR : `Nombre de matériel roulant`,
+	},
+	'Anzahl Signalstellungen' : {
+		DE : `Anzahl Signalstellungen`,
+		EN : `Number of signals`,
+		FR : `Nombre de signaux`,
+	},
+	'Anzahl Fahrstraßen' : {
+		DE : `Anzahl Fahrstraßen`,
+		EN : `Number of driveways`,
+		FR : `Nombre d'itinéraires`,
+	},
+	Breite : {	// Dimension der Anlage in x-Richtung
+		DE : `Breite`,
+		EN : `Width`,
+		FR : `Largeur`,
+	},
+	Tiefe : { // Dimension der Anlage in y-Richtung
+		DE : `Tiefe`,
+		EN : `Depth`,
+		FR : `Profondeur`,
+	},
+	'Verwendeter Bereich' : {
+		DE : `Verwendeter Bereich`,
+		EN : `Used range`,
+		FR : `Plage utilisée`,
+	},
+	'Min./max Höhe' : {
+		DE : `Min./max Höhe`,
+		EN : `Min./max height`,
+		FR : `Hauteur min./max`,
+	},
+	GleisData : {
+		DE : `Gleis-Daten`,
+		EN : `Track-data`,
+		FR : `Données de voie`,
+	},
+	'nicht vorhanden' : {
+		DE : `nicht vorhanden`,
+		EN : `not present`,
+		FR : `absent`,
+	},
+	TipTxt : {
+		DE : `Tipp-Text`,
+		EN : `Tip's text`,
+		FR : `Info-texte`,
+	},
+	Zugverband : {
+		DE : `Zugverband`,
+		EN : `Train set`,
+		FR : `Convoi ferroviaire`,
+	},
+	'Zugverbände' : {
+		DE : `Zugverbände`,
+		EN : `Train sets`,
+		FR : `Convois ferroviaires`,
+	},
+	'Ausrichtung' : {
+		DE : `Ausrichtung`,
+		EN : `Orientation`,
+		FR : `Orientation`,
+	},
+	Geschwindigkeit : {
+		DE : `Geschwindigkeit`,
+		EN : `Speed`,
+		FR : `Vitesse`,
+	},
+	Sollgeschwindigkeit : {
+		DE : `Sollgeschwindigkeit`,
+		EN : `Nominal speed`,
+		FR : `Vitesse-cible`,
+	},
+	Automatik : {
+		DE : `Automatik`,
+		EN : `Automatic`,
+		FR : `Automatisme`,
+	},
+	'Filter' : {
+		DE : `Filter`,
+		EN : `Filter`,
+		FR : `Filtre`,
+	},
+	'Filter aktiv' : {
+		DE : `Filter aktiv`,
+		EN : `Filter activ`,
+		FR : `Filtre actif`,
+	},
+	'Filter löschen' : {
+		DE : `Filter löschen`,
+		EN : `Clear filters`,
+		FR : `Effacer filtres`,
+	},
+	'Filter-Operatoren' : {
+		DE : `Filter-Operatoren`,
+		EN : `Filter-operators`,
+		FR : `Opérateurs filtres`,
+	},
+	nicht : { // logical operator
+		DE : `nicht`,
+		EN : `not`,
+		FR : `non`,
+	},
+	oder : { // logical operator
+		DE : `oder`,
+		EN : `or`,
+		FR : `ou`,
+	},
+	und : {	// logical operator
+		DE : `und`,
+		EN : `and`,
+		FR : `et`,
+	},
+	'beginnt mit' : { // Filter expression
+		DE : `beginnt mit`,
+		EN : `starting with`,
+		FR : `commençant par`,
+	},
+	'endet mit' : {	 // Filter expression
+		DE : `endet mit`,
+		EN : `ending with`,
+		FR : `se terminant par`,
+	},
+	'Weitere Informationen' : {
+		DE : `Weitere Informationen`,
+		EN : `Further informations`,
+		FR : `Informations supplémentaires`,
+	},
+	'Keine zum Filter passende Einträge vorhanden' : {
+		DE : `Keine zum Filter passende Einträge vorhanden`,
+		EN : `No suitable records present for filtering`,
+		FR : `Aucun enregistrement présent adapté au filtre`,
+	},
+	'Sichbarkeit der Spalten verwalten' : {
+		DE : `Sichbarkeit der Spalten verwalten`,
+		EN : `Manage the visibility of the columns`,
+		FR : `Gérer la visibilité des colonnes`,
+	},
+	'Spalten verstecken' : {
+		DE : `Spalten verstecken`,
+		EN : `Hide columns`,
+		FR : `Cacher les colonnes`,
+	},
+	'Versteckte Spalten' : {
+		DE : `Versteckte Spalten`,
+		EN : `Hidden columns`,
+		FR : `Colonnes cachées`,
+	},
+	'Schließen' : {
+		DE : `Schließen`,
+		EN : `Close`,
+		FR : `Fermer`,
+	},
+	'Alle auswählen' : {
+		DE : `Alle auswählen`,
+		EN : `Select all`,
+		FR : `Sélectionner tout`,
+	},
+	'Sichtbarkeit der Filter' : {
+		DE : `Sichtbarkeit der Filter`,
+		EN : `Visibility of the filters`,
+		FR : `Visibilité des filtres`,
+	},
+	'Weiche ist verknüpft mit Signal/Weiche' : {	// SignalData
+		DE : `Weiche ist verknüpft mit Signal/Weiche`,
+		EN : `Switch is linked to signal/Switch`,
+		FR : `L'aiguillage est lié au signal ou à l'aiguillage`,
+	},
+	'Signal ist verknüpft mit Signal/Weiche' : {	// SignalData
+		DE : `Signal ist verknüpft mit Signal/Weiche`,
+		EN : `Signal is linked to signal/Switch`,
+		FR : `Le signal est lié au signal ou à l'aiguillage`,
+	},
+	'Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten' : {	// NextSigFn1
+		DE : `Wenn die Weiche auf "Durchfahrt" steht, dann verknüpfte ID in angegebene Stellung schalten`,
+		EN : `If the switch is in position "Main line", then switch the linked ID to the given position`,
+		FR : `Si l'aiguillage se trouve en positon "Branche principale", alors commuter l'ID connectée en la position indiquée`,
+	},
+	'Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten' : {	// NextSigFn2
+		DE : `Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten`,
+		EN : `If the switch is in position "Diverging line", then switch the linked ID to the given position`,
+		FR : `Si l'aiguillage se trouve en positon "Embranchement", alors commuter l'ID connectée en la position indiquée`,
+	},
 	X : {
 		DE : ``, 
 		EN : ``, 
 		FR : ``, 
 	},
-	XXX : {
-		DE : `###de###`, 
-		EN : `###en###`, 
-		FR : `###fr###`, 
-	},
 },
 /*
-Additional texts in EEP_Gleisplan.html
+Additional texts in EEP_Gleisplan.html and EEP_Inventar.html
 
 <span lang="de">EEP-Gleisplan</span>
 <span lang="en">EEP Track plan</span>
 <span lang="fr">EEP Plan des voies</span>
+
+<span lang="de">EEP-Inventar</span>
+<span lang="en">EEP Inventory</span>
+<span lang="fr">EEP Inventaire</span>
 
 <span lang="de">Lade</span>
 <span lang="en">Load</span>

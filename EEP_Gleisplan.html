@@ -526,7 +526,7 @@ GebaeudesammlungText = {		// GebaeudesammlungID : Text,
 	3 : _('Gleisobjekte Straßen'),
 	4 : _('Immobilien'),
 	5 : _('Landschaftselemente'),
-	6 : _('Sonstiges'),
+	6 : _('Sonstiges'),			//  (Wasserwege)
 }
 
 }
@@ -3591,7 +3591,7 @@ if (typeof module === "undefined") {
 	<div class="item"><label>	<!-- Hoehe -->
 	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)"><span lang="de">Höhe</span><span lang="en">Height</span><span lang="fr">Hauteur</span></label></div>
 	<div class="item"><label>	<!-- WeicheText -->
-	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)"><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aguillage</span></label></div>
+	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)"><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aguillages</span></label></div>
 	<div class="item"><label>	<!-- Signal -->
 	<input type="checkbox" name="Signal" 		checked autocomplete="off" onchange="toggleElements('.Signal', this.checked)"><span lang="de">Signale</span><span lang="en">Signals</span><span lang="fr">Signaux</span></label></div>
 	<div class="item"><label>	<!-- Kontakt -->
@@ -3605,7 +3605,7 @@ if (typeof module === "undefined") {
 	<div class="item"><label>	<!-- Marker -->
 	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)"><span lang="de">Marker</span><span lang="en">Marker</span><span lang="fr">Marqueurs</span></label></div>
 	<div class="item hidden" id="CheckboxGleisobjekt"><label>	<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Gleisobjekt" 	checked autocomplete="off" onchange="toggleElements('.Gleisobjekt', this.checked)"><span lang="de">Gleisobjekte</span><span lang="en">Track objects</span><span lang="fr">Suivre les objets</span></label></div>
+	<input type="checkbox" name="Gleisobjekt" 	checked autocomplete="off" onchange="toggleElements('.Gleisobjekt', this.checked)"><span lang="de">Gleisobjekte</span><span lang="en">Track objects</span><span lang="fr">Objets de voie</span></label></div>
 	<div class="item hidden" id="CheckboxKamera"><label>		<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)"><span lang="de">Kameras</span><span lang="en">Cameras</span><span lang="fr">Caméras</span></label></div>
 	<div class="item"><label>
@@ -5159,8 +5159,8 @@ function getKontaktIcon(GleissystemID, SetType, SetValue) {
 }
 
 function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
-	// Achtung: die Variablen v, x, t werden ersetzt
-	const KontaktText = {
+	// Achtung: die Variable $1 wird ersetzt
+	const KontaktText = {	// SetValue
 		0 		: _('Weiche/Signal'),
 		1 		: _('Fahrzeug +$1 km/h max'),
 		2 		: _('Fahrzeug +$1 km/h min'),

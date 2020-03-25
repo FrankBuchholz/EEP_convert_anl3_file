@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Signalstellungen der installierten Signale anzeigen</title>
-<meta name="description" content="Dieses Programm liest .ini-Dateien von Signalen und zeigt die daruín beschriebenen Signalstellungen an.">
+<meta name="description" content="Dieses Programm liest .ini-Dateien von Signalen und zeigt die darin beschriebenen Signalstellungen an.">
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,Signale" />
 <meta name="language" content="de" />
@@ -37,7 +37,7 @@ function readSignalIniFiles(fileList) {
 			if (iniFile.section.Model_SignalFunc) {
 				for (const parameter in iniFile.section.Model_SignalFunc) {
 					// Signalstellung: Pos01_Fn_Name_GER
-					let matchStellung = parameter.match(/^Pos(\d+)_Fn_Name_/);
+					const matchStellung = parameter.match(/^Pos(\d+)_Fn_Name_/);
 					if (matchStellung) { 
 						let 		 text = iniFile.section.Model_SignalFunc[matchStellung[0] + 'GER'];
 						if (!text) { text = iniFile.section.Model_SignalFunc[matchStellung[0] + 'ENG'] };
@@ -49,7 +49,7 @@ function readSignalIniFiles(fileList) {
 				if (iniFile.Signalstellung != {}) {
 					iniFile.Stellungskombination = Math.abs(JSON.stringify(iniFile.Signalstellung).hashCode());
 					/*					
-					Beilspiele zu Stellungskombinationen: 
+					Beispiele zu Stellungskombinationen: 
 					[0256533125] = { 1 : Halt, 2 : Fahrt, }					
 					[1275122147] = { 1 : Fahrt, 2 : Halt, }					
 					*/					
@@ -201,7 +201,7 @@ function showSignalIniFiles(iniFiles, Signalstellungen) {
 	<!-- An extra button is not neccessary -->
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>
-<p>Man erhält diese .ini-Dateien im Ordner C:\EEP15\Resourcen.unp\Signale\Signale über das EEP-Programm mit "Extras -> Ressourcen-Extraktor").</p>
+<p>Die .ini-Dateien im Ordner C:\EEP15\Resourcen.unp\Signale\Signale werden über das EEP-Programm mit der Funktion "Extras -> Ressourcen-Extraktor" erstellt.</p>
 <p>Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Kombination eine eindeutige ID generiert.</P>  
 <p><small>(c) Frank Buchholz, 2020</small></p>
 </div> <!-- fileselector -->
