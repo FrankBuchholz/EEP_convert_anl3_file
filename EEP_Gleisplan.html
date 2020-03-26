@@ -3252,13 +3252,13 @@ It does not work if I put span elements inside of the options.
 <select id="selectObject" >
 	<option value="1" lang="de" checked>Eisenbahn</option>
 	<option value="1" lang="en" checked>Railroad</option>
-	<option value="1" lang="fr" checked>Chemin de fer</option>
+	<option value="1" lang="fr" checked>Ferroviaire</option>
 	<option value="2" lang="de">Straßenbahn</option>
 	<option value="2" lang="en">Tram</option>
 	<option value="2" lang="fr">Tram</option>
 	<option value="3" lang="de">Straße</option>
 	<option value="3" lang="en">Road</option>
-	<option value="3" lang="fr">Rue</option>
+	<option value="3" lang="fr">Routier</option>
 	<option value="4" lang="de">Wasserwege</option>
 	<option value="4" lang="en">Waterways</option>
 	<option value="4" lang="fr">Voies navigables</option>
@@ -3302,9 +3302,9 @@ It does not work if I put span elements inside of the options.
 -->
 </select>
 <select lang="fr" id="selectObjectFR" >
-	<option value="1">Chemin de fer</option>
+	<option value="1">Ferroviaire</option>
 	<option value="2">Tram</option>
-	<option value="3">Rue</option>
+	<option value="3">Routier</option>
 	<option value="4">Voies navigables</option>
 	<option value="5">Control routes</option>
 	<option value="6">GBS</option>
@@ -3571,11 +3571,11 @@ if (typeof module === "undefined") {
 <fieldset class="fieldset">
 	<!-- Firefox keeps the status of the checkbox between page loads by default. -->
 	<div class="item Eisenbahn hidden"><label>					<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('.Eisenbahn', this.checked)"><span lang="de">Eisenbahn</span><span lang="en">Railroad</span><span lang="fr">Chemin de fer</span></label></div>
+	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('.Eisenbahn', this.checked)"><span lang="de">Eisenbahn</span><span lang="en">Railroad</span><span lang="fr">Ferroviaire</span></label></div>
 	<div class="item Strassenbahn hidden"><label>				<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('.Strassenbahn', this.checked)"><span lang="de">Straßenbahn</span><span lang="en">Tram</span><span lang="fr">Tram</span></label></div>
 	<div class="item Strasse hidden"><label>					<!-- only visible if there are elements of that type -->
-	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('.Strasse', this.checked)"><span lang="de">Straße</span><span lang="en">Road</span><span lang="fr">Rue</span></label></div>
+	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('.Strasse', this.checked)"><span lang="de">Straße</span><span lang="en">Road</span><span lang="fr">Routier</span></label></div>
 	<div class="item Wasserwege hidden"><label>					<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('.Wasserwege', this.checked)"><span lang="de">Wasserwege</span><span lang="en">Waterways</span><span lang="fr">Voies navigables</span></label></div>
 	<div class="item Steuerstrecken hidden"><label>				<!-- only visible if there are elements of that type -->
@@ -5043,6 +5043,43 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const Routes		= Meldung.getAttribute("Routes");
 	const RouteList	 	= Meldung.getElementsByTagName("Route");
 
+		function getSignalName(File) {
+			let Name = '';
+			if (!Signalstellung[File]) {
+				// no name
+			} else if (typeof(Signalstellung[File].Name) === "string") {
+				Name = Signalstellung[File].Name;
+			} else if (typeof(Signalstellung[File].Name) === "object") {
+				Name = Signalstellung[File].Name[EEP_Texts.getLanguage()]
+					|| Signalstellung[File].Name.DE
+					|| Signalstellung[File].Name.EN
+					;
+			} else {
+				// no name
+			}
+			return Name;
+		}
+		function getSignalPositionText(File, Position) {
+			let Text = '';
+			if (!Signalstellung[File]) {
+				// no text
+			} else if (typeof(Signalstellung[File].Pos[Position]) === "string") {
+				Text = Signalstellung[File].Pos[Position];
+			} else if (typeof(Signalstellung[File].Pos[Position]) === "object") {
+				Text = Signalstellung[File].Pos[Position][EEP_Texts.getLanguage()]
+					|| Signalstellung[File].Pos[Position].DE	// primary language
+					|| Signalstellung[File].Pos[Position].EN	// secondary language
+					;
+			} else {
+				// no text
+			}
+			
+			// Default translations
+			if (Text === "Fahrt") 	{ Text = _("Fahrt") };
+			if (Text === "Halt") 	{ Text = _("Halt") };
+			
+			return Text;
+		}
 	let SignalTypeText;
 	let SignalstellungText = "";	// Die Bedeutung der Signalstellung für Fahrstraßen ist noch unklar
 	if (File === "system\\Route_SignalS.3ds") {
@@ -5053,13 +5090,13 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 		SignalTypeText = _('Signal');
 		if (Signalstellung[File]) {
 			// 1st try: Get texts (case sensitive file name)
-			SignalstellungText = Signalstellung[File].Pos[Stellung];
+			SignalstellungText = getSignalPositionText(File, Stellung);
 		} else {
 			// 2nd try: Get texts (case insensitive file name)
 			for (const SignalFile in Signalstellung) {
 console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(SignalFile.toLowerCase()) + ' == ' + typeof(File.toLowerCase()));
 				if (SignalFile.toLowerCase() === File.toLowerCase()) {
-					SignalstellungText = Signalstellung[SignalFile].Pos[Stellung];
+					SignalstellungText = getSignalPositionText(SignalFile, Stellung);
 				}
 			}
 		}
@@ -5103,7 +5140,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${GleissystemText[GleissystemID]} ${GleisID}`
 				+ ` +${Position.toFixed(1)}m<\/a><\/i>`
 			+ `<br>${_('Name')}: ${File}`
-			+ (Signalstellung[File] && File !== Signalstellung[File].Name ? `<br>${Signalstellung[File].Name}` : "")
+			+ (Signalstellung[File] && File !== getSignalName(File) ? `<br>${getSignalName(File)}` : "")
 			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
 			+ (Distanz !=0 ? `<br>${_('Distanz zum Hauptsignal')}: ${Distanz.toFixed(0)}m` : "")
 			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))

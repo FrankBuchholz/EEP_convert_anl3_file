@@ -11,6 +11,26 @@
 
 <script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
 <style> /* html page */
+kbd {
+	white-space: nowrap;		/* keep checkbox and label together */
+	border: 1px solid #aaa;
+	-moz-border-radius: 0.2em;
+	-webkit-border-radius: 0.2em;
+	border-radius: 0.2em;
+	-moz-box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1);
+	-webkit-box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1);
+	box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1);
+	background-color: #f9f9f9;
+	background-image: -moz-linear-gradient(top, #eee, #f9f9f9, #eee);
+	background-image: -o-linear-gradient(top, #eee, #f9f9f9, #eee);
+	background-image: -webkit-linear-gradient(top, #eee, #f9f9f9, #eee);
+	background-image: linear-gradient(to bottom, #eee, #f9f9f9, #eee);
+	color: #000;
+	padding: 0.1em 0.3em;
+	font-family: inherit;
+	font-size: 0.85em;
+}
+
 .flexRow {
 	display: flex;
 	flex-direction: row;
@@ -668,7 +688,7 @@ mit
 				+ WeicheID
 				+ `<\/a>`,
 			html : true, },
-		{ th : _('Gleissystem') + ' ' + _('Gleis'),
+		{ th : _('Gleis'),
 			td :
 				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
 				+ GleissystemText[GleissystemID] + ' ' + GleisID
@@ -760,23 +780,60 @@ mit
 				;
 		}
 
+		function getSignalName(File) {
+			let Name = '';
+			if (!Signalstellung[File]) {
+				// no name
+			} else if (typeof(Signalstellung[File].Name) === "string") {
+				Name = Signalstellung[File].Name;
+			} else if (typeof(Signalstellung[File].Name) === "object") {
+				Name = Signalstellung[File].Name[EEP_Texts.getLanguage()]
+					|| Signalstellung[File].Name.DE
+					|| Signalstellung[File].Name.EN
+					;
+			} else {
+				// no name
+			}
+			return Name;
+		}
+		function getSignalPositionText(File, Position) {
+			let Text = '';
+			if (!Signalstellung[File]) {
+				// no text
+			} else if (typeof(Signalstellung[File].Pos[Position]) === "string") {
+				Text = Signalstellung[File].Pos[Position];
+			} else if (typeof(Signalstellung[File].Pos[Position]) === "object") {
+				Text = Signalstellung[File].Pos[Position][EEP_Texts.getLanguage()]
+					|| Signalstellung[File].Pos[Position].DE	// primary language
+					|| Signalstellung[File].Pos[Position].EN	// secondary language
+					;
+			} else {
+				// no text
+			}
+			
+			// Default translations
+			if (Text === "Fahrt") 	{ Text = _("Fahrt") };
+			if (Text === "Halt") 	{ Text = _("Halt") };
+			
+			return Text;
+		}
 		let SignalstellungText = Stellung;
 		let SignalstellungenText = '';
 		if (Signalstellung[File]) {
 			// 1st try: Get texts (case sensitive file name)
-			SignalstellungText += ' : ' + Signalstellung[File].Pos[Stellung];
+			SignalstellungText += ' : ' + getSignalPositionText(File, Stellung);
 
 			for (const StellungPos in Signalstellung[File].Pos) {
-				SignalstellungenText += StellungPos + ' : ' + Signalstellung[File].Pos[StellungPos] + '<br>';
+				SignalstellungenText += StellungPos + ' : ' + getSignalPositionText(File, StellungPos) + '<br>';
 			}
 		} else {
 			// 2nd try: Get texts (case insensitive file name)
 			for (const SignalFile in Signalstellung) {
 				if (SignalFile.toLowerCase() == File.toLowerCase()) {
-					SignalstellungText += ' : ' + Signalstellung[SignalFile].Pos[Stellung];
+					SignalstellungText += ' : ' + getSignalPositionText(SignalFile, Stellung);
 
 					for (const StellungPos in Signalstellung[SignalFile].Pos) {
-						SignalstellungenText += StellungPos + ' : ' + Signalstellung[SignalFile].Pos[StellungPos] + '<br>';
+						SignalstellungenText += StellungPos + ' : ' + getSignalPositionText(SignalFile, StellungPos) + '<br>';
 					}
 				}
 			}
@@ -790,7 +847,7 @@ mit
 				+ SignalID
 				+ `<\/a>`,
 			html : true, },
-		{ th : _('Gleissystem') + ' ' + _('Gleis'),
+		{ th : _('Gleis'),
 			td :
 				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
 				+ GleissystemText[GleissystemID] + ' ' + GleisID
@@ -809,7 +866,7 @@ mit
 		{ th : _('Anzahl Fahrstraßen'),	td : Routes, },
 		{ th : _('Fahrstraßen'),		td : RoutesText, html : true, },
 		{ th : _('Datei'),				td : File, },
-		{ th : _('Name'),				td : (Signalstellung[File] ? Signalstellung[File].Name : ''), },
+		{ th : _('Name'),				td : getSignalName(File), },
 
 		]) })
 
@@ -818,7 +875,7 @@ mit
 	})
 
 	if (Signale.length > 0) {
-		e(div, 'p', 'SignalData: ' + 'Signal ist verknüpft mit Signal/Weiche');
+		e(div, 'p', 'SignalData: ' + _('Signal ist verknüpft mit Signal/Weiche'));
 	}
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -1016,7 +1073,7 @@ mit
 				: 	''),
 			html : true,
 		},
-		{ th : _('Gleissystem') + ' ' + _('Gleis'),
+		{ th : _('Gleis'),
 			td :  `<a href="javascript:void(0);" onclick="javascript:postKontaktMessage(${KontaktID},${GleissystemID},${GleisID});">`
 				+ GleissystemText[GleissystemID] + ' ' + GleisID
 				+ `<\/a>`,
@@ -1080,7 +1137,7 @@ mit
 		fillTable(thead, tbody, [
 
 		{ th : _('Zugverband'),				td : ZugID },
-		{ th : _('Gleissystem') + ' ' + _('Gleis'),	td :
+		{ th : _('Gleis'),	td :
 				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
 				+ GleissystemText[GleissystemID] + ' ' + GleisID
 				+ `<\/a>`, html : true, },
@@ -1579,8 +1636,8 @@ Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.</p
 <p lang="en">You may load the tables (in Firefox also use <kbd>Strg+A</kbd>) with Copy &amp; Paste into a spreadsheet application.<br>
 The tables can be sorted by clicking in the column-headers.</p>
 
-<p lang="fr">Il est possible de charger les tableaux avec copier-coller dans un tableur (dans Firefox également avec <kbd>Strg+A</kbd>).<br>
-Les tableaux peuvenêtre triés en cliquant sur les entêtes des colonnes.</p>
+<p lang="fr">Il est possible de charger les tableaux dans un tableur en utilisant copier-coller (dans Firefox également avec <kbd>Strg+A</kbd>).<br>
+Les tableaux peuvent être triés en cliquant sur les entêtes des colonnes.</p>
 </p>
 
 <p lang="de">Zusätzlich wird die Bibliothek <a href='http://www.tablefilter.com/' target='_blank'>TableFilters</a> verwendet, um interaktive Funktionen zum Filtern in den Tabellen anzubieten.
@@ -1599,7 +1656,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 <p lang="en">By opening the <a href="EEP_Gleisplan.html" target="_blank">track map</a> of the same installation in a further window or tab of the browser, you will be able, using the links of tracks, signals or contacts, to place the track map on the selected object and to open the info-popup there:<span class="li">if together with <kbd>&#x21E7; Shift</kbd>, then you get another new popup window</span>
 <span class="li">if together with <kbd>alt</kbd>, then you will get the code from the file for this object, too</span></p>
 
-<p lang="fr">En ouvrant le <a href="EEP_Gleisplan.html" target="_blank">plan de voies</a> du même réseau dans une fenêtre supplémentaire ou dans un nouvel onglet du navigateur, il est possible, en utilisant les liens de voies,signaux ou contacts, de placer le plan de voies sur l'objet sélectionné et d'ouvrir un info pop-up à cet endroit:
+<p lang="fr">En ouvrant le <a href="EEP_Gleisplan.html" target="_blank">plan de voies</a> d'un même réseau dans une fenêtre supplémentaire ou dans un nouvel onglet du navigateur, il est possible, en utilisant les liens de voies, signaux ou contacts, de placer le plan de voies sur l'objet sélectionné et d'ouvrir un info pop-up à cet endroit:
 <span class="li">en appuyant simultanément également sur <kbd>&#x21E7; Shift</kbd>, un nouveau pop-up s‘ouvrira</span>
 <span class="li">en appuyant simultanément également sur <kbd>alt</kbd>, tout le code du fichier *.anl3 correspondant à cet objet s‘affichera</span></p>
 

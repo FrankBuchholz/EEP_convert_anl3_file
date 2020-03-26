@@ -111,7 +111,7 @@ info : {
 	Eisenbahn : {
 		DE : `Eisenbahn`, 
 		EN : `Railroad`, 
-		FR : `Chemin de fer`, 
+		FR : `Ferroviaire`, 
 	},
 	Strassenbahn : {
 		DE : `Straßenbahn`, 
@@ -121,7 +121,7 @@ info : {
 	Strasse : {
 		DE : `Straße`, 
 		EN : `Road`, 
-		FR : `Rue`, 
+		FR : `Routier`, 
 	},
 	Wasserwege : {
 		DE : `Wasserwege`, 
@@ -235,7 +235,7 @@ info : {
 	},
 	Durchfahrt : {	// Weichenstellung
 		DE : `Durchfahrt`, 
-		EN : `Thoroughfare`, 
+		EN : `Main line`, 
 		FR : `Branche principale`,
 	},
 	Abzweig : {	// Weichenstellung
@@ -391,7 +391,7 @@ info : {
 	Zielsignal : {	// Zielsignal eines Kontaktes
 		DE : `Zielsignal`, 
 		EN : `Target signal`, 
-		FR : `Signal cible`, 
+		FR : `Signal ciblé`, 
 	},
 	Farbe : {
 		DE : `Farbe`, 
@@ -642,9 +642,9 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		FR : `Caténaire`, 
 	},
 	'Weichenlaterne verstecken' : {
-		DE : `Weichenlaterne verstecken`, 
-		EN : `Hide turnout lantern`, 
-		FR : `Masquer la lanterne d'aiguillage`, 
+		DE : `Weichenlaterne versteckt`, 
+		EN : `Turnout lantern hidden`, 
+		FR : `Lanterne d'aiguillage masquée`, 
 	},
 	'Weichenlaterne rechts' : {
 		DE : `Weichenlaterne rechts`, 
@@ -932,7 +932,7 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 	Automatik : {
 		DE : `Automatik`,
 		EN : `Automatic`,
-		FR : `Automatisme`,
+		FR : `Automatique`,
 	},
 	'Filter' : {
 		DE : `Filter`,
@@ -1038,6 +1038,16 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		DE : `Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten`,
 		EN : `If the switch is in position "Diverging line", then switch the linked ID to the given position`,
 		FR : `Si l'aiguillage se trouve en positon "Embranchement", alors commuter l'ID connectée en la position indiquée`,
+	},
+	Fahrt : {
+		DE : `Fahrt`, 
+		EN : `Go`, 
+		FR : `Voie libre`, 
+	},
+	Halt : {
+		DE : `Halt`, 
+		EN : `Stop`, 
+		FR : `Arrêt`, 
 	},
 	X : {
 		DE : ``, 
