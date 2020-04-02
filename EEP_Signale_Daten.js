@@ -343,7 +343,7 @@ const Signalstellung = {
     Name : {DE : "Unsichtbares Signal", EN : "x_Invisible_Signal", FR : "x_Signal invisible", },
     Pos : {
       1 : {DE : "Fahrt", EN : "Go", FR : "Voie libre", },
-      2 : {DE : "Halt", EN : "Stop", FR : "Arrêt", },
+      2 : {DE : "Halt", EN : "Stop", FR : "Arrêt", }, // FR : "Stop" könnte man auch anwenden
   }},
   "Ampel_Licht_3" : {
     Name : {DE : "Ampel DE 3", EN : "Traffic signal light-Germany-3", FR : "Traffic signal lumineux-3", },
@@ -394,10 +394,13 @@ const Signalstellung = {
       4 : {DE : "Halt", },
   }},
   "BUA_90_An_T_EpV" : {
-    Name : {DE : "BUA 90 An T EpV", EN : "Rd_Level Xing_90_An_T_EpV", FR : "R_PàN-El_feux 2côtés sans barr.", },
+    // Name : {DE : "BUA 90 An T EpV", EN : "Rd_Level Xing_90_An_T_EpV", FR : "R_PàN-El_feux 2côtés sans barr.", },
+    Name : {DE : "BUA 90 An T EpV", EN : "Rd_Level Xing_90_An_T_EpV", FR : "Passage à niveau non gardé à 2 feux", },
     Pos : {
-      1 : {DE : "Fahrt", EN : "Open", FR : "Voie libre", },
-      2 : {DE : "Halt", EN : "Close", FR : "Arrêt", },
+//    1 : {DE : "Fahrt", EN : "Open", FR : "Voie libre", },
+      1 : {DE : "Offen", EN : "Open", FR : "Ouvert", },
+//    2 : {DE : "Halt", EN : "Close", FR : "Arrêt", },
+      2 : {DE : "Geschlossen", EN : "Close", FR : "Fermé", },
   }},
   "BUE_Beh_h90Li_EpV" : {
     Name : {DE : "BUE Beh h90Li EpV", EN : "Rd_Level Xing Beh_h90Li_EpV", FR : "R_PàN_feu+1/2 barr. gauche", },
@@ -438,10 +441,10 @@ const Signalstellung = {
   "DKW-Signal_Alt" : {
     Name : {DE : "DKW-Signal_Alt", EN : "DKW-Signal_Alt", FR : "DKW-Signal_Alt", },
     Pos : {
-      1 : {DE : "Links - Rechts", EN : "Left - Right", },
-      2 : {DE : "Links - Links", EN : "Left - Left", },
-      3 : {DE : "Rechts - Links", EN : "Right - Left", },
-      4 : {DE : "Rechts - Rechts", EN : "Right - Right", },
+      1 : {DE : "links-rechts", EN : "left-right", FR : `gauche-droite`, },
+      2 : {DE : "links-links", EN : "left-left", FR : `gauche-gauche`, },
+      3 : {DE : "rechts-links", EN : "right-left", FR : `droite-gauche`, },
+      4 : {DE : "rechts-rechts", EN : "right-right", FR : `droite-droite`, },
   }},
   "Dummy" : {
     Name : {DE : "Dummy (unsichtbar)", EN : "x_Dummy", FR : "x_Factice", },
@@ -1604,7 +1607,8 @@ const Signalstellung = {
       2 : {DE : "Halt", EN : "Stop", FR : "Arrêt", },
   }},
   "Switch_lying" : {
-    Name : {DE : "Anlagen Startsignal liegend", EN : "On-Off switch level ", FR : "Switch_lying", },
+//  Name : {DE : "Anlagen Startsignal liegend", EN : "On-Off switch level ", FR : "Switch_lying", },
+    Name : {DE : "Anlagen Startsignal liegend", EN : "On-Off switch level ", FR : "Signal couché démarrage réseau", },
     Pos : {
       1 : {DE : "Fahrt", EN : "On", FR : "Voie libre", },
       2 : {DE : "Halt", EN : "Off", FR : "Arrêt", },

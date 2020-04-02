@@ -446,7 +446,7 @@ mit
 				if (KontaktZiel != null && KontaktZiel != 0) {
 					const WeicheID = Gleis.getAttribute('Key_Id');
 					KontaktZiele[KontaktZiel] = {
-						Typ				: 'Weiche',	// ### Translation needed?
+						Typ				: _('Weiche'),
 						ID				: WeicheID,
 						GleissystemID 	: GleissystemID,
 						GleisID			: GleisID,
@@ -477,7 +477,7 @@ mit
 					const KontaktZiel 	= KontaktZielEntry.textContent;
 					if (KontaktZiel != null && KontaktZiel != 0) {
 						KontaktZiele[KontaktZiel] = {
-							Typ 			: 'Signal',	// ### Translation needed?
+							Typ 			: _('Signal'),
 							ID				: SignalID,
 							GleissystemID 	: GleissystemID,
 							GleisID			: GleisID,
@@ -676,6 +676,9 @@ mit
 		const SignalData 	= Gleis.getAttribute('SignalData');
 		const NextSigFn1 	= Gleis.getAttribute('NextSigFn1');
 		const NextSigFn2 	= Gleis.getAttribute('NextSigFn2');
+//		const NextSigFn3 	= Gleis.getAttribute('NextSigFn3');
+//		const NextSigFn4 	= Gleis.getAttribute('NextSigFn4');
+//		const NextSigFn5 	= Gleis.getAttribute('NextSigFn5');
 
 		const Kollektor		= Gleis.Kollektor;
 		const GleisobjektID	= (Kollektor ? Number(Gleis.Kollektor.getAttribute('id')) : false );
@@ -702,11 +705,11 @@ mit
 			(GleisobjektID ? `<a href="#Gleisobjekt_${GleisobjektID}">${GleisobjektID}<\/a>` : '')
 			, html : true
 			},
-		{ th : _('Weichenstellung'),	td : weichenstellung + ' ' + WeichenstellungText[weichenstellung] },
+		{ th : _('Weichenstellung'),	td : weichenstellung + ': ' + WeichenstellungText[weichenstellung] },
 		{ th : _('SignalData'),		td : SignalData },
 		{ th : `NextSigFn1`,		td : NextSigFn1 },
 		{ th : `NextSigFn2`,		td : NextSigFn2 },
-		{ th : _('GleisData'),		td : (GleisData != 0 ? GleisData + ' ' + GleisDataText[GleisData] : '') },
+		{ th : _('GleisData'),		td : (GleisData != 0 ? GleisData + ': ' + GleisDataText[GleisData] : '') },
 		{ th : _('Name'),			td : Name },
 
 		]) })
@@ -1057,7 +1060,7 @@ mit
 
 		fillTable(thead, tbody, [
 
-		{ th : `SetType`,			td : SetType, },
+		{ th : _('Kontakttypcode'),	td : SetType, },
 		{ th : _('Kontakttyp'),		td : KontaktTypText, html : true, },		// KontaktText[SetType] mit Modifikation
 		{ th : `SetValue`,			td : (SetValue != 0 ? SetValue : '') },
 		{ th : _('Kontaktziel'),
@@ -1094,8 +1097,8 @@ mit
 		{ th : _('Zeitverzögerung'),	td : Delay },
 		{ th : _('Zeit abgelaufen'),	td : ActDelay },
 		{ th : _('Zugposition'),		td : (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) },
-		{ th : _('für Route'),			td : (RouteID != 0 ? RouteID + ' ' + Routen[RouteID] : '') },
-		{ th : _('für Zug'),			td : (TrainID != 0 ? TrainID + ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') : '') },
+		{ th : _('für Route'),			td : (RouteID != 0 ? RouteID + ': ' + Routen[RouteID] : '') },
+		{ th : _('für Zug'),			td : (TrainID != 0 ? TrainID + ': ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') : '') },
 		{ th : _('Zug-Filter'),			td : NameFilter },
 		{ th : _('Neuer Zugname'),		td : TrainNewName },
 		{ th : _('zu Stellung'),		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) },
@@ -1147,7 +1150,7 @@ mit
 		{ th : _('Ausrichtung'),			td : (ausrichtung == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung')) },
 		{ th : _('Name'),					td : Name },
 		{ th : _('Anzahl Rollmaterialien'),	td : Anzahl },
-		{ th : _('Route'),					td : (RouteID != 0 ? RouteID + ' ' + Routen[RouteID] : '') },
+		{ th : _('Route'),					td : (RouteID != 0 ? RouteID + ': ' + Routen[RouteID] : '') },
 		{ th : _('Geschwindigkeit') + ' km/h',		td : (Geschwindigkeit != 0 ? Geschwindigkeit.toFixed(0) : (LastDir == 1 ? '+0' : '-0')) },
 		{ th : _('Sollgeschwindigkeit') + ' km/h',	td : sollgeschwindigkeit.toFixed(0) },
 		{ th : _('Automatik'),				td : autopilot },

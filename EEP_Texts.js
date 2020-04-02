@@ -121,12 +121,12 @@ info : {
 	Strasse : {
 		DE : `Straße`, 
 		EN : `Road`, 
-		FR : `Routier`, 
+		FR : `Routière`, 
 	},
 	Wasserwege : {
 		DE : `Wasserwege`, 
 		EN : `Waterways`, 
-		FR : `Voies navigables`, 
+		FR : `Navigable`, 
 	},
 	Steuerstrecken : {
 		DE : `Steuerstrecken`, 
@@ -458,7 +458,12 @@ info : {
 		EN : `seconds`, 
 		FR : `secondes`, 
 	},
-	Kontakttyp : {
+	Kontakttypcode : {	// SetType
+		DE : `Kontakttypcode`, 
+		EN : `Type of contact`, 
+		FR : `Type de contact`, 
+	},
+	Kontakttyp : {	// Text zum Kontakttyp
 		DE : `Kontakttyp`, 
 		EN : `Type of contact`, 
 		FR : `Type de contact`, 
@@ -644,17 +649,17 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 	'Weichenlaterne verstecken' : {
 		DE : `Weichenlaterne versteckt`, 
 		EN : `Turnout lantern hidden`, 
-		FR : `Lanterne d'aiguillage masquée`, 
+		FR : `Lanterne masquée`, 	// Lanterne d'aiguillage masquée
 	},
 	'Weichenlaterne rechts' : {
 		DE : `Weichenlaterne rechts`, 
 		EN : `Turnout lantern on the right`, 
-		FR : `Lanterne d'aiguillage à droite`, 
+		FR : `Lanterne à droite`,	// Lanterne d'aiguillage à droite 
 	},
 	'Weichenlaterne links' : {
 		DE : `Weichenlaterne links`, 
 		EN : `Turnout lantern on the left`, 
-		FR : `Lanterne d'aiguillage à gauche`, 
+		FR : `Lanterne à gauche`, 	// Lanterne d'aiguillage à gauche
 	},
 	'Weichenlaterne als Immobilie/Straßen-T-Kreuzung' : {
 		DE : `Weichenlaterne als Immobilie/Straßen-T-Kreuzung`, 
@@ -1039,16 +1044,139 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		EN : `If the switch is in position "Diverging line", then switch the linked ID to the given position`,
 		FR : `Si l'aiguillage se trouve en positon "Embranchement", alors commuter l'ID connectée en la position indiquée`,
 	},
-	Fahrt : {
-		DE : `Fahrt`, 
-		EN : `Go`, 
-		FR : `Voie libre`, 
+	Fahrt: {	// Signals
+		DE: `Fahrt`,
+		EN: `Go`,		// `Clear`, `Open` 
+		FR: `Voie libre`,
 	},
-	Halt : {
-		DE : `Halt`, 
-		EN : `Stop`, 
-		FR : `Arrêt`, 
+	Halt: {
+		DE: `Halt`,
+		EN: `Stop`,		// `Danger`, `Close` 
+		FR: `Arrêt`,
 	},
+// begin of not used signal positions
+	'Fahrt - Fahrt erwarten': {
+		DE: `Fahrt - Fahrt erwarten`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt - Fahrt mit $1km/h erwarten': {
+		DE: `Fahrt - Fahrt mit $1km/h erwarten`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt - Halt erwarten': {
+		DE: `Fahrt - Halt erwarten`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt dann Fahrt': {
+		DE: `Fahrt dann Fahrt`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt dann $1km/h': {
+		DE: `Fahrt dann $1km/h`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt dann Fahrt mit $1km/h': {
+		DE: `Fahrt dann Fahrt mit $1km/h`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt dann Halt': {
+		DE: `Fahrt dann Halt`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt mit $1km/h': {
+		DE: `Fahrt mit $1km/h`,
+		EN: `Slow at $1km/h`,
+		FR: `Marche à vue $1km/h`,
+	},
+	'Fahrt mit $1km/h - Fahrt erwarten': {
+		DE: `Fahrt mit $1km/h - Fahrt erwarten`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt mit $1km/h - Fahrt mit $2km/h erwarten': {
+		DE: `Fahrt mit $1km/h - Fahrt mit $2km/h erwarten`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt mit $1km/h - Halt erwarten': {
+		DE: `Fahrt mit $1km/h - Halt erwarten`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt mit $1km/h dann Fahrt': {
+		DE: `Fahrt mit $1km/h dann Fahrt`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt mit $1km/h dann $2km/h': {
+		DE: `Fahrt mit $1km/h dann $2km/h`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt mit $1km/h dann Fahrt mit $2km/h': {
+		DE: `Fahrt mit $1km/h dann Fahrt mit $2km/h`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt mit $1km/h dann Halt': {
+		DE: `Fahrt mit $1km/h dann Halt`,
+		EN: ``,
+		FR: ``,
+	},
+	'Sh1 - Rangierfahrt': {
+		DE: `Sh1 - Rangierfahrt`,
+		EN: ``,
+		FR: ``,
+	},
+	'Fahrt, Grün': { // Ampel
+		DE: `Fahrt, Grün`,
+		EN: `Green`,
+		FR: ``,
+	},
+	'Halt, Gelb': { // Ampel
+		DE: `Halt, Gelb`,
+		EN: `Yellow`,
+		FR: ``,
+	},
+	'Halt, Rot': { // Ampel
+		DE: `Halt, Rot`,
+		EN: `Red`,
+		FR: ``,
+	},
+	'Max. Geschwindigkeit 50 km/h, Gelb blinkend': { // Ampel
+		DE: `Max. Geschwindigkeit 50 km/h, Gelb blinkend`,
+		EN: `Yellow flashing`,
+		FR: ``,
+	},
+	'Ziel': { // Schalter
+		DE: `Ziel`,
+		EN: ``,
+		FR: ``,
+	},
+	'frei': { // Schalter
+		DE: `frei`,
+		EN: ``,
+		FR: ``,
+	}, // Schalter
+	'eingestellt': {
+		DE: `eingestellt`,
+		EN: ``,
+		FR: ``,
+	},
+	'Störung': { // Schalter
+		DE: `Störung`,
+		EN: ``,
+		FR: ``,
+	},
+// end of not used signal positions
+
 	X : {
 		DE : ``, 
 		EN : ``, 
