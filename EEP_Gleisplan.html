@@ -2539,7 +2539,23 @@ function createSVGforKameras(SVGfragment) {
 		KameraID += 1;
 
 		const Name 	= Kamera.getAttribute("name");
-		if (Name === "Leer") {
+		/* Ignore not-used cameras
+		Should we check the default name or the default position to identify such cameras?
+		Some observations:
+		- The default name is language dependent, see file eep.lng entry [OTHER]CAMERA_NAME
+		- Pos and Dir seem to have quite specific values
+		- Dir is not a unit vector
+		- Nor and Bin values might vary 
+		<Kammera name="Leer" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
+			<Dreibein>
+				<Vektor x="6000" y="-6000" z="400">Pos</Vektor>
+				<Vektor x="-6000" y="6000" z="-400">Dir</Vektor>
+				<Vektor x="-0.7071068" y="-0.7071068" z="0">Nor</Vektor>
+				<Vektor x="-3.329636E-02" y="3.329636E-02" z="0.9988908">Bin</Vektor>
+			</Dreibein>
+		</Kammera>
+		*/
+		if (Name === "Leer" || Name === "blank" || Name === "Vide" ) {
 			continue;
 		}
 
