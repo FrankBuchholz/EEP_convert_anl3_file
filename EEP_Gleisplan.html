@@ -1438,7 +1438,7 @@ return nodeList;
 				// relative position of center point of the Helix
 				const Pos 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
 				const PosX2 = +Pos.getAttribute("x");
-				const PosY2 = +Pos.getAttribute("y");
+				const PosY2 = -Pos.getAttribute("y");
 				const PosZ2 = +Pos.getAttribute("z");
 
 				// Tangent (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1)
@@ -1457,31 +1457,10 @@ return nodeList;
 				const a = +Helix.getAttribute("a");			// Radius (= offset) in x direction
 				const b = +Helix.getAttribute("b");			// Offset in z direction
 
-/* Original
-
-				mMatrix = [
-							[DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX + DirX * a, PosY + DirY * a, PosZ, 1 ],
-							Rematrix.translate3d(PosX2, PosY2, PosZ2),
-							Rematrix.rotateZ((NorY2 >= 0 ? 1 : -1) * 90),
-						  ].reduce(Rematrix.multiply);
-
-identisch zu Original
-				mMatrix = [
-							Rematrix.translate3d(DirX * a, DirY * a, DirZ * a),
-							mMatrix,
-							Rematrix.translate3d(PosX2, PosY2, PosZ2),
-							Rematrix.rotateZ((NorY2 >= 0 ? 1 : -1) * 90),
-						  ].reduce(Rematrix.multiply);
-
-*/
-
-
-// Special tracks
-//if (GleissystemID == "3" && GleisID == "350") 	debugger;	// <VectorBundle2><Position x="-3.80571" y="0" z="0"/>
-
 // Error: wrong position of special Helix
 if ( ((PosX2 != 0 || PosY2 != 0) && (DirX2 != 1 || DirY2 != 0))		// generic
-||	(GleissystemID == "1" && GleisID == "5675"	)					// Makinista_GRAFENBURG 16
+// Makinista_GRAFENBURG 16
+||	(GleissystemID == "1" && GleisID == "5675"	)
 ||	(GleissystemID == "1" && GleisID == "5902"	)
 ||	(GleissystemID == "1" && GleisID == "5935"	)
 ||	(GleissystemID == "1" && GleisID == "6096"	)
@@ -1501,11 +1480,27 @@ if ( ((PosX2 != 0 || PosY2 != 0) && (DirX2 != 1 || DirY2 != 0))		// generic
 ||	(GleissystemID == "4" && GleisID == "6059"	)
 ||	(GleissystemID == "4" && GleisID == "6060"	)
 ||	(GleissystemID == "4" && GleisID == "6072"	)
-||	(GleissystemID == "1" && GleisID == "687"	)					// Gleismauerbau
+// Gleismauerbau
+||	(GleissystemID == "1" && GleisID == "687"	)
+// Nouveau projet 18a
+||	(GleissystemID == "1" && GleisID == "54"	)
+||	(GleissystemID == "1" && GleisID == "55"	)
+||	(GleissystemID == "1" && GleisID == "70"	)
+||	(GleissystemID == "3" && GleisID == "87"	)
+||	(GleissystemID == "3" && GleisID == "290"	)
+||	(GleissystemID == "3" && GleisID == "546"	)
+||	(GleissystemID == "3" && GleisID == "557"	)
+||	(GleissystemID == "3" && GleisID == "559"	)
+||	(GleissystemID == "3" && GleisID == "568"	)
+||	(GleissystemID == "3" && GleisID == "573"	)
+||	(GleissystemID == "3" && GleisID == "592"	)
 ){
 	console.log('\t' + GleissystemText[GleissystemID] + '\t' + GleisID
 		+ '\tHelix non-zero Pos2'
 		+ '\tPos\t'  + PosX  + '\t' + PosY  + '\t' + PosZ
+		+ '\tDir\t'  + DirX  + '\t' + DirY  + '\t' + DirZ
+		+ '\tNor\t'  + NorX  + '\t' + NorY  + '\t' + NorZ
+		+ '\tBin\t'  + BinX  + '\t' + BinY  + '\t' + BinZ
 		+ '\ta\t' + a
 		+ '\tb\t' + b
 		+ '\tPos2\t' + PosX2 + '\t' + PosY2 + '\t' + PosZ2
@@ -1521,9 +1516,10 @@ if ( ((PosX2 != 0 || PosY2 != 0) && (DirX2 != 1 || DirY2 != 0))		// generic
 					const DirAngle = ( DirX2 === 1 && DirY2 === 0 ? 0 : Math.atan2(DirY2, DirX2)*180/Math.PI );
 					const NorAngle = ( NorX2 === 1 && NorY2 === 0 ? 0 : Math.atan2(NorY2, NorX2)*180/Math.PI );
 					mMatrix = [
+								//[DirX2, DirY2, DirZ2, 0,  NorX2, NorY2, NorZ2, 0,  0, 0, 1, 0,  a, 0, 0, 1 ],
 								Rematrix.translate3d(a * DirX, a * DirY, a * DirZ),
 								mMatrix,
-								Rematrix.translate3d(PosX2, -PosY2, PosZ2),
+								Rematrix.translate3d(PosX2, PosY2, PosZ2),
 								Rematrix.rotateZ(NorAngle),
 							  ].reduce(Rematrix.multiply);
 				} else {
@@ -2827,7 +2823,6 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 	const pathPoints = [];
 
 	for (let i = 1; i <= STEPCOUNT; i++) {
-
 		p.x = p2.x;													// Set current point
 		p.y = p2.y;
 
@@ -2835,7 +2830,7 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 		p2.x += dx =        ads * Math.cos(w);						// Calculate next point
 		p2.y += dy = sign * ads * Math.sin(w);
 
-		if (!b1 && Math.abs(s)>=Math.abs(s1) ) {
+		if (!b1 && ( Math.abs(s)>=Math.abs(s1) || i === STEPCOUNT ) ) {
 			b1 = {x: p.x,   y: p.y,	  dx: dx,  dy: dy,  w: w, };			// first 1. Bezier point
 
 			pathPoints.push( {x: b1.x,   y: -b1.y,  z: 0,  w: b1.w, } );	// first 1. Bezier point
@@ -2847,10 +2842,18 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 			// if yes, draw the next part
 
 			b4 = { x: p2.x,  y: p2.y,  dx: dx,  dy: dy,  w: w, };			// 4. Bezier point
-			b3 = {																// 3. Bezier point on intersection of tangents
-					x: b1.x + ( (b4.x - b1.x) - (b4.y - b1.y) / (b4.dy / b4.dx) ) / ( 1 - ( (b1.dy / b1.dx) / (b4.dy / b4.dx)) ),
-					y: b1.y + ( (b4.y - b1.y) - (b4.x - b1.x) * (b4.dy / b4.dx) ) / ( 1 - ( (b4.dy / b4.dx) / (b1.dy / b1.dx)) ),
-				};
+																			// 3. Bezier point on intersection of tangents
+			if ( ( (b1.dy / b1.dx) == (b4.dy / b4.dx) ) || ( (b4.dy / b4.dx) == (b1.dy / b1.dx) ) ) {
+				b3 = {	// dummy point if the tangents are equal
+						x: b4.x,
+						y: b4.y,
+					};
+			} else {
+				b3 = {
+						x: b1.x + ( (b4.x - b1.x) - (b4.y - b1.y) / (b4.dy / b4.dx) ) / ( 1 - ( (b1.dy / b1.dx) / (b4.dy / b4.dx)) ),
+						y: b1.y + ( (b4.y - b1.y) - (b4.x - b1.x) * (b4.dy / b4.dx) ) / ( 1 - ( (b4.dy / b4.dx) / (b1.dy / b1.dx)) ),
+					};
+			}	
 			b2 = {															// 2. Bezier point on tangent near B1
 					x: b1.x + (b3.x - b1.x) / f,							// works fine with f=4, but not with f=3
 					y: b1.y + (b3.y - b1.y) / f,							// (I guess we should calculate the factor dependant on s or a)
