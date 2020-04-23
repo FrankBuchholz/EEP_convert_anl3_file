@@ -1144,7 +1144,7 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 	Die Spiegelung ließe sich über CSS einfach zurücknehmen:
 	svg { transform: scale(1,-1); }
 	Damit würde allerdings auch der Text gespiegelt und müsste daher erneut gespiegelt und verschoben werden.
-	Daher werden hier stattdessen alle y-Koordinaten und y-Winkel negativ angegeben (also z.Z. -PosY -DirY -NorY)
+	Daher werden hier stattdessen bei der Ausgabe alle y-Koordinaten und y-Winkel negativ angegeben (also z.Z. -PosY -DirY -NorY)
 	Statt cm soll als Einheit m verwendet werden, daher wird Laenge, Kruemmung, PosX und PosY geeignet skaliert.
 	*/
 
@@ -1197,19 +1197,19 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 
 			// Depending on CurveType some adjustments will be done later
 			PosX	= +FramePos.getAttribute("x");
-			PosY	= -FramePos.getAttribute("y");
+			PosY	= +FramePos.getAttribute("y");
 			PosZ	= +FramePos.getAttribute("z");
 
 			DirX	= +FrameDir.getAttribute("dx");
-			DirY	= -FrameDir.getAttribute("dy");
+			DirY	= +FrameDir.getAttribute("dy");
 			DirZ	= +FrameDir.getAttribute("dz");
 
 			NorX	= +FrameNor.getAttribute("dx");
-			NorY	= -FrameNor.getAttribute("dy");
+			NorY	= +FrameNor.getAttribute("dy");
 			NorZ	= +FrameNor.getAttribute("dz");
 
 			BinX	= +FrameBin.getAttribute("dx");
-			BinY	= -FrameBin.getAttribute("dy");
+			BinY	= +FrameBin.getAttribute("dy");
 			BinZ	= +FrameBin.getAttribute("dz");
 
 			if (DirX === 0 && DirY === 0 && DirZ === 1 && NorX !== 0 && NorY !== 0 && NorZ === 0) { // wrong order Bin - Dir - Nor
@@ -1218,21 +1218,21 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 				const FrameNor	= Frame.getElementsByTagName("Vector")[2];
 
 				DirX		= +FrameDir.getAttribute("dx");
-				DirY		= -FrameDir.getAttribute("dy");
+				DirY		= +FrameDir.getAttribute("dy");
 				DirZ		= +FrameDir.getAttribute("dz");
 
 				NorX		= +FrameNor.getAttribute("dx");
-				NorY		= -FrameNor.getAttribute("dy");
+				NorY		= +FrameNor.getAttribute("dy");
 				NorZ		= +FrameNor.getAttribute("dz");
 
 				BinX		= +FrameBin.getAttribute("dx");
-				BinY		= -FrameBin.getAttribute("dy");
+				BinY		= +FrameBin.getAttribute("dy");
 				BinZ		= +FrameBin.getAttribute("dz");
 			}
 /*
-if (DirX == -NorY ) {
+if (DirX == NorY ) {
 	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
-		+ ' DirX == -NorY'
+		+ ' DirX == NorY'
 	);
 }
 if (BinZ == -1 ) {
@@ -1276,19 +1276,19 @@ if (BinZ == -1 ) {
 				const Frame2Bin	= Frame2.getElementsByTagName("Vector")[2];
 
 				PosX		= +Frame2Pos.getAttribute("x") / 100;
-				PosY		= -Frame2Pos.getAttribute("y") / 100;
+				PosY		= +Frame2Pos.getAttribute("y") / 100;
 				PosZ		= +Frame2Pos.getAttribute("z") / 100;
 
 				DirX		= +Frame2Dir.getAttribute("dx");
-				DirY		= -Frame2Dir.getAttribute("dy");
+				DirY		= +Frame2Dir.getAttribute("dy");
 				DirZ		= +Frame2Dir.getAttribute("dz");
 
 				NorX		= +Frame2Nor.getAttribute("dx");
-				NorY		= -Frame2Nor.getAttribute("dy");
+				NorY		= +Frame2Nor.getAttribute("dy");
 				NorZ		= +Frame2Nor.getAttribute("dz");
 
 				BinX		= +Frame2Bin.getAttribute("dx");
-				BinY		= -Frame2Bin.getAttribute("dy");
+				BinY		= +Frame2Bin.getAttribute("dy");
 				BinZ		= +Frame2Bin.getAttribute("dz");
 
 /*
@@ -1326,15 +1326,15 @@ Makinista_GRAFENBURG 16
 					const Frame2Nor	= Frame2.getElementsByTagName("Vector")[2];
 
 					DirX		= +Frame2Dir.getAttribute("dx");
-					DirY		= -Frame2Dir.getAttribute("dy");
+					DirY		= +Frame2Dir.getAttribute("dy");
 					DirZ		= +Frame2Dir.getAttribute("dz");
 
 					NorX		= +Frame2Nor.getAttribute("dx");
-					NorY		= -Frame2Nor.getAttribute("dy");
+					NorY		= +Frame2Nor.getAttribute("dy");
 					NorZ		= +Frame2Nor.getAttribute("dz");
 
 					BinX		= +Frame2Bin.getAttribute("dx");
-					BinY		= -Frame2Bin.getAttribute("dy");
+					BinY		= +Frame2Bin.getAttribute("dy");
 					BinZ		= +Frame2Bin.getAttribute("dz");
 				}
 
@@ -1376,7 +1376,7 @@ return nodeList;
 
 				const NorX2		= -DirY2;							// sin(a)
 				const NorY2		= DirX2;  							// cos(a)
-				const NorZ2		= +Tangent.getAttribute("dz");		// ?
+				const NorZ2		= 0;								// ?
 
 				const BinX2		= +UpDirection.getAttribute("dx");
 				const BinY2		= +UpDirection.getAttribute("dy");
@@ -1438,70 +1438,67 @@ return nodeList;
 				// relative position of center point of the Helix
 				const Pos 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
 				const PosX2 = +Pos.getAttribute("x");
-				const PosY2 = -Pos.getAttribute("y");
+				const PosY2 = +Pos.getAttribute("y");
 				const PosZ2 = +Pos.getAttribute("z");
 
 				// Tangent (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1)
 				const Dir 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0];
 				const DirX2 = +Dir.getAttribute("dx");
-				const DirY2 = -Dir.getAttribute("dy");
+				const DirY2 = +Dir.getAttribute("dy");
 				const DirZ2 = +Dir.getAttribute("dz");
 
 				// Normal (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1)
 				const Nor 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
 				const NorX2 = +Nor.getAttribute("dx");
-				const NorY2 = -Nor.getAttribute("dy");
+				const NorY2 = +Nor.getAttribute("dy");
 				const NorZ2 = +Nor.getAttribute("dz");
 
 				// Adjust position and direction
 				const a = +Helix.getAttribute("a");			// Radius (= offset) in x direction
 				const b = +Helix.getAttribute("b");			// Offset in z direction
 
-				// I do not know why this works in most cases ... but not in all cases ...
-
-/* Original version
-				if (PosY2 === 0) {
-					// Start point need adjustment
-					const DirAngle = ( DirX2 === 1 && DirY2 === 0 ? 0 : -Math.atan2(DirY2, DirX2)*180/Math.PI );
-					const NorAngle = ( NorX2 === 1 && NorY2 === 0 ? 0 : -Math.atan2(NorY2, NorX2)*180/Math.PI );
-					mMatrix = [
-								//[DirX2, DirY2, DirZ2, 0,  NorX2, NorY2, NorZ2, 0,  0, 0, 1, 0,  a, 0, 0, 1 ],
-								Rematrix.translate3d(a * DirX, a * DirY, a * DirZ),
-								mMatrix,
-								Rematrix.translate3d(PosX2, PosY2, PosZ2),
-								Rematrix.rotateZ(NorAngle),
-							  ].reduce(Rematrix.multiply);
-				} else if (PosX2 === 0) {
-					// Start point is already ok
-				} else {	
-				}
-
-				// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
-				//const f = (DirX2 >= 0 ? 1 : -1) * (-NorY2 >= 0 ? 1 : -1);												// Original
-				const f = (Math.sign(DirX2) * Math.sign(-NorY2) + Math.sign(DirY2) * Math.sign(NorX2) >=0 ? 1 : -1);	// Improved
-				const Radius = a * f;
-				Kruemmung 	= 1 / Radius;
-*/
-
+				// Improved version, (but I still not know why this works rather well)
 				if (PosY2 === 0) { // && DirX2 === 1 && DirY2 === 0 && NorX2 === 0 && NorY2 === +/-1
 					mMatrix = [
 								// Move from mid point of Helix to start point of track
 								Rematrix.translate3d(a * DirX, a * DirY, a * DirZ),
-								//mMatrix,
-								[DirX, DirY, DirZ, 0,       NorX, NorY, NorZ, 0,        BinX, BinY, BinZ, 0,   PosX, PosY, PosZ, 1 ],
-								[+NorX2, -NorY2, +NorZ2, 0,	-DirX2, +DirY2, -DirZ2, 0, 	0, 0, 1, 0,            PosX2, 0, PosZ2, 1 ],
+
+								// Frame
+								[DirX,  DirY,  DirZ,  0,    NorX,   NorY,   NorZ,   0,	BinX, BinY, BinZ, 0,	PosX,  PosY,  PosZ,  1 ],	// mMatrix
+
+								// VectorBundle2
+								//[0,   NorY2, 0,     0,	-1,     0,      0,      0, 	0, 0, 1, 0,				0,     0,     0,     1 ],	// simplified
+								[NorX2, NorY2, NorZ2, 0,	-DirX2, -DirY2, -DirZ2, 0, 	0,    0,    1,    0,    PosX2, PosY2, PosZ2, 1 ],
 							  ].reduce(Rematrix.multiply);
 				} else {	
 					mMatrix = [
-								//mMatrix,
-								[DirX, DirY, DirZ, 0,       NorX, NorY, NorZ, 0,        BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ],
-								[+NorX2, -NorY2, +NorZ2, 0,	-DirX2, +DirY2, -DirZ2, 0, 	0, 0, 1, 0,             PosX2, 0, PosZ2, 1 ],
+								// Frame
+								[DirX,  DirY,  DirZ,  0,    NorX,   NorY,   NorZ,   0,	BinX, BinY, BinZ, 0,	PosX,  PosY,  PosZ,  1 ],	// mMatrix
+
+								// VectorBundle2
+								[NorX2, NorY2, NorZ2, 0,	-DirX2, -DirY2, -DirZ2, 0, 	0,    0,    1,    0,    PosX2, PosY2, PosZ2, 1 ],
 							  ].reduce(Rematrix.multiply);
+
+					// Indices to adress matrix elements
+					const _DirX = 0, _DirY = 1, _DirZ = 2, _NorX = 4, _NorY = 5, _PosX = 12, _PosY = 13, _PosZ = 14;  
+
+					// The start point is shifted by Helix radius "a" perpendicular to the direction of the track
+					const mDelta = [
+						// 90° left or right dependend on the curvature of the Helix
+						Rematrix.rotateZ(90 * (Math.sign(mMatrix[_DirX]) * Math.sign(-mMatrix[_NorY]) + Math.sign(mMatrix[_DirY]) * Math.sign(mMatrix[_NorX]) >=0 ? 1 : -1)),
+
+						// Helix radius "a"
+						Rematrix.translate3d(a * mMatrix[_DirX], a * mMatrix[_DirY], a * mMatrix[_DirZ]),
+					].reduce(Rematrix.multiply);
+
+					// Move from mid point of Helix to start point of track
+					mMatrix = [
+						Rematrix.translate3d(mDelta[_PosX], mDelta[_PosY], mDelta[_PosZ]),
+						mMatrix,
+					].reduce(Rematrix.multiply);
 				}
 
-				// Adjustment according to quadrant
-				const f = 1; //(Math.sign(DirX2) * Math.sign(-NorY2) + Math.sign(DirY2) * Math.sign(NorX2) >=0 ? 1 : -1);
-				const Radius = a * f;
+				const Radius = a;
 				Kruemmung 	= 1 / Radius;
 
 				Gleis.Helix = {	// Store Helix parameters
@@ -1552,7 +1549,7 @@ if ( 1 === 1
 ||	(GleissystemID == "3" && GleisID == "592"	)
 ){
 	console.log('\t' + GleissystemText[GleissystemID] + '\t' + GleisID
-		+ '\tHelix non-zero Pos2'
+		+ '\t'
 		+ '\tPos\t'  + PosX  + '\t' + PosY  + '\t' + PosZ
 		+ '\tDir\t'  + DirX  + '\t' + DirY  + '\t' + DirZ
 		+ '\tNor\t'  + NorX  + '\t' + NorY  + '\t' + NorZ
@@ -1562,7 +1559,6 @@ if ( 1 === 1
 		+ '\tPos2\t' + PosX2 + '\t' + PosY2 + '\t' + PosZ2
 		+ '\tDir2\t' + DirX2 + '\t' + DirY2 + '\t' + DirZ2
 		+ '\tNor2\t' + NorX2 + '\t' + NorY2 + '\t' + NorZ2
-		+ '\tf\t' + f
 	);
 }
 
@@ -1775,19 +1771,19 @@ console.log(`Cubic ${GleissystemText[GleissystemID]} ${GleisID}`
 			Kruemmung	= +Charakteristik.getAttribute("Kruemmung") * 100;
 
 			PosX		= +FramePos.getAttribute("x") / 100;
-			PosY		= -FramePos.getAttribute("y") / 100;
+			PosY		= +FramePos.getAttribute("y") / 100;
 			PosZ		= +FramePos.getAttribute("z") / 100;
 
 			DirX		= +FrameDir.getAttribute("x");
-			DirY		= -FrameDir.getAttribute("y");
+			DirY		= +FrameDir.getAttribute("y");
 			DirZ		= +FrameDir.getAttribute("z");
 
 			NorX		= +FrameNor.getAttribute("x");
-			NorY		= -FrameNor.getAttribute("y");
+			NorY		= +FrameNor.getAttribute("y");
 			NorZ		= +FrameNor.getAttribute("z");
 
 			BinX		= +FrameBin.getAttribute("x");
-			BinY		= -FrameBin.getAttribute("y");
+			BinY		= +FrameBin.getAttribute("y");
 			BinZ		= +FrameBin.getAttribute("z");
 
 			//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
@@ -2005,7 +2001,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		if (CurveType === "Cubic") {
 			const t = 0.5;
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
-			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})`;
+			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${-DeltaY})`;	// svg: mirrored y-coordinate
 
 		} else if (CurveType === 'Clothoid') {
 			let points, svgPath;
@@ -2367,6 +2363,24 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		} // Kontakte
 
 	} // Gleise
+		
+//### Test show start and end points of all tracks
+if (false) {
+for (const Gleis of Gleise) {
+	const connections = global.trackConnections[Gleis.GleissystemID][Gleis.getAttribute('GleisID')] || {};
+	console.log( "\t"
+		+ Gleis.GleissystemID + "\t"
+		+ Gleis.getAttribute('GleisID') + "\t"
+		+ Gleis.CurveType + "\t"
+		+ Gleis.mPos[12]  + "\t" + Gleis.mPos[13]  + "\t" + Gleis.mPos[14]  + "\t"
+		+ Gleis.mEnd[12]  + "\t" + Gleis.mEnd[13]  + "\t" + Gleis.mEnd[14]  + "\t"
+		+ (connections['Anfang']		? connections['Anfang'].GleisID 		: '') + "\t"
+		+ (connections['Ende']			? connections['Ende'].GleisID 			: '') + "\t"
+		+ (connections['EndeAbzweig']	? connections['EndeAbzweig'].GleisID 	: '') + "\t"
+		+ (connections['EndeKoAbzweig']	? connections['EndeKoAbzweig'].GleisID 	: '') + "\t"
+	)
+}}
+	
 }
 
 function createSVGfinalize(SVGfragment) {
@@ -2503,7 +2517,7 @@ function createSVGforGleisobjekte(SVGfragment) {
 		// see https://www.nayuki.io/page/convex-hull-algorithm
 		const hull = convexhull.makeHull(points);
 		const svgPath = hull.map(function(point, i) {
-								return (i === 0 ? "M" : " L") + point.x + " " + point.y;
+								return (i === 0 ? "M" : " L") + point.x + " " + (-point.y);	// svg: mirrored y-coordinate
 							}).join("") + "Z";
 		svgAppend(svgGleisobjektGroup, {
 			svg_tag				: `path`,
@@ -2635,12 +2649,12 @@ function createSVGforKameras(SVGfragment) {
 		const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
 
 		PosX = +FramePos.getAttribute("x") / 100;
-		PosY = -FramePos.getAttribute("y") / 100;
+		PosY = +FramePos.getAttribute("y") / 100;
 		PosZ = +FramePos.getAttribute("z") / 100;
 
 		// Bei den Kameras gibt der Dir-Vektor zum Teil sowohl die Blickrichtung wie auch die Sichtweite an und muss daher normalisiert werden
 		DirX = +FrameDir.getAttribute("x");
-		DirY = -FrameDir.getAttribute("y");
+		DirY = +FrameDir.getAttribute("y");
 		DirZ = +FrameDir.getAttribute("z");
 		const norm = Math.sqrt(DirX*DirX + DirY*DirY + DirZ*DirZ);
 		DirX /= norm;
@@ -2648,11 +2662,11 @@ function createSVGforKameras(SVGfragment) {
 		DirZ /= norm;
 
 		NorX = +FrameNor.getAttribute("x");
-		NorY = -FrameNor.getAttribute("y");
+		NorY = +FrameNor.getAttribute("y");
 		NorZ = +FrameNor.getAttribute("z");
 
 		BinX = +FrameBin.getAttribute("x");
-		BinY = -FrameBin.getAttribute("y");
+		BinY = +FrameBin.getAttribute("y");
 		BinZ = +FrameBin.getAttribute("z");
 
 		mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
@@ -2749,7 +2763,7 @@ function createSVGforRahmen(SVGfragment) {
 		svg_tag	: `rect`,
 		"class"	: `box`,
 		x		:  Area.min.x,
-		y		:  Area.min.y,
+		y		:  - Area.height - Area.min.y,	// svg: mirrored y-coordinate
 		width	:  Area.width,
 		height	:  Area.height,
 	});
@@ -2759,7 +2773,7 @@ function createSVGforRahmen(SVGfragment) {
 		svg_tag	: `rect`,
 		"class"	: `box`,
 		x		:  global.usedArea.min.x,
-		y		:  global.usedArea.min.y,
+		y		:  - global.usedArea.max.y,	// svg: mirrored y-coordinate
 		width	:  global.usedArea.max.x - global.usedArea.min.x,
 		height	:  global.usedArea.max.y - global.usedArea.min.y,
 	});
@@ -2794,7 +2808,7 @@ transform="matrix(cos(α),sin(α),-sin(α),cos(α),x,y) matrix(1,0,0,1,-x,-y)" e
 			NorX, NorY, NorZ, n0,
 			BinX, BinY, BinZ, b0,
 			PosX, PosY, PosZ, scale ] = m;
-	return `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`;
+	return `matrix(${DirX} ${-DirY} ${NorX} ${-NorY} ${PosX} ${-PosY})`;	// svg: mirrored y-coordinate
 }
 
 function calcBezierCurve(BezierPoints, t) {
@@ -2938,9 +2952,9 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 
 	// Create svg path command
 	let i;
-	let svgBezierPath = "M " + pathPoints[0].x + " " + pathPoints[0].y; // Complete path e.g. "M 60 -100 C 100 100 421 154 406 249 C ..."
+	let svgBezierPath  = "M "  + pathPoints[0].x   + " " + pathPoints[0].y; // Complete path e.g. "M 60 -100 C 100 100 421 154 406 249 C ..."
 	for (i=1; i<pathPoints.length; i=i+3) {
-		svgBezierPath += " C " + pathPoints[i].x + " " + pathPoints[i].y
+		svgBezierPath += " C " + pathPoints[i].x   + " " + pathPoints[i].y
 					  +  " "   + pathPoints[i+1].x + " " + pathPoints[i+1].y
 					  +  " "   + pathPoints[i+2].x + " " + pathPoints[i+2].y;
 	}
@@ -4533,7 +4547,7 @@ function centerPosition(Position) {
 
 	const posX = 12, posY = 13, posZ = 14;
 	const panX 		= width/2	- Position[posX] * realZoom;
-	const panY 		= height/2	- (Position[posY]) * realZoom;
+	const panY 		= height/2	- (-Position[posY]) * realZoom;	// svg: mirrored y-coordinate
 
 	panZoom.pan({x: panX, y: panY});
 }
@@ -4778,7 +4792,7 @@ function showUsedArea(panZoom, pan) {
 	const realZoom		= panZoom.getSizes().realZoom;
 
 	const panX 			= width/2  - ( global.usedArea.min.x + usedwidth/2  ) * realZoom;
-	const panY 			= height/2 - ( global.usedArea.min.y + usedheight/2 ) * realZoom;
+	const panY 			= height/2 + ( global.usedArea.max.y - usedheight/2 ) * realZoom;	// svg: mirrored y-coordinate
 	const scale 		= Math.min( width  / usedwidth,
 									height / usedheight ) / realZoom;
 
@@ -5015,9 +5029,9 @@ function showGleisInfo(GleissystemID, GleisID) {
 		code: "Gleis " + GleissystemID + "-" + GleisID,
 		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
 		content:
-			`${_('Position')} ${_('Anfang')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[posX].toFixed(0)}m, ${-Gleis.mPos[posY].toFixed(0)}m<\/a>)`
-			+ `<br>${_('Mitte')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[posX].toFixed(0)}m, ${-Gleis.mMid[posY].toFixed(0)}m<\/a>)`
-			+ `<br>${_('Ende')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}])">${Gleis.mEnd[posX].toFixed(0)}m, ${-Gleis.mEnd[posY].toFixed(0)}m<\/a>)`
+			`${_('Position')} ${_('Anfang')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[posX].toFixed(0)}m, ${Gleis.mPos[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Mitte')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[posX].toFixed(0)}m, ${Gleis.mMid[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Ende')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}])">${Gleis.mEnd[posX].toFixed(0)}m, ${Gleis.mEnd[posY].toFixed(0)}m<\/a>)`
 			+ `<br>${_('Gleisart')}: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
 			+ (GleisData != 0 ? `<br>${GleisDataText[GleisData]}` : "")
 			+ `<br>${_('Stil')}: ${stil}`
@@ -5607,13 +5621,13 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 		code: "Kamera " + KameraID + " " + Kamera.Name,
 		title: '📷 ' + Kamera.Name, // 📷 \u1F4F7
 		content: //`<b>${Kamera.Name}<\/b><br>` +
-			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${-PosY.toFixed(0)}m<\/a>)`
+			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m<\/a>)`
 			+ `<br>${_('Höhe')}: ${PosZ.toFixed(0)}m`
-			+ `<br>${_('Blickrichtung')}: ` 		 + angle( angleZ )			// Neigung Z
-			+ " " + ['W', 'WSW', 'SW', 'SSW', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO', 'N', 'NNW', 'NW', 'WNW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)]
+			+ `<br>${_('Blickrichtung')}: ` 		 + angle( -angleZ )			// svg: mirrored y-coordinate
+			+ " " + ['W', 'WNW', 'NW', 'NNW', 'N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)] 			
 			+ `<br>${_('Neigung')}: ` 				 + angle( angleY )			// Neigung Y
 			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : "")	// Neigung X
-			+ `<br>` + (Dynamic == 0 ? _('statisch') : _('dynamisch'))
+			+ `<br>` + (Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6  
 			+ objectToHTML(Kamera)
 	});
 }

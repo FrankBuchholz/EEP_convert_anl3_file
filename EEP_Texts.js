@@ -126,7 +126,7 @@ info : {
 	Wasserwege : {
 		DE : `Wasserwege`, 
 		EN : `Waterways`, 
-		FR : `Navigable`, 
+		FR : `Navigable`, // Cours d'eau
 	},
 	Steuerstrecken : {
 		DE : `Steuerstrecken`, 
@@ -160,8 +160,8 @@ info : {
 	},
 	Prellbock : {	// Gleisart
 		DE : `Prellbock`, 
-		EN : `Track closure`,
-		FR : `Butoir`, 
+		EN : `Track closure`,	// End track
+		FR : `Butoir`,
 	},
 	Landschaftselemente : {	// Gebäudesammlung
 		DE : `Landschaftselemente`, 
@@ -365,13 +365,13 @@ info : {
 	},
 	'Fahrstraße' : { // 'Fahrstraßen' und 'Routen' sind in EEP verschiedene Objekte
 		DE : `Fahrstraße`, 
-		EN : `Predefined line`,
-		FR : `Parcour prédéfini`,
+		EN : `Predefined line`,			// Pre-set route
+		FR : `Parcour prédéfini`,		// Itinéraire prédéfini
 	},
 	'Fahrstraßen' : {
 		DE : `Fahrstraßen`, 
-		EN : `Predefined lines`,
-		FR : `Parcours prédéfini`,
+		EN : `Predefined lines`,		// Pre-set routes
+		FR : `Parcours prédéfini`,		// Itinéraires prédéfini
 	},
 	Route : { // 'Fahrstraßen' und 'Routen' sind in EEP verschiedene Objekte
 		DE : `Route`, 
@@ -381,12 +381,12 @@ info : {
 	Startsignal : {	// Startsignal einer Fahrstraße
 		DE : `Startsignal`, 
 		EN : `Start signal`, 
-		FR : `Signal de démarrage`, 
+		FR : `Signal de démarrage`, // Signal de départ
 	},
 	Endesignal : {	// Endesignal einer Fahrstraße
 		DE : `Endesignal`, 
 		EN : `End signal`, 
-		FR : `Signal de fin`, 
+		FR : `Signal de fin`, 		// Signal d'arrivée
 	},
 	Zielsignal : {	// Zielsignal eines Kontaktes
 		DE : `Zielsignal`, 
@@ -719,7 +719,7 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 	Omegas : {
 		DE : `Omegas`, 
 		EN : `Omegas`, 
-		FR : `Omégas`, 
+		FR : `Omégas`, // Personnages / Humains
 	},
 	Sound : {
 		DE : `Sound`, 
