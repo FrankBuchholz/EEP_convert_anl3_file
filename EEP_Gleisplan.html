@@ -1459,6 +1459,7 @@ return nodeList;
 
 				// Improved version, (but I still not know why this works rather well)
 				if (PosY2 === 0) { // && DirX2 === 1 && DirY2 === 0 && NorX2 === 0 && NorY2 === +/-1
+					// Shortcut
 					mMatrix = [
 								// Move from mid point of Helix to start point of track
 								Rematrix.translate3d(a * DirX, a * DirY, a * DirZ),
@@ -1466,16 +1467,17 @@ return nodeList;
 								// Frame
 								[DirX,  DirY,  DirZ,  0,    NorX,   NorY,   NorZ,   0,	BinX, BinY, BinZ, 0,	PosX,  PosY,  PosZ,  1 ],	// mMatrix
 
-								// VectorBundle2
+								// VectorBundle2 rotated by 90°
 								//[0,   NorY2, 0,     0,	-1,     0,      0,      0, 	0, 0, 1, 0,				0,     0,     0,     1 ],	// simplified
 								[NorX2, NorY2, NorZ2, 0,	-DirX2, -DirY2, -DirZ2, 0, 	0,    0,    1,    0,    PosX2, PosY2, PosZ2, 1 ],
 							  ].reduce(Rematrix.multiply);
-				} else {	
+				} else {
+					// Complete
 					mMatrix = [
 								// Frame
 								[DirX,  DirY,  DirZ,  0,    NorX,   NorY,   NorZ,   0,	BinX, BinY, BinZ, 0,	PosX,  PosY,  PosZ,  1 ],	// mMatrix
 
-								// VectorBundle2
+								// VectorBundle2 rotated by 90°
 								[NorX2, NorY2, NorZ2, 0,	-DirX2, -DirY2, -DirZ2, 0, 	0,    0,    1,    0,    PosX2, PosY2, PosZ2, 1 ],
 							  ].reduce(Rematrix.multiply);
 
@@ -1485,7 +1487,8 @@ return nodeList;
 					// The start point is shifted by Helix radius "a" perpendicular to the direction of the track
 					const mDelta = [
 						// 90° left or right dependend on the curvature of the Helix
-						Rematrix.rotateZ(90 * (Math.sign(mMatrix[_DirX]) * Math.sign(-mMatrix[_NorY]) + Math.sign(mMatrix[_DirY]) * Math.sign(mMatrix[_NorX]) >=0 ? 1 : -1)),
+						// Rematrix.rotateZ(90 * (Math.sign(mMatrix[_DirX]) * Math.sign(-mMatrix[_NorY]) + Math.sign(mMatrix[_DirY]) * Math.sign(mMatrix[_NorX]) >=0 ? 1 : -1)),
+						Rematrix.rotateZ(90 * ( Math.sign(mMatrix[_DirY]) * Math.sign(mMatrix[_NorX]) >= 0 ? 1 : -1) ),
 
 						// Helix radius "a"
 						Rematrix.translate3d(a * mMatrix[_DirX], a * mMatrix[_DirY], a * mMatrix[_DirZ]),
@@ -1849,10 +1852,11 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			id		: `G${GleissystemID}-${GleisID}`,
 			"class"	: Gleisart[clsid]
 						+ " " + CurveType
+						+ " " + `stil-${stil}`
 						+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
 						+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
 						// Ein Kamerafahrweg ist immer unsichtbar
-						+ (stil == 100000 || (unsichtbar.includes(parseInt(stil)) && GleisData != 16) ? " " + "unsichtbar" : ""),
+						+ " " + (stil == 100000 || (unsichtbar.includes(parseInt(stil)) && GleisData != 16) ? "unsichtbar" : "sichtbar"),
 		});
 
 		// Calculate end point and create svg curve
@@ -1877,7 +1881,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			// The svg command "M x0 y0 C x1 y1 x2 y2 x3 y3" uses the coordinates of the bezier points of the cubic curve.
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
-				class				: `stil-${stil}`,
+				//class				: `stil-${stil}`,
 				d 					: `M ${B1X} ${B1Y} C ${B2X} ${B2Y} ${B3X} ${B3Y} ${B4X} ${B4Y}`,
 				transform 			: matrixToTransform(mMatrix)
 			});
@@ -1922,7 +1926,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
-				class				: `stil-${stil}`,
+				//class				: `stil-${stil}`,
 				d 					: `M 0 0 H ${Laenge}`,
 				transform 			: matrixToTransform(mMatrix)
 			});
@@ -1965,7 +1969,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
-				class				: `stil-${stil}`,
+				//class				: `stil-${stil}`,
 				d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
 				transform 			: matrixToTransform(mMatrix)
 			});
@@ -3676,6 +3680,8 @@ if (typeof module === "undefined") {
 	<input type="checkbox" name="active" 		checked autocomplete="off" onchange="toggleElements('.active', this.checked)"><span lang="de">aktiv</span><span lang="en">active</span><span lang="fr">actif</span></label></div>
 	<div class="item"><label>	<!-- inactive -->
 	<input type="checkbox" name="inactive" 		checked autocomplete="off" onchange="toggleElements('.inactive', this.checked)"><span lang="de">inaktiv</span><span lang="en">inactive</span><span lang="fr">inactif</span></label></div>
+	<div class="item"><label>	<!-- sichtbar -->
+	<input type="checkbox" name="sichtbar" 		checked autocomplete="off" onchange="toggleElements('.sichtbar', this.checked)"><span lang="de">sichtbar</span><span lang="en">visible</span><span lang="fr">visible</span></label></div>
 	<div class="item"><label>	<!-- unsichtbar -->
 	<input type="checkbox" name="unsichtbar" 	checked autocomplete="off" onchange="toggleElements('.unsichtbar', this.checked)"><span lang="de">unsichtbar</span><span lang="en">invisible</span><span lang="fr">invisible</span></label></div>
 	<div class="item"><label>	<!-- Marker -->
@@ -6031,18 +6037,25 @@ Example with 3 modification rules:
 1. remove marker of .Prellbock
 2. show .inactive track like other tracks
 3. highlight specific track type .Helix after reducing the visibility of all track types .EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Helix
-Title: mod EEP
+Title: EEP Helix
 Code (6 lines):
 javascript:(function(){document.getElementById(%27modCSS%27).textContent=%27
 .Prellbock { marker-end: none}
 .inactive { stroke-opacity: 1.0}
-.EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Helix { stroke-width: calc(var(--normal-stroke-width)/2); stroke-opacity: 0.2; }
+.EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Clothoid, .Helix { stroke-width: calc(var(--normal-stroke-width)/2); stroke-opacity: 0.2; }
 .Helix { stroke-width: calc(var(--normal-stroke-width)*2); stroke-opacity: 1.0; }
 %27;})();
 
 Example to reset modifications:
-Title: 	reset EEP
+Title: 	EEP Reset
 Code:	javascript:(function(){document.getElementById(%27modCSS%27).textContent=%27%27;})();
+
+Example to filter out some track styles:
+Title: 	EEP Hide by style
+javascript:(function(){document.getElementById(%27modCSS%27).textContent=%27
+.stil-1520, .stil-5161, .stil-5076, .stil-731
+{display: none;}
+%27;})();
 
 */
 
