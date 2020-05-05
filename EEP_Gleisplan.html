@@ -319,7 +319,7 @@ Le programme fonctionne correctement avec les versions actuelles de  Google Chro
 <hr>
 
 <p lang="de">
-<small>(c) Frank Buchholz, 2020, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> sowie <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Anlagen), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (französische Übersetzung)</small></p>
+<small>(c) Frank Buchholz, 2020, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> sowie <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Anlagen), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (französische Übersetzung) und <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Berechnung von Helix-Gleisen)</small></p>
 
 <p lang="en">
 <small>(c) Frank Buchholz, 2020, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> as well as <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 track plans), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (French translation)</small></p>
@@ -1436,79 +1436,123 @@ return nodeList;
 				CurveType 	= 'Helix';
 
 				// relative position of center point of the Helix
-				const Pos 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
-				const PosX2 = +Pos.getAttribute("x");
-				const PosY2 = +Pos.getAttribute("y");
-				const PosZ2 = +Pos.getAttribute("z");
+				const Pos2 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
+				const PosX2 = +Pos2.getAttribute("x");
+				const PosY2 = +Pos2.getAttribute("y");
+				const PosZ2 = +Pos2.getAttribute("z");
 
 				// Tangent (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1)
-				const Dir 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0];
-				const DirX2 = +Dir.getAttribute("dx");
-				const DirY2 = +Dir.getAttribute("dy");
-				const DirZ2 = +Dir.getAttribute("dz");
+				const Dir2 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[0];
+				const DirX2 = +Dir2.getAttribute("dx");
+				const DirY2 = +Dir2.getAttribute("dy");
+				const DirZ2 = +Dir2.getAttribute("dz");
 
 				// Normal (= normalized direction vector with dx^2 + dy^2 + dz^2 = 1)
-				const Nor 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
-				const NorX2 = +Nor.getAttribute("dx");
-				const NorY2 = +Nor.getAttribute("dy");
-				const NorZ2 = +Nor.getAttribute("dz");
+				const Nor2 	= Helix.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
+				const NorX2 = +Nor2.getAttribute("dx");
+				const NorY2 = +Nor2.getAttribute("dy");
+				const NorZ2 = +Nor2.getAttribute("dz");
 
-				// Adjust position and direction
+				// Radius and height per circle
 				const a = +Helix.getAttribute("a");			// Radius (= offset) in x direction
-				const b = +Helix.getAttribute("b");			// Offset in z direction
+				const b = +Helix.getAttribute("b");			// height per circle in z direction
 
-				// Improved version, (but I still not know why this works rather well)
-				if (PosY2 === 0) { // && DirX2 === 1 && DirY2 === 0 && NorX2 === 0 && NorY2 === +/-1
-					// Shortcut
-					mMatrix = [
-								// Move from mid point of Helix to start point of track
-								Rematrix.translate3d(a * DirX, a * DirY, a * DirZ),
+				// Analyzed and developed by HStoni54, https://www.eepforum.de/user/6783-hstoni54/
 
-								// Frame
-								[DirX,  DirY,  DirZ,  0,    NorX,   NorY,   NorZ,   0,	BinX, BinY, BinZ, 0,	PosX,  PosY,  PosZ,  1 ],	// mMatrix
+				// Frame (= mMatrix)
+				const mFrame = [			DirX,  DirY,  DirZ,  0,    
+											NorX,  NorY,  NorZ,  0,    
+											BinX,  BinY,  BinZ,  0,    
+											PosX,  PosY,  PosZ,  1,	];
 
-								// VectorBundle2 rotated by 90°
-								//[0,   NorY2, 0,     0,	-1,     0,      0,      0, 	0, 0, 1, 0,				0,     0,     0,     1 ],	// simplified
-								[NorX2, NorY2, NorZ2, 0,	-DirX2, -DirY2, -DirZ2, 0, 	0,    0,    1,    0,    PosX2, PosY2, PosZ2, 1 ],
-							  ].reduce(Rematrix.multiply);
-				} else {
-					// Complete
-					mMatrix = [
-								// Frame
-								[DirX,  DirY,  DirZ,  0,    NorX,   NorY,   NorZ,   0,	BinX, BinY, BinZ, 0,	PosX,  PosY,  PosZ,  1 ],	// mMatrix
+				// VectorBundle2
+				const mVectorBundle2 = [	DirX2, DirY2, DirZ2, 0,
+											NorX2, NorY2, NorZ2, 0,
+											0,     0,     1,     0,
+											PosX2, PosY2, PosZ2, 1,	];
 
-								// VectorBundle2 rotated by 90°
-								[NorX2, NorY2, NorZ2, 0,	-DirX2, -DirY2, -DirZ2, 0, 	0,    0,    1,    0,    PosX2, PosY2, PosZ2, 1 ],
-							  ].reduce(Rematrix.multiply);
+				// Orientation forward/backward
+				const scalar = (far > near ? 1 : -1);
+				// rematrix.scaleY(scalar)
+				const mOrientation =	[	1, 0,      0, 0,
+											0, scalar, 0, 0,
+											0, 0,      1, 0,
+											0, 0,      0, 1,	];
 
-					// Indices to adress matrix elements
-					const _DirX = 0, _DirY = 1, _DirZ = 2, _NorX = 4, _NorY = 5, _PosX = 12, _PosY = 13, _PosZ = 14;  
+				// Helix
+				// rematrix.translateX(a)
+				const mHelix = 	[	1, 0, 0, 0,
+									0, 1, 0, 0,
+									0, 0, 1, 0,
+									a, 0, 0, 1,	];
 
-					// The start point is shifted by Helix radius "a" perpendicular to the direction of the track
-					const mDelta = [
-						// 90° left or right dependend on the curvature of the Helix
-						// Rematrix.rotateZ(90 * (Math.sign(mMatrix[_DirX]) * Math.sign(-mMatrix[_NorY]) + Math.sign(mMatrix[_DirY]) * Math.sign(mMatrix[_NorX]) >=0 ? 1 : -1)),
-						Rematrix.rotateZ(90 * ( Math.sign(mMatrix[_DirY]) * Math.sign(mMatrix[_NorX]) >= 0 ? 1 : -1) ),
+				// swap x/y and mirror at x axis because of upside-down orientation in SVG
+				const mSwap =	[	0,  1, 0, 0,
+									-1, 0, 0, 0,
+									0,  0, 1, 0,
+									0,  0, 0, 1,	];
+								
+				// Rotation of point on helix related to start point (0° at start point = Identity)
+				/*
+				//const s 	= Math.atan(b/a); // better use atan2 to get the orientation automatically
+				const s 	= Math.atan2(b, a);
+				const w0 	= Math.cos(s);
+				const w     = (-near) 		/ a * w0;
+				const wMid	= (far-near)/2 / a * w0;
+				const wEnd	= (far) 		/ a * w0;
+				const dh 	= b * w; // * (DirX2 * NorY2 >= 0 ? 1 : -1);
+				*/
+				const r    = Math.sqrt(a*a + b*b);
+				const wPos = (-near) 		/ r;
+				const wMid = (far-near)/2 / r;
+				const wEnd = (far) 		/ r;
 
-						// Helix radius "a"
-						Rematrix.translate3d(a * mMatrix[_DirX], a * mMatrix[_DirY], a * mMatrix[_DirZ]),
-					].reduce(Rematrix.multiply);
+				// mPos
+				mMatrix = [
+							mFrame,
+							mVectorBundle2,
+							mOrientation,
+							// rematrix.rotateZ(angle) * 
+							[	Math.cos(wPos),  Math.sin(wPos),  0,  	  0,
+								-Math.sin(wPos), Math.cos(wPos),  0,  	  0,
+								0,            0,            	  1,  	  0,
+								0,            0,          		  b*wPos, 1,	],
+							mHelix,
+							mSwap,
+						  ].reduce(Rematrix.multiply);
+				const mMid = [
+							mFrame,
+							mVectorBundle2,
+							mOrientation,
+							[	Math.cos(wMid),  Math.sin(wMid),  0,  	  0,
+								-Math.sin(wMid), Math.cos(wMid),  0,  	  0,
+								0,            0,            	  1,  	  0,
+								0,            0,          		  b*wMid, 1,	],
+							mHelix,
+							mSwap,
+						  ].reduce(Rematrix.multiply);
+				const mEnd = [
+							mFrame,
+							mVectorBundle2,
+							mOrientation,
+							[	Math.cos(wEnd),  Math.sin(wEnd),  0,  	  0,
+								-Math.sin(wEnd), Math.cos(wEnd),  0,  	  0,
+								0,            0,            	  1,  	  0,
+								0,            0,          		  b*wEnd, 1,	],
+							mHelix,
+							mSwap,
+						  ].reduce(Rematrix.multiply);
 
-					// Move from mid point of Helix to start point of track
-					mMatrix = [
-						Rematrix.translate3d(mDelta[_PosX], mDelta[_PosY], mDelta[_PosZ]),
-						mMatrix,
-					].reduce(Rematrix.multiply);
-				}
-
+if (GleissystemID == "3" && GleisID == "559"	) debugger;
 				const Radius = a;
 				Kruemmung 	= 1 / Radius;
 
 				Gleis.Helix = {	// Store Helix parameters
-					a: 			a,
-					b: 			b,
-					PosX2: 		PosX2,
-					PosY2: 		PosY2,
+					a: 		a,
+					b: 		b,
+					mPos:	mMatrix,
+					mMid:	mMid,
+					mEnd:	mEnd,
 				};
 				
 // Error: wrong positions of Helix
@@ -1976,10 +2020,14 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 		}
 
-		Gleis.mEnd = [
-				mMatrix,
-				Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
-			].reduce(Rematrix.multiply);
+		if (Gleis.Helix) {
+			Gleis.mEnd = Gleis.Helix.mEnd;
+		} else {
+			Gleis.mEnd = [
+					mMatrix,
+					Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
+				].reduce(Rematrix.multiply);
+		}
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
 		if (Key_Id) {
@@ -2037,10 +2085,14 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			DeltaZ			= 0;
 		}
 
-		Gleis.mMid = [
-				mMatrix,
-				Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
-			].reduce(Rematrix.multiply);
+		if (Gleis.Helix) {
+			Gleis.mMid = Gleis.Helix.mMid;
+		} else {
+			Gleis.mMid = [
+					mMatrix,
+					Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
+				].reduce(Rematrix.multiply);
+		}
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
 		// show GleisID in the middle above the track (left-adjusted)
@@ -2101,12 +2153,22 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		});
 
 		if (global.__showCircles__) {	// degugging feature
-			if (Gleis.Helix) { 
+			if (Gleis.Helix) {
 				// Show circle at Point
 				svgAppend(svgGleisGroup, {
 					svg_tag				: `circle`,
-					r					: Gleis.Helix.a,	// a, b, PosX2, PosY2
-					transform 			: matrixToTransform(Gleis.mPos),
+					r					: 0.2, //Gleis.Helix.a,
+					transform 			: matrixToTransform(Gleis.Helix.mPos),
+				});
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `circle`,
+					r					: 0.3,
+					transform 			: matrixToTransform(Gleis.Helix.mMid),
+				});
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `circle`,
+					r					: 0.4,
+					transform 			: matrixToTransform(Gleis.Helix.mEnd),
 				});
 			};
 			// Show circle at Point
@@ -6036,7 +6098,7 @@ function setColor(event) {
 Example with 3 modification rules:
 1. remove marker of .Prellbock
 2. show .inactive track like other tracks
-3. highlight specific track type .Helix after reducing the visibility of all track types .EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Helix
+3. highlight specific track type .Helix after reducing the visibility of all track types .EEPCurve, .Line, .Arc, .Rotator, .Cubic, .Clothoid, .Helix
 Title: EEP Helix
 Code (6 lines):
 javascript:(function(){document.getElementById(%27modCSS%27).textContent=%27
