@@ -74,6 +74,8 @@ Die GitHub-Bibliothek [`svg-pan-zoom`](https://github.com/ariutta/svg-pan-zoom) 
 
 Die GitHub-Bibliothek [`toolwindow`](https://github.com/fluffynuts/toolwindow) wurde angepasst und ist Teil des Projektes. Wenn man das Programm komplett lokal nutzen will muss das Verzeichnis `toolwindow` mit den Dateien `toolwindow.js` und `toolwindow.css` ebenfalls lokal kopiert werden. 
 
+Die GitHub-Bibliothek [`rematrix`](https://github.com/jlmakes/rematrix) wurde eingebunden und ist Teil des Projektes. Wenn man das Programm komplett lokal nutzen will muss das Verzeichnis `rematrix` mit der Datei `rematrix.js` ebenfalls lokal kopiert werden. 
+
 ---
 
 ## Programm: EEP_Inventar.html
