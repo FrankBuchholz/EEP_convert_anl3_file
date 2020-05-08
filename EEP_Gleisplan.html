@@ -3,6 +3,7 @@
 <!-- https://www.w3.org/International/questions/qa-html-language-declarations -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<META http-equiv="Content-Script-Type" content="text/javascript">
 <title>Interaktive Anzeige des Gleisplans zu einer EEP-Anlage-Datei (.anl3)</title>
 <meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl3-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit SVG-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von CSS. Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken svg-pan-zoom zum Verschieben und Zoomen und toolwindow zur Anzeige von Popups verwendet.">
 <meta name="author" content="Frank Buchholz">
@@ -11,6 +12,29 @@
 <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
 
 <script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
+
+<script type="text/javascript"> // Experiment to load scripts dynamically either from relative path or from fixed URL - not used yet
+"use strict";
+<!--
+/* Source: https://humanwhocodes.com/blog/2009/07/28/the-best-way-to-load-external-javascript/
+Usage:
+<script type="text/javascript">
+loadScript("http://your.cdn.com/script.js", function(){
+    //initialization code
+});
+</script>
+*/
+//-->
+function loadScript(url, callback){
+	const script = document.createElement("script")
+	script.type = "text/javascript";
+	script.onload = function(){	// IE would require different calls
+		callback();
+	};
+	script.src = url;
+	document.getElementsByTagName("head")[0].appendChild(script);
+}
+</script>
 
 <style> /* html page */
 html, body { /* deactivate default settings */
@@ -1508,7 +1532,7 @@ return nodeList;
 				const wEnd = (far) 		/ r;
 
 				// mPos
-				mMatrix = [
+				const mPos = mMatrix = [
 							mFrame,
 							mVectorBundle2,
 							mOrientation,
@@ -1543,14 +1567,60 @@ return nodeList;
 							mSwap,
 						  ].reduce(Rematrix.multiply);
 
-if (GleissystemID == "3" && GleisID == "559"	) debugger;
+
+//if (GleissystemID == "3" && GleisID == "559"	) debugger;
+
 				const Radius = a;
 				Kruemmung 	= 1 / Radius;
 
+				// Compare the endpoint of primitive projection of an Arc with the endpoint of the Helix
+				// If the difference is small use the Arc, otherwise use a Cubic to interpolate the Helix
+
+				const posX = 12, posY = 13, posZ = 14; // Index in mMatrix
+
+				const Winkel 	= Kruemmung * Laenge;
+				const DeltaX	= Math.sin(Winkel) * Radius;
+				const DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
+				const DeltaZ	= 0;
+				const d1		= Math.sqrt(DeltaX*DeltaX + DeltaY*DeltaY + DeltaZ*DeltaZ);
+				const d2		= Math.sqrt(	  (mEnd[posX]-mPos[posX]) * (mEnd[posX]-mPos[posX]) 
+												+ (mEnd[posY]-mPos[posY]) * (mEnd[posY]-mPos[posY])
+												+ (mEnd[posZ]-mPos[posZ]) * (mEnd[posZ]-mPos[posZ])
+												);
+				const dDiff		= Math.abs(d1-d2);								
+
+console.log("Helix Vergleich\t" + GleisID
+	+ "\tDelta:\t" + d1 + "\t" + d2 + "\t" + dDiff
+)
+
+				if (dDiff > 1) {	// difference is too large, go für Cubic interpolation
+					/* Interpolate Helix with Cubic:
+					Analyzed and developed by HStoni54, https://www.eepforum.de/user/6783-hstoni54/
+					
+					f = |far - near| / 2 / sqrt(a^2 + b^2)
+					B1 = mPos
+					B2 = mPos * translate3d(a*f,  0,  b*f)
+					B3 = mEnd * translate3d(-a*f, 0, -b*f)
+					B4 = mEnd
+					*/
+					
+					const f = Math.abs(far - near) / 2 / Math.sqrt(a*a + b*b);	// f = Math.abs(wMid);
+					const mB1 = mPos;
+					const mB2 = Rematrix.multiply(mPos, Rematrix.translate3d( a*f, 0,  b*f) );
+					const mB3 = Rematrix.multiply(mEnd, Rematrix.translate3d(-a*f, 0, -b*f) );
+					const mB4 = mEnd;
+					
+					mMatrix = Rematrix.identity();
+					Gleis.BezierPoints = [	[mB1[posX], mB1[posY], mB1[posZ]], 
+											[mB2[posX], mB2[posY], mB2[posZ]], 
+											[mB3[posX], mB3[posY], mB3[posZ]], 
+											[mB4[posX], mB4[posY], mB4[posZ]],	];
+				}
+				
 				Gleis.Helix = {	// Store Helix parameters
 					a: 		a,
 					b: 		b,
-					mPos:	mMatrix,
+					mPos:	mPos,
 					mMid:	mMid,
 					mEnd:	mEnd,
 				};
@@ -1904,7 +1974,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		});
 
 		// Calculate end point and create svg curve
-		if (CurveType === 'Cubic') {
+		if (Gleis.BezierPoints) { //CurveType === 'Cubic'
 			const t = 1;
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
@@ -2020,7 +2090,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 		}
 
-		if (Gleis.Helix) {
+		if (false && Gleis.Helix) {
 			Gleis.mEnd = Gleis.Helix.mEnd;
 		} else {
 			Gleis.mEnd = [
@@ -2050,7 +2120,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		}
 
 		// Calculate mid point
-		if (CurveType === "Cubic") {
+		if (Gleis.BezierPoints) { //CurveType === 'Cubic'
 			const t = 0.5;
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${-DeltaY})`;	// svg: mirrored y-coordinate
@@ -2085,7 +2155,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			DeltaZ			= 0;
 		}
 
-		if (Gleis.Helix) {
+		if (false && Gleis.Helix) {
 			Gleis.mMid = Gleis.Helix.mMid;
 		} else {
 			Gleis.mMid = [
@@ -2153,6 +2223,28 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		});
 
 		if (global.__showCircles__) {	// degugging feature
+			if (Gleis.Helix && Gleis.BezierPoints) {
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `circle`,
+					r					: 0.2,
+					transform			: `translate(${Gleis.BezierPoints[0][0]} ${-Gleis.BezierPoints[0][1]})`
+				});
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `circle`,
+					r					: 0.4,
+					transform			: `translate(${Gleis.BezierPoints[1][0]} ${-Gleis.BezierPoints[1][1]})`
+				});
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `circle`,
+					r					: 0.4, 
+					transform			: `translate(${Gleis.BezierPoints[2][0]} ${-Gleis.BezierPoints[2][1]})`
+				});
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `circle`,
+					r					: 0.2,
+					transform			: `translate(${Gleis.BezierPoints[3][0]} ${-Gleis.BezierPoints[3][1]})`
+				});
+			}
 			if (Gleis.Helix) {
 				// Show circle at Point
 				svgAppend(svgGleisGroup, {
@@ -2224,7 +2316,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			const ParaOderAnti 	= trackSignalEntry.ParaOderAnti; //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 
 			// Calculate point
-			if (CurveType === "Cubic") {
+			if (Gleis.BezierPoints) { //CurveType === 'Cubic'
 				const t = (Laenge ? Position / Laenge : 0);
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
@@ -2330,7 +2422,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			global.Kontakte.Anzahl += 1;
 
 			// Calculate point
-			if (CurveType === "Cubic") {
+			if (Gleis.BezierPoints) { //CurveType === 'Cubic'
 				const t = (Laenge ? Position / Laenge : 0);
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints, t);
 
