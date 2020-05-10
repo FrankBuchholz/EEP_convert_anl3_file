@@ -1,0 +1,3213 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Interaktive Anzeige des Gleisplans zu einer EEP-Anlage-Datei (.anl)</title>
+<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit SVG-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von CSS. Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken svg-pan-zoom zum Verschieben und Zoomen und toolwindow zur Anzeige von Popups verwendet.">
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,Gleisplan" />
+<meta name="language" content="de" />
+<link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
+
+<style> /* html page */
+html, body { /* deactivate default settings */
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	--header-background-color: STEELBLUE; /* ThreeDHighlight; */
+	--header-text-color: WHITE; /* CaptionText; */
+	
+	--body-background-color: WhiteSmoke; /* AZURE; Window; */
+	--body-text-color: BLACK; /* WindowText; */
+	
+	--footer-background-color: CADETBLUE; /* ButtonFace; */
+	--footer-text-color: WHITE; /* ButtonText; */
+}
+
+.hidden {
+	display: none;
+}
+
+ /* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not relilaby. */
+.no-select,
+fieldset,
+select,
+input,
+button {
+	user-select: none;
+}
+
+kbd { 
+	white-space: nowrap;		/* keep checkbox and label together */
+	border: 1px solid #aaa; 
+	-moz-border-radius: 0.2em; 
+	-webkit-border-radius: 0.2em; 
+	border-radius: 0.2em; 
+	-moz-box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1); 
+	-webkit-box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1); 
+	box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1); 
+	background-color: #f9f9f9; 
+	background-image: -moz-linear-gradient(top, #eee, #f9f9f9, #eee); 
+	background-image: -o-linear-gradient(top, #eee, #f9f9f9, #eee); 
+	background-image: -webkit-linear-gradient(top, #eee, #f9f9f9, #eee); 
+	background-image: linear-gradient(to bottom, #eee, #f9f9f9, #eee); 
+	color: #000; 
+	padding: 0.1em 0.3em; 
+	font-family: inherit; 
+	font-size: 0.85em;
+}
+</style>
+</head>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<body>
+
+<section id="fileselector"> <!-- Selection screen --> 
+<header>
+<h3>EEP Gleisplan</h3>
+</header>
+
+<article>
+<form action="#" onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better -->
+	<label for="fileinput">Wähle und lade eine EEP-Anlage-Datei (.anl3)</label>
+	<input type="file" id="fileinput" accept=".anl3" onchange="loadFile(this.files && this.files[0])">
+	<!-- An extra button is not neccessary -->
+	<!-- <input type="button" id="btnLoad" value="Load" onclick="loadFile();"> -->
+</form>
+</article>
+
+<article>
+<p><small><strong>Mausfunktionen</strong><br/>
+Verschieben: Klick+Halten+Bewegen<br/>
+An der Stelle des Cursors hineinzoomen: Doppelklick<br/>
+Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick<br/>
+Details anzeigen: Klick auf Gleis, Symbol oder Text (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet)</small></p>
+
+<p><small><strong>Tastaturfunktionen</strong><br/>
+<kbd>&larr;</kbd> <kbd>&uarr;</kbd> <kbd>&rarr;</kbd> <kbd>&darr;</kbd> : Verschieben der Graphik (wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann jeweils um eine halbe Seite)<br/>
+<kbd>+</kbd> <kbd>-</kbd> : Zoomen</small></p>
+
+<p><small><strong>Interaktive Funktionen</strong><br/>
+Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F11</kbd>)<br/>
+Zoom-in, -out, -reset<br/>
+Auswahl der anzuzeigenden Gleissysteme<br/>
+Auswahl der anzuzeigenden Informationen (GleisID, Gleisstil, Höhe, Signale, Kontakte)<br/>
+Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br/>
+Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br/>
+Einstellung der Linien- und Textbreite
+</small></p>
+
+<p><small><strong>Referenzen / verwandte Programme</strong><br/>
+Diskussionbeitrag im <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br/>
+Entwicklungsprojekt auf <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br/>
+Anzeige einer <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">Inventarliste</a> zu einer EEP-Anlage<br/>
+Übersicht zu den <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">Signalstellungen</a> anhand der extrahierten .ini-Dateien zu Signalen (siehe EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
+</article>
+
+<article>
+<p><small><strong>Technische Beschreibung</strong><br/>
+Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br/>
+Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br/>
+Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br/>
+Das Programm läuft in aktuellen Versionen von Google Chome und Firefox, nicht jedoch im Internet Explorer.</small></p>
+</article>
+
+<footer>
+<p><small>(c) Frank Buchholz, 2020, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a></small></p>
+</footer>
+
+<style> /* Selection screen */
+#fileselector {
+	margin: 15px;
+}
+</style>
+<script type="text/javascript" src="node_modules/rematrix/dist/rematrix.js"></script> <!-- https://github.com/jlmakes/rematrix -->
+<!-- <script type="text/javascript" src="https://unpkg.com/rematrix"></script> --> <!-- latest version -->
+<!-- <script type="text/javascript" src="https://unpkg.com/rematrix@0.4.1/dist/rematrix.min.js"></script> --> <!-- version 0.4.1 -->
+<script type="text/javascript"> // Load and process file
+
+const global = {}; // Collection of all global variables
+
+function loadFile(file) {
+	var fr;
+	if (typeof window.FileReader !== "function") {
+		bodyAppend("p", "The file API isn't supported on this browser yet.");
+		return;
+	}
+
+	if (!file) {
+		bodyAppend("p", "Please select a file before clicking 'Load'");
+		return;
+	}
+	else {
+		global.timestamp = {};
+		global.timestamp.start = Date.now();
+	
+		fr = new FileReader();
+		fr.onload = processFile;
+		fr.readAsText(file);
+	}
+
+	// process file (local function to get access to local variable fr)
+	function processFile() {
+		global.timestamp.fileLoaded = Date.now();
+		console.log('load file:' + (global.timestamp.fileLoaded - global.timestamp.start) / 1000 + 'sec');
+
+		updateUi(function() {
+			// Hide file selector
+			document.getElementById("fileselector").classList.add("hidden");
+
+			// Show loading
+			document.getElementById("loading").classList.remove("hidden");
+		}).then(function() {
+			// Create parser
+			var parser = new DOMParser();
+			// Parse xml into DOM
+			var xmlDoc = parser.parseFromString(fr.result, "text/xml");
+			fr.result = null; // we do not need this data anymore
+
+			global.timestamp.fileParsed = Date.now();
+			console.log('parse file:' + (global.timestamp.fileParsed - global.timestamp.fileLoaded) / 1000 + 'sec');
+
+			return xmlDoc;
+		}).then(function(xmlDoc) {
+			let progress = document.getElementById("progress");
+
+			// Process root node (documentElement always represents the root node)
+			const sutrackp = xmlDoc.documentElement;
+			global.sutrackp = sutrackp;
+			return svgCreate(sutrackp, initProgress, incrementProgress);
+
+			function initProgress(progressMax) {
+				return updateUi(function() {
+					progress.max = progressMax;
+					progress.value = 0;
+					progress.classList.remove("hidden");
+				});
+			}
+			function incrementProgress() {
+				return updateUi(function() {
+					progress.value++;
+				});
+			}
+		}).then(function() {
+			// Hide loading
+			document.getElementById("loading").classList.add("hidden");
+
+			// Show main area
+			document.getElementById("main").classList.remove("hidden");
+			// Show file name
+			document.getElementById("filename").textContent = file.name.substring(0, file.name.length -1 -1 -3);
+
+			// Read settings from localStorage
+			const strokeWidth = localStorage.getItem('strokeWidth') || document.getElementById("strokeWidth").value;					
+			document.getElementById("strokeWidth").value = strokeWidth;
+			const fontSize = localStorage.getItem('fontSize') || document.getElementById("fontSize").value;
+			document.getElementById("fontSize").value = fontSize;
+					
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (key.indexOf("checkbox_") === 0) { // Read checkbox settings
+					const checkbox = document.querySelector(`input[type="checkbox"][name="${key.substring(9)}"]`);
+					if (checkbox) {
+						const value = localStorage.getItem(key) === "true";
+						if (checkbox.checked !== value) {
+							checkbox.checked = value;
+							checkbox.dispatchEvent(new Event("change"));
+						}
+					}
+				} else {
+				}
+			}
+
+			// Activate Pan and Zoom
+			global.SvgPanZoom = SvgPanZoom();
+			changefontSize(fontSize);
+			changeStrokeWidth(strokeWidth);			
+			return; 
+			
+		}, function(err) {
+			// `</pre>` confuses syntax detection within Notepad++, therefore I've to use "</pre>"
+			document.getElementById("loading").innerHTML = `Fehler beim Lesen der Datei:<br>${err.name}: "${err.message}" in line ${err.lineNumber}<br><pre>${err.stack}` + "</pre>";
+			console.log(err);
+		});
+	}
+
+}
+
+// helper method which waits some time to let the browser update the ui
+function updateUi(fn) {
+	return new Promise(function(resolve) {
+		requestAnimationFrame(function() {
+			const result = fn();
+			requestAnimationFrame(function() {
+				resolve(result);
+			});
+		});
+	});
+}
+</script>
+<script> // DOM2SVG
+
+// Process root node (sutrackp)
+// EEP: Static texts
+const GleissystemText = { 			// GleissystemID
+	1 : "Eisenbahn",
+	2 : "Strassenbahn",
+	3 : "Strasse",
+	4 : "Wasserwege",
+	5 : "Steuerstrecken",			// nicht in EEP 9
+	6 : "GBS",						// nicht in EEP 9
+};
+
+const Gleisart = { 					// clsid
+	"2E25C8E2-ADCD-469A-942E-7484556FF932" : "Normal",
+	"C889EADB-63B5-44A2-AAB9-457424CFF15F" : "Weiche",
+	"B0818DD8-5DFD-409F-8022-993FD3C90759" : "3-Weg-Weiche",
+	"06D80C90-4E4B-469B-BFE0-509A573EBC99" : "Prellbock",
+};
+	
+// GleisData
+const GleisDataText = {
+	1	: 'Oberleitung',
+	2	: 'Weichenlaterne verstecken ',
+	3	: 'Oberleitung, Weichenlaterne verstecken ',
+	4	: 'Weichenlaterne rechts',
+	5	: 'Oberleitung, Weichenlaterne rechts',
+	8	: 'Weichenlaterne links',
+	9	: 'Oberleitung, Weichenlaterne links',
+	16	: 'Weichenlaterne als Immobilie/Straßen-T-Kreuzung',
+	18	: 'Doppelkreuzungsweiche',
+	19	: 'Oberleitung, Doppelkreuzungsweiche',
+	20	: 'Straßen-T-Kreuzung',
+};
+
+// Weichenstellung
+const WeichenstellungText = { 	
+	1 : 'Durchfahrt',
+	2 : 'Abzweig',
+	3 : 'KoAbzweig',
+	5 : 'Spezial',
+};
+
+function svgCreate(sutrackp, initProgress, incrementProgress) {
+
+	/* Gleisstile:
+	http://up.picr.de/33875489iu.pdf
+	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
+	*/
+	const unsichtbar = [			// unsichtbare Gleisstile
+		17, 						// Wasser, Steuerstrecke
+		28, 34, 562, 1346, 5100,	// Gleis
+		35, 						// Strassenbahn
+		36, 						// Strasse
+		5145, 5146, 5147,			// Farm track
+		5602,						// Fence
+		100000,						// Kamerafahrweg
+	];
+
+	const Version = sutrackp.getElementsByTagName("Version")[0];
+	if (Version) {
+		const EEPversion = Version.getAttribute("EEP");	
+		if (EEPversion && EEPversion >= 16) {
+			bodyAppend("p",
+				`Die Anlagedatei aus EEP Version ${EEPversion} wird von den Programmen EEP_Gleisplan und EEP_Inventar noch nicht unterstützt.
+				`
+			);	
+			return;
+		}
+	}
+	
+	const Schandlaft 	= sutrackp.getElementsByTagName("Schandlaft")[0];
+
+	// Groesse der Anlage (alle Positionsangaben in m statt cm)
+	const Area = {
+		min : {
+			x : Schandlaft.getAttribute("posX") / 100,
+			y : Schandlaft.getAttribute("posY") / 100,
+		},
+		width  	: Math.abs(Schandlaft.getAttribute("posX") * 2 / 100),
+		height 	: Math.abs(Schandlaft.getAttribute("posY") * 2 / 100),
+	};
+
+	// Verwendeter Bereich der Anlage
+	global.usedArea = {
+		min : {x : 0, y : 0, z : 0},
+		max : {x : 0, y : 0, z : 0},
+	};
+
+	// Maps for direct access (Preparation to separate analysis of the file from creating the output.)
+	// Verwendung z.B.: Gleis = GleissystemMap.get(GleissystemID).get(GleisID))
+	global.GleissystemMap 	= new Map();
+	global.MeldungenMap 	= new Map();
+	global.WeichenMap 		= new Map();
+	global.KontakteArray	= [];
+	global.KontaktZiele		= {};
+
+	// Append new svg elements to this root node which we apend to the svg node later
+	let fragment = document.createDocumentFragment();
+
+	// Preparation: Collect "active" tracks
+	const activeTracks = [];		// Gleise, auf denen Züge stehen oder die Kontakte bzw. Signale enthalten
+									// oder die mit solchen Gleisen verbunden sind
+	// Preparation: Collect connected tracks
+	const trackConnections = [];	// Gleisverbindungen
+
+	// Preparation: Collect signals on tracks
+	const trackSignals = [];		// Vor- und Hauptsignale
+
+	const Gleissysteme 	= sutrackp.getElementsByTagName("Gleissystem");
+	for (const Gleissystem of Gleissysteme) {
+
+		// Use attribute TrackSystemNumber instead of GleissystemID if available
+		let GleissystemID 	= Gleissystem.getAttribute("TrackSystemNumber");
+		if (!GleissystemID) {
+			GleissystemID 	= Gleissystem.getAttribute("GleissystemID");
+		}
+		global.GleissystemMap.set(GleissystemID, new Map());
+		activeTracks[GleissystemID] = [];
+		trackSignals[GleissystemID] = [];
+
+		const Gleise 			= Gleissystem.getElementsByTagName("Gleis");
+		for (const Gleis of Gleise) {
+			const GleisID 	= Gleis.getAttribute("GleisID");
+			Gleis.GleissystemID = GleissystemID;
+			global.GleissystemMap.get(GleissystemID).set(GleisID, Gleis);
+			
+			// Weichen
+			const WeicheID = Number(Gleis.getAttribute("Key_Id"));
+			global.WeichenMap.set(WeicheID, Gleis);
+
+			// Weichen mit KontaktZiel 
+			const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0];
+			if (KontaktZielEntry) {
+				const KontaktZiel 	= KontaktZielEntry.textContent;
+				if (KontaktZiel != null && KontaktZiel != 0) {
+					global.KontaktZiele[KontaktZiel] = { 
+						Typ				: 'Weiche',
+						ID				: WeicheID,
+						GleissystemID 	: GleissystemID,
+						GleisID			: GleisID,
+					}
+				}
+			}
+
+			// Collect Meldungen to be able to create individual symbols for Vor- and Hauptsignal
+			for (const Meldung of Gleis.getElementsByTagName("Meldung")) {
+				const SignalID = Number(Meldung.getAttribute("Key_Id"));
+				Meldung.GleissystemID = GleissystemID;
+				Meldung.GleisID = GleisID;
+				global.MeldungenMap.set(SignalID, Meldung);
+
+				if (!trackSignals[GleissystemID][GleisID]) {
+					 trackSignals[GleissystemID][GleisID] = [];
+				}
+				trackSignals[GleissystemID][GleisID].push({Meldung : Meldung});
+				
+				// Signale mit KontaktZiel 
+				const KontaktZielEntry 	= Meldung.getElementsByTagName("KontaktZiel")[0];
+				if (KontaktZielEntry) {
+					const KontaktZiel 	= KontaktZielEntry.textContent;
+					if (KontaktZiel != null && KontaktZiel != 0) {
+						global.KontaktZiele[KontaktZiel] = { 
+							Typ 			: 'Signal',
+							ID				: SignalID,
+							GleissystemID 	: GleissystemID,
+							GleisID			: GleisID,
+						}
+					}
+				}
+			}
+			
+			// Signale, die nur zur Anzeige dienen und keine Züge beeinflussen sollen werden gerne auf "inaktive" Gleise gesetzt.
+			// Alternativ könnte man nicht-verbundene Einzelgleise als "inaktive" interpretieren.
+			// A track having a Signal is an "active" track
+			/*
+			for (const Meldung of Gleis.getElementsByTagName("Meldung")) {
+				if (!activeTracks[GleissystemID].includes(GleisID)) {
+					 activeTracks[GleissystemID].push(GleisID);
+				}
+			}
+			*/
+			
+			// Kontakte
+			// A track having a Kontakt is an "active" track
+			for (const Kontakt of Gleis.getElementsByTagName("Kontakt")) {
+				if (!activeTracks[GleissystemID].includes(GleisID)) {
+					 activeTracks[GleissystemID].push(GleisID);
+				}
+			}
+		} // Gleise
+
+		// Gleisverbindungen
+		trackConnections[GleissystemID] = [];
+		const Gleisverbindungen = Gleissystem.getElementsByTagName("Gleisverbindung");
+		for (const Gleisverbindung of Gleisverbindungen) {
+			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang" Flags="1"/>
+			// Verwendung:
+			// prevGleisID   		= trackConnections[GleissystemID][GleisID].Anfang.GleisID
+			// prevGleisAnschluss 	= trackConnections[GleissystemID][GleisID].Anfang.Anschluss
+			// nextGleisID   		= trackConnections[GleissystemID][GleisID].Ende.GleisID
+			// nextGleisAnschluss	= trackConnections[GleissystemID][GleisID].Ende.Anschluss
+			// ..
+			const GleisID1 		= Gleisverbindung.getAttribute("GleisID1");
+			const Anschluss1 	= Gleisverbindung.getAttribute("Anschluss1");
+			const GleisID2 		= Gleisverbindung.getAttribute("GleisID2");
+			const Anschluss2 	= Gleisverbindung.getAttribute("Anschluss2");
+			const Flags 		= Gleisverbindung.getAttribute("Flags");		// undefined: normal connection, 1: virtual connection
+
+			// Store relation GleisID1 -> GleisID2
+			if (!trackConnections[GleissystemID][GleisID1]) {
+				 trackConnections[GleissystemID][GleisID1] = {};
+			}
+			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2 };
+
+			// Store relation GleisID2 -> GleisID1
+			if (!trackConnections[GleissystemID][GleisID2]) {
+				 trackConnections[GleissystemID][GleisID2] = {};
+			}
+			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1 };
+		}
+	}
+
+	// Meldungen analysieren um Fahrstraßen sowie Vor- zu Hauptsignele zu separieren
+	for (const GleissystemID in trackSignals) {
+		for (const GleisID in trackSignals[GleissystemID]) {
+			for (const entry of trackSignals[GleissystemID][GleisID]) {
+				if (entry.signalType) { continue; } // we have added the entry during the loop, however, for..of does not process new entries anyway
+
+				let currentGleisID 	= GleisID;	// Let"s start with the current track
+				
+				const SignalID		= entry.Meldung.getAttribute("Key_Id");
+				let   Position		= entry.Meldung.getAttribute("Position") / 100; 	// Wert zwischen 0 und Gleis.Laenge
+				let   ParaOderAnti 	= entry.Meldung.getAttribute("ParaOderAnti"); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
+				const Distanz		= entry.Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100; // immmer positiv
+				
+				const Name 			= entry.Meldung.getAttribute("name"); // Fahrstraßen: name = "system\Route_SignalS.3ds" bzw. "system\Route_SignalZ.3ds"
+				const Routes		= entry.Meldung.getAttribute("Routes"); // Fahrstraßen Start: Routes > 0
+
+				// Store signal data
+				entry.SignalID		= SignalID;
+				entry.Position 		= Position;
+				entry.ParaOderAnti 	= ParaOderAnti;
+
+				// Für Fahrstraßen gilt: name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ziel
+				// (Außerdem besitzt die Meldung zu Beginn einer Fahrstraße weitere Elemente <Route> usw.
+				if (Name === "system\\Route_SignalS.3ds") {
+					entry.signalType 	= "FStart";					// Fahrstraße Start
+					continue;
+				} else if (Name === "system\\Route_SignalZ.3ds") {
+					entry.signalType 	= "FZiel";					// Fahrstraße Ziel
+					continue;
+				} else if (Distanz == 0) {
+					entry.signalType 	= "single";					// Einzel-Signal
+					continue;
+				}
+			
+				// Store Vorsignal
+				entry.signalType 	= "pre";						// Vorsignal
+				
+				// Now we can follow the tracks to find the position of the main signal on the track
+				let Gleis 	= global.GleissystemMap.get(GleissystemID).get(currentGleisID);	// current track
+				let Laenge 	= Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Laenge") / 100;
+				
+				// Do we find the main signal on the same track?
+				Position = Position + Distanz * (ParaOderAnti == 1 ? 1 : -1);
+				if (Position >= 0 && Position <= Laenge) {
+					// The main signal is on the same track
+					trackSignals[GleissystemID][currentGleisID].push({
+						Meldung 		: entry.Meldung,
+						SignalID		: SignalID,
+						signalType 		:"main",
+						Position 		: Position,
+						ParaOderAnti	: ParaOderAnti,
+					});
+					continue;
+				}
+
+				if (Position > Laenge) { 					// look forward
+					Position	= Position - Laenge;		// remaining position on next track
+				} else {									// look backward
+					Position	= -Position;				// remaining position on previous track
+				}
+				
+				// The main signal is on a different track
+				while (Position > 0) {
+					let nextGleisID, Anschluss;
+
+					if (!trackConnections[GleissystemID][currentGleisID]) { // should not happen
+						console.log(`Error: Signal ${SignalID} no connected track for ${GleissystemID}-${currentGleisID}`);
+						break;
+					}
+					
+					if (ParaOderAnti == 1) { // look forward
+				
+						if (!trackConnections[GleissystemID][currentGleisID].Ende) { // should not happen
+							console.log(`Error: no connected track for ${GleissystemID}-${currentGleisID}.Ende`);
+							break;
+						}
+						
+						nextGleisID		= trackConnections[GleissystemID][currentGleisID].Ende.GleisID;
+						Anschluss		= trackConnections[GleissystemID][currentGleisID].Ende.Anschluss;
+						ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+						
+					} else {				// look backward
+
+						if (!trackConnections[GleissystemID][currentGleisID].Anfang) { // should not happen
+							console.log(`Error: Signal ${SignalID} no connected track for ${GleissystemID}-${currentGleisID}.Anfang`);
+							break;
+						}					
+
+						nextGleisID		= trackConnections[GleissystemID][currentGleisID].Anfang.GleisID;
+						Anschluss		= trackConnections[GleissystemID][currentGleisID].Anfang.Anschluss;
+						ParaOderAnti	= (Anschluss !== "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+					}
+					
+					Gleis 	= global.GleissystemMap.get(GleissystemID).get(nextGleisID);
+					if (!Gleis) { // should not happen
+						console.log(`Error: Signal ${SignalID} no track for ${GleissystemID}-${nextGleisID}`);
+						break;
+					}
+					
+					Laenge 	= Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Laenge") / 100;
+
+					if (Position <= Laenge) {
+						// The main signal is on the this track
+						if (!trackSignals[GleissystemID][nextGleisID]) {
+							 trackSignals[GleissystemID][nextGleisID] = [];
+						}
+						trackSignals[GleissystemID][nextGleisID].push({
+							Meldung 		: entry.Meldung,
+							SignalID		: SignalID,
+							signalType 		:"main",
+							Position 		: (Anschluss === "Anfang" ? Position : Laenge - Position),
+							ParaOderAnti	: ParaOderAnti,
+						});
+						break;
+
+					} else {
+						// keep going
+						currentGleisID 	= nextGleisID;
+						Position 		= Position - Laenge;
+					}
+				} // while searching for tracks
+				
+			} // Signale
+		} // Gleise
+	} // Gleissysteme
+
+	// Now we are able to show all signals in the svg-output
+	global.trackSignals = trackSignals;
+	
+	// Analyse Fuhrpark to identify "active" tracks
+	global.Fuhrpark = sutrackp.getElementsByTagName("Fuhrpark")[0];
+	for (const Zugverband of global.Fuhrpark.getElementsByTagName("Zugverband")) {
+		// <Gleisort gleissystemID="3" gleisID="41" parameter="1177.944" ausrichtung="0"/>
+		const Gleisort		= Zugverband.getElementsByTagName("Gleisort")[0];
+		const GleissystemID	= Gleisort.getAttribute("gleissystemID");
+		const GleisID		= Gleisort.getAttribute("gleisID");
+
+		// A track with a Zugverband is an "active" track
+		if (!activeTracks[GleissystemID].includes(GleisID)) {
+			 activeTracks[GleissystemID].push(GleisID);
+		}
+	}
+
+	// Lade Kollektor-Einträge, die Gleise miteinander verbinden, z.B. bei bestimmten Drehscheiben 
+	/* Beispiel:
+	<Kollektor id="8">
+		<Gleis gleisID="171" gleissystemID="1"/>
+		<Gleis gleisID="172" gleissystemID="1"/>
+		<Gleis gleisID="173" gleissystemID="1"/>
+		...
+	</Kollektor>
+	*/
+	const KollektorTracks = {};
+	for (const Kollektor of sutrackp.getElementsByTagName("Kollektor")) {
+		const KollektorID = Kollektor.getAttribute("id");
+		const Kollektors = Kollektor.getElementsByTagName("Gleis");
+		
+		if (Kollektors.length < 2) {	// So far we only look for Kollektors connecting tracks
+			continue;
+		}
+		for (const Gleis of Kollektors) {
+			const GleissystemID = Gleis.getAttribute("gleissystemID");
+			const GleisID 		= Gleis.getAttribute("gleisID");
+			
+			if (!KollektorTracks[GleissystemID]) {
+				KollektorTracks[GleissystemID] = {};
+			}
+			KollektorTracks[GleissystemID][GleisID] = [];
+
+			for (const Gleis of Kollektor.getElementsByTagName("Gleis")) {
+				const GleissystemID2 = Gleis.getAttribute("gleissystemID");
+				const GleisID2 		 = Gleis.getAttribute("gleisID");
+				if (GleisID !== GleisID2) {
+					KollektorTracks[GleissystemID][GleisID].push({GleissystemID : GleissystemID2, GleisID : GleisID2, });
+				}
+			}
+		}
+	}
+	global.KollektorTracks = KollektorTracks;
+	
+	// Add connected tracks as "active" tracks because they can be reached by trains as well
+	for (const GleissystemID in activeTracks) {
+		const usedGleiseArray = activeTracks[GleissystemID];
+		
+		// Extend "active" tracks
+		for (let i = 0; i < usedGleiseArray.length; i++){ // old-fashioned for statement because we need to extend the array within the loop
+			const GleisID1 = usedGleiseArray[i];
+
+			// Get connected tracks of "active" tracks
+			const connectedTracks = trackConnections[GleissystemID][GleisID1];
+			if (connectedTracks) {			
+				for (const Anschluss in connectedTracks) {
+					// Add new connected tracks
+					// These tracks will be processed, too
+					if (!activeTracks[GleissystemID].includes(connectedTracks[Anschluss].GleisID)) {
+						 activeTracks[GleissystemID].push(connectedTracks[Anschluss].GleisID);
+					}
+				}
+			}
+
+			// Get related tracks from Kollektors
+			if (KollektorTracks[GleissystemID]) {
+				const collectedTracks = KollektorTracks[GleissystemID][GleisID1];
+				if (collectedTracks) {			
+					for (const Gleis of collectedTracks) {
+						// Add new connected tracks
+						// These tracks will be processed, too
+						if (!activeTracks[Gleis.GleissystemID].includes(Gleis.GleisID)) {
+							 activeTracks[Gleis.GleissystemID].push(Gleis.GleisID);
+						}
+					}
+				}
+			}
+		
+			
+		}
+	}
+	// Now we are able to mark all "active" tracks in the svg-output
+	global.activeTracks = activeTracks;
+
+	return initProgress(Gleissysteme.length).then(function() {
+		let promise = null;
+		for (const Gleissystem of Gleissysteme) {
+			if (promise === null) {
+				promise = process(Gleissystem);
+			} else {
+				promise = promise.then(function() { return process(Gleissystem); });
+			}
+		}
+		return promise;
+
+		function process(Gleissystem) {
+			// Use attribute TrackSystemNumber instead of GleissystemID if available
+			let GleissystemID 	= Gleissystem.getAttribute("TrackSystemNumber");
+			if (!GleissystemID) {
+				GleissystemID 	= Gleissystem.getAttribute("GleissystemID");
+			}
+
+			// Append groups to the root node; append other elements to these group nodes
+			const svgGleissystemGroup = svgAppend(fragment, {
+				svg_tag	: `g`,
+				id		: `${GleissystemText[GleissystemID]}`,
+			});
+
+			const Gleise = Gleissystem.getElementsByTagName("Gleis");
+
+			// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
+			if (Gleise.length > 0) {
+				for (const ele of document.getElementsByClassName(GleissystemText[GleissystemID])) {
+					ele.classList.remove("hidden");
+				}
+			}
+
+			for (const Gleis of Gleise) {
+
+			/* Example:
+			<Gleis GleisID="1" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm" LockEd="0">
+				<Dreibein>
+					<Vektor x="-12359.88" y="-1854.389" z="30">Pos</Vektor>
+					<Vektor x="0.699066" y="-0.715057" z="0">Dir</Vektor>
+					<Vektor x="0.715057" y="0.699066" z="0">Nor</Vektor>
+					<Vektor x="-0" y="0" z="1">Bin</Vektor>
+				</Dreibein>
+				<Anfangsfuehrungsverdrehung Wert="0"/>
+				<Charakteristik Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Kurve="0" Laenge="2580"/>
+			</Gleis>
+			*/
+
+			/*
+			Das Kordinatensystem von SVG ist gegenüber dem üblichen Koordinatensystem (also auch dem von EEP) an der x-Achse gespiegelt.
+			Die Spiegelung ließe sich über CSS einfach zurücknehmen:
+			svg { transform: scale(1,-1); }
+			Damit würde allerdings auch der Text gespiegelt und müsste daher erneut gespiegelt und verschoben werden.
+			Daher werden hier stattdessten alle y-Koordinaten und y-Winkel negativ angegeben (also z.Z. -PosY -DirY -NorY)
+			Statt cm soll als Einheit m verwendet werden, daher wird Laenge, Kruemmung, PosX und PosY geeignet skaliert.
+			*/
+
+				const GleisID 	= Gleis.getAttribute("GleisID");
+				const clsid 	= Gleis.getAttribute("clsid");		// Gleisart
+				const stil 		= Gleis.getAttribute("stil");		// Gleisstil
+				const gsbname 	= Gleis.getAttribute("gsbname");	// Dateiname
+				const Key_Id	= Gleis.getAttribute("Key_Id"); 	// Id einer Weiche
+				const GleisData	= Gleis.getAttribute("data"); 		// Bitfeld einer Weiche
+																	// 1: Oberleitung
+																	// 18: DKW (Weichen und zentrale Gleise)
+																	// 16: Zentrale Strecken einer Straßen-T-Kreuzung
+																	// 20: Weichen einer Straßen-T-Kreuzung
+
+				const Laenge	= +Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Laenge") / 100;
+				const Kruemmung	= +Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Kruemmung") * 100;
+				const PosX		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("x") / 100;
+				const PosY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("y") / 100;
+				const PosZ		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("z") / 100;
+				const DirX		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[1].getAttribute("x");
+				const DirY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[1].getAttribute("y");
+				const DirZ		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[1].getAttribute("z");
+				const NorX		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[2].getAttribute("x");
+				const NorY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[2].getAttribute("y");
+				const NorZ		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[2].getAttribute("z");
+				const BinX		= +Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[3].getAttribute("x");
+				const BinY		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[3].getAttribute("y");
+				const BinZ		= -Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[3].getAttribute("z");
+
+				/* 
+				2D transformation matrix		3D transformation matrix	
+				matrix(	a, b, c, d,  x, y) = 	matrix3d( a, b, 0, 0,  c, d, 0, 0,  0, 0, 1, 0,  x, y, 0, 1 ).
+				
+				Rematrix.format
+				[ a, b, 0, 0,
+				  c, d, 0, 0,
+				  0, 0, 1, 0,
+				  x, y, 0, 1  ]
+				  
+				Rematrix.identity
+				[ 1, 0, 0, 0,
+				  0, 1, 0, 0,
+				  0, 0, 1, 0,
+				  0, 0, 0, 1 ]
+				 
+				Rematrix.rotateZ
+				[ cos a, 	sin a,	0, 0,
+				  -sin a, 	cos a, 	0, 0,
+				  0, 		0, 		1, 0,
+				  0, 		0, 		0, 1]
+				
+				Rematrix.translate3d
+				[ 1,  0,  0,  0,
+				  0,  1,  0,  0,
+				  0,  0,  1,  0,
+				  dx, dy, dz, 1 ]
+
+				*/
+				const mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
+				function matrixToString(m) {	// Generate matrix command for svg
+					return `matrix(${m[0]} ${m[1]} ${m[4]} ${m[5]} ${m[12]} ${(m[13])})`;
+				}
+
+				// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
+				global.usedArea.min.x = Math.min( global.usedArea.min.x, PosX - Laenge );
+				global.usedArea.min.y = Math.min( global.usedArea.min.y, PosY - Laenge );
+				global.usedArea.min.z = Math.min( global.usedArea.min.z, PosZ );
+
+				global.usedArea.max.x = Math.max( global.usedArea.max.x, PosX + Laenge );
+				global.usedArea.max.y = Math.max( global.usedArea.max.y, PosY + Laenge );
+				global.usedArea.max.z = Math.max( global.usedArea.max.z, PosZ );
+
+				// Group node for Gleis
+				const svgGleisGroup = svgAppend(svgGleissystemGroup, {
+					svg_tag	: `g`,
+					id		: `G${GleissystemID}-${GleisID}`,
+					class	: Gleisart[clsid]
+								+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
+								// Ein Kamerafahrweg ist immer unsichtbar
+								+ (stil== 100000 || (unsichtbar.includes(parseInt(stil) && GleisData != 16)) ? " " + "unsichtbar" : ""),
+				});
+
+				let Winkel, DeltaX, DeltaY, DeltaZ;
+				if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
+			/*
+			SVG: Gerades Gleis
+
+			Alternativen (line erlaubt allerdings kein text-path, daher wird path verwendet)
+			a) <line x1="0" y1="0" x2="Laenge" y2="0" transform="translate(PosX PosY) matrix(DirX DirY NorX NorY 0 0)"/>
+			b) <line x1="0" y1="0" x2="Laenge" y2="0" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
+			b) <path d="M 0 0 H Laenge" transform="matrix(DirX DirY NorX NorY PosX PosY)"/>
+			*/
+					Winkel 			= 0;
+					DeltaX			= Laenge;
+					DeltaY			= 0;
+					DeltaZ			= 0;
+
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `path`,
+						class				: `stil-${stil}`,
+						d 					: `M 0 0 H ${Laenge}`,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+
+					// Calculate points
+					Gleis.mMid = [
+							mMatrix,
+							Rematrix.translate3d(DeltaX/2, DeltaY, DeltaZ),
+						].reduce(Rematrix.multiply);
+
+				} else { // Kruemmung != 0
+			/*
+			SVG: Gebogenes Gleis
+
+			Winkel (rad) = Kruemmung * Laenge
+			ArcFlag = 0 für Winkel im Bereich -180° bis +180°, ansonsten 1
+			SweepFlag = 1 für Winkel >= 0, 0 für Winkel < 0
+			Radius = 1 / Kruemmung
+			DeltaX = sin(Winkel) * Radius
+			DeltaY = (1-cos(Winkel)) * Radius
+
+			Kreisbogen als Spezialfall eines Ausschnittes einer allgenmeinen Ellipse:
+			<path d="M PosX PosY A RadiusX RadiusY RotateX ArcFlag SweepFlag PosEndX PosEndY" />
+			PosX = 0			x-Koordinate des Anfangpunktes
+			PosY = 0			Y-Koordinate des Anfangpunktes
+			RadiusX = Radius	Radius der x-Achse der Ellipse
+			RadiusY	= Radius	Radius der y-Achse der Ellipse
+			RotateX = 0 		Rotation der x-Achse der Ellipse in Grad (0: keine Rotation)
+			ArcFlag = 0			large-arc-flag: kurzer Weg um die Ellipse: 0, langer Weg um die Ellipse: 1
+			SweepFlag = ...		Zeichnung entgegen den Uhrzeigersinn: 0, Zeichnung mit dem Uhrzeigersinn: 1
+			PosEndX = DeltaX	x-Koordinate des Endpunktes
+			PosEndY = DeltaY	Y-Koordinate des Endpunktes
+
+			Dies ergibt folgende vereinfachte Form:
+			<path d="M 0 0 A Radius Radius 0 ArcFlag SweepFlag DeltaX DeltaY />
+			*/
+					Winkel 			= Kruemmung * Laenge;
+					const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1);
+					const SweepFlag = ( Winkel >= 0 ? 1 : 0);
+					const Radius	= 1 / Kruemmung;
+					DeltaX 			= Math.sin(Winkel) * Radius;
+					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+					DeltaZ			= 0;
+
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `path`,
+						class				: `stil-${stil}`,
+						d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+					});
+
+					// Calculate points
+					Gleis.mMid = [
+							mMatrix,
+							Rematrix.translate3d(Math.sin(Winkel/2) * Radius, (1 - Math.cos(Winkel/2)) * Radius, DeltaZ),
+						].reduce(Rematrix.multiply);
+
+				}
+
+				// Calculate points
+				Gleis.mPos = Rematrix.translate(PosX, PosY);
+				Gleis.mEnd = [
+						mMatrix,
+						Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
+					].reduce(Rematrix.multiply);
+
+
+				if (global.__showCircles__) {
+					// Show circle at Point
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `circle`,
+						r					: 2,
+						transform 			: matrixToString(Gleis.mPos),
+					});
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `circle`,
+						r					: 1,
+						transform 			: matrixToString(Gleis.mMid),
+					});
+					svgAppend(svgGleisGroup, {
+						svg_tag				: `circle`,
+						r					: 1,
+						transform 			: matrixToString(Gleis.mEnd),
+					});
+				}
+
+				if (Key_Id) {
+					// Show text of Weiche at the end of the track
+					let Code = "W";
+					if (GleisData == 18 || GleisData == 19) { Code = "DWK" };
+					if (GleisData == 20 || GleisData == 21) { Code = "T-W" };
+					svgAppend(svgGleisGroup, {
+						svg_tag			: `text`,
+						id				: `W${Key_Id}`,
+						text			: `${Code}${Key_Id}`,
+						dy				: `1em`, 		// Shift text below the track
+						"class"			: `WeicheText`,
+						x				: DeltaX,
+						y				: -DeltaY,
+						transform 		: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + ` scale(1 -1)`,
+					});
+				}
+					
+				// show GleisID in the middle above the track
+				if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
+					Winkel 			= 0;
+					DeltaX			= Laenge / 2;
+					DeltaY			= 0;
+				} else {
+					Winkel 			= Kruemmung * Laenge / 2;
+					const Radius	= 1 / Kruemmung;
+					DeltaX 			= Math.sin(Winkel) * Radius;
+					DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+				}
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `${GleisID}`,
+					dy					: `-0.1em`, 	// Shift text up
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + ` scale(1 -1)`,
+				});
+				// show Gleisstil in the middle below the track (right-adjusted)
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `${stil}`,
+					dy					: `1em`, 		// Shift text below the track
+					"class"				: `Stil`,
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + ` scale(1 -1)`,
+				});					
+				// show Hoehe in the middle below the track (left-adjusted)
+				svgAppend(svgGleisGroup, {
+					svg_tag				: `text`,
+					text				: `[${PosZ.toFixed(2)}m]`,
+					dy					: `1em`, 		// Shift text below the track
+					"class"				: `Hoehe`,
+					x					: DeltaX,
+					y					: -DeltaY,
+					transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+										  + ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+										  + ` scale(1 -1)`,
+				});					
+
+				// Signale
+				// <Meldung Position="3449.492" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" name="PI5_HP02_Form_oVSig" Key_Id="5" >
+				//     <KontaktZiel>6</KontaktZiel>
+				//     <Signal stellung="1" wirkungsdistanz="10856.51"/>
+				// </Meldung>
+				
+				// Fahrstraßen: name = "system\Route_SignalS.3ds" bzw. "system\Route_SignalZ.3ds"
+				// <Meldung Position="5190" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" name="system\Route_SignalS.3ds" Key_Id="141" Routes="7">
+				// 		<KontaktZiel>0</KontaktZiel>
+				// 		<Signal stellung="1" wirkungsdistanz="0" StopAt="0" Delay="0" ActDelay="0"/>
+				// 		<Route Target="142" Start="5190" Stop="1890" Color="13">
+				//		...
+				// </Meldung>
+
+				const trackSignalEntries = global.trackSignals[GleissystemID][GleisID];
+				if (trackSignalEntries) for (const trackSignalEntry of trackSignalEntries) {
+					const Meldung		= trackSignalEntry.Meldung;
+					const SignalID		= Meldung.getAttribute("Key_Id");
+					const signalType	= trackSignalEntry.signalType;
+					const Position		= trackSignalEntry.Position;
+					const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
+					const ParaOderAnti 	= trackSignalEntry.ParaOderAnti; //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
+
+					let Winkel, DeltaX, DeltaY;
+					if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
+						Winkel 			= 0;
+						DeltaX			= Position;
+						DeltaY			= 0;
+					} else { // Kruemmung != 0
+						Winkel 			= Kruemmung * Position;
+						const Radius 	= 1 / Kruemmung;
+						DeltaX 			= Math.sin(Winkel) * Radius;
+						DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+					}
+					
+					// Calculate points
+					Meldung.mPos = [
+							mMatrix,
+							Rematrix.translate(DeltaX, DeltaY),
+						].reduce(Rematrix.multiply);
+
+					// Group node for Signal
+					const svgSignalGroup = svgAppend(svgGleisGroup, {
+						svg_tag	: `g`,
+						id		: `S${SignalID}`,
+						class	: `Signal`,
+					});
+
+					if (global.__showCircles__) {
+						// Show circle at Point
+						svgAppend(svgSignalGroup, {
+							svg_tag				: `circle`,
+							r					: 2,
+							transform 			: matrixToString(Meldung.mPos),
+						});
+					}
+			
+					// Show symbol for Signal / Fahrstraße
+					svgAppend(svgSignalGroup, {
+						svg_tag				: `use`,
+						//class				: `Signal`,
+						href				: (	  signalType === "FStart" 	? "#SymbolFStart" 
+												: signalType === "FZiel" 	? "#SymbolFZiel"
+												: signalType === "pre" 		? "#SymbolPreSignal" 
+												: 							  "#SymbolSignal"
+											  ),
+						x					: DeltaX,
+						y					: -DeltaY,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
+												+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+												+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position
+												,
+					});
+	
+					// Show text of Signal / Fahrstraße
+					svgAppend(svgSignalGroup, {
+						svg_tag				: `text`,
+						text				: (	  signalType === "FStart"	? "Fs" 
+												: signalType === "FZiel"	 	? "Fz"
+												: signalType === "pre" 		? "S" 
+												: 						  	  "S"  
+											  )
+												+ SignalID 
+												+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``),
+						//"dy"				: `${(ParaOderAnti == 0 ? "-2.3" : "1.3em")}`, 	// Shift text if not rotated to the side of the symbol
+						"dy"				: `-2.3`, 										// Shift text if rotated to the side of the symbol
+						class				: `Signal`,
+						x					: DeltaX,
+						y					: -DeltaY,
+						transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+												+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`	// Rotate text to the side of the symbol
+												+ ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+												+ ` scale(1 -1)`,
+					});
+
+				} // Signale
+
+				// Kontakte
+				for (const Kontakt of Gleis.getElementsByTagName("Kontakt")) {
+					const Position		= Kontakt.getAttribute("Position") / 100;
+					const ParaOderAnti 	= Kontakt.getAttribute("ParaOderAnti"); // Gleisrichtung 1: 0 = Ende -> Anfang, 1 = Anfang -> Ende
+					const fireOnPara  	= Kontakt.getAttribute("fireOnPara"); 	// Kontakt aktiv für Gleisrichtung 1
+					const fireOnAnti  	= Kontakt.getAttribute("fireOnAnti"); 	// Kontakt aktiv für Gleisrichtung 2
+					const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
+					
+					const KontaktID = global.KontakteArray.length; // arbitrary identfication
+					global.KontakteArray[KontaktID] = Kontakt;
+					
+					let Winkel, DeltaX, DeltaY;
+					if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // The svg-arc is not shown if the radius is too big
+						Winkel 			= 0;
+						DeltaX			= Position;
+						DeltaY			= 0;
+						DeltaZ			= 0;
+					} else { // Kruemmung != 0
+						Winkel 			= Kruemmung * Position;
+						const Radius 	= 1 / Kruemmung;
+						DeltaX 			= Math.sin(Winkel) * Radius;
+						DeltaY 			= (1 - Math.cos(Winkel)) * Radius;
+						DeltaZ			= 0;
+					}
+					
+					// Calculate points
+					Kontakt.mPos = [
+							mMatrix,
+							Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
+						].reduce(Rematrix.multiply);
+
+					// Group node for Kontakt
+					const svgKontaktGroup = svgAppend(svgGleisGroup, {
+						svg_tag	: `g`,
+						id		: `K${KontaktID}`,
+						class	: `Kontakt`,
+					});
+
+					if (global.__showCircles__) {
+						// Show circle at Point
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `circle`,
+							r					: 2,
+							transform 			: matrixToString(Kontakt.mPos),
+						});
+					}
+					
+					// Show symbol for Kontakt
+					if (fireOnPara == 1) {
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `use`,
+							//class				: `Kontakt`,
+							"href"				: `#SymbolKontakt`,
+							x					: DeltaX,
+							y					: -DeltaY,
+							transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+													+ ` rotate(${ParaOderAnti * 180} ${DeltaX} ${DeltaY})`
+													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+													+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
+													,
+						});
+					}
+					if (fireOnAnti == 1) {
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `use`,
+							//class				: `Kontakt`,
+							"href"				: `#SymbolKontakt`,
+							x					: DeltaX,
+							y					: -DeltaY,
+							transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+													+ ` rotate(${(1-ParaOderAnti) * 180} ${DeltaX} ${DeltaY})`
+													+ ` rotate(${Winkel*(180/Math.PI)} 0 0)`
+													+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
+													,
+						});
+					}
+	
+					// Show text of Kontakt
+					if (KontaktZiel > 0) {
+						const Ziel = global.KontaktZiele[KontaktZiel];
+
+						svgAppend(svgKontaktGroup, {
+							svg_tag				: `text`,
+							// text				:  `→${KontaktZiel} ${ParaOderAnti}${fireOnPara}${fireOnAnti}`,
+							text				:  `→${Ziel.Typ.substr(0, 1)}${Ziel.ID}`, // → = &rarr; = &#8594;   ⭢ = &#2B62
+							//"dy"				: `${(ParaOderAnti == 0 ? "-2.3" : "1.3em")}`, 	// Shift text if not rotated to the side of the symbol
+							"dy"				: `-2.3`, 										// Shift text if rotated to the side of the symbol
+							class				: `Kontakt`,
+							x					: DeltaX,
+							y					: -DeltaY,
+							transform 			: `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
+													+ ` rotate(${ParaOderAnti*180+(1-fireOnPara)*180} ${DeltaX} ${DeltaY})`	// Rotate text to the side of the symbol
+													+ ` rotate(${Winkel*(180/Math.PI)} ${DeltaX} ${DeltaY})`
+													+ ` scale(1 -1)`,
+						});
+					} else {
+						// SetType=1..7	Fahrzeug 	U+1F686	🚆	U+1f697	🚗	U+26f4	⛴
+						// SetType=8	Halt 	  	U+1f6d1	🛑
+						// SetType=256	Sound 	  	U+1F50A	🔊	U+266B	♫
+						// SetType=512	Kamera		U+1F4F7	📷
+						// SetType=768	Immobilie	U+1F3E0	🏠
+						// SetType=1024	DKW/EKW
+						//...
+					}
+
+				} // Kontakte
+
+			} // Gleise
+
+			return incrementProgress();
+		}
+
+	}).then(function() {
+		// Show min/max height
+		const text = (global.usedArea.min.z).toFixed(0) + " .. " + (global.usedArea.max.z).toFixed(0);
+		document.getElementById("heightArea").textContent = text;
+	
+		// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
+		global.usedArea.min.x = Math.max( global.usedArea.min.x, Area.min.x );
+		global.usedArea.min.y = Math.max( global.usedArea.min.y, Area.min.y );
+		global.usedArea.max.x = Math.min( global.usedArea.max.x, Area.min.x + Area.width  );
+		global.usedArea.max.y = Math.min( global.usedArea.max.y, Area.min.y + Area.height );
+
+		// Group for additional general elements
+		let svg_general_group = svgAppend(fragment, {
+			svg_tag	: `g`,
+			id		: `general`,
+		});
+
+		// Box zur Anzeige der Groesse der Anlage
+		// <rect class="box" x="-503" y="-303" width="1006" height="606" />
+		svgAppend(svg_general_group, {
+			svg_tag	: `rect`,
+			"class"	: `box`,
+			x		:  Area.min.x,
+			y		:  Area.min.y,
+			width	:  Area.width,
+			height	:  Area.height,
+		});
+		// Box zur Anzeige des verwendeten Teils der Anlage
+		// <rect class="box" x="-175" y="-140" width="382" height="305" />
+		svgAppend(svg_general_group, {
+			svg_tag	: `rect`,
+			"class"	: `box`,
+			x		:  global.usedArea.min.x,
+			y		:  global.usedArea.min.y,
+			width	:  global.usedArea.max.x - global.usedArea.min.x,
+			height	:  global.usedArea.max.y - global.usedArea.min.y,
+		});
+		// Zusätzliche Markierung des Zentrums
+		// <circle id="center" cx="0" cy="0" r="1" />
+		svgAppend(svg_general_group, {
+			svg_tag	: `circle`,
+			id		: `center`,
+			cx		:  `0`,
+			cy		:  `0`,
+			r		:  `1`,
+		});
+
+		// Now we can append the fragment to the svg node
+		document.getElementById("sutrackp").appendChild(fragment);
+
+		// Test: process all nodes recursivly
+		//process_node(sutrackp);
+
+		global.timestamp.svgCreated = Date.now();
+		console.log('create svg:' + (global.timestamp.svgCreated - global.timestamp.fileParsed) / 1000 + 'sec');
+	
+		return;
+	});
+}
+
+function process_node(node) {
+	bodyAppend("p", node.nodeName + "|" + node.nodeValue + "|" + node.nodeType);
+
+	// Process child elements
+	for(let i=0; i<node.childNodes.length; i++) {
+		process_node(node.childNodes[i]);
+	}
+}
+
+function bodyAppend(tagName, innerHTML) {
+	var elm = document.createElement(tagName);
+	elm.textContent = innerHTML;
+	document.body.appendChild(elm);
+}
+
+function svgAppend(svg_node, obj) {
+	const svgNS 	= "http://www.w3.org/2000/svg";
+	//const xlinkNS	= "http://www.w3.org/1999/xlink";
+	
+	// The lightweight library for manipulating and animating SVG: https://github.com/svgdotjs/svg.js
+	// http://svgjs.com/
+	
+	// planned: optimize sequence of transform operations based on https://github.com/svg/svgo
+	/*
+	https://github.com/svg/svgo/blob/master/plugins/convertTransform.js
+	Convert matrices to the short aliases,
+	Convert long translate, scale or rotate transform notations to the shorts ones,
+	Convert transforms to the matrices and multiply them all into one,
+	Remove useless transforms.
+	Limit transform precision with matrix one. Calculating with larger precision doesn't add any value.
+	No sense in angle precision more then number of significant digits in matrix.
+	Convert fixed-point numbers: 12.754997 → 12.755
+	Convert long translate transform notation to the shorts one: translate(10 0) → translate(10)
+	Convert long scale transform notation to the shorts one: scale(2 2) → scale(2)
+	Convert long rotate transform notation to the short one: translate(cx cy) rotate(a) translate(-cx -cy) → rotate(a cx cy)
+	Decrease accuracy of floating-point numbers in transforms keeping a specified number of decimals: Smart rounds values like 2.349 to 2.35.
+	*/
+
+	let element = document.createElementNS(svgNS, obj.svg_tag);
+
+	// copy all attributes except the tag and the text
+	for (const [key, value] of Object.entries(obj)) {
+		if (key !== "svg_tag" && key !== "text") { element.setAttribute(key, value); }
+	}
+
+	if (obj.svg_tag === "text") {
+		const textNode 	= document.createTextNode(obj.text);
+		element.appendChild(textNode);
+	}
+
+	svg_node.appendChild(element);
+	return element;
+}
+
+/* Not used anymore
+function svgAppendTextPath(svg_node, obj) {
+	const svgNS 	= "http://www.w3.org/2000/svg";
+	const xlinkNS	= "http://www.w3.org/1999/xlink";
+
+	// Create special element using attributes href, text, text-anchor (optional)
+	// Example:
+	// <text><textPath startOffset="50%" href="#G1-1">1</textPath></text>
+
+	const textNode 	= document.createTextNode(obj.text);
+
+	const textPath 	= document.createElementNS(svgNS, "textPath");
+	textPath.setAttribute("class", obj.class);
+	if (obj["text-anchor"] === "middle") {
+		textPath.setAttribute("startOffset", "50%");
+	}
+	else if (obj["text-anchor"] === "end") {
+		textPath.setAttribute("startOffset", "90%"); // How to put the text exactly to the end?
+	}
+	textPath.setAttributeNS(xlinkNS, "xlink:href", obj.href);
+	textPath.appendChild(textNode);
+
+	const text 		= document.createElementNS(svgNS, "text");
+	if (obj["text-anchor"]) { text.setAttribute("text-anchor", obj["text-anchor"]); }
+	text.appendChild(textPath);
+	text.setAttribute("dy", "-0.1em"); // Shift text up the track
+
+	svg_node.appendChild(text);
+
+	return text;
+}
+*/
+
+</script>
+</section>  <!-- Selection screen --> 
+
+<section id="loading" class="hidden"> <!-- Progress bar screen --> 
+Lade... <progress id="progress" class="hidden" max="100"></progress>
+<style> /* Progress bar screen */
+#loading {						/* progress bar */
+	text-align: center;
+	width: 100%;
+}
+</style>
+</section> <!-- Progress bar screen --> 
+
+<main id="main" class="column hidden"> <!-- Main screen --> 
+<style> /* Flex main screen */
+#main {
+	margin: 0;
+	padding: 0;
+}
+
+/* flex */
+
+#main {
+	height: 100vh;
+}
+
+#main.column {
+	display: flex;				/* top level flex */
+	flex-direction: column; 	/* vertically stacked */
+}
+#main.column #heading {
+	flex: 0;					/* shrink as much as possible */
+	margin-bottom: 0px;
+	border-bottom: 1px dotted #3983ab;
+}
+#main.column #container {
+	flex: 1;					/* grow as much as possible */
+
+	display: flex;				/* second level flex for svg */
+}
+#main.column #controls {
+	display: flex;				/* second level flex for article within heading */
+	flex-direction: row; 		/* horizontally */
+	flex-wrap: wrap;
+	justify-content: space-between;
+	margin-left: 0px;
+	margin-right: 0px;
+}
+#main.column #controls .group {
+	flex: 1;
+	margin: 0px;
+	border-right: 1px dotted;
+	padding-top: 5px;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#main.row {
+	display: flex;
+	flex-direction: row; 		/* side by side */
+}
+#main.row #heading {
+	flex: 1;					/* 1/5 = width: 20% */
+	border-right: 1px dotted #3983ab;
+}
+#main.row #container {
+	flex: 4;					/* 4/5 = width: 80% */
+
+	display: flex;				/* second level flex for svg */
+}
+#main.row #controls {
+	display: flex;				/* second level flex for div within heading */
+	flex-direction: column; 	/* vertically */
+	flex-wrap: wrap;
+	justify-content: space-between;
+}
+#main.row #controls .group {
+	flex: 1;
+	margin: 5px;
+}
+
+#svg {
+	flex: 1;
+	height: 100%;
+}
+</style>
+
+<section id="heading"> <!-- The heading shows the header and the controls -->
+<style> /* heading */
+#heading {
+	background-color: var(--body-background-color);
+	color: var(--body-text-color);
+}
+
+#controls input[type="number"]#number, 
+input[type="number"]#sizePNG,
+input[type="number"]#exportSize,
+input[type="number"]#jpgQuality {
+	width:60px;
+}
+
+#controls .fieldset {
+	border-width: 0;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
+	padding-block-start: 0;
+	padding-inline-start: 0;
+	padding-inline-end: 0;
+	padding-block-end: 0;
+}
+#controls .fieldset .item {
+	white-space: nowrap;		/* keep checkbox and label together */
+	display:inline;				/* but do no add extra line breaks per item */
+}
+</style>
+<nav id="controls">
+
+<header class="group">
+<h3 id="filename">EEP Gleisplan</h3>
+</header>
+
+<article class="group no-select"> <!-- Buttons -->
+<button id="swap">swap</button>
+<!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
+<button id="savePNG">Export PNG/JPG/SVG</button>
+<br/>
+<button id="zoom-in">+</button>
+<button id="zoom-out">-</button>
+<button id="resetzoom">reset zoom</button>
+<button id="reset">reset all</button>
+<!-- enable/disable of controls of SvgPanZoom within the graphic
+	<button id="enable">enable controls</button>
+	<button id="disable">disable controls</button>
+-->
+<br>
+Linie <input type="range" min="1" max="100" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
+<br>
+Font <input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
+</article>
+
+<article class="group no-select"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
+<select id="select" >
+	<option value="1">Eisenbahn</option>
+	<option value="2">Strassenbahn</option>
+	<option value="3">Strasse</option>
+	<option value="4">Wasserwege</option>
+	<option value="5">Steuerstrecken</option>
+	<option value="6">GBS</option>
+	<option value="I">Signal/Weiche</option>
+<!--
+	<option value="K">Kontakt</option>
+-->
+</select>
+<input type="number" id="number" value="1" min="1">
+<button id="centerItem">Zeige Objekt </button>
+<div id="message"></div>
+</article>
+
+<article class="group"> <!-- Status line -->
+Min/Max Höhe der Anlage: <span id="heightArea"> </span><br/>
+Sichtbarer Bereich: <span id="visibleArea"> </span><br/>
+Zentrum des Bereichs: <span id="centerPosition"> </span><br/>
+Cursor: <span id="cursorPosition"> </span>
+</article>
+
+<article class="group no-select"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
+<fieldset class="fieldset">
+	<!-- Firefox keeps the status of the checkbox between page loadsby default. -->
+	<div class="item"><label class="Eisenbahn hidden">
+	<input type="checkbox" name="Eisenbahn" 	checked autocomplete="off" onchange="toggleElements('#Eisenbahn', this.checked)">Eisenbahn</label></div>
+	<div class="item"><label class="Strassenbahn hidden">
+	<input type="checkbox" name="Strassenbahn" 	checked autocomplete="off" onchange="toggleElements('#Strassenbahn', this.checked)">Strassenbahn</label></div>
+	<div class="item"><label class="Strasse hidden">
+	<input type="checkbox" name="Strasse" 		checked autocomplete="off" onchange="toggleElements('#Strasse', this.checked)">Strasse</label></div>
+	<div class="item"><label class="Wasserwege hidden">
+	<input type="checkbox" name="Wasserwege" 	checked autocomplete="off" onchange="toggleElements('#Wasserwege', this.checked)">Wasserwege</label></div>
+	<div class="item"><label class="Steuerstrecken hidden">
+	<input type="checkbox" name="Steuerstrecken" checked autocomplete="off" onchange="toggleElements('#Steuerstrecken', this.checked)">Steuerstrecken</label></div>
+	<div class="item"><label class="GBS hidden">
+	<input type="checkbox" name="GBS" 			checked autocomplete="off" onchange="toggleElements('#GBS', this.checked)">GBS</label></div>
+	<div class="item"><label class="Text">
+	<input type="checkbox" name="Text" 			checked autocomplete="off" onchange="toggleElements('text', this.checked)">Text</label></div>
+	<div class="item"><label class="Stil">
+	<input type="checkbox" name="Stil" 			checked autocomplete="off" onchange="toggleElements('.Stil', this.checked)">Stil</label></div>
+	<div class="item"><label class="Hoehe">
+	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)">Hoehe</label></div>
+	<div class="item"><label class="WeicheText">
+	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)">Weichen</label></div>
+	<div class="item"><label class="Signal">
+	<input type="checkbox" name="Signal" 		checked autocomplete="off" onchange="toggleElements('.Signal', this.checked)">Signale</label></div>
+	<div class="item"><label class="Kontakt">
+	<input type="checkbox" name="Kontakt" 		checked autocomplete="off" onchange="toggleElements('.Kontakt', this.checked)">Kontakte</label></div>
+	<div class="item"><label class="active">
+	<input type="checkbox" name="active" 		checked autocomplete="off" onchange="toggleElements('.active', this.checked)">aktiv</label></div>
+	<div class="item"><label class="inactive">
+	<input type="checkbox" name="inactive" 		checked autocomplete="off" onchange="toggleElements('.inactive', this.checked)">inaktiv</label></div>
+	<div class="item"><label class="unsichtbar">
+	<input type="checkbox" name="unsichtbar" 	checked autocomplete="off" onchange="toggleElements('.unsichtbar', this.checked)">unsichtbar</label></div>
+	<div class="item"><label class="Marker">
+	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)">Marker</label></div>
+</fieldset>
+</article>
+
+</nav> <!-- controls -->
+</section>  <!-- heading -->
+
+<section id="container"> <!-- The container takes the remainig part of the screen to show the graphic -->
+<!-- 
+svg editor: https://github.com/SVG-Edit/svgedit
+https://svg-edit.github.io/svgedit/releases/latest/editor/svg-editor.html
+-->
+
+<svg id="svg" xmlns="http://www.w3.org/2000/svg" version="1.1">
+
+<title>EEP Gleisplan</title>
+<desc>EEP Gleisplan</desc>
+<defs> <!-- style -->
+	<style type="text/css"> /* color per track type */
+	/* <![CDATA[ */
+svg {
+	--Eisenbahn-color: red;
+	--Strassenbahn-color: darkgray;
+	--Strasse-color: grey;
+	--Wasserwege-color: blue;
+	--Steuerstrecken-color: purple;
+	--GBS-color: brown;
+}
+	/* ]]> */
+	</style>
+
+	<style type="text/css" id="css-marker-colors"> /* dynamic update via Javascript to hide/show markers */
+	/* <![CDATA[ */
+svg {
+	--Eisenbahn-marker-color: var(--Eisenbahn-color);
+	--Strassenbahn-marker-color: var(--Strassenbahn-color);
+	--Strasse-marker-color: var(--Strasse-color);
+	--Wasserwege-marker-color: var(--Wasserwege-color);
+	--Steuerstrecken-marker-color: var(--Steuerstrecken-color);
+	--GBS-marker-color: var(--GBS-color);
+}
+	/* ]]> */
+	</style>
+
+	<style type="text/css" id="css-strokeWidth-variables"> /* dynamic update via Javascript to adjust line size */
+	/* <![CDATA[ */
+svg {
+	--normal-stroke-width: 0.5px;
+	--narrow-stroke-width: 0.25px;
+}
+	/* ]]> */
+	</style>
+
+	<style type="text/css" id="css-fontSize-variables"> /* dynamic update via Javascript to adjust font size */
+	/* <![CDATA[ */
+svg {
+	--normal-font-size: 3px;
+}
+	/* ]]> */
+	</style>
+
+	<style type="text/css">
+	/* <![CDATA[ */
+svg {
+	background: white;
+	border: 0; /* 1px dotted #3983ab; */
+	padding: 0;
+	box-sizing: border-box;
+	/* transform: scale(1,-1);     		not useful as it would mirror the text, too */
+}
+
+/* Texte für Signale, Weichen etc. */
+text {
+	font-size: var(--normal-font-size);
+	font-family: Arial;
+	stroke-width: 0;
+	text-anchor	: middle;
+}
+
+/* Gleisnummern in der Mitte des Gleises */
+textPath {
+}
+
+text.WeicheText {
+	text-anchor	: end;
+}
+
+text.Signal  {
+}
+
+text.Stil {
+	text-anchor	: end;
+	font-style: italic;
+}
+
+text.Hoehe {
+	text-anchor	: start;
+	font-style: italic;
+}
+
+/* Box zur Anzeige der verwendeten Groesse der Anlage */
+.box {
+	stroke-width: 0.1;
+	stroke: black;
+	fill:   none;
+	stroke-dasharray: 1;
+}
+
+/* Zusätzliche Markierung des Zentrums */
+#center {
+	stroke-width: 0;
+	stroke: #cc0000;
+	fill:   #cc0000;
+}
+
+/* Individuelle Formatierung je Gleissystem */
+
+#Eisenbahn {
+	stroke-width: var(--normal-stroke-width);
+	stroke: var(--Eisenbahn-color);
+	fill:   none;
+	marker-start: url(#EisenbahnMarkerCircle);
+	marker-end:   url(#EisenbahnMarkerArrow);
+}
+#EisenbahnMarkerCircle, #EisenbahnMarkerArrow {
+	fill: var(--Eisenbahn-marker-color);
+}
+#Eisenbahn text {
+	fill: var(--Eisenbahn-color);
+}
+
+#Strassenbahn {
+	stroke-width: var(--normal-stroke-width);
+	stroke: var(--Strassenbahn-color);
+	fill:   none;
+	marker-start: url(#StrassenbahnMarkerCircle);
+	marker-end:   url(#StrassenbahnMarkerArrow);
+}
+#StrassenbahnMarkerCircle, #StrassenbahnMarkerArrow {
+	fill: var(--Strassenbahn-marker-color) ;
+}
+#Strassenbahn text {
+	fill: var(--Strassenbahn-color) ;
+}
+
+#Strasse {
+	stroke-width: var(--normal-stroke-width);
+	stroke: var(--Strasse-color);
+	fill:   none;
+	marker-start: url(#StrasseMarkerCircle);
+	marker-end:   url(#StrasseMarkerArrow);
+}
+#StrasseMarkerCircle, #StrasseMarkerArrow {
+	fill: var(--Strasse-marker-color);
+}
+#Strasse text {
+	fill: var(--Strasse-color);
+}
+
+#Wasserwege {
+	stroke-width: var(--narrow-stroke-width);
+	stroke: var(--Wasserwege-color);
+	fill:   none;
+	marker-start: url(#WasserwegeMarkerCircle);
+	marker-end:   url(#WasserwegeMarkerArrow);
+}
+#WasserwegeMarkerCircle, #WasserwegeMarkerArrow {
+	fill: var(--Wasserwege-marker-color);
+}
+#Wasserwege text {
+	fill: var(--Wasserwege-color);
+}
+
+#Steuerstrecken {
+	stroke-width: var(--narrow-stroke-width);
+	stroke: var(--Steuerstrecken-color);
+	fill:   none;
+	marker-start: url(#SteuerstreckenMarkerCircle);
+	marker-end:   url(#SteuerstreckenMarkerArrow);
+}
+#SteuerstreckenMarkerCircle, #SteuerstreckenMarkerArrow {
+	fill: var(--Steuerstrecken-marker-color);
+}
+#Steuerstrecken text {
+	fill: var(--Steuerstrecken-color);
+}
+
+#GBS {
+	stroke-width: var(--narrow-stroke-width);
+	stroke: var(--GBS-color);
+	fill:   none;
+	marker-start: url(#GBSMarkerCircle);
+	marker-end:   url(#GBSMarkerArrow);
+}
+#GBSMarkerCircle, #GBSMarkerArrow {
+	fill: var(--GBS-marker-color);
+}
+#GBS text {
+	fill: var(--GBS-color);
+}
+
+.Prellbock {
+	marker-end:   url(#Prellbock);
+}
+
+/* Symbole */
+
+#SymbolSignal, #SymbolPreSignal, #SymbolFStart, #SymbolFZiel, #SymbolKontakt {
+	marker-start: none;
+	marker-end:   none;
+	stroke-width: var(--narrow-stroke-width);
+	fill:   none;
+}
+
+/* Individuelle Formatierung je Gleisstil */
+
+.stil-1353 { 	/* Gleis mit Betonschwellen */
+}
+
+.stil-5146 { 	/* Farm track */
+	stroke: brown;
+}
+
+.unsichtbar {	/* unsichtbare Gleisstile */
+	stroke-dasharray: 1;
+}
+
+.inactive {		/* inaktive Gleisstile */
+	stroke-opacity: 0.5;
+}
+
+.hidden {		/* versteckte Elemente */
+	display: none !important;
+}
+	/* ]]> */
+	</style>
+</defs>
+
+<defs> <!-- Symbols and Markers -->
+	<!-- Use of symbols requires translate(-10 0) to move the origin M 0 0 to the correct position -->
+	<!-- <path d="M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z" /> -->								<!-- Kreissegment -->
+	<!-- <path d="M 0 0 L 0 1.2 L 4.8 1.2 L 4.8 5.8 L -4.8 5.8 L -4.8 1.2 L 0 1.2" /> -->	<!-- Box -->
+	<symbol id="SymbolSignal" width="20" height="10" viewBox="-10 0 20 10">
+		<path d="M 0 0 L 0 0.9  M 0.25 0.9 L 0.6 1.25 L 0.6 1.75 L 0.25 2.1  L -0.25 2.1 L -0.6 1.75 -0.6 1.25 -0.25 0.9 Z" /> <!-- Linie mit Achteck -->
+	</symbol>
+	<symbol id="SymbolPreSignal" width="20" height="10" viewBox="-10 0 20 10">
+	<!--<path d="M 0 0 L 0 0.9" /><circle cx="0" cy="1.5" r="0.6" /> --> 						<!-- Linie mit Kreis -->
+		<path d="M 0 0 L 0 0.9" /><circle cx="0" cy="1.3" r="0.4" />  							<!-- Linie mit kleinem Kreis -->
+	</symbol>
+	<symbol id="SymbolKontakt" width="20" height="10" viewBox="-10 0 20 10">
+		<path d="M 0 0 L 0 0.9  M 0 0.9 L 0.7 2.1 L -0.7 2.1 Z" />									<!-- Linie mit Dreieck -->
+	</symbol>
+	<symbol id="SymbolFStart" width="20" height="10" viewBox="-10 0 20 10">
+		<path d="M 0 0 L 0 1.1  M 0 1.1 L 0.41 0.83 L 0.29 1.3 L 0.67 1.6 L 0.17 1.65 L 0 2.1  L -0.17 1.65 L -0.67 1.6 L -0.29 1.3 L -0.41 0.83 Z" /> 	<!-- Linie mit 5er Stern -->
+	</symbol>
+	<symbol id="SymbolFZiel" width="20" height="10" viewBox="-10 0 20 10">
+		<path d="M 0 0 L 0 0.9  M 0 0.9 L -1.2 0.9 L -1.2 2.1 L 0 2.1 Z  M -0.6 0.9 L -0.6 2.1  M 0 1.5 L -1.2 1.5" /> <!-- Linie mit Flagge -->
+	</symbol>
+
+	<!-- Prellbock: Querbalken -->
+	<marker id="Prellbock" 	markerWidth="2" markerHeight="4" refX="2" refY="2" orient="auto">
+		<rect x="0" y="0" width="2" height="4"/>
+	</marker>
+
+	<!-- We need individual markers to be able to apply CSS -->
+	<marker id="EisenbahnMarkerCircle" 		markerWidth="5" markerHeight="5" refX="2" refY="3">
+		<circle cx="3" cy="3" r="1" />
+	</marker>
+	<marker id="StrassenbahnMarkerCircle"	markerWidth="5" markerHeight="5" refX="2" refY="3">
+		<circle cx="3" cy="3" r="1" />
+	</marker>
+	<marker id="StrasseMarkerCircle" 		markerWidth="5" markerHeight="5" refX="2" refY="3">
+		<circle cx="3" cy="3" r="1" />
+	</marker>
+	<marker id="WasserwegeMarkerCircle" 	markerWidth="5" markerHeight="5" refX="2" refY="3">
+		<circle cx="3" cy="3" r="1" />
+	</marker>
+	<marker id="SteuerstreckenMarkerCircle" markerWidth="5" markerHeight="5" refX="2" refY="3">
+		<circle cx="3" cy="3" r="1" />
+	</marker>
+	<marker id="GBSMarkerCircle" 			markerWidth="5" markerHeight="5" refX="2" refY="3">
+		<circle cx="3" cy="3" r="1" />
+	</marker>
+
+	<marker id="EisenbahnMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+		<path d="M0,1 L0,5 L3,3 L0,1" />
+	</marker>
+	<marker id="StrassenbahnMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+		<path d="M0,1 L0,5 L3,3 L0,1" />
+	</marker>
+	<marker id="StrasseMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+		<path d="M0,1 L0,5 L3,3 L0,1" />
+	</marker>
+	<marker id="WasserwegeMarkerArrow" 		markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+		<path d="M0,1 L0,5 L3,3 L0,1" />
+	</marker>
+	<marker id="SteuerstreckenMarkerArrow" 	markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+		<path d="M0,1 L0,5 L3,3 L0,1" />
+	</marker>
+	<marker id="GBSMarkerArrow" 			markerWidth="5" markerHeight="5" refX="2" refY="3" orient="auto">
+		<path d="M0,1 L0,5 L3,3 L0,1" />
+	</marker>
+
+</defs>
+
+<g id="sutrackp" class="svg-pan-zoom_viewport">
+<!-- hier werden dynamisch die weiteren svg-Elemente der EEP Anlage eingefügt -->
+</g>
+
+</svg>
+<style>
+#container {
+}
+</style>
+
+</section> <!-- container -->
+
+<!-- local library -->
+<!-- <script type="text/javascript" src="svg-pan-zoom/dist/svg-pan-zoom.js"></script>
+<!-- remote library on GitHub pages -->
+<script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+<!-- Not possible: "Cross-Origin Read Blocking (CORB) blocked cross-origin response with MIME type text/plain." 
+See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/ariutta/svg-pan-zoom/master/dist/svg-pan-zoom.js"></script>		-->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/ariutta/svg-pan-zoom/master/dist/svg-pan-zoom.min.js"></script>	-->
+
+<script type="text/javascript"> // svg-pan-zoom
+function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
+
+	const beforePan = function(oldPan, newPan) {
+		msg();
+		return; // Zoom-in near the border does not work well if we limt pan with fixed gutter
+
+		// Limit pan to keep SVG content visible by not allowing panning over SVG borders.
+		const gutterWidth = 100,
+			  gutterHeight = 100;
+
+		const sizes = this.getSizes();
+		const leftLimit = -((sizes.viewBox.x + sizes.viewBox.width) * sizes.realZoom) + gutterWidth;
+		const rightLimit = sizes.width - gutterWidth - (sizes.viewBox.x * sizes.realZoom);
+		const topLimit = -((sizes.viewBox.y + sizes.viewBox.height) * sizes.realZoom) + gutterHeight;
+		const bottomLimit = sizes.height - gutterHeight - (sizes.viewBox.y * sizes.realZoom);
+
+		customPan = {};
+		customPan.x = Math.max(leftLimit, Math.min(rightLimit,  newPan.x));
+		customPan.y = Math.max(topLimit,  Math.min(bottomLimit, newPan.y));
+
+		return customPan;
+	};
+
+	const onZoom = function(newZoom) {
+		msg();
+		showArea(this);
+	};
+
+	const onPan = function(newPan) {
+		msg();
+		showArea(this);
+	};
+
+	const panZoom = svgPanZoom("#svg", {
+		viewportSelector: ".svg-pan-zoom_viewport" // Viewport selector. Can be querySelector string or SVGElement
+		//, panEnabled: true // enable or disable panning (default enabled)
+		, controlIconsEnabled: false // insert icons to give user an option in addition to mouse events to control pan/zoom (default disabled)
+		// , zoomEnabled: true // enable or disable zooming (default enabled)
+		// , dblClickZoomEnabled: true // enable or disable zooming by double clicking (default enabled)
+		// , mouseWheelZoomEnabled: true // enable or disable zooming by mouse wheel (default enabled)
+		// , preventMouseEventsDefault: true // enable or disable preventDefault for mouse events
+		, zoomScaleSensitivity: 0.1 // Zoom sensitivity
+		, minZoom: 0.1 // Minimum Zoom level
+		, maxZoom: 500 // Maximum Zoom level
+		// , fit: true // enable or disable viewport fit in SVG (default true)
+		// , contain: false // enable or disable viewport contain the svg (default false)
+		// , center: true // enable or disable viewport centering in SVG (default true)
+		// , refreshRate: "auto" // Maximum number of frames per second (altering SVG"s viewport)
+		// , beforeZoom: function(oldZoom, newZoom){return true;}
+		// , onZoom: function(ZoomScale){}
+		, onZoom: onZoom
+		// , beforePan: function(oldPan, newPan){return customPan} // oldPan.x, oldPan.y, newPan.x, newPan.y
+		, beforePan: beforePan
+		// , onPan: function(newPan){}
+		, onPan: onPan
+		// , customEventsHandler: { init : function(options){}, destroy : function(options){} }
+		, customEventsHandler: {
+			init : function(options) {
+				this.listeners = {
+					mouseenter: function(ev) {
+						showPosition(options.instance, ev);
+						showArea(options.instance, ev);
+					},
+					click: function(ev) {
+						showArea(options.instance, ev);
+						showElement(options.instance, ev);
+					},
+					mousemove: function(ev) {
+						showPosition(options.instance, ev);
+					},
+					mouseleave: function(ev) {
+						document.getElementById("cursorPosition").textContent = "";
+					},
+				};
+				for (const eventName in this.listeners) {
+					options.svgElement.addEventListener(eventName, this.listeners[eventName]);
+				}
+			},
+			destroy: function(options) {
+				for (const eventName in this.listeners) {
+					options.svgElement.removeEventListener(eventName, this.listeners[eventName]);
+				}
+			}
+		}
+		// , eventsListenerElement: SVGElement
+		, onUpdatedCTM: null
+	});
+
+	// Pan and zoom to used area
+	showUsedArea(panZoom, true);
+
+	global.timestamp.SvgPanZoom = Date.now();
+	console.log('show svg:' + (global.timestamp.SvgPanZoom - global.timestamp.svgCreated) / 1000 + 'sec');
+		
+	// resize SvgPanZoom after resizing the window
+	window.addEventListener("resize", function(ev) {
+		msg();
+		ev.preventDefault();
+		// Resize content
+		panZoom.resize();
+		//panZoom.fit();
+		//panZoom.center();
+		showArea(panZoom);
+	});
+
+	// arrow keys trigger page scrolling, + - trigger zooming
+	// another solution to deal with multiple keys at same time: 
+	// https://stackoverflow.com/questions/5203407/how-to-detect-if-multiple-keys-are-pressed-at-once-using-javascript
+	window.addEventListener("keydown", function(ev) {
+		//msg('Target: ' + ev.target.nodeName + ' Key: ' + ev.key);
+		if (ev.target.nodeName !== "BODY" && ev.target.nodeName !== "BUTTON") { return; }
+		
+		// Check active keys
+		if ( !( ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "+", "-"].includes(ev.key) )) {
+			return;
+		}
+
+		// Zoom
+		if 		  (ev.key === '+') {
+			panZoom.zoomIn();
+			ev.preventDefault();
+			return false;
+		} else if (ev.key === '-') {
+			panZoom.zoomOut();
+			ev.preventDefault();
+			return false;
+		}
+
+		// Pan
+		const sizes = panZoom.getSizes();	// width height of svg area
+											// viewBox (x y width height)
+											// realZoom = min(width/viewBox.width, height/viewBox.height)
+		//const zoom 	= panZoom.getZoom();		// zoom factor
+		if 		  (ev.key === 'ArrowUp') {
+			panZoom.panBy({
+				x: 0,
+				y: (global.shiftDown ? +sizes.height / 2 : +5),
+			});
+		} else if (ev.key === 'ArrowDown') {
+			panZoom.panBy({
+				x: 0,
+				y: (global.shiftDown ? -sizes.height / 2 : -5),
+			});
+		} else if (ev.key === 'ArrowLeft') {
+			panZoom.panBy({
+				x: (global.shiftDown ? +sizes.width  / 2 : +5),
+				y: 0,
+			});
+		} else if (ev.key === 'ArrowRight') {
+			panZoom.panBy({
+				x: (global.shiftDown ? -sizes.width  / 2 : -5),
+				y: 0,
+			});
+		} else {
+			msg('nothing to do');
+			return;
+		}
+		showArea(panZoom);
+		ev.preventDefault();
+		return false;
+	});
+
+	// Button swap
+	document.getElementById("swap").addEventListener("click", function(ev) {
+		msg();
+		ev.preventDefault()
+		// Toogle between flex-direction: column and flex-direction: row
+		document.getElementById("main").classList.toggle("column");
+		document.getElementById("main").classList.toggle("row");
+		// Swapping changes the size of the svg element
+		oldSizes = panZoom.getSizes();
+		panZoom.resize();
+		newSizes = panZoom.getSizes();
+		// The top left point keeps its position. We need to pan to keep the center being centered.
+		panZoom.panBy({
+			x: (newSizes.width - oldSizes.width) 	/ 2 ,
+			y: (newSizes.height - oldSizes.height)	/ 2 ,
+		});
+		showArea(panZoom);
+	});
+
+	// Button Zoom-In
+	document.getElementById("zoom-in").addEventListener("click", function(ev) {
+		msg();
+		ev.preventDefault();
+		panZoom.zoomIn();
+	});
+	// Button Zoom-Out
+	document.getElementById("zoom-out").addEventListener("click", function(ev) {
+		msg();
+		ev.preventDefault();
+		panZoom.zoomOut();
+	});
+	// Button Reset
+	document.getElementById("reset").addEventListener("click", function(ev) {
+		msg();
+		ev.preventDefault()
+		panZoom.fit();
+		panZoom.center();
+		panZoom.resetZoom();
+		// Pan and zoom to used area
+		showUsedArea(panZoom, true);
+	});
+	// Button ResetZoom
+	document.getElementById("resetzoom").addEventListener("click", function(ev) {
+		msg();
+		ev.preventDefault();
+		panZoom.resetZoom();
+		// Zoom to used area
+		showUsedArea(panZoom);
+	});
+	// Slider strokeWidth
+	document.getElementById("strokeWidth").addEventListener("input", function(ev) {
+		msg();
+		ev.preventDefault();
+		changeStrokeWidth(ev.target.value);
+		localStorage.setItem('strokeWidth', ev.target.value);
+	});
+	// Slider fontSize
+	document.getElementById("fontSize").addEventListener("input", function(ev) {
+		msg();
+		ev.preventDefault();
+		changefontSize(ev.target.value);
+		localStorage.setItem('fontSize', ev.target.value);
+	});
+	// Button "enable controls"
+/*
+	document.getElementById("enable").addEventListener("click", function() {
+		msg();
+		ev.preventDefault();
+		panZoom.enableControlIcons();
+	})
+*/
+	// Button "disable controls"
+/*
+	document.getElementById("disable").addEventListener("click", function() {
+		msg();
+		ev.preventDefault();
+		panZoom.disableControlIcons();
+	})
+*/	
+
+	// Button savePNG
+	document.getElementById("savePNG").addEventListener("click", function(ev) {
+		msg();
+		ev.preventDefault();
+		//##savePNG();
+		showExportWindow();		
+	});
+	// Button centerItem
+	document.getElementById("centerItem").addEventListener("click", function(ev) {
+		msg();
+		ev.preventDefault();
+		centerItem();
+	});
+
+	// Listen for checkbox change events - store checkbox settings in local storage
+	document.querySelector(".fieldset").addEventListener("change", function(ev) {
+		const target = ev.target;
+		localStorage.setItem(`checkbox_${target.name}`, target.checked);
+	});
+
+	return { // public interface
+		centerItem: centerItem,
+		centerPosition: centerPosition,
+	}
+
+function centerItem() {
+
+	// Get the element from a set with a specific attribute value
+	function getElement(Set, Attribute, ID) {
+		for (const Element of Set) {
+			if (Element.getAttribute(Attribute) == ID) return Element; // compare string with number
+		}
+	}
+
+	// Get input values
+	//const text 	= o.options[o.selectedIndex].text;		// e.g. Eisenbahn
+	const o 	= document.getElementById("select");
+	const sel 	= o.options[o.selectedIndex].value;			// e.g. 1-6, I (statt W, S), K
+	const val 	= Number(document.getElementById("number").value);
+
+	if (sel >= "1" && sel <= "6") { // Gleissystem
+
+		const GleissystemID = Number(sel);
+		const GleisID 		= val;
+		const Gleissystem	= getElement(global.sutrackp.getElementsByTagName("Gleissystem"), "GleissystemID", GleissystemID);
+		if (!Gleissystem) {
+			msg(`Gleissystem ${GleissystemID} existiert nicht`);
+			return false;
+		}
+
+		const Gleis 		= getElement(Gleissystem.getElementsByTagName("Gleis"), "GleisID", GleisID);
+		if (!Gleis) {
+			msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
+			return false;
+		}
+
+		centerPosition(Gleis.mMid); // Mitte des Gleises
+		msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+		return true;
+
+	} else if (sel === "I" || sel === 'S' || sel === 'W') {		// I = Signal/Weiche (Nummern übergreifend über alle Gleissysteme)
+		// Gleis.getAttribute("Key_Id") bzw. Gleis.getAttribute("Meldung").getAttribute("Key_Id")
+		const ID 		= val;
+
+		const Meldung = global.MeldungenMap.get(Number(ID));
+		if (Meldung) {
+			// Signal gefunden
+			centerPosition(Meldung.mPos);
+			msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			return true;
+		}
+
+		const Gleis = global.WeichenMap.get(Number(ID));
+		if (Gleis) {
+			// Weiche gefunden
+			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
+			const GleisID = Gleis.getAttribute("GleisID");
+			centerPosition(Gleis.mEnd);
+			msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
+			return true;
+		}
+
+		msg(`Signal/Weiche ${ID} existiert nicht`);
+		return false; // Signal/Weiche nicht gefunden
+
+	} else if (sel === "K") {		// Kontakt
+		//...
+	}
+	return false;
+}
+
+function centerPosition(Position) {
+	const width 	= panZoom.getSizes().width;
+	const height	= panZoom.getSizes().height;
+	const realZoom	= panZoom.getSizes().realZoom;
+
+	const panX 		= width/2	- Position[12] * realZoom;
+	const panY 		= height/2	- (Position[13]) * realZoom;
+
+	panZoom.pan({x: panX, y: panY});
+}
+
+}
+
+global.shiftDown = false;
+document.addEventListener('keydown', function(event){
+    if(event.keyCode === 16 || event.charCode === 16){
+        global.shiftDown = true;
+    }
+});
+document.addEventListener('keyup', function(event){
+    if(event.keyCode === 16 || event.charCode === 16){
+        global.shiftDown = false;
+    }
+});
+
+// Show cursor position
+function showPosition(t, event) {
+	const pan 	= t.getPan();	// (x y)
+	const sizes = t.getSizes();	// width height of svg area
+								// viewBox (x y width height)
+								// realZoom = min(width/viewBox.width, height/viewBox.height)
+	//const zoom 	= t.getZoom();	// zoom factor
+
+	const posX	= ( event.offsetX - pan.x) / sizes.realZoom;
+	const posY	= ( event.offsetY - pan.y) / sizes.realZoom;
+
+	/* Show cursor position */
+	const text = "(" + (posX).toFixed(0) + " " + (-posY).toFixed(0) + ")";
+	document.getElementById("cursorPosition").textContent = text;
+}
+
+// Show coordinates of visible area
+function showArea(t, event) {
+	const pan 		= t.getPan();	// (x y)
+	const sizes 	= t.getSizes();	// width height of svg area
+								// viewBox (x y width height)
+								// realZoom = min(width/viewBox.width, height/viewBox.height)
+	//const zoom 		= t.getZoom();	// zoom factor
+
+	const minX		= (-pan.x) / sizes.realZoom;
+	const minY		= (-pan.y) / sizes.realZoom;
+	const centerX	= (-pan.x + sizes.width/2)  / sizes.realZoom;
+	const centerY	= (-pan.y + sizes.height/2)	/ sizes.realZoom;
+	const maxX		= (-pan.x + sizes.width)  	/ sizes.realZoom;
+	const maxY		= (-pan.y + sizes.height) 	/ sizes.realZoom;
+
+	/* Show coordinates of visible area */
+	let text = "("  + (minX).toFixed(0) + " " + (-minY).toFixed(0) + ") .. ("
+					+ (maxX).toFixed(0) + " " + (-maxY).toFixed(0) + ")";
+	document.getElementById("visibleArea").textContent = text;
+	/* Show center position */
+	text = "(" + (centerX).toFixed(0) + " " + (-centerY).toFixed(0) + ")";
+	document.getElementById("centerPosition").textContent = text;
+}
+
+// Show element
+function showElement(t, event) {
+	if (!event || event.target.id === "svg") { return; }
+/*
+console.log("");
+
+console.log(
+"target|" +
+event.target.tagName + ":" +
+event.target.id + ":" +
+event.target.classList[0]
+)
+if (event.target.parentElement) {
+console.log(
+"target.parentElement|" +
+event.target.parentElement.tagName + ":" +
+event.target.parentElement.id  + ":" +
+event.target.parentElement.classList[0]
+)
+if (event.target.parentElement.parentElement) {
+	console.log(
+	"target.parentElement.parentElement|" +
+	event.target.parentElement.parentElement.tagName + ":" +
+	event.target.parentElement.parentElement.id  + ":" +
+	event.target.parentElement.parentElement.classList[0]
+	)
+}
+}
+if (event.rangeParent) {
+console.log(
+"rangeParent|" +
+event.rangeParent.tagName + ":" +
+event.rangeParent.id  + ":" +
+event.rangeParent.classList[0]
+)
+if (event.rangeParent.parentElement) {
+	console.log(
+	"rangeParent.parentElement|" +
+	event.rangeParent.parentElement.tagName + ":" +
+	event.rangeParent.parentElement.id  + ":" +
+	event.rangeParent.parentElement.classList[0]
+	)
+}
+}
+*/
+/*
+Track
+target						|path::stil-1353
+target.parentElement		|g:G1-3:Weiche
+rangeParent					|g:G1-3:Weiche
+rangeParent.parentElement	|g:Eisenbahn:undefined
+
+Track text
+target						|text::undefined
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::undefined
+rangeParent.parentElement	|g:G1-51:Normal
+
+Track stil
+target|text::Stil
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::Stil
+rangeParent.parentElement	|g:G1-51:Normal
+
+Track Hoehe
+target|text::Hoehe
+target.parentElement		|g:G1-51:Normal
+rangeParent					|text::Hoehe
+rangeParent.parentElement	|g:G1-51:Normal
+
+Weiche text
+target						|text:W2:WeicheText
+target.parentElement		|g:G1-17:Weiche
+rangeParent					|text:W2:WeicheText
+rangeParent.parentElement	|g:G1-17:Weiche
+
+Signal text
+target						|text::Signal
+target.parentElement		|g:S39:Signal
+target.parentElement.parentElement|g:G1-47:Normal
+rangeParent					|text::Signal
+rangeParent.parentElement	|g:S39:Signal
+
+Signal symbol
+target						|use::undefined
+target.parentElement		|g:S39:Signal
+target.parentElement.parentElement|g:G1-47:Normal
+rangeParent					|symbol:SymbolSignal:undefined
+
+Signal circle
+target						|circle::undefined
+target.parentElement		|g:S39:Signal
+rangeParent					|g:S39:Signal
+rangeParent.parentElement	|g:G1-47:Normal
+
+Kontakt symbol
+target						|use::undefined
+target.parentElement		|g:K1:Kontakt
+target.parentElement.parentElement|g:G1-47:Normal
+
+Kontakt circle
+target						|circle::undefined
+target.parentElement		|g:G1-47:Normal
+rangeParent					|g:G1-47:Normal
+rangeParent.parentElement	|g:Eisenbahn:undefined
+*/
+	
+	if (event.target.parentElement.classList[0] === "Signal") {			// Signal
+		const SignalCode 		= event.target.parentElement.id;
+		const GleisCode 		= event.target.parentElement.parentElement.id;
+		showSignalInfo(SignalCode, GleisCode);
+		
+	} else if (event.target.parentElement.classList[0] === "Kontakt") {	// Kontakt
+		const KontaktCode		= event.target.parentElement.id;
+		const GleisCode 		= event.target.parentElement.parentElement.id;
+		showKontaktInfo(KontaktCode, GleisCode);
+		
+	} else if (event.target.classList[0] === "WeicheText") { 			// Weiche
+		const WeicheCode 		= event.target.id;
+		const GleisCode 		= event.target.parentElement.id;
+		showWeicheInfo(WeicheCode, GleisCode);
+
+	} else if (event.target.parentElement.id !== "general") {			// Gleis (hopefully)
+		const GleisCode 		= event.target.parentElement.id;
+		showGleisInfo(GleisCode);
+	}
+}
+
+function showUsedArea(panZoom, pan) {
+	// Pan and zoom to used area
+	// zoomAtPoint(scale, {x:0,y:0});   or   pan({x:0,y:0}); zoom(scale);
+	const width 		= panZoom.getSizes().width;
+	const height		= panZoom.getSizes().height;
+	const usedwidth 	= global.usedArea.max.x - global.usedArea.min.x;
+	const usedheight	= global.usedArea.max.y - global.usedArea.min.y;
+	const realZoom		= panZoom.getSizes().realZoom;
+
+	const panX 			= width/2  - ( global.usedArea.min.x + usedwidth/2  ) * realZoom;
+	const panY 			= height/2 - ( global.usedArea.min.y + usedheight/2 ) * realZoom;
+	const scale 		= Math.min( width  / usedwidth,
+									height / usedheight ) / realZoom;
+
+	if (pan) {
+		panZoom.pan({x: panX, y: panY});
+	}
+	panZoom.zoom(scale);
+}
+</script>
+
+<script type="text/javascript"> // Main screen
+// Toggle visibility of elements
+function toggleElements(selector, visible) {
+	msg();
+	for (const ele of document.getElementById("svg").querySelectorAll(selector)) {
+		if (visible) {
+			ele.classList.remove("hidden");
+		} else {
+			ele.classList.add("hidden");
+		}
+	}
+}
+
+// Toggle visibility of marker
+function toggleMarker(visible) {
+	msg();
+	toggleElements("#center", visible);
+	toggleElements(".box", visible);
+
+	// Modify svg css (nice, but only works in the browser, not during PNG export)
+	/*
+	const cssVariables = document.getElementById("css-marker-colors").sheet.rules[0].style;
+	["Eisenbahn", "Strassenbahn", "Strasse", "Wasserwege", "Steuerstrecken", "GBS"].forEach(function(name) {
+		if (visible) {
+			cssVariables.setProperty(`--${name}-marker-color`, `var(--${name}-color)`);
+		} else {
+			cssVariables.setProperty(`--${name}-marker-color`, `none`);
+		}
+	});
+	*/
+	
+	// Modify svg css to use same setting during PNG export
+	if (visible) {
+		document.getElementById("css-marker-colors").textContent =
+			`svg {
+				--Eisenbahn-marker-color: var(--Eisenbahn-color);
+				--Strassenbahn-marker-color: var(--Strassenbahn-color);
+				--Strasse-marker-color: var(--Strasse-color);
+				--Wasserwege-marker-color: var(--Wasserwege-color);
+				--Steuerstrecken-marker-color: var(--Steuerstrecken-color);
+				--GBS-marker-color: var(--GBS-color);
+			}`;
+	} else {
+		document.getElementById("css-marker-colors").textContent =
+			`svg {
+				--Eisenbahn-marker-color: none;
+				--Strassenbahn-marker-color: none;
+				--Strasse-marker-color: none;
+				--Wasserwege-marker-color: none;
+				--Steuerstrecken-marker-color: none;
+				--GBS-marker-color: none;
+			}`;
+	}	
+}
+
+// save current svg area to png
+/*
+function savePNG() {
+	// Get file name without extension
+	const filename = document.getElementById("filename").textContent;
+
+	// Get target size of the raster graphic (png)
+	const sizePNG = Number(document.getElementById("sizePNG").value);
+
+	// Read svg
+	const svg 		= document.getElementById("svg");
+	const svgSize 	= svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
+	svg.setAttribute("width", svgSize.width);
+	svg.setAttribute("height", svgSize.height);
+	const svgString	= new XMLSerializer().serializeToString(svg);
+	svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again
+	svg.removeAttribute("height");
+	const svgBlob 	= new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
+
+	// Create object url
+	const DOMURL = self.URL || self.webkitURL || self;
+	const url = DOMURL.createObjectURL(svgBlob);
+
+	// Create canvas
+	const canvas = document.createElement("canvas");
+
+	// Set size of canvas
+	const ratio = svgSize.width / svgSize.height;
+	if (ratio > 1) {
+		canvas.width 	= sizePNG;
+		canvas.height 	= sizePNG / ratio;
+	} else {
+		canvas.width 	= sizePNG / ratio;
+		canvas.height 	= sizePNG;
+	}
+
+	const ctx = canvas.getContext("2d");
+
+	// Create image from object url
+	const img = new Image();
+	img.onload = function() {
+		// Paint image into canvas
+		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+		// Convert canvas to png
+		// Firefox might raise exception NS_ERROR_FAILURE
+		let png;
+		try{
+			png = canvas.toDataURL("image/png");
+		} catch(err){
+			console.log(err);
+			msg("Zu groß: PNG-Export nicht möglich (toDataURL)");
+			return;
+		}
+		// We might get a very short result which is another type of error
+		if ( png.length <= 6 ) {
+			msg("Zu groß, PNG-Export nicht möglich (png.length)")
+			return;
+		}
+
+		// Create download link and click it
+		const link = document.createElement("a");
+		link.setAttribute("href", png);
+		link.setAttribute("download", filename + ".png");
+		link.setAttribute("target", "_blank");
+		link.style.display = "none";
+		document.body.appendChild(link);
+		// Download
+		try{
+			link.click(); // We might get a network error in case of very huge results (but it"s not possible to catch the error)
+		} catch(err){
+			console.log(err);
+			msg("Zu groß: PNG-Export nicht möglich (link.click)");
+			document.body.removeChild(link);
+			DOMURL.revokeObjectURL(png);
+			return;
+		}
+		// Remove temporary data
+		document.body.removeChild(link);
+		DOMURL.revokeObjectURL(png);
+	};
+	// Load img
+	img.src = url;
+}
+*/
+function msg(text) {
+	if (text) {
+		document.getElementById("message").textContent = text; // Text only therefore we do not need to use innerHTML
+	} else {
+		document.getElementById("message").textContent = "";
+	}
+}
+
+function changeStrokeWidth(value) {
+	// Use exponential function to convert the slider value into range [0.11 .. 2.12] with f(75) = 1
+	// f = 0.1054 * exp(0.03 * v)
+	const factor = 0.1054 * Math.exp(0.03 * value);
+
+	// Modify svg css (nice, but only works in the browser, not during PNG export)
+	/*
+	const cssVariables = document.getElementById("css-strokeWidth-variables").sheet.rules[0].style;
+	cssVariables.setProperty("--normal-stroke-width", `${0.5 * factor}px`);
+	cssVariables.setProperty("--narrow-stroke-width", `${0.25 * factor}px`);
+	*/
+	
+	// Modify svg css to use same setting during PNG export
+	document.getElementById("css-strokeWidth-variables").textContent =
+		`svg {
+			--normal-stroke-width: ${0.5 * factor}px;
+			--narrow-stroke-width: ${0.25 * factor}px;
+		}`	
+}
+
+function changefontSize(value) {
+	// Use exponential function to convert the slider value into range [0.11 .. 2.12] with f(75) = 1
+	// f = 0.1054 * exp(0.03 * v)
+	const factor = 0.1054 * Math.exp(0.03 * value);
+
+	// Modify svg css (nice, but only works in the browser, not during PNG export)
+	// (we maybe could use calc(3 * var(--font-size-factor, 1) * 1px) as well to avoid the constants here)
+	/*
+	const cssVariables = document.getElementById("css-fontSize-variables").sheet.rules[0].style;
+	cssVariables.setProperty("--normal-font-size", `${3 * factor}px`);
+	*/
+	
+	// Modify svg css to use same setting during PNG export
+	document.getElementById("css-fontSize-variables").textContent =
+		`svg {
+			--normal-font-size: ${4 * factor}px;
+		}`;
+}
+</script>
+
+<link rel="stylesheet" href="node_modules/toolwindow/dist/toolwindow.css"/>
+<!-- Not possible, see same issue above -->
+<!-- <link rel="stylesheet" href="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.css"/> -->
+
+<style> /* mod default CSS */
+</style>
+<script type="text/javascript" src="node_modules/toolwindow/dist/toolwindow.js"></script>
+<!-- Not possible, see same issue above -->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.js"></script> -->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.min.js"></script> -->
+
+<aside id="infoPopup"> <!-- Info Window -->
+<script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+<script type="text/javascript">  // Show information in Info Box
+function showGleisInfo(GleisCode) {
+	const GleisTextArray 	= GleisCode.substring(1).split("-");
+	const GleissystemID 	= GleisTextArray[0];
+	const GleisID 			= GleisTextArray[1];
+
+	const Gleissystem = global.GleissystemMap.get(GleissystemID);
+	if (!Gleissystem){ return; }
+	
+	const Gleis 	= Gleissystem.get(GleisID);
+	const clsid 	= Gleis.getAttribute("clsid");		// Gleisart
+	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
+	const gsbname 	= Gleis.getAttribute("gsbname");	// Dateiname
+
+	const Laenge	= Gleis.getElementsByTagName("Charakteristik")[0].getAttribute("Laenge") / 100;
+	const PosX		= Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("x") / 100;
+	const PosY		= Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("y") / 100;
+	const PosZ		= Gleis.getElementsByTagName("Dreibein")[0].getElementsByTagName("Vektor")[0].getAttribute("z") / 100;
+
+	const Key_Id	= Gleis.getAttribute("Key_Id"); 	// Id einer Weiche
+	const GleisData	= Gleis.getAttribute("data"); 		// Bitfeld einer Weiche
+														// 1: Oberleitung
+														// 18: DKW (Weichen und zentrale Gleise)
+														// 16: Zentrale Strecken einer Straßen-T-Kreuzung
+														// 20: Weichen einer Straßen-T-Kreuzung
+
+	// Kurzform in msg-Element
+	msg(`${GleissystemText[GleissystemID]} ${GleisID}, ${Gleisart[clsid]}, Stil ${stil}, ${gsbname}`);
+
+	// Ausführlich im Info Popup
+	const _i = "</i>", _a = "</a>";
+	showInfoWindow({
+		code: GleisCode,
+		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
+		content: 
+			`Position Anfang: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[12].toFixed(0)}m, ${Gleis.mPos[13].toFixed(0)}m<\/a>)`
+			+ `<br>Mitte: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[12].toFixed(0)}m, ${Gleis.mMid[13].toFixed(0)}m<\/a>)`
+			+ `<br>Ende: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}])">${Gleis.mEnd[12].toFixed(0)}m, ${Gleis.mEnd[13].toFixed(0)}m<\/a>)`
+			+ `<br>Typ: ${Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
+			+ (GleisData != 0 ? `<br>${GleisDataText[GleisData]}` : '')
+			+ `<br>Stil: ${stil}`
+			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
+			+ `<br>Länge: ${Laenge.toFixed(0)}m`
+			+ `<br>Höhe: ${PosZ.toFixed(2)}m`
+	});
+}
+
+function showWeicheInfo(WeicheCode, GleisCode) {
+	const WeicheID 			= WeicheCode.substring(1)
+	const GleisTextArray 	= GleisCode.substring(1).split("-");
+	const GleissystemID 	= GleisTextArray[0];
+	const GleisID 			= GleisTextArray[1];
+
+	const Gleis 	= global.GleissystemMap.get(GleissystemID).get(GleisID);
+	const clsid 	= Gleis.getAttribute("clsid");		// Gleisart
+	const stil 		= Gleis.getAttribute("stil");		// Gleisstil
+	const gsbname 	= Gleis.getAttribute("gsbname");	// Dateiname
+
+	const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
+	const weichenstellung = Gleis.getAttribute('weichenstellung');
+	const GleisData	= Gleis.getAttribute("data"); 		// Bitfeld einer Weiche
+														// 1: Oberleitung
+														// 18: DKW (Weichen und zentrale Gleise)
+														// 16: Zentrale Strecken einer Straßen-T-Kreuzung
+														// 20: Weichen einer Straßen-T-Kreuzung
+
+	// Kurzform in msg-Element
+	msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+
+	// Ausführlich im Info Popup
+	showInfoWindow({
+		code: WeicheCode,
+		title: `Weiche ${WeicheID}`,
+		content: 
+			`<i>Position: `
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}]);">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
+				+ `<\/i>`
+			+ `<br>Gleisart: ${Gleisart[clsid]}`
+			+ (GleisData   != 0 ? `<br>` + GleisDataText[GleisData] : '')
+			+ `<br>Weichenstellung: ${WeichenstellungText[weichenstellung]}`
+			+ `<br>Stil: ${stil}`
+			+ (gsbname != null ? `<br>Datei: ${gsbname}` : "")
+			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>KontaktZiel: ${KontaktZiel}` : '')
+	});
+}
+
+function showSignalInfo(SignalCode, GleisCode) {
+	const SignalID 			= Number(SignalCode.substring(1));
+	const GleisTextArray 	= GleisCode.substring(1).split("-");
+	const GleissystemID 	= GleisTextArray[0];
+	const GleisID 			= GleisTextArray[1];
+
+	const Meldung 		= global.MeldungenMap.get(SignalID);
+	const File 			= Meldung.getAttribute("name");		// Dateiname
+	const Position		= Meldung.getAttribute('Position') / 100;
+	const ParaOderAnti 	= Meldung.getAttribute('ParaOderAnti');
+
+	const KontaktZiel 	= Meldung.getElementsByTagName("KontaktZiel")[0].textContent;
+
+	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
+	const SignalData	= Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData');
+ 	const Distanz		= Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
+
+	// Fahrstraßen
+	const Routes		= Meldung.getAttribute('Routes');
+	const RouteList	 	= Meldung.getElementsByTagName("Route");
+
+	const SignalType 	= (File === 'system\\Route_SignalS.3ds' ? 'Fahrstraße Startsignal' 
+							: (File === 'system\\Route_SignalZ.3ds' ? 'Fahrstraße Endesignal'
+								: 'Signal' ));
+	
+	let SignalstellungText = "";
+	// Die Bedeutung der Signalstellung für Fahrstraßen ist noch unklar
+	if (SignalType === 'Signal') {
+		if (Signalstellung[File]) {
+			// 1st try: Get texts (case sensitive file name)
+			SignalstellungText = Signalstellung[File].Pos[Stellung];
+		} else {
+			// 2nd try: Get texts (case insensitive file name)
+			for (const SignalFile in Signalstellung) {
+console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(SignalFile.toLowerCase()) + ' == ' + typeof(File.toLowerCase()));
+				if (SignalFile.toLowerCase() == File.toLowerCase()) {
+					SignalstellungText = Signalstellung[SignalFile].Pos[Stellung];
+				}
+			}
+		}
+	}
+	
+	// Kurzform in msg-Element
+	msg(`${SignalType} ${SignalID} ${File} auf ${GleissystemText[GleissystemID]} ${GleisID}` 
+		+ `, Stellung ${Stellung} ${SignalstellungText}` 
+		+ (KontaktZiel != null && KontaktZiel != 0 ? `, Kontaktziel=` + KontaktZiel : ""));
+
+	// Ausführlich im Info Popup
+
+	// Fahrstraßen
+	const ColorText = { // <color> modulo 8
+		0: { name: 'grau',		color: 'rgb(180,180,180)', 	},
+		1: { name: 'rot',		color: 'rgb(220,0,0)', 		},
+		2: { name: 'grün',		color: 'rgb(0,220,0)', 		},
+		3: { name: 'blau',		color: 'rgb(0,0,220)', 		},
+		4: { name: 'gelb',		color: 'rgb(220,220,0)', 	},
+		5: { name: 'pink',		color: 'rgb(220,0,220)', 	},
+		6: { name: 'hellblau', 	color: 'rgb(0,180,220)', 	},
+		7: { name: 'orange',	color: 'rgb(220,110,0)',	},
+	}
+	let RoutesText = '';
+	for (Route of RouteList) {
+		const Target 	= Route.getAttribute('Target');
+		const Color 	= Route.getAttribute('Color');
+		
+		RoutesText += br
+			+ 'Zielsignal: ' 	+ Target
+			+ ', ' + '<span style="color:' + ColorText[Color%8].color + ';">Farbe: ' + Color + ' ' + ColorText[Color%8].name + '</span>'
+			;
+	}
+
+	showInfoWindow({
+		code: SignalCode,
+		title: `${SignalType} ${SignalID}`,
+		content:
+			`<i>Position: `
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${GleissystemText[GleissystemID]} ${GleisID}`
+				+ ` +${Position.toFixed(1)}m<\/a><\/i>`
+			+ `<br>Name: ${File}`
+			+ (Signalstellung[File] && File !== Signalstellung[File].Name ? `<br>${Signalstellung[File].Name}` : "")
+			+ `<br>Stellung ${Stellung}: ${SignalstellungText}`
+			+ (Distanz !=0 ? `<br>Distanz zum Hauptsignal: ${Distanz.toFixed(0)}m` : '')
+			+ `<br>Gleisrichtung: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung')
+			+ (SignalData != null ? `<br>SignalData: ${SignalData}` : '')			
+			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>Kontaktziel: ${KontaktZiel}` : "")
+			+ (Routes ? `<br>Fahrstraßen: ${Routes}` : "")
+			+ (RoutesText !== '' ? RoutesText : '')
+		});
+}
+
+function showKontaktInfo(KontaktCode, GleisCode) {
+	const KontaktID 		= KontaktCode.substring(1);
+	const GleisTextArray 	= GleisCode.substring(1).split("-");
+	const GleissystemID 	= GleisTextArray[0];
+	const GleisID 			= GleisTextArray[1];
+
+//<Kontakt Position="2186.82" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="6" LastOfs="2213.881" ConnectF="2" ConnectR="2" VolDist="28" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" SignalData="0" KontaktZiel="1" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
+	const Kontakt		= global.KontakteArray[KontaktID];
+	const SetType 		= Kontakt.getAttribute('SetType');
+	const SetValue 		= Kontakt.getAttribute('SetValue');
+	const KontaktZiel 	= Number(Kontakt.getAttribute('KontaktZiel'));
+	const Position		= Kontakt.getAttribute('Position') / 100;
+	const ParaOderAnti 	= Kontakt.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
+	const fireOnPara 	= Kontakt.getAttribute('fireOnPara');
+	const fireOnAnti 	= Kontakt.getAttribute('fireOnAnti');
+	const Teiler 		= Kontakt.getAttribute('Teiler');
+	const ActTeiler 	= Kontakt.getAttribute('ActTeiler');
+	const Delay 		= Kontakt.getAttribute('Delay');
+	const ActDelay 		= Kontakt.getAttribute('ActDelay');
+	const TrainSide 	= Kontakt.getAttribute('TrainSide');
+	const RouteID 		= Kontakt.getAttribute('Route');
+	const TrainID 		= Kontakt.getAttribute('TrainID');
+	const NameFilter 	= Kontakt.getAttribute('NameFilter');
+	const TrainNewName 	= Kontakt.getAttribute('TrainNewName');
+	const zuStellung 	= Kontakt.getAttribute('zuStellung');
+	const Wechseln 		= Kontakt.getAttribute('Wechseln');
+	const VolDist 		= Kontakt.getAttribute('VolDist');
+	const SignalData 	= Kontakt.getAttribute('SignalData');
+	
+	// Kontakttyp (SetType)
+	// Achtung: Bei der Anzeige werden die Variablne v, x, t ersetzt
+	const KontaktTyp = { 				// SetValue
+		0 	: 'Weiche/Signal',			// -								U+2B62	⭢
+		1 	: 'Fahrzeug +v km/h max',	// Geschwindigkeit in km/h			U+1F686	🚆	U+1f697	🚗	U+26f4	⛴
+		2 	: 'Fahrzeug +v km/h min',	// Geschwindigkeit in km/h
+		3 	: 'Fahrzeug +v km/h soll',	// Geschwindigkeit in km/h
+		5 	: 'Fahrzeug -v km/h max',	// Geschwindigkeit in km/h
+		6 	: 'Fahrzeug -v km/h min',	// Geschwindigkeit in km/h
+		7 	: 'Fahrzeug -v km/h soll',	// Geschwindigkeit in km/h
+		8 	: 'RollGleis x m',			// Halt nach x m					U+1f6d1	🛑
+		256 : 'Sound',					// Sound_ID							U+1F50A	🔊	U+266B	♫
+		512 : 'Kamera t sek.',			// Kamerawechsel nach t Sekunden	U+1F4F7	📷
+		768 : 'Immobilie',				// Verweist auf ImmoIdx				U+1F3E0	🏠
+		1024 : 'DKW/EKW',				// Verweist auf ImmoIdx
+		1280 : 'Einfahrt Depot',		// ?
+		1536 : 'Ausfahrt Depot',		// ?
+		32768 : 'Gruppen KP',			// ?
+	}
+
+	// DKW/EKW Weichenstellung
+	const VolDistText = {
+		0 : 'Umschalter',
+		1 : 'links-links',
+		2 : 'links-rechts',
+		3 : 'rechts-rechts',
+		4 : 'rechts-links',
+	}
+
+	const TrainSidetext = {
+		0 : 'Spitze',
+		1 : 'Schluss',
+		[-1] : 'GrKP',
+	}
+
+	// Spezielle Kontakt-Typen
+	let KontaktTypText = KontaktTyp[SetType];
+	if 		  (SetType == 0) {
+		//if 		(Weichen.find(function(Weiche) { return Weiche.ID == KontaktZiel}) ) { KontaktTypText = 'Weiche'; } 
+		//else if (Signale.find(function(Signal) { return Signal.ID == KontaktZiel}) ) { KontaktTypText = 'Signal'; }
+		//else { KontaktTypText = 'Kontaktziel nicht gefunden'; }
+	} else if (SetType >= 1 && SetType <= 7) {
+		KontaktTypText = KontaktTypText.replace('v', SetValue);			// 'Fahrzeug +v km/h max'
+	} else if (SetType == 8) {
+		KontaktTypText = KontaktTypText.replace('x', SetValue);			// 'RollGleis x m'
+	} else if (SetType == 512) {
+		KontaktTypText = KontaktTypText.replace('t', SetValue);			// 'Kamera t sek.'
+	} else if (SetType == 1024) {
+		KontaktTypText = KontaktTypText + ' ' + VolDistText[VolDist];	// DKW/EKW Weichenstellung
+	}
+	
+	// SignalData 
+	/*
+	Byte 1 - 2 (LSB)
+		Key-ID des abgefragten Signals oder Weiche
+	Byte 3 - 4 (MSB) 
+		Signal- oder Weichenstellung, die gegeben sein muss, damit der Kontakt schaltet
+		Signal: 
+			1=Fahrt
+			2=Halt
+		Weiche: 
+			1=Durchfahrt
+			2=Abzweig
+			3=Koabzweig
+		EKW: 
+			1=von links nach rechts
+			2=von rechts nach rechts
+			3=von rechts nach links 
+		DKW: 
+			1=von links nach links
+			2=von links nach rechts
+			3=von rechts nach rechts
+			4=von rechts nach links 
+	*/
+	const SignalDataStellung = Math.floor(SignalData / 65536);
+	const SignalDataID   	 = SignalData - SignalDataStellung * 65536;
+	
+	let Meldung, Gleis;
+	const Ziel = global.KontaktZiele[KontaktZiel];
+	if (Ziel) {
+		Meldung = global.MeldungenMap.get(Number(Ziel.ID));
+		Gleis = global.WeichenMap.get(Number(Ziel.ID));
+	}
+
+	// Zugverband`
+	//const Zugverband = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
+
+	// Kurzform in msg-Element
+	msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
+
+	// Ausführlich im Info Popup
+	showInfoWindow({
+		code: KontaktCode,
+		title: `Kontakt`,
+			content:  
+			`<i>Position: `
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kontakt.mPos}]);">`
+				+ `${GleissystemText[GleissystemID]} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
+			+ `<br>Kontakttyp ` + SetType + ': ' + KontaktTypText	// KontaktTyp[SetType] mit Modifikation
+			+ ((SetType >= 1 && SetType <= 8) || SetType == 512 || SetValue != 0 ? `<br>SetValue: ` + SetValue : '') 
+			+ (KontaktZiel != null && KontaktZiel != 0 	
+				? `<br>Kontaktziel ${KontaktZiel}: ` 
+					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
+					+ `${Ziel.Typ} ${Ziel.ID} auf ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
+					+ `<\/a>` 
+				: '') 
+			+ `<br>Auslösung: `		+ (			fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+											: ( 	fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? 'in Gleisrichtung' : 'gegen Gleisrichtung') 
+												: ( fireOnPara == 1 && fireOnAnti == 1 ? 'beide Richtungen' : '' )
+											  )
+										  ) 
+			+ (Teiler != 0 			? `<br>Zug-Zähler: ` + Teiler : '')
+			+ (ActTeiler != 0 		? `<br>Zählerstand: `		+ ActTeiler : '')
+			+ (Delay != 0 			? `<br>Zeitverzögerung: `	+ Delay : '')
+			+ (ActDelay != 0 		? `<br>Zeit abgelaufen: `	+ ActDelay : '')
+			+ `<br>Zugposition: `		+ (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) 
+			+ (RouteID != 0 		? `<br>für Route: ` + RouteID /* + ' ' + Routen[RouteID] */ : '') 
+			+ (TrainID != 0 		? `<br>für Zug: ` + TrainID /*+ ' ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') */ : '') 
+			+ (NameFilter !== ''	? `<br>Zug-Filter: `		 + NameFilter : '') 
+			+ (TrainNewName !== ''	? `<br>Neuer Zugname: `	 + TrainNewName : '')
+			+ (zuStellung > 0 && Wechseln == 0 ? `<br>zu Stellung: ` + zuStellung : (Wechseln == 1 ? 'Umschalter' : '')) 
+			+ (SignalData != 0 		? `<br>SignalData: ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') 
+	});
+}
+</script>
+<script type="text/javascript"> // toolwindow
+let infoWindow = { count: 0, };
+function showInfoWindow(options) {
+	let code = 'default';
+	if (global.shiftDown) {
+		code = options.code;
+	}
+	if (!infoWindow[code]) {
+		infoWindow.count = (infoWindow.count+1)%10;
+		infoWindow[code] = new ToolWindow({
+			title: options.title, // goes in the title bar,
+			//closeButtonText: "x", // ✖ = &#x2716;
+			top: 120+infoWindow.count*32,
+			left: 120+infoWindow.count*32, // optional: when no top or left are given, this window attempts to center itself
+			width: 225, // starting width
+			height: 200, // starting height
+			minWidth: 100, // don't go thinner than this
+			minHeight: 100, // don't go shorter than this
+			//placement: "inside,auto",
+			//relativeToElement: "#container",
+			animated: true,
+			content: {
+				type: "html",
+				value: options.content,
+			},
+			buttons: [/*{	//  to omit all buttons
+				text: "Dismiss",
+				clicked: function() {
+					// button click handlers are invoked with the infoWindow as the `this` parameter
+					this.hide();
+				}
+				}, {
+				text: "Refresh",
+				clicked: function() {
+					// note that we can completely replace the content
+					// here and that content.value can be any one of:
+					// - string
+					// - function producing a string
+					// - async function producing a string (ie, promise)
+					this.content = {
+						type: "html",
+						value: "<hr/>This is html<hr/>"
+					};
+					this.refresh();
+				}
+			}*/]
+		});
+	} else {
+		infoWindow[code].title = options.title;
+		infoWindow[code].content.value = options.content;
+		infoWindow[code].fitContent();
+	}
+	infoWindow[code].show();
+}
+</script>
+</aside>
+
+<aside id="exportPopup"> <!-- Export Window -->
+
+<script type="text/javascript"> // toolwindow
+let exportWindow;
+function showExportWindow() {
+	//const content 	= document.getElementById("exportPopupContent").innerHTML; // Wouöld lead to duplicate id attributes. How to address the input elements? 
+	if (!exportWindow) {
+		const l = "/";
+		const content = `
+<p>Wähle die Größe <input type="number" name="exportSize" id="exportSize" value="3000" min="1" autocomplete="off" \/> und das gewünschte Datenformat:<\/p>
+<dl>
+<dt>PNG<\/dt>
+<dd>Verlustfreie Pixel-Graphik in bestimmter Größe; ideal für Computergraphik<\/dd>
+<dt>JPG<\/dt>
+<dd>Verlustbehaftetes Pixel-Bild in bestimmter Größe und Qualität; ideal für Fotos.<br>
+Qualität (%): <input type="number" name="jpgQuality" id="jpgQuality" value="92" min="1" max="100" step="1" autocomplete="off" \/><br><br>
+Nur Bilder in diesem Format können direkt in das <a href="https:\/\/www.eepforum.de\/gallery\/" target="_blank">EEP-Forum<\/a> hochgeladen werden: <i>Die Bilder dürfen die Dateiendungen jpg, jpeg besitzen und sie dürfen maximal 2 MB groß sein. Die minimale Bildgröße beträgt 800×500 Pixel und die maximale Größe beträgt 1920×1080 Pixel.<\/i> Daher wird die Größe der exportieren Graphik nach Möglichkeit auf diese Werte begrenzt.<\/dd>
+<dt>SVG<\/dt>
+<dd>Beliebig zoombare, verlustfreie Vektor-Graphik; ideal zur Weiterverarbeitung in anderen Programmen<br>
+Beim Export wird die gesamte Graphik exportiert auch wenn dann nur der gewählte Ausschnitt gezeigt wird.<\/dd>
+<\/dl>
+				`;
+	
+		exportWindow = new ToolWindow({
+			title: "Gleisplan exportieren",
+			//closeButtonText: "x", // ✖ = &#x2716;
+			//top: 120+exportWindow,
+			//left: 120+exportWindow, // optional: when no top or left are given, this window attempts to center itself
+			width: 225, // starting width
+			height: 200, // starting height
+			minWidth: 100, // don't go thinner than this
+			minHeight: 100, // don't go shorter than this
+			//placement: "inside,auto",
+			//relativeToElement: "#container",
+			animated: true,
+			content: {
+				type: "html",
+				value: content,		
+			},
+			buttons: [
+				{
+					text: "PNG",
+					clicked: function() {
+						exportGraphic("png");
+					}
+				}, {
+					text: "JPG",
+					clicked: function() {
+						exportGraphic("jpg");
+					}
+				}, {
+					text: "SVG",
+					clicked: function() {
+						exportGraphic("svg");
+					}
+				},
+			],
+		});
+	}
+	exportWindow.show();
+}
+
+function exportGraphic(fileType) {
+	// Get target size of the raster graphic (png/jpg)
+	let   exportSize = Number(document.getElementById("exportSize").value);
+	const jpgQuality = Number(document.getElementById("jpgQuality").value) / 100;
+
+	// Read svg
+	const svg 		= document.getElementById("svg");
+	const svgSize 	= svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
+	svg.setAttribute("width", svgSize.width);
+	svg.setAttribute("height", svgSize.height);
+	const svgString	= new XMLSerializer().serializeToString(svg);
+	svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again
+	svg.removeAttribute("height");
+
+	const svgType = "image/svg+xml;charset=utf-8";
+	if (fileType === 'svg') {
+		// Export svg
+		exportData('data:' + svgType + ',' + encodeURIComponent(svgString), fileType);
+		return;
+	}
+
+	// Convert svg to png/jpg and export it
+	const svgBlob 	= new Blob([svgString], {type: svgType});
+	
+	// Create object url
+	const DOMURL = self.URL || self.webkitURL || self;
+	const url = DOMURL.createObjectURL(svgBlob);
+
+	// Create canvas
+	const canvas = document.createElement("canvas");
+
+	// Set size of canvas
+	const ratio = svgSize.width / svgSize.height;
+
+	if (ratio > 1) {
+		if (fileType === 'jpg') {
+			exportSize 	= Math.max(800, Math.min(1920, exportSize));
+			if (exportSize / ratio < 500) {
+				exportSize = 500 * ratio
+			}
+			if (exportSize / ratio > 1080) {
+				exportSize = 1080 * ratio
+			}
+		}
+		canvas.width 	= exportSize;
+		canvas.height 	= exportSize / ratio;
+	} else {
+		if (fileType === 'jpg') {
+			exportSize 	= Math.max(500, Math.min(1080, exportSize));
+			if (exportSize / ratio < 800) {
+				exportSize = 800 * ratio
+			}
+			if (exportSize / ratio > 1920) {
+				exportSize = 1920 * ratio
+			}
+		}
+		canvas.width 	= exportSize / ratio;
+		canvas.height 	= exportSize;
+	}
+
+	const ctx = canvas.getContext("2d");
+
+	// Create image from object url
+	const img = new Image();
+	img.onload = function() {
+		// Paint image into canvas
+		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+		// Convert canvas to png/jpg
+		// Firefox might raise exception NS_ERROR_FAILURE
+		let mimeType;
+		if 		(fileType === 'png') { mimeType = "image/png"; }
+		else if (fileType === 'jpg') { mimeType = "image/jpeg"; }
+		else {
+			msg("Dateityp nicht unterstützt: " + fileType);
+			return false;
+		}
+		
+		let DataURL;
+		try{
+			const encoderOptions = jpgQuality; // jpg quality (default 0.92) 
+			DataURL = canvas.toDataURL(mimeType, encoderOptions);
+		} catch(err){
+			console.log(err);
+			msg("Zu groß: Export nicht möglich (toDataURL()): " + mimeType);
+			return false;
+		}
+		// We might get a very short result which is another type of error
+		if ( DataURL.length <= 6 ) {
+			msg("Zu groß, Export nicht möglich (DataURL.length): " + mimeType)
+			return false;
+		}
+
+		const rc = exportData(DataURL, fileType);
+		// Remove temporary data
+		DOMURL.revokeObjectURL(DataURL);
+		msg(`${fileType}-Graphik in Größe ${canvas.width}x${canvas.height} exportiert`);
+		return rc;
+	};
+	// Load img
+	img.src = url;
+}
+function exportData(dataURL, fileType) {
+	// Get file name without extension
+	const filename = document.getElementById("filename").textContent;
+
+	// Create download link and click it
+	const link = document.createElement("a");
+	link.setAttribute("href", dataURL);
+	link.setAttribute("download", filename + "." + fileType);
+	//link.setAttribute("target", "_blank"); // not required
+	link.style.display = "none";
+	document.body.appendChild(link); // Required for Firefox(?)
+	// Download
+	try{
+		link.click(); // We might get a network error in case of very huge results (but it"s not possible to catch the error)
+	} catch(err){
+		console.log(err);
+		msg("Zu groß: Export nicht möglich (link.click)");
+		document.body.removeChild(link);
+		DOMURL.revokeObjectURL(dataURL);
+		return false;
+	}
+	// Remove temporary data
+	document.body.removeChild(link);
+	return true;
+}
+</script>
+</aside>
+
+</main> <!-- Main screen --> 
+
+</body>
+</html>

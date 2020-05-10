@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Signalstellungen der installierten Signale anzeigen</title>
+<meta name="description" content="Dieses Programm liest .ini-Dateien von Signalen und zeigt die darin beschriebenen Signalstellungen an.">
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,Signale" />
+<meta name="language" content="de" />
+<link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
+
+<style>
+.hidden {
+	display: none;
+}
+
+fieldset {
+	border-width: 0;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
+	padding-block-start: 0;
+	padding-inline-start: 0;
+	padding-inline-end: 0;
+	padding-block-end: 0;
+}
+</style>
+<script type="text/javascript">
+
+<!-- - - - - - - -->
+
+function readSignalIniFiles(fileList) {
+	// Selection screen
+	document.getElementById("fileselector").classList.add("hidden");
+
+	const promises = [];
+	for (const file of fileList) {
+		const filePromise = new Promise(resolve => {
+			const reader = new FileReader();
+			reader.readAsText(file, 'windows-1252');
+			reader.onload = (ProgressEvent) => {
+				resolve({
+					file: file,
+					section: parseIniString(reader.result)
+				});
+			}
+		});
+		promises.push(filePromise);
+	}
+	Promise.all(promises).then(iniFiles => {
+		// iniFiles will be an array containing contents of the files
+
+		const Signalstellungen = {};
+		for (const iniFile of iniFiles) {
+			iniFile.Signalstellung = {};	// Signal positions
+			iniFile.Stellungskombination = 0;	// Hash code which represents the set of signal positions
+			if (iniFile.section.Model_SignalFunc) {
+				for (const parameter in iniFile.section.Model_SignalFunc) {
+					// Signalstellung: Pos01_Fn_Name_GER
+					const matchStellung = parameter.match(/^Pos(\d+)_Fn_Name_/);
+					if (matchStellung) {
+						iniFile.Signalstellung[Number(matchStellung[1])] = {
+							DE : iniFile.section.Model_SignalFunc[matchStellung[0] + 'GER'],
+							EN : iniFile.section.Model_SignalFunc[matchStellung[0] + 'ENG'],
+							FR : iniFile.section.Model_SignalFunc[matchStellung[0] + 'FRA'],
+						}
+					}
+				}
+
+				// Generate ID
+				if (iniFile.Signalstellung != {}) {
+					iniFile.Stellungskombination = Math.abs(JSON.stringify(iniFile.Signalstellung).hashCode());
+					/*
+					Beispiele zu Stellungskombinationen:
+					[0256533125] = { 1 : Halt, 2 : Fahrt, }
+					[1275122147] = { 1 : Fahrt, 2 : Halt, }
+					*/
+				}
+				if (!Signalstellungen[iniFile.Stellungskombination]) {
+					Signalstellungen[iniFile.Stellungskombination] = {
+						SignalstellungArray : iniFile.Signalstellung,
+						Signale : [],
+					};
+				}
+				// Cross reference
+				Signalstellungen[iniFile.Stellungskombination].Signale.push(
+					iniFile.file.name.substr(0, iniFile.file.name.length - 4)
+				);
+
+			}
+		}
+		showSignalIniFiles(iniFiles, Signalstellungen);
+    });
+}
+
+String.prototype.hashCode = function() {
+  let hash = 0;
+  if (this.length === 0) return hash;
+  for (let i = 0; i < this.length; i++) {
+    const chr   = this.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
+function parseIniString(data){
+	const regex = {
+		section: /^\s*\[\s*([^\]]*)\s*\]\s*$/,
+		param: /^\s*([^=]+?)\s*=\s*\"?(.*?)\"?\s*$/,
+		comment: /^\s*;.*$/,
+	};
+	const value = {};
+	const lines = data.split(/[\r\n]+/);
+	let section = null;
+	for (const line of lines) {
+		if (regex.comment.test(line)) {
+			continue;
+		} else if (regex.param.test(line)) {
+			const match = line.match(regex.param);
+			if (section) {
+				value[section][match[1]] = match[2];
+			} else {
+				value[match[1]] = match[2];
+			}
+		} else if (regex.section.test(line)) {
+			const match = line.match(regex.section);
+			value[match[1]] = {};
+			section = match[1];
+		} else if (line.length == 0 && section) {
+			section = null;
+		};
+	}
+	return value;
+}
+
+function showSignalIniFiles(iniFiles, Signalstellungen) {
+	const target = document.getElementById('container');
+	let div, p;
+
+	div = document.createElement('div');
+	target.appendChild(div);
+
+	if ( document.querySelector('input[name="outputFormat"]:checked').id === "list") {	// list, code
+
+		// Show list grouped by Stellungskombination
+		for (const Stellungskombination in Signalstellungen) {
+
+			// Header
+			p = document.createElement('p');
+			div.appendChild(p);
+			p.innerHTML =
+				  `<b>Stellungskombination ${('0000000000' + Stellungskombination).slice(-10)}` + '</b><br>'
+				;
+
+			// Signalstellungen
+			p = document.createElement('p');
+			div.appendChild(p);
+			for (const SignalstellungNr in Signalstellungen[Stellungskombination].SignalstellungArray) {
+				const Signalstellung = Signalstellungen[Stellungskombination].SignalstellungArray[SignalstellungNr];
+				p.innerHTML +=
+					SignalstellungNr + ' : '
+					+ (Signalstellung.DE ? '"' + Signalstellung.DE + '" ' : '')
+					+ (Signalstellung.EN ? '"' + Signalstellung.EN + '" ' : '')
+					+ (Signalstellung.FR ? '"' + Signalstellung.FR + '" ' : '')
+					+ '<br>'
+				;
+			}
+
+			// Signale
+			p = document.createElement('p');
+			div.appendChild(p);
+			for (const index in Signalstellungen[Stellungskombination].Signale) {
+				p.innerHTML +=
+				  `${Signalstellungen[Stellungskombination].Signale[index]}<br>`
+				;
+			}
+
+		}
+
+	} else {	// outputFormat = code
+
+		// Stringify Stellungskombinationen for usage in EEP_Gleisplan.html and EEP_Inventar.html
+		p = document.createElement('p');
+		div.appendChild(p);
+		p.innerHTML = 'const Signalstellung = {';
+		for (const iniFile of iniFiles) {
+			if (Object.keys(iniFile.Signalstellung).length > 0) {
+
+				p.innerHTML += `<br>&nbsp;&nbsp;"${iniFile.file.name.substr(0, iniFile.file.name.length - 4)}" : {`;
+
+				if (iniFile.section.FileInfo) {
+					p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Name : {'
+						+ (iniFile.section.FileInfo.Name_GER ? `DE : "${iniFile.section.FileInfo.Name_GER}", ` : '')
+						+ (iniFile.section.FileInfo.Name_ENG ? `EN : "${iniFile.section.FileInfo.Name_ENG}", ` : '')
+						+ (iniFile.section.FileInfo.Name_FRA ? `FR : "${iniFile.section.FileInfo.Name_FRA}", ` : '')
+						+ '},'
+						//+ `Desc = ${iniFile.section.FileInfo.Description_GER}<br>`
+						//+ `Stellungskombination = ${iniFile.Stellungskombination}<br>`
+						;
+				}
+
+				p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Pos : {'
+				//p = document.createElement('p');
+				//div.appendChild(p);
+				for (const Signalstellung in iniFile.Signalstellung) {
+					p.innerHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${Signalstellung} : {`
+						+ (iniFile.Signalstellung[Signalstellung].DE ? `DE : "${iniFile.Signalstellung[Signalstellung].DE}", ` : '')
+						+ (iniFile.Signalstellung[Signalstellung].EN ? `EN : "${iniFile.Signalstellung[Signalstellung].EN}", ` : '')
+						+ (iniFile.Signalstellung[Signalstellung].FR ? `FR : "${iniFile.Signalstellung[Signalstellung].FR}", ` : '')
+						+ '},'
+					;
+				}
+				p.innerHTML += '<br>&nbsp;&nbsp;}},';
+			}
+		}
+		p.innerHTML += '<br>}';
+	}
+}
+</script>
+</head>
+<body>
+
+<h3>EEP Signale</h3>
+
+<section id='fileselector'> <!-- Selection screen -->
+
+<form action='#' onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better -->
+	<label for="fileinput">Wähle und lade eine oder mehrere EEP-Signal-Dateien (.ini)</label>
+	<input type='file' id='inifile' accept='.ini' multiple onchange='readSignalIniFiles(this.files)'>
+	<!-- An extra button is not neccessary -->
+	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
+</form>
+<p>Die .ini-Dateien im Ordner C:\EEP15\Resourcen.unp\Signale\Signale werden über das EEP-Programm mit der Funktion "Extras ⭢ Ressourcen-Extraktor" erstellt.</p>
+<p>Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Kombination eine eindeutige ID generiert.</P>
+
+<form>
+	<fieldset>
+		Format der Ausgabe:
+		<input type="radio" name="outputFormat" id="list" checked /><label for="list">Liste</label>
+		<input type="radio" name="outputFormat" id="code" /><label for="code">Code</label>
+	</fieldset>
+</form>
+
+<p><small>(c) Frank Buchholz, 2020</small></p>
+</section> <!-- fileselector -->
+
+<div id='container'></div>
+</body>
+</html>

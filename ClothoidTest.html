@@ -1,0 +1,358 @@
+<html>
+<head>
+</head>
+
+<body>
+<div id="parameter" style="position: absolute">
+<h2>Approximation of Clothoid by chained Bezier curves</h2>
+<table>
+<tr><td>Near</td><td><input id="near" value="60" />
+</td></tr>
+<tr><td>Far</td><td><input id="far" value="120" />
+</td></tr>
+<tr><td>Swap near/far</td><td><select id="swap" value="1">
+	<option value="1">Forwards
+	<option value="0">Backwards
+	</select>
+</td></tr>
+<tr><td>Rotation</td><td><select id="rotateCCW" value="1">
+	<option value="1">Counter clock wise
+	<option value="0">Clock wise
+	</select>
+</td></tr>
+<tr><td>Clothoid constant</td><td><input id="ClothoidConstant" value="77" />
+</td></tr>
+</table>
+<input onclick="onClear();" type="button" value="Clear">
+<input onclick="onClick();" type="button" value="Draw">
+</div>
+
+<div class="canvas">
+<canvas id="canvas" width="1400" height="1000" />
+</div>
+
+<div id="result">
+<h3>SVG</h3>
+<svg id="svg" width="1400" height="1000" viewBox="-100 -100 200 200"
+     xmlns="http://www.w3.org/2000/svg" version="1.1">
+<defs>
+<style type="text/css">
+/* <![CDATA[ */
+#svgBezierPath {
+	stroke-width: 0.5px;
+	stroke: red;
+	fill:   none;
+}	 
+	/* ]]> */
+</style>
+</defs>
+
+<g id="svgBezierPath">
+<!-- hier werden dynamisch die weiteren svg-Elemente eingefügt -->
+<!-- <path d="M102,258 C100,100 421,154 406,249" /> -->
+</g>
+</svg>
+</div>
+
+<script>
+// Inspired by following sources:
+// https://www.spiria.com/en/blog/desktop-software/how-keep-your-train-going-rails/
+// https://digitalassets.lib.berkeley.edu/techreports/ucb/text/EECS-2009-162.pdf
+
+// Step count for iteration 
+const STEPCOUNT = 10000;	// 1000 seems to be sufficent as weell
+
+// Round float to fixed precision 
+function round(f, digit){
+	if (digit === undefined) digit = 1;
+	const p = Math.pow(10, digit);
+	return Math.round(f*p)/p;
+}
+
+// Define canvas
+// https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const MAXX 	= 100;
+const MINX 	= -MAXX;
+const WIDTH = MAXX-MINX;
+const MAXY 	= canvas.height/canvas.width * MAXX;
+const MINY 	= -MAXY;
+const HEIGHT= MAXY-MINY;
+const SCALE = canvas.width/WIDTH;
+
+// Clear canvas
+function clear(){
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	// Draw axis
+	xaxis(0);
+	yaxis(0);
+	// Draw tick marks
+	xmark(10);
+	ymark(10)
+}
+
+// Calculate coordinate on canvas for point
+function coord(p){
+	return { x: SCALE * (p.x - MINX), y: canvas.height - SCALE * (p.y - MINY), }
+}
+
+// Canvas: move to 
+function moveTo(p){
+	const pt = coord(p);
+	ctx.moveTo(pt.x, pt.y);
+}
+
+// Canvas: draw line
+function lineTo(p){
+	const pt = coord(p);
+	ctx.lineTo(pt.x, pt.y);
+}
+
+// Draw line between two points
+function line(p1, p2){
+	moveTo(p1);
+	lineTo(p2);
+}
+
+// Draw x-axis
+function xaxis(x, lineWidth, l){
+	if (!lineWidth) lineWidth = 1;
+	if (!l) l = HEIGHT;
+	
+	ctx.beginPath();
+	line( {x: x, y: -l}, {x: x, y: +l});
+
+	ctx.lineWidth = lineWidth;
+	ctx.strokeStyle = '#555';
+	ctx.stroke()
+}
+
+// Draw y-axis
+function yaxis(y, lineWidth, l){
+	if (!lineWidth) lineWidth = 1;
+	if (!l) l = WIDTH;
+	
+	ctx.beginPath();
+	line( {x: -l, y: y}, {x: +l, y: y});
+
+	ctx.lineWidth = lineWidth;
+	ctx.strokeStyle = '#555';
+	ctx.stroke()
+}
+
+// Draw tick marks on x-axis
+function xmark(s){
+	for(x = 0; x < MAXX; x += s) xaxis(x, 1, HEIGHT/200);
+	for(x = 0; x > MINX; x -= s) xaxis(x, 1, HEIGHT/200);
+}
+
+// Draw tick marks on y-axis
+function ymark(s){
+	for(y = 0; y < MAXY; y += s) yaxis(y, 1, WIDTH/200);
+	for(y = 0; y > MINY; y -= s) yaxis(y, 1, WIDTH/200);
+}
+
+//Draw Clothoid curve
+function drawClothoidCurve(A, L1, L2, RotationCCW, ClothoidPath){
+
+	// Draw clothoid line
+	/*	R = radius(s)
+		L = length
+		A^2 = R*L
+		
+		x  = integral[L1,L2](cos(φ) dl)
+		dx = cos(φ) dl
+		y  = integral[L1,L2](sin(φ) dl)
+		dy = cos(φ) dl
+		
+		φ is a function of l
+		dφ/dL = 1/R = L/A^2
+		φ = L^2/(2*A^2) = ( L/(A*sqrt(2)) )^2 
+		
+		let
+		s = L/(A*sqrt(2))
+		
+		then
+		φ = s^2
+		l = s*A*sqrt(2)
+		dl = ds*A*sqrt(2)
+		
+		x = A*sqrt(2) * integral[s1,s2](cos(s^2) ds)
+		y = A*sqrt(2) * integral[s1,s2](sin(s^2) ds)
+	*/
+	const sign = (RotationCCW ? 1 : -1);
+
+	const a 	= A*Math.sqrt(2);
+
+	const s1 	= L1/a;				// curvature = 1/radius at start point
+	const s2 	= L2/a;				// curvature = 1/radius at end point
+	let   ds 	= (s2-s1)/STEPCOUNT;	// delta curvature per step
+	const ads	= a * ds;
+
+	let   s 	= s1;				// curvature at current point
+	const s0 	= s*s;				// angle at start point
+
+	let   p2 	= {x:0,y:0};		// next point
+	let   p		= p2;				// current point
+
+	let   dx, dy;					// delta between points
+	
+	let   b1, b2, b3, b4;			// Bezier points
+	
+	ctx.beginPath();
+	moveTo(p);						// Start point
+	
+	let svgBezierPath	= 'M0,0'; 	// Complete path: 'M0,0' + ' C100,100 421,154 406,249' ...
+	for (let i = 1; i <= STEPCOUNT; i++) {
+		p.x = p2.x;													// Set current point
+		p.y = p2.y;
+
+		const w = s*s-s0;
+		p2.x += dx =        ads * Math.cos(w);						// Calculate next point
+		p2.y += dy = sign * ads * Math.sin(w);
+
+		if (ClothoidPath) {
+			lineTo(p2);		// 'Exact' clothoid curve 
+							// It seems there is not performance impact even if you call it quite often,
+							// as long as you do not call ctx.stroke() within the loop.
+
+		} else { 			// Bezier approximation
+		
+			if (!b1) {
+				b1 = {x: p.x,   y: p.y,	  dx: dx,  dy: dy,  w: w, };	// 1. Bezier point
+			};
+
+			const f = 4;	// limit 4: max 45°, 3: max 60°
+			if ( Math.abs(w - b1.w) > (Math.PI / f) 					// Draw new curve if difference of the angles exceeds limit  
+				|| i == STEPCOUNT )  {										// or to cover the last point
+				// if yes, draw the next part
+				
+				b4 = { x: p2.x,  y: p2.y,  dx: dx,  dy: dy, };			// 4. Bezier point 
+				b3 = {													// 3. Bezier point on intersection of tangents
+						x: b1.x + ( (b4.x - b1.x) - (b4.y - b1.y) / (b4.dy / b4.dx) ) / ( 1 - ( (b1.dy / b1.dx) / (b4.dy / b4.dx)) ),
+						y: b1.y + ( (b4.y - b1.y) - (b4.x - b1.x) * (b4.dy / b4.dx) ) / ( 1 - ( (b4.dy / b4.dx) / (b1.dy / b1.dx)) ),
+					};
+				b2 = {													// 2. Bezier point on tangent near B1 
+						x: b1.x + (b3.x - b1.x) / f,					// works fine with f=4, but not with f=3
+						y: b1.y + (b3.y - b1.y) / f,					// (I guess we should calculate the factor dependant on s or a)
+					}	
+				drawBezierCurve(b1, b2, b3, b4);
+				svgBezierPath += ' C' + b2.x + ',' + (-b2.y) + ' ' + b3.x + ',' + (-b3.y) + ' ' + b4.x + ',' + (-b4.y);
+
+				// Prepare next part
+				b1 = { x: b4.x,  y: b4.y,  dx: dx,  dy: dy,  w: w, };	// 1. Bezier point
+			};
+		
+		}; // end of Bezier approximation
+		
+		// next
+		s += ds;
+	}
+
+	if (ClothoidPath) {
+		ctx.stroke();
+	} else {
+		return { 
+			endPoint: b4,
+			svgBezierPath: svgBezierPath, 
+		};
+	}
+}
+
+//Draw Bezier Curve
+function drawBezierCurve(p1, p2, p3, p4){
+	const pt1 = coord(p1);
+	const pt2 = coord(p2);
+	const pt3 = coord(p3);
+	const pt4 = coord(p4);
+	
+	// Bezier curve
+	ctx.beginPath();
+	ctx.moveTo(pt1.x, pt1.y);
+	ctx.bezierCurveTo(pt2.x, pt2.y, pt3.x, pt3.y, pt4.x, pt4.y);
+	ctx.stroke();
+	
+	// Draw control points
+	ctx.beginPath();
+	ctx.arc(pt2.x, pt2.y, 1, 0, 2*Math.PI);
+	ctx.fill();
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.arc(pt3.x, pt3.y, 1, 0, 2*Math.PI);
+	ctx.fill();
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.arc(pt4.x, pt4.y, 2, 0, 2*Math.PI);
+	ctx.fill();
+	ctx.stroke();
+}
+
+// Event handler
+function onClear(){
+	clear();
+}
+
+function onClick(){
+	const near 		= Number(document.getElementById("near").value);
+	const far 		= Number(document.getElementById("far").value);
+	const swap 		= Number(document.getElementById("swap").value);
+	let   rotateCCW	= Number(document.getElementById("rotateCCW").value);
+	const A 		= Number(document.getElementById("ClothoidConstant").value);
+
+	let L1, L2;
+	if (swap){ 
+		L1 = near;
+		L2 = far;
+	} else {
+		L1 = far;
+		L2 = near;
+	}
+	if (L1>L2){
+		L1 = -L1;
+		L2 = -L2;
+		rotateCCW = !rotateCCW;
+	}	
+	
+	const Lenght 		= Math.abs(L2 - L1);
+	const StartRadius 	= (L1 != 0 ? A*A/L1 : null);
+	const EndRadius 	= (L2 != 0 ? A*A/L2 : null);
+
+console.log(''
+	+'A='			+ A				+' '
+	+'Near='		+ near			+' '
+	+'far='			+ far			+' '
+	+'Lenght='		+ Lenght		+' '
+	+'StartRadius='	+ StartRadius	+' '
+	+'EndRadius='	+ EndRadius		+' '
+)
+	
+	// Draw Clothoid curve
+	ctx.lineWidth 	= 5;
+	ctx.strokeStyle = "#EE0";	// yellow
+	drawClothoidCurve(A, L1, L2, rotateCCW, true);
+	
+	// Approximate Clothoid curve with Bezier
+	ctx.lineWidth 	= 1;
+	ctx.strokeStyle = "#F00";	// red
+	ctx.fillStyle 	= "#F00";		// red
+	result = drawClothoidCurve(A, L1, L2, rotateCCW, false);
+	const endPoint = result.endPoint;
+	const svgBezierPath = result.svgBezierPath;
+	
+	// Show svgBezierPath
+	// <path d="M102,258 C100,100 421,154 406,249" stroke="black" />
+	const svgNS = "http://www.w3.org/2000/svg";
+	const element = document.createElementNS(svgNS, 'path');
+	element.setAttribute('d', svgBezierPath);
+	document.getElementById("svgBezierPath").appendChild(element);
+}
+
+// Initialization: Draw graphic
+clear();
+onClick();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1803 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Inventar zu einer EEP-Anlage-Datei (.anl) anzeigen</title>
+<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird der Inhalt ausgegeben.">
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,Inventar" />
+<meta name="language" content="de" />
+<link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
+
+<script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
+<style> /* html page */
+kbd {
+	white-space: nowrap;		/* keep checkbox and label together */
+	border: 1px solid #aaa;
+	-moz-border-radius: 0.2em;
+	-webkit-border-radius: 0.2em;
+	border-radius: 0.2em;
+	-moz-box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1);
+	-webkit-box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1);
+	box-shadow: 0.1em 0.1em 0.2em rgba(0,0,0,0.1);
+	background-color: #f9f9f9;
+	background-image: -moz-linear-gradient(top, #eee, #f9f9f9, #eee);
+	background-image: -o-linear-gradient(top, #eee, #f9f9f9, #eee);
+	background-image: -webkit-linear-gradient(top, #eee, #f9f9f9, #eee);
+	background-image: linear-gradient(to bottom, #eee, #f9f9f9, #eee);
+	color: #000;
+	padding: 0.1em 0.3em;
+	font-family: inherit;
+	font-size: 0.85em;
+}
+
+.flexRow {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: baseline;
+}
+
+/* switch language https://codepen.io/mynimi/pen/eEAwc */
+.langBtn,
+.langBtn:visited {
+	padding: 4px 10px;
+	vertical-align: middle;
+	text-align: center;
+	line-height: 100%;
+
+	color: #fff;
+	background: #005899;
+
+	border-radius: 20px;
+
+	box-shadow: 0px 3px 0px 0px #01192e;
+	text-shadow: 0 3px rgba(0, 0, 0, 0.4);
+
+	display:inline-block;
+	cursor: pointer;
+}
+
+.langBtn:hover,
+.langBtn:visited:hover,
+.langBtn:focus,
+.langBtn:visited:focus {
+	background: #00467b;
+}
+
+.langBtn:active,
+.langBtn:visited:active {
+	box-shadow: 0px 1px 0px 0px #01192e;
+}
+
+.hiddenRadio { /* Checkbox Hack: Do not show the radio button but show the label only */
+	display: none;
+}
+
+/* Toggle translations (I do not know why the selectors for section and main are neccessary or why a star would not work) */
+#german:checked~section  [lang="en"],
+#german:checked~section  [lang="fr"],
+#german:checked~main 	 [lang="en"],
+#german:checked~main 	 [lang="fr"],
+#english:checked~section [lang="de"],
+#english:checked~section [lang="fr"],
+#english:checked~main    [lang="de"],
+#english:checked~main    [lang="fr"],
+#french:checked~section  [lang="de"],
+#french:checked~section  [lang="en"],
+#french:checked~main     [lang="de"],
+#french:checked~main     [lang="en"]	{
+	display: none;
+}
+
+/* Experiment to translate options, however, this works only partially: it it possible to hide the options in other languages: the default value still shows the first text
+*/
+#german:checked~#selectObject options[lang="en"],
+#german:checked~#selectObject options[lang="fr"],
+#english:checked~#selectObject options[lang="de"],
+#english:checked~#selectObject options[lang="fr"],
+#french:checked~#selectObject options[lang="de"],
+#french:checked~#selectObject options[lang="en"]	{
+	display: none;
+}
+</style>
+
+<!--
+Table Filter Library
+https://www.tablefilter.com/
+
+Filter Operators
+https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators
+
+Data types, column operations
+https://www.tablefilter.com/data-types.html
+-->
+<script src="https://www.tablefilter.com/tablefilter/tablefilter.js"></script>
+<link href="https://www.tablefilter.com/tablefilter/style/tablefilter.css" rel="stylesheet">
+<style> /* mod tablefilter */
+/* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not relilaby. */
+.rdiv,
+.fltrow {
+	user-select: none; /* no select/copy to clipboard (but it does not work with Ctrl+A) */
+}
+</style>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<script type="text/javascript"> // Load file
+"use strict";
+function loadFile(file) {
+	let fr;	// upvalue for function processFile
+	if (typeof window.FileReader !== 'function') {
+		e(null, "p", EEP_Texts.getText("err", "001")); // "The file API isn't supported on this browser yet."
+		return;
+	};
+
+	if (!file) {
+		e(null, "p", EEP_Texts.getText("err", "002")); //"Please select a file before clicking 'Load'"
+	} else {
+		fr = { FileReader: new FileReader() }; // strict mode does not allow to unset read-only property 'result' directly, therfore we have to put the FileReader into an object
+		fr.FileReader.onload = processFile;
+		fr.FileReader.readAsText(file);
+	}
+
+	// process file (local function to get access to local variable fr)
+	function processFile() {
+
+		// Create parser
+		const parser = new DOMParser();
+		// Parse xml into DOM
+		const xmlDoc = parser.parseFromString(fr.FileReader.result, "text/xml");
+		//fr.FileReader.result = null; 	// we do not need the file content anymore, but in strict mode we cannot unset the property directly
+		delete fr.FileReader;			// however, we can remove the whole thing (see http://perfectionkills.com/understanding-delete/ )
+
+		// Hide fileselector
+		document.getElementById('fileselector').classList.add('hidden');
+
+		// Show main area
+		document.getElementById('container').classList.remove('hidden');
+
+		// Show file name
+		document.getElementById('filename').textContent = file.name.substring(0, file.name.length -1 -1 -3);
+
+		// Process root node (documentElement always represents the root node)
+		process_node(xmlDoc.documentElement);
+	}
+
+}
+</script>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+
+<script type="text/javascript"> // process_node
+"use strict";
+function process_node(sutrackp) {
+//console.log(sutrackp.nodeName);
+
+	// EEP: Static texts
+	const GleissystemText = { 			// GleissystemID
+		1 : _('Eisenbahn'),
+		2 : _('Strassenbahn'),
+		3 : _('Strasse'),
+		4 : _('Wasserwege'),
+		5 : _('Steuerstrecken'),			// nicht in EEP 9
+		6 : _('GBS'),						// nicht in EEP 9
+	};
+
+	const GebaeudesammlungText = { 		// GebaeudesammlungID
+		1 : _('Eisenbahn'),
+		2 : _('Strassenbahn'),
+		3 : _('Gleisobjekte Straßen'),
+		4 : _('Immobilien'),
+		5 : _('Landschaftselemente'),
+		6 : _('Sonstiges'),			//  (Wasserwege)
+	};
+
+	const Gleisart = { 					// clsid
+		"2E25C8E2-ADCD-469A-942E-7484556FF932" : _('Normal'),
+		"C889EADB-63B5-44A2-AAB9-457424CFF15F" : _('Weiche'),
+		"B0818DD8-5DFD-409F-8022-993FD3C90759" : _('3-Weg-Weiche'),
+		"06D80C90-4E4B-469B-BFE0-509A573EBC99" : _('Prellbock'),
+	};
+
+	/* Gleisstile:
+	http://up.picr.de/33875489iu.pdf
+	http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
+	*/
+	const unsichtbar = [			// unsichtbare Gleisstile
+		17, 						// Wasser, Steuerstrecke
+		28, 34, 562, 1346, 5100,	// Gleis
+		35, 						// Strassenbahn
+		36, 						// Strasse
+		5145, 5146, 5147,			// Farm track
+		5602,						// Fence
+		100000,						// Kamerafahrweg
+	];
+
+	// GleisData
+	const GleisDataText = {
+		1	: _('Oberleitung'),
+		2	: _('Weichenlaterne verstecken'),
+		3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),
+		4	: _('Weichenlaterne rechts'),
+		5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),
+		8	: _('Weichenlaterne links'),
+		9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),
+		16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),
+		18	: _('Doppelkreuzungsweiche'),
+		19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),
+		20	: _('Straßen-T-Kreuzung'),
+	};
+
+	// Weichenstellung
+	const WeichenstellungText = {
+		1 : _('Durchfahrt'),
+		2 : _('Abzweig'),
+		3 : _('KoAbzweig'),
+		5 : _('Spezial'),
+	};
+
+	// Groesse der Anlage (alle Positionsangaben in m statt cm)
+	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
+	const Area = {
+		min : {
+			x : Schandlaft.getAttribute('posX') / 100,
+			y : Schandlaft.getAttribute('posY') / 100,
+		},
+		width  	: Math.abs(Schandlaft.getAttribute('posX') * 2 / 100),
+		height 	: Math.abs(Schandlaft.getAttribute('posY') * 2 / 100),
+	};
+
+	// Verwendeter Bereich der Anlage
+	const usedArea = {
+		min : {x : 0, y : 0, z : 0},
+		max : {x : 0, y : 0, z : 0},
+	};
+
+	// Variable für die Ausgabe
+	let div;
+	div = e(null, 'div' );
+	div.classList.add('Intro');
+
+	let EEPversion;
+	const Version = sutrackp.getElementsByTagName('Version')[0];
+	// EEP Version = 15, Anzahl Objekte = 733, Breite = 1007 m, Tiefe = 607 m
+	if (Version) {
+		EEPversion = Version.getAttribute('EEP');
+
+		e(div, 'p',
+			  `${_('EEP-Version')} = ${Version.getAttribute('EEP')}, `
+			+ `${_('Anzahl Objekte')} = ${Version.getAttribute('No3DMs')}, `
+			+ `${_('Breite')} = ${Area.width.toFixed(0)} m, `
+			+ `${_('Tiefe')} = ${Area.height.toFixed(0)} m`
+		);
+	}
+
+	// Maps for direct access
+	const GleisMap = new Map();	// Verwendung: Gleis = GleisMap.get(GleissystemID).get(GleisID))
+	const KollektorMap = new Map();	// Verwendung: Kollektor = KollektorMap.get(KollektorID)
+
+	// Signale und Weichen als Kontaktziele
+	const KontaktZiele		= {};
+
+	// Sortable arrays
+	const
+		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
+		Signale 	= [], 	// ID (des Signals), Gleissystem, Gleis, Name, Meldung
+		Kontakte 	= [], 	// SetType, Gleissystem, Gleis, Kontakt
+		Zugverbaende = new Map(),//[], 	// ID (des Zugverbandes), Name, Gleisort, rollmaterialien
+		Gleisstile	 = [],	// Gleisstil, Datei, Anzahl
+		Gleisobjekte = [],	// ID, [{GleissystemID, GleisID}], ImmoIdx, gsbname
+		Routen		= [],
+		Sounds		= [],
+		Kameras		= [];	// KameraID, Name, Kamera
+
+	const KameraNamen = {};	// Verwendung: Name = KameraNamen[index];
+
+	// Extract data from Gleissystem
+	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
+		// Use attribute TrackSystemNumber instead of GleissystemID if available
+		let GleissystemID 	= Gleissystem.getAttribute('TrackSystemNumber');
+		if (!GleissystemID) {
+			GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+		}
+		GleisMap.set(GleissystemID, new Map());
+
+		for (const Gleis of Gleissystem.getElementsByTagName('Gleis')) {
+
+/* Beispiel bis Version EEP 15:
+<Gleis GleisID="1" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm" LockEd="0">
+	<Dreibein>
+		<Vektor x="-12359.88" y="-1854.389" z="30">Pos</Vektor>
+		<Vektor x="0.699066" y="-0.715057" z="0">Dir</Vektor>
+		<Vektor x="0.715057" y="0.699066" z="0">Nor</Vektor>
+		<Vektor x="-0" y="0" z="1">Bin</Vektor>
+	</Dreibein>
+	<Anfangsfuehrungsverdrehung Wert="0"/>
+	<Charakteristik Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Kurve="0" Laenge="2580"/>
+</Gleis>
+
+Beispiel ab Version EEP 16:
+https://www.trendverlag.com/Schema/EEP.xsd
+https://www.trendverlag.com/Schema/Common.xsd
+https://www.trendverlag.com/Schema/traxML.xsd
+https://www.trendverlag.com/Schema/Train.xsd
+
+<Gleis GleisID="314" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="0.6" ElectSideS="0" ElectSideE="0" OneWay="1" stil="2263" gsbname="\Gleisstile\Strassen\Asphaltstrasse_01_RE1.3dm" LockEd="0">
+	<Frame>...</Frame>
+	<Interval near="0" far="20.34561"/>
+
+gefolgt von einer der Varianten:
+
+	<Curve>
+		<EEPCurve Kruemmung="0" Torsion="0" Fuehrungsverdrehung="-0" Laenge="1768" Kurve="0" Anfangsfuehrungsverdrehung="0">
+			<Frame>...</Frame>
+		</EEPCurve>
+	</Curve>
+
+	<Curve>
+		<Line>
+			<VectorBundle>
+				<Position x="0" y="0" z="0"/>
+				<Vector dx="1" dy="0" dz="0"/>
+			</VectorBundle>
+			<Vector dx="0" dy="0" dz="1"/>
+		</Line>
+	</Curve>
+
+	<Curve>
+		<Arc>
+			<VectorBundle2>
+				<Position x="0" y="16.40503" z="0"/>
+				<Vector dx="1" dy="0" dz="0"/>
+				<Vector dx="0" dy="16.40503" dz="0"/>
+			</VectorBundle2>
+		</Arc>
+	</Curve>
+
+	<Curve>
+		<Helix a="100.4987" b="2.017408">
+			<VectorBundle2>
+				<Position x="0" y="0" z="0"/>
+				<Vector dx="1" dy="0" dz="0"/>
+				<Vector dx="0" dy="1" dz="0"/>
+			</VectorBundle2>
+		</Helix>
+	</Curve>
+
+	<Curve>
+		<Rotator a="7.933316E-02" b="-0"/>
+	</Curve>
+
+und abgeschlossen mit
+
+	<Twist>...</Twist>
+</Gleis>
+
+mit
+
+<Frame>
+	<Position x="268582" y="-155050" z="29.99999"/>
+	<Vector dx="1" dy="0" dz="0"/>
+	<Vector dx="0" dy="1" dz="0"/>
+	<Vector dx="0" dy="0" dz="1"/>
+</Frame>
+
+*/
+			const GleisID = Gleis.getAttribute('GleisID');
+			GleisMap.get(GleissystemID).set(GleisID, Gleis);
+
+			let Laenge;
+
+			if (EEPversion && EEPversion >= 16) { /* EEP 16 */
+
+				const Frame		= Gleis.getElementsByTagName("Frame")[0];
+				const FramePos	= Frame.getElementsByTagName("Position")[0];
+				const Interval 	= Gleis.getElementsByTagName("Interval")[0];
+				const near 		= +Interval.getAttribute("near");
+				const far 		= +Interval.getAttribute("far");
+
+				Laenge	= Math.abs( far - near );
+
+				// Depending on CurveType some adjustments might be required!
+				Gleis.PosX		= +FramePos.getAttribute("x");
+				Gleis.PosY		= +FramePos.getAttribute("y");
+				Gleis.PosZ		= +FramePos.getAttribute("z");
+
+			} else {  /* EEP 15 */
+
+				const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
+				const Dreibein	= Gleis.getElementsByTagName("Dreibein")[0];
+				const FramePos	= Dreibein.getElementsByTagName("Vektor")[0];
+
+				Laenge = +Charakteristik.getAttribute("Laenge") / 100;
+
+				Gleis.PosX		= +FramePos.getAttribute("x") / 100;
+				Gleis.PosY		= +FramePos.getAttribute("y") / 100;
+				Gleis.PosZ		= +FramePos.getAttribute("z") / 100;
+
+			} /* EEP 15 */
+
+			// Verwendeten Bereich der Anlage anpassen (mit zusätzlichen Platz in der Ebene für die Position der Endpunkte)
+			usedArea.min.x = Math.min( usedArea.min.x, Gleis.PosX - Laenge );
+			usedArea.min.y = Math.min( usedArea.min.y, Gleis.PosY - Laenge );
+			usedArea.min.z = Math.min( usedArea.min.z, Gleis.PosZ );
+
+			usedArea.max.x = Math.max( usedArea.max.x, Gleis.PosX + Laenge );
+			usedArea.max.y = Math.max( usedArea.max.y, Gleis.PosY + Laenge );
+			usedArea.max.z = Math.max( usedArea.max.z, Gleis.PosZ );
+
+			// Weichen
+			const WeicheID	= Gleis.getAttribute('Key_Id');
+			if (WeicheID) {  // Ist das Gleis eine Weiche?
+				Weichen.push({
+					ID				: Number(WeicheID),  // sort field
+
+					GleissystemID 	: GleissystemID,
+					GleisID 		: GleisID,
+				});
+			}
+
+			// Weichen mit KontaktZiel
+			const KontaktZielEntry 	= Gleis.getElementsByTagName('KontaktZiel')[0];
+			if (KontaktZielEntry) {
+				const KontaktZiel 	= KontaktZielEntry.textContent;
+				if (KontaktZiel != null && KontaktZiel != 0) {
+					const WeicheID = Gleis.getAttribute('Key_Id');
+					KontaktZiele[KontaktZiel] = {
+						Typ				: _('Weiche'),
+						ID				: WeicheID,
+						GleissystemID 	: GleissystemID,
+						GleisID			: GleisID,
+					}
+				}
+			}
+
+
+			// Signale
+			for (const Meldung of Gleis.getElementsByTagName('Meldung')) {
+				// get potential sort fields
+				const SignalID	= Meldung.getAttribute('Key_Id');
+				const Name		= Meldung.getAttribute('name');
+
+				Signale.push({
+					ID				: Number(SignalID),  // sort fields
+					Name			: Name,
+
+					GleissystemID 	: GleissystemID,
+					GleisID			: GleisID,
+
+					Meldung 		: Meldung,
+				});
+
+				// Signale mit KontaktZiel
+				const KontaktZielEntry 	= Meldung.getElementsByTagName('KontaktZiel')[0];
+				if (KontaktZielEntry) {
+					const KontaktZiel 	= KontaktZielEntry.textContent;
+					if (KontaktZiel != null && KontaktZiel != 0) {
+						KontaktZiele[KontaktZiel] = {
+							Typ 			: _('Signal'),
+							ID				: SignalID,
+							GleissystemID 	: GleissystemID,
+							GleisID			: GleisID,
+						}
+					}
+				}
+			}
+
+			// Kontakte
+			for (const Kontakt of Gleis.getElementsByTagName('Kontakt')) {
+				// get potential sort fields
+				const SetType	= Kontakt.getAttribute('SetType');
+
+				Kontakte.push({
+					ID				: Number(SetType),  // sort fields
+
+					GleissystemID 	: GleissystemID,
+					GleisID			: GleisID,
+
+					Kontakt 		: Kontakt,
+					KontaktID		: Kontakte.length,	 // arbitrary identfication
+				});
+			}
+
+			// Gleisstile
+			// <Gleis stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm">
+			const StilID 		= Number(Gleis.getAttribute('stil'));
+			const Dateiname		= Gleis.getAttribute('gsbname');
+
+			if (StilID == 0) { // What should we do if there is no value?
+			}
+
+			const index = Gleisstile.findIndex(function (element) {
+				return (element.ID == StilID && element.Name == Dateiname);
+			});
+			if (index == -1) {
+				Gleisstile.push({
+					ID				: StilID,
+					Name			: Dateiname,
+					Anzahl			: 1,
+				})
+			} else {
+				Gleisstile[index].Anzahl = Gleisstile[index].Anzahl + 1;
+			}
+
+		}
+	}
+
+	// Verwendeter Bereich der Anlage anpassen (nicht größer als die Anlage selber)
+	usedArea.min.x = Math.max( usedArea.min.x, Area.min.x );
+	usedArea.min.y = Math.max( usedArea.min.y, Area.min.y );
+	usedArea.max.x = Math.min( usedArea.max.x, Area.min.x + Area.width  );
+	usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height );
+
+	// Extract data from Fuhrpark
+	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
+	for (const Zugverband of Fuhrpark.getElementsByTagName('Zugverband')) {
+		const ZugID		= Zugverband.getAttribute('ZugID');
+		const Name		= Zugverband.getAttribute('name');
+		const Gleisort	= Zugverband.getElementsByTagName('Gleisort')[0];
+		const Rollmaterialien = [];
+
+		const ZugverbandRollmaterial = Zugverband.getElementsByTagName('Rollmaterial');
+		for (const Rollmaterial of ZugverbandRollmaterial) {
+			Rollmaterialien.push({
+				Rollmaterial : Rollmaterial,
+			});
+		}
+
+		Zugverbaende.set(Number(ZugID), {	// Zugverbaende.push({
+			ID				: Number(ZugID),  // sort fields
+			Name			: Name,
+
+			Zugverband		: Zugverband,
+			Gleisort 		: Gleisort,
+			Anzahl			: ZugverbandRollmaterial.length,
+			Rollmaterialien	: Rollmaterialien,
+		});
+	}
+
+	// Extract Gleisobjekt data from Kollektor
+	for (const Kollektor of sutrackp.getElementsByTagName('Kollektor')) {
+		const KollektorID		= Number(Kollektor.getAttribute('id'));
+
+		KollektorMap.set(KollektorID, Kollektor);
+
+		Gleisobjekte.push({
+			ID				: KollektorID,  // sort field
+
+			Kollektor 		: Kollektor,
+		});
+
+		// Cross reference
+		for (const GleisEntry of Kollektor.getElementsByTagName("Gleis")) {
+			const GleissystemID = GleisEntry.getAttribute('gleissystemID');
+			const GleisID 		= GleisEntry.getAttribute('gleisID');
+
+			const Gleis = GleisMap.get(GleissystemID).get(GleisID);
+			Gleis.Kollektor = Kollektor;
+		}
+	}
+
+	// Extract Gleisobjekt data from Gebaeudesammlung
+	for (const Gebaeudesammlung of sutrackp.getElementsByTagName('Gebaeudesammlung')) {
+		const GebaudesammlungID	= Gebaeudesammlung.getAttribute('GebaudesammlungID');
+		for (const Immobile of Gebaeudesammlung.getElementsByTagName('Immobile')) {
+			const ImmoIdx		= Immobile.getAttribute('ImmoIdx');
+			const KollektorID 	= Number(Immobile.getAttribute('kollektorID'));
+			const gsbname 		= Immobile.getAttribute('gsbname');
+
+			if (KollektorID) {
+				const Kollektor = KollektorMap.get(KollektorID);
+				if (Kollektor) {
+					Kollektor.GebaudesammlungID = GebaudesammlungID;
+					Kollektor.Immobile 	= Immobile;
+					Kollektor.ImmoIdx 	= ImmoIdx;
+					Kollektor.gsbname 	= gsbname;
+				}
+			}
+		}
+	}
+
+	// Extract data from Options
+	/*
+	<Options RouteItems="4" SoundItems="0" RouteId_0="1" RouteName_0="Strecke" RouteId_1="2" RouteName_1="Rangieren" RouteId_2="3" RouteName_2="Tausch" RouteId_3="4" RouteName_3="Weiterfahrt" FavTrainCB="0"/>
+	*/
+	const Options = sutrackp.getElementsByTagName('Options')[0];
+	const RouteItems = +Options.getAttribute('RouteItems');
+	for (let i = 0; i < RouteItems; i++) {
+		const RouteID	= Options.getAttribute('RouteId_' + i);
+		const RouteName = Options.getAttribute('RouteName_' + i);
+
+		Routen[RouteID] = RouteName;
+	}
+	const SoundItems = +Options.getAttribute('SoundItems');
+	for (let i = 0; i < SoundItems; i++) {
+		const SoundID	= Options.getAttribute('SndId_' + i);
+		const SoundName = Options.getAttribute('SndName_' + i);
+
+		Sounds[SoundID] = SoundName;
+	}
+
+	// Extrakt data from Kamerasammlung
+	const Kamerasammlung = sutrackp.getElementsByTagName('Kammerasammlung')[0];
+	const KameraList = Kamerasammlung.getElementsByTagName('Kammera');
+	let KameraID = 0;
+	for (const Kamera of KameraList) {
+		KameraID += 1;
+
+		const Name 	= Kamera.getAttribute('name');
+		/* Ignore not-used cameras
+		Should we check the default name or the default position to identify such cameras?
+		Some observations:
+		- The default name is language dependent, see file eep.lng entry [OTHER]CAMERA_NAME
+		- Pos and Dir seem to have quite specific values
+		- Dir is not a unit vector
+		- Nor and Bin values might vary 
+		<Kammera name="Leer" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
+			<Dreibein>
+				<Vektor x="6000" y="-6000" z="400">Pos</Vektor>
+				<Vektor x="-6000" y="6000" z="-400">Dir</Vektor>
+				<Vektor x="-0.7071068" y="-0.7071068" z="0">Nor</Vektor>
+				<Vektor x="-3.329636E-02" y="3.329636E-02" z="0.9988908">Bin</Vektor>
+			</Dreibein>
+		</Kammera>
+		*/
+		if (Name === "Leer" || Name === "blank" || Name === "Vide" ) {
+			continue;
+		}
+
+		Kameras.push({
+			ID				: KameraID,  // sort fields
+			Name			: Name,
+
+			Kamera 			: Kamera,
+		});
+
+		KameraNamen[KameraID] = Name;
+	}
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	// Anzeige des verwendeten Bereichs
+	e(div, 'p',
+		`${_('Verwendeter Bereich')}: (${(usedArea.min.x).toFixed(0)} m, ${(usedArea.min.y).toFixed(0)} m) .. (${(usedArea.max.x).toFixed(0)} m, ${(usedArea.max.y).toFixed(0)} m)`
+	);
+	e(div, 'p',
+		`${_('Min./max Höhe')}: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) } m`
+	);
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+
+	// Anzeige der Weichen
+	div = createTable({
+		id		: 'Weiche',
+		title 	: `${_('Weichen')} (${Weichen.length})`,
+		caption	: _('Weichen'),
+		content	: function(thead, tbody) {
+
+		Weichen.sort(orderByID).forEach(Weiche => {
+
+		const WeicheID		= Weiche.ID;
+		const GleissystemID	= Weiche.GleissystemID;
+		const GleisID 		= Weiche.GleisID;
+		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
+		const Name			= Gleis.getAttribute('gsbname');
+		const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
+		const GleisData		= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche
+		const clsid			= Gleis.getAttribute('clsid');
+		const weichenstellung = Gleis.getAttribute('weichenstellung');
+		const SignalData 	= Gleis.getAttribute('SignalData');
+		const NextSigFn1 	= Gleis.getAttribute('NextSigFn1');
+		const NextSigFn2 	= Gleis.getAttribute('NextSigFn2');
+//		const NextSigFn3 	= Gleis.getAttribute('NextSigFn3');
+//		const NextSigFn4 	= Gleis.getAttribute('NextSigFn4');
+//		const NextSigFn5 	= Gleis.getAttribute('NextSigFn5');
+
+		const Kollektor		= Gleis.Kollektor;
+		const GleisobjektID	= (Kollektor ? Number(Gleis.Kollektor.getAttribute('id')) : false );
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Weiche'),
+			td :
+				  `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${WeicheID},${GleissystemID},${GleisID});">`
+				+ WeicheID
+				+ `<\/a>`,
+			html : true, },
+		{ th : _('Gleis'),
+			td :
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ `<\/a>`,
+			html : true, },
+		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
+		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
+		{ th : _('Kontaktziel'),	td : (KontaktZiel != 0 ? KontaktZiel : '') },
+		{ th : _('Gleisart'),		td : Gleisart[clsid] },
+		{ th : _('Gleisobjekt'),	td :
+			(GleisobjektID ? `<a href="#Gleisobjekt_${GleisobjektID}">${GleisobjektID}<\/a>` : '')
+			, html : true
+			},
+		{ th : _('Weichenstellung'),	td : weichenstellung + ': ' + WeichenstellungText[weichenstellung] },
+		{ th : _('SignalData'),		td : SignalData },
+		{ th : `NextSigFn1`,		td : NextSigFn1 },
+		{ th : `NextSigFn2`,		td : NextSigFn2 },
+		{ th : _('GleisData'),		td : (GleisData != 0 ? GleisData + ': ' + GleisDataText[GleisData] : '') },
+		{ th : _('Name'),			td : Name },
+
+		]) })
+
+		return Weichen.length;
+		}
+	})
+
+	if (Weichen.length > 0) {
+		e(div, 'p', 'SignalData: ' + _('Weiche ist verknüpft mit Signal/Weiche'));
+		e(div, 'p', 'NextSigFn1: ' + _('Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten'));
+		e(div, 'p', 'NextSigFn2: ' + _('Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten'));
+	}
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	// Anzeige der Signale
+	/*
+	<Meldung Position="1687.619" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" clsid="D180F669-DCCC-42E9-960C-B5305B29F69D" name="ShSig_Licht_EpIV_kl" Key_Id="34" Hofs="300" Vofs="300" LockEd="0">
+		<KontaktZiel>2</KontaktZiel>
+		<Signal stellung="2" wirkungsdistanz="1000" StopAt="0" Geschwindigkeit="0" Delay="0" ActDelay="0"/>
+	</Meldung>
+
+	Achtung: Fahrstrassen werden ebenfalls durch Meldungen realisiert
+	Dabei gilt name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ende einer Fahrstrasse.
+	*/
+	div = createTable({
+		id		: 'Signal',
+		title 	: `${_('Signale')} (${Signale.length})`,
+		caption	: _('Signale'),
+		content	: function(thead, tbody) {
+
+		Signale.sort(orderByID).forEach(Signal => {
+
+		const SignalID		= Signal.ID;
+		const File			= Signal.Name;
+		const GleissystemID	= Signal.GleissystemID;
+		const GleisID 		= Signal.GleisID;
+		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
+		const Position		= Signal.Meldung.getAttribute('Position') / 100;
+		const Stellung		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('stellung');
+		const Count			= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('Count');
+		const SignalData	= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData');
+		const Distanz		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
+		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
+		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
+
+		// Fahrstraßen
+		const Routes		= Signal.Meldung.getAttribute('Routes');
+		const RouteList	 	= Signal.Meldung.getElementsByTagName("Route");
+
+		// Fahrstraßen
+		const ColorText = { // <color> modulo 8
+			0: { name: _('grau'),	color: 'rgb(180,180,180)', 	},
+			1: { name: _('rot'),	color: 'rgb(220,0,0)', 		},
+			2: { name: _('grün'),	color: 'rgb(0,220,0)', 		},
+			3: { name: _('blau'),	color: 'rgb(0,0,220)', 		},
+			4: { name: _('gelb'),	color: 'rgb(220,220,0)', 	},
+			5: { name: _('pink'),	color: 'rgb(220,0,220)', 	},
+			6: { name: _('hellblau'), color: 'rgb(0,180,220)', 	},
+			7: { name: _('orange'),	color: 'rgb(220,110,0)',	},
+		}
+		let RoutesText = '';
+		for (const Route of RouteList) {
+			const Target 	= Route.getAttribute('Target');
+			const Color 	= Route.getAttribute('Color');
+
+			RoutesText +=
+				  _('Zielsignal') + ': ' + Target
+				+ ', ' + '<span style="color:' + ColorText[Color%8].color + ';">' + _('Farbe') + ': ' + Color + ' ' + ColorText[Color%8].name + '</span><br>'
+				;
+		}
+
+		function getSignalName(File) {
+			let Name = '';
+			if (!Signalstellung[File]) {
+				// no name
+			} else if (typeof(Signalstellung[File].Name) === "string") {
+				Name = Signalstellung[File].Name;
+			} else if (typeof(Signalstellung[File].Name) === "object") {
+				Name = Signalstellung[File].Name[EEP_Texts.getLanguage()]
+					|| Signalstellung[File].Name.DE
+					|| Signalstellung[File].Name.EN
+					;
+			} else {
+				// no name
+			}
+			return Name;
+		}
+		function getSignalPositionText(File, Position) {
+			let Text = '';
+			if (!Signalstellung[File]) {
+				// no text
+			} else if (typeof(Signalstellung[File].Pos[Position]) === "string") {
+				Text = Signalstellung[File].Pos[Position];
+			} else if (typeof(Signalstellung[File].Pos[Position]) === "object") {
+				Text = Signalstellung[File].Pos[Position][EEP_Texts.getLanguage()]
+					|| Signalstellung[File].Pos[Position].DE	// primary language
+					|| Signalstellung[File].Pos[Position].EN	// secondary language
+					;
+			} else {
+				// no text
+			}
+			
+			// Default translations
+			if (Text === "Fahrt") 	{ Text = _("Fahrt") };
+			if (Text === "Halt") 	{ Text = _("Halt") };
+			
+			return Text;
+		}
+		let SignalstellungText = Stellung;
+		let SignalstellungenText = '';
+		if (Signalstellung[File]) {
+			// 1st try: Get texts (case sensitive file name)
+			SignalstellungText += ' : ' + getSignalPositionText(File, Stellung);
+
+			for (const StellungPos in Signalstellung[File].Pos) {
+				SignalstellungenText += StellungPos + ' : ' + getSignalPositionText(File, StellungPos) + '<br>';
+			}
+		} else {
+			// 2nd try: Get texts (case insensitive file name)
+			for (const SignalFile in Signalstellung) {
+				if (SignalFile.toLowerCase() == File.toLowerCase()) {
+					SignalstellungText += ' : ' + getSignalPositionText(SignalFile, Stellung);
+
+					for (const StellungPos in Signalstellung[SignalFile].Pos) {
+						SignalstellungenText += StellungPos + ' : ' + getSignalPositionText(SignalFile, StellungPos) + '<br>';
+					}
+				}
+			}
+		}
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Signal'),
+			td :
+				  `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${SignalID},${GleissystemID},${GleisID});">`
+				+ SignalID
+				+ `<\/a>`,
+			html : true, },
+		{ th : _('Gleis'),
+			td :
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ `<\/a>`,
+			html : true, },
+		{ th : `x (m)`,					td : Gleis.PosX.toFixed(0), },
+		{ th : `y (m)`,					td : Gleis.PosY.toFixed(0), },
+		{ th : _('Position') + ' (m)',	td : Position.toFixed(0), },
+		{ th : _('Distanz zum Hauptsignal') + ' (m)',	td : (Distanz !=0 ? Distanz.toFixed(0) : ''), },
+		{ th : _('Gleisrichtung'),		td : ParaOderAnti, },
+		{ th : _('Signalstellung'),		td : SignalstellungText, },
+		{ th : _('Anzahl Signalstellungen'),	td : Count, },
+		{ th : _('Signalstellungen'), 	td : SignalstellungenText, html : true, },
+		{ th : _('SignalData'),			td : SignalData, },
+		{ th : _('Kontaktziel'),		td : (KontaktZiel != 0 ? KontaktZiel : ''), },
+		{ th : _('Anzahl Fahrstraßen'),	td : Routes, },
+		{ th : _('Fahrstraßen'),		td : RoutesText, html : true, },
+		{ th : _('Datei'),				td : File, },
+		{ th : _('Name'),				td : getSignalName(File), },
+
+		]) })
+
+		return Signale.length;
+		}
+	})
+
+	if (Signale.length > 0) {
+		e(div, 'p', 'SignalData: ' + _('Signal ist verknüpft mit Signal/Weiche'));
+	}
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	// Anzeige der Kontakte
+	/*
+	<Kontakt Position="712.3505" ParaOderAnti="1" fireOnPara="0" fireOnAnti="1" Teiler="1" ActTeiler="0" TrainSide="1" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="26" LastOfs="742.3113" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="2" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" SignalData="0" SigNeg="0" LockEd="0" KontaktZiel="2" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
+	*/
+	div = createTable({
+		id		: 'Kontakt',
+		title 	: `${_('Kontakte')} (${Kontakte.length})`,
+		caption	: _('Kontakte'),
+		content	: function(thead, tbody) {
+
+		Kontakte.sort(orderByID).forEach(Kontakt => {  // no ID, therfore no sort
+
+		const KontaktID		= Kontakt.KontaktID;
+		// const SetType 		= Kontakt.ID;
+		const SetType 		= Kontakt.Kontakt.getAttribute('SetType');
+		const SetValue 		= Kontakt.Kontakt.getAttribute('SetValue');
+		const KontaktZiel 	= Kontakt.Kontakt.getAttribute('KontaktZiel');
+		const GleissystemID	= Kontakt.GleissystemID;
+		const GleisID 		= Kontakt.GleisID;
+		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
+		const Position		= Kontakt.Kontakt.getAttribute('Position') / 100;
+		const ParaOderAnti 	= Kontakt.Kontakt.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
+		const fireOnPara 	= Kontakt.Kontakt.getAttribute('fireOnPara');
+		const fireOnAnti 	= Kontakt.Kontakt.getAttribute('fireOnAnti');
+		const Teiler 		= Kontakt.Kontakt.getAttribute('Teiler');
+		const ActTeiler 	= Kontakt.Kontakt.getAttribute('ActTeiler');
+		const Delay 		= Kontakt.Kontakt.getAttribute('Delay');
+		const ActDelay 		= Kontakt.Kontakt.getAttribute('ActDelay');
+		const TrainSide 	= Kontakt.Kontakt.getAttribute('TrainSide');
+		const RouteID 		= Kontakt.Kontakt.getAttribute('Route');
+		const TrainID 		= Kontakt.Kontakt.getAttribute('TrainID');
+		const NameFilter 	= Kontakt.Kontakt.getAttribute('NameFilter');
+		const TrainNewName 	= Kontakt.Kontakt.getAttribute('TrainNewName');
+		const zuStellung 	= Kontakt.Kontakt.getAttribute('zuStellung');
+		const Wechseln 		= Kontakt.Kontakt.getAttribute('Wechseln');
+		const ConnectF 		= Kontakt.Kontakt.getAttribute('ConnectF');
+		const ConnectR 		= Kontakt.Kontakt.getAttribute('ConnectR');
+		const VolDist 		= Kontakt.Kontakt.getAttribute('VolDist');
+		const SignalData 	= Kontakt.Kontakt.getAttribute('SignalData');
+		const LuaFn		 	= Kontakt.Kontakt.getAttribute('LuaFn');
+		const TipTxt	 	= Kontakt.Kontakt.getAttribute('TipTxt');
+
+		// Achtung: die Variable $1 wird ersetzt
+		const KontaktText = {	// SetValue
+			0 		: _('Weiche/Signal'),
+			1 		: _('Fahrzeug +$1 km/h max'),
+			2 		: _('Fahrzeug +$1 km/h min'),
+			3 		: _('Fahrzeug +$1 km/h soll'),
+			//4		: '',							// not used
+			5 		: _('Fahrzeug -$1 km/h max'),
+			6 		: _('Fahrzeug -$1 km/h min'),
+			7 		: _('Fahrzeug -$1 km/h soll'),
+			8 		: _('Halt $1 m'),
+			// 17, 33, 34 unbekannt
+			128 	: _('Omegas'),
+			256 	: _('Sound'),
+			512 	: _('Kamera'),
+			768 	: _('Immobilie'),
+			1024 	: _('DKW/EKW'),
+			1280 	: _('Einfahrt Depot'),
+			1536 	: _('Ausfahrt Depot'),
+			2048 	: _('Animationen'),
+			32768 	: _('Gruppen-Kontaktpunkt'),
+		}
+
+		const Ziel = KontaktZiele[KontaktZiel];
+
+		let KontaktTypText = KontaktText[SetType];
+
+		// Spezielle Kontakt-Typen
+		if 		  (SetType == 0) {
+			KontaktTypText = Ziel.Typ;
+
+		} else if (SetType >= 1 && SetType <= 7) {
+			KontaktTypText = KontaktTypText.replace('$1', SetValue);			// 'Fahrzeug +$1 max'
+
+		} else if (SetType == 8) {
+			KontaktTypText = KontaktTypText.replace('$1', SetValue);			// 'Halt $1 m'
+
+		} else if (SetType == 256) {										// Sound
+			KontaktTypText += ' ' + Sounds[SetValue];
+
+		} else if (SetType == 512) {
+			/* ConnectF: 4 Byte Ganzzahl
+				Byte 1 (LSB):	KameraID Start
+				Byte 2:			Perspektive Start
+				Byte 3:			KameraID Ende
+				Byte 4:			Perspektive Ende
+			*/
+			const Perspektive = {
+				0 : _('keine Perspektive festgelegt'),
+				1 : _('Fahrzeug von links'),
+				2 : _('Fahrzeug von rechts'),
+				3 : _('Fahrzeug von links oben'),
+				4 : _('Fahrzeug von rechts oben'),
+				5 : _('Sicht in Fahrtrichtung'),
+				6 : _('Rückwärtige Sicht'),
+				7 : _('Folgemodus'),
+				8 : _('Sicht in Kabine'),
+			}
+
+			// convert 32bit int to array of 4 bytes
+			function convertIntToBytes( x ) {
+				const bytes = [0, 0, 0, 0,];
+				let i = 4;
+				do {
+					bytes[--i] = x & (255);
+					x = x>>8;
+				} while ( i && x > 0 )
+				return bytes;
+			}
+
+			const [EndePerspektive, EndeKameraID, StartPerspektive, StartKameraID] = convertIntToBytes( ConnectF );
+			KontaktTypText = _('Kamera')	// Kamera <Start> [<Perspektive>] / <Ende> nach <t> Sek. [<Perspektive>]
+				+ (StartKameraID > 0
+					? ` <a href="javascript:void(0);" onclick="javascript:postKameraMessage(${StartKameraID});">${KameraNamen[StartKameraID]}<\/a>`
+					: '' )
+				+ (StartPerspektive > 0
+					? ` [${Perspektive[StartPerspektive]}]`
+					: '' )
+				+ (EndeKameraID > 0
+					? ` / <a href="javascript:void(0);" onclick="javascript:postKameraMessage(${EndeKameraID});">${KameraNamen[EndeKameraID]}<\/a> ${('nach')} ${SetValue} ${('Sekunden')}`
+					: '' )
+				+ (EndePerspektive > 0
+					? ` [${Perspektive[EndePerspektive]}]`
+					: '' );
+
+		} else if (SetType == 1024) {
+			// DKW/EKW Weichenstellung
+			const VolDistText = {
+				0 : _('Umschalter'),
+				1 : _('links-links'),
+				2 : _('links-rechts'),
+				3 : _('rechts-rechts'),
+				4 : _('rechts-links'),
+			}
+
+			KontaktTypText += ' ' + VolDistText[VolDist];	// DKW/EKW Weichenstellung
+		}
+
+		// SignalData
+		/*
+		Byte 1 - 2 (LSB)
+			Key-ID des abgefragten Signals oder Weiche
+		Byte 3 - 4 (MSB)
+			Signal- oder Weichenstellung, die gegeben sein muss, damit der Kontakt schaltet
+			Signal:
+				1=Fahrt
+				2=Halt
+			Weiche:
+				1=Durchfahrt
+				2=Abzweig
+				3=Koabzweig
+			EKW:
+				1=von links nach rechts
+				2=von rechts nach rechts
+				3=von rechts nach links
+			DKW:
+				1=von links nach links
+				2=von links nach rechts
+				3=von rechts nach rechts
+				4=von rechts nach links
+		*/
+		const SignalDataStellung = Math.floor(SignalData / 65536);
+		const SignalDataID   	 = SignalData - SignalDataStellung * 65536;
+
+		// Zugverband`
+		const Zugverband = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
+
+		const TrainSidetext = {
+			0 : _('Spitze'),
+			1 : _('Schluss'),
+			[-1] : _('Gruppen-Kontaktpunkt'),
+		}
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Kontakttypcode'),	td : SetType, },
+		{ th : _('Kontakttyp'),		td : KontaktTypText, html : true, },		// KontaktText[SetType] mit Modifikation
+		{ th : `SetValue`,			td : (SetValue != 0 ? SetValue : '') },
+		{ th : _('Kontaktziel'),
+			td : (KontaktZiel != null && KontaktZiel != 0 && Ziel
+				? 	  `${KontaktZiel}: ${Ziel.Typ} `
+					+ `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${Ziel.ID},${Ziel.GleissystemID},${Ziel.GleisID});">`
+					+ Ziel.ID
+					+ `<\/a> ` 
+					+ _('auf')
+					+ ` <a href="javascript:void(0);" onclick="javascript:postGleisMessage(${Ziel.GleissystemID},${Ziel.GleisID});">`
+					+ GleissystemText[Ziel.GleissystemID] + ' ' + Ziel.GleisID
+					+ `<\/a>`
+				: 	''),
+			html : true,
+		},
+		{ th : _('Gleis'),
+			td :  `<a href="javascript:void(0);" onclick="javascript:postKontaktMessage(${KontaktID},${GleissystemID},${GleisID});">`
+				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ `<\/a>`,
+			html : true,
+		},
+		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
+		{ th : `y (m)`,				td : Gleis.PosY.toFixed(0) },
+		{ th : _('Position') + ' (m)',		td : Position.toFixed(0) },	// Position
+		{ th : _('Auslösung'),
+			td : ( fireOnPara == 1 && fireOnAnti == 0 ? (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
+					: ( fireOnPara == 0 && fireOnAnti == 1 ? (ParaOderAnti == 0 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
+						: ( fireOnPara == 1 && fireOnAnti == 1 ? _('beide Richtungen') : '' )
+					  )
+				 )
+		},
+		{ th : _('Zug-Zähler'),			td : Teiler },
+		{ th : _('Zählerstand'),		td : ActTeiler },
+		{ th : _('Zeitverzögerung'),	td : Delay },
+		{ th : _('Zeit abgelaufen'),	td : ActDelay },
+		{ th : _('Zugposition'),		td : (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) },
+		{ th : _('für Route'),			td : (RouteID != 0 ? RouteID + ': ' + Routen[RouteID] : '') },
+		{ th : _('für Zug'),			td : (TrainID != 0 ? TrainID + ': ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') : '') },
+		{ th : _('Zug-Filter'),			td : NameFilter },
+		{ th : _('Neuer Zugname'),		td : TrainNewName },
+		{ th : _('zu Stellung'),		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) },
+		{ th : _('SignalData'),			td : (SignalData != 0 ? `ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') },
+		{ th : _('LuaFn'),				td : (LuaFn ? LuaFn : '') },
+		{ th : _('TipTxt'),				td : (TipTxt ? TipTxt : '') },
+
+		]) })
+
+		return Kontakte.length;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	// Anzeige der Zugverbände
+	div = createTable({
+		id		: 'Zugverband',
+		title 	: `${_('Zugverbände')} (${Zugverbaende.size})`,
+		caption	: _('Zugverbände'),
+		content	: function(thead, tbody) {
+
+		Zugverbaende.forEach(Zugverband => { // Zugverbaende.sort(orderByID).forEach(Zugverband => {
+
+		const ZugID			= Zugverband.ID;
+		const Name			= Zugverband.Name;
+		const Anzahl		= Zugverband.Anzahl;
+		const GleissystemID	= Zugverband.Gleisort.getAttribute('gleissystemID');
+		const GleisID 		= Zugverband.Gleisort.getAttribute('gleisID');
+		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
+		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
+		const ausrichtung 	= Zugverband.Gleisort.getAttribute('ausrichtung');
+		const RouteID 		= Zugverband.Zugverband.getAttribute('Route');
+		const LastDir 		= Zugverband.Zugverband.getAttribute('LastDir');
+		const Geschwindigkeit = Zugverband.Zugverband.getAttribute('Geschwindigkeit') * 3600 / 1000;
+		const sollgeschwindigkeit = Zugverband.Zugverband.getAttribute('sollgeschwindigkeit') * 3600 / 1000;
+		const autopilot 	= Zugverband.Zugverband.getAttribute('autopilot');
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Zugverband'),				td : ZugID },
+		{ th : _('Gleis'),	td :
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ `<\/a>`, html : true, },
+		{ th : `x (m)`,						td : Gleis.PosX.toFixed(0) },
+		{ th : `y (m)`,						td : Gleis.PosY.toFixed(0) },
+		{ th : _('Position') + ' (m)',		td : Position.toFixed(0) },
+		{ th : _('Ausrichtung'),			td : (ausrichtung == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung')) },
+		{ th : _('Name'),					td : Name },
+		{ th : _('Anzahl Rollmaterialien'),	td : Anzahl },
+		{ th : _('Route'),					td : (RouteID != 0 ? RouteID + ': ' + Routen[RouteID] : '') },
+		{ th : _('Geschwindigkeit') + ' km/h',		td : (Geschwindigkeit != 0 ? Geschwindigkeit.toFixed(0) : (LastDir == 1 ? '+0' : '-0')) },
+		{ th : _('Sollgeschwindigkeit') + ' km/h',	td : sollgeschwindigkeit.toFixed(0) },
+		{ th : _('Automatik'),				td : autopilot },
+
+		]) })
+
+		return Zugverbaende.size;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	// Anzeige der Gleisstile
+	div = createTable({
+		id		: 'Gleisstil',
+		title 	: `${_('Gleisstile')} (${Gleisstile.length})`,
+		caption	: _('Gleisstile'),
+		content	: function(thead, tbody) {
+
+		Gleisstile.sort(orderByID).forEach(Gleisstil => {
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Stil'),			td : Gleisstil.ID 		},
+		{ th : _('Name'),			td : Gleisstil.Name 	},
+		{ th : _('Anzahl'),			td : Gleisstil.Anzahl 	},
+
+		]) })
+
+		return Gleisstile.length;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	// Anzeige der Gleisobjekte
+	div = createTable({
+		id		: 'Gleisobjekt',
+		title 	: `${_('Gleisobjekte')} (${Gleisobjekte.length})`,
+		caption	: _('Gleisobjekte'),
+		content	: function(thead, tbody) {
+
+		//Gleisobjekte.forEach(Gleisobjekt => {
+		Gleisobjekte.sort(orderByID).forEach(Gleisobjekt => {
+
+		const Dreibein	= Gleisobjekt.Kollektor.getElementsByTagName("Dreibein")[0];
+		const FramePos	= Dreibein.getElementsByTagName("Vektor")[0];
+
+		const PosX		= +FramePos.getAttribute("x") / 100;
+		const PosY		= +FramePos.getAttribute("y") / 100;
+		const PosZ		= +FramePos.getAttribute("z") / 100;
+
+		const Gleise	= Gleisobjekt.Kollektor.getElementsByTagName("Gleis");
+
+		const GebaudesammlungID = Gleisobjekt.Kollektor.GebaudesammlungID || '';
+		const ImmoIdx			= Gleisobjekt.Kollektor.ImmoIdx || '';
+		const Name 				= Gleisobjekt.Kollektor.gsbname || '';
+
+		let GleissystemID;
+		let GleiseText;
+		for (const Gleis of Gleise) {
+
+			const GleisSysID = Gleis.getAttribute('gleissystemID');
+			const GleisID 	= Gleis.getAttribute('gleisID');
+
+			// Check GleissystemID
+			if (GleissystemID && GleissystemID != GleisSysID ) {
+				console.log('Kollektor'
+					+ ' ' + Gleisobjekt.ID
+					+ ' GleissystemID ' + GleissystemID + " != " + GleisSysID
+				);
+			}
+			GleissystemID = GleisSysID;
+
+			if (!GleiseText) {
+				GleiseText = GleissystemText[GleissystemID];
+			}
+			GleiseText += ' '
+				+ `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+				+ GleisID
+				+ `<\/a>`;
+		}
+
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Gleisobjekt'),	td :
+			`<span id="Gleisobjekt_${Gleisobjekt.ID}">${Gleisobjekt.ID}<\/span>`
+			, html : true },
+		{ th : _('Anzahl Gleise'),	td : Gleise.length				},
+		{ th : _('Gleise'),			td : GleiseText, html : true	},
+		{ th : `x (m)`,				td : PosX.toFixed(0) 			},
+		{ th : `y (m)`,				td : PosY.toFixed(0) 			},
+		{ th : _('Immobilie'),		td :
+			//GebaeudesammlungText[GebaudesammlungID] + ' ' +
+			ImmoIdx
+			},
+		{ th : _('Name'),			td : Name		},
+
+		]) })
+
+		return Gleisobjekte.length;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	// Anzeige der Kameras
+	div = createTable({
+		id		: 'Kamera',
+		title 	: `${_('Kameras')} (${Kameras.length})`,
+		caption	: _('Kameras'),
+		content	: function(thead, tbody) {
+
+		//Kameras.forEach(Kamera => {
+		Kameras.sort(orderByName).forEach(Kamera => {
+
+		const Dreibein	= Kamera.Kamera.getElementsByTagName("Dreibein")[0];
+		const FramePos	= Dreibein.getElementsByTagName("Vektor")[0];
+		const FrameDir	= Dreibein.getElementsByTagName("Vektor")[1];
+
+		const PosX		= +FramePos.getAttribute("x") / 100;
+		const PosY		= +FramePos.getAttribute("y") / 100;
+		const PosZ		= +FramePos.getAttribute("z") / 100;
+
+		const Dynamic 	= Kamera.Kamera.getAttribute("Dynamic");
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Kamera'),		td :
+			`<a id="Kamera_${Kamera.ID}" href="javascript:void(0);" onclick="javascript:postKameraMessage(${Kamera.ID});">${Kamera.ID}<\/a>`
+			, html : true },
+		{ th : `Name`,				td :
+			`<a  href="javascript:void(0);" onclick="javascript:postKameraMessage(${Kamera.ID});">${Kamera.Name}<\/a>`
+			, html : true },
+		{ th : `x (m)`,				td : PosX.toFixed(0) 			},
+		{ th : `y (m)`,				td : PosY.toFixed(0) 			},
+		{ th : `z (m)`,				td : PosZ.toFixed(0) 			},
+		{ th : _('Kameratyp'),		td : (Dynamic == 0 ? _('statisch') : _('dynamisch')) },
+
+		]) })
+
+		return Kameras.length;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	// Allow to sort all tables by clicking on the header
+	prepareSort();
+}
+
+function orderByID(a,b) {
+	// Sort by number ascending
+	return (a.ID - b.ID);
+}
+function orderByName(a,b) {
+	// Sort by text ascending
+	const NameA = a.Name.toLowerCase(), NameB = b.Name.toLowerCase();
+	if (NameA < NameB)	{ return -1; }
+	if (NameA > NameB)	{ return 1;  }
+	return 0;
+}
+
+// Create output table
+function createTable( tab ) {
+	const div 	= 	e(null,	 'div'					);
+					e(div, 	 'h4', 		tab.title	);
+	const table = 	e(div, 	 'table' 				);
+	//				e(table, 'caption', tab.caption );  // TableFilter uses the caption already
+	const thead	= 	e(table, 'thead' 				);
+	const tbody	= 	e(table, 'tbody' 				);
+
+	div.classList.add(tab.id);
+	div.setAttribute('id', 'div'+tab.id);
+	table.setAttribute('id', tab.id);
+
+	// Now, let's do it
+	const count = tab.content(thead, tbody);
+
+	if (count > 0) {
+
+	// Activate table filter (see http://www.tablefilter.com/examples.html )
+	// Configuration via statements instead of object: http://www.tablefilter.com/features-no-configuration.html
+	// Feature toggle: http://www.tablefilter.com/toggle-features.html
+	const cfg = {
+		base_path: 'https://www.tablefilter.com/tablefilter/',
+
+		//themes: [{ name: 'skyblue' }],	// Themes 'default', 'skyblue', 'transparent', 'mytheme'
+
+		auto_filter: { delay: 500 },	// Delay for automatic filtering (milliseconds)
+
+		state: {						// Enable state persistence (see http://www.tablefilter.com/persistence.html for more options)
+			types: ['local_storage'],	// Mögliche Werte: 'local_storage' 'hash' or 'cookie' (erfordert id für Tabellen)
+			filters: true,				// Persist filters values, enabled by default
+			columns_visibility: true,	// Persist columns visibility
+			filters_visibility: true,	// Persist filters row visibility
+		},
+
+		sticky_headers: true,			// Sticky headers with overrides
+		alternate_rows: true,			// Enable alternating rows
+		mark_active_columns: {			// Mark active columns
+			highlight_column: false,	// Highlight columns or only header
+        },
+		grid_layout: false,				// Grit layout (but no simple copy&paste to Excel anymore)
+		filters_row_index: 0,  			// Row index to show the filter bar (default 0). Show filter bar above header allows easy copy&paste of the table content.
+
+		toolbar: true,					// Enable toolbar component
+		rows_counter: { text: tab.caption + ': ' },	// Enable rows counter UI component
+		status_bar: {					// Enable status bar UI component
+			msg_filter: _('Filter aktiv') + ' ...',	// Message during filtering
+			toolbar_position: 'center',	// Default position in toolbar ('left'|'center'|'right')
+		},
+		btn_reset: {  					// Enable clear button
+			tooltip: _('Filter löschen'),
+			toolbar_position: 'right',	// Default position in toolbar ('left'|'center'|'right')
+		},
+
+		locale: 'de',					// Define default locale, default to 'en' // ###
+		thousands_separator: '.',		// Define thousands separator ',' or '.', defaults to ','
+		decimal_separator: ',',			// Define decimal separator ',' or '.', defaults to '.'
+
+		empty_operator: '[empty]',
+		nonempty_operator: '[nonempty]',
+		help_instructions: {			// Instructions text (accepts HTML)
+			text :
+            _('Filter-Operatoren') + ':<br> '
+            + `<b>&lt;<\/b>, <b>&lt;=<\/b>, <b>=<\/b>, <b>&gt;=<\/b>, <b>&gt;<\/b>, <br>`
+            + `<b>*<\/b>, <b>!<\/b> (${_('nicht')}), <b>{<\/b> (${_('beginnt mit')}), <b>}<\/b> (${_('endet mit')}), <br>`
+            + `<b>||<\/b> (${_('oder')}),<b> &amp;&amp;<\/b> (${_('und')}),<br>`
+            + `<b>[empty]<\/b>, <b>[nonempty]<\/b>, <b>rgx:<\/b><br>`
+            + '<a href="'
+			+ 'https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators'
+			+ '" target="_blank">'
+            + _('Weitere Informationen') + '</a><hr/>'
+			,
+			btn_text : '?',				// btn_text oder btn_html
+		},
+
+		no_results_message: {			// "No results" message
+			content: _('Keine zum Filter passende Einträge vorhanden'),
+		},
+		loader: false,					// Loading indicator, { html : '...' }
+		watermark: [ _('Filter') + ' ...', ],	// Repeated watermark text for input fields or watermark for each filter if an array is supplied
+
+		extensions:[					// Extensions load addititional script files
+			{
+				name: 'colsVisibility',
+				description: _('Sichbarkeit der Spalten verwalten'),	// Module description
+				enable_hover: true,		// Enable hover behaviour on columns manager button/link
+				btn_text: _('Spalten verstecken') + '&#9660;',	// Button's text, defaults to Columns&#9660;
+				//at_start: [3, 4],		// List of columns indexes to be hidden at initialization
+				tickToHide: true,		// Enable tick to hide a column, defaults to true
+				text: _('Versteckte Spalten') + ': ', // Text preceding the columns list, defaults to 'Hide' or 'Show'
+				btn_close_text: _('Schließen'),	// Columns manager UI close link text, defaults to 'Close'
+				enable_tick_all: false,	// Enable select all option, disabled by default
+				tick_all_text: _('Alle auswählen') + ':',	// Text for select all option, defaults to 'Select all:'
+				toolbar_position: 'right',	// Default position in toolbar ('left'|'center'|'right')
+			},
+			/*
+			{
+				name: 'filtersVisibility',
+				description: _('Sichtbarkeit der Filter'),		// Module description
+				visible_at_start: true,	// Make filters visible at initialization, defaults to true
+				enable_icon: true,		// Enable expand/collapse icon, defaults to true
+				btn_text: _('Filter'),		// Custom text for button
+				toolbar_position: 'right',	// Default position in toolbar ('left'|'center'|'right')
+			},
+			*/
+			//{ name: 'sort' }			// Sort requires to classify numeric columns using "col_types : [ 'numeric', String', ...]," see http://www.tablefilter.com/sort.html
+		],
+	}
+	const tf = new TableFilter(table, cfg);
+	tf.init();
+
+	}
+
+	return div;
+}
+
+// Fill output table
+function fillTable(thead, tbody, lines ) {
+	let thead_tr;
+
+	const first = (thead.rows.length == 0);
+	if (first) {
+		thead_tr = e(thead, 'tr' );
+	}
+
+	const tbody_tr = e(tbody,	'tr');
+	for (const line of lines) {
+		if (first) {
+			e(thead_tr, 'th', line.th);
+		}
+		e(tbody_tr, 'td', line.td, line.html);
+	}
+}
+
+// Element erzeugen und anhängen
+function e(target, tagName, content, html) {
+	const element = document.createElement(tagName);
+	if (content) {
+		if (html) {	element.innerHTML 	= content; }
+		else 	  { element.textContent = content; }
+	}
+	if (!target) { target = document.getElementById('container') }
+	target.appendChild(element);
+	return element;
+}
+
+// Sort table, https://stackoverflow.com/questions/14267781/sorting-html-table-with-javascript
+function prepareSort() {
+
+	function getCellValue(tr, idx){
+		return tr.children[idx].innerText || tr.children[idx].textContent;
+	}
+
+	function comparer(idx, asc) {
+		return function(a, b) {
+			return function(v1, v2) {
+				return v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2);
+			}(getCellValue((asc ? a : b), idx), getCellValue((asc ? b : a), idx));
+		}
+	}
+
+	// prepare the work...
+	document.querySelectorAll('th').forEach(
+		th => th.addEventListener('click', (() => {
+			const table = th.closest('table');
+			const tbody = table.querySelector('tbody');
+			Array.from(tbody.querySelectorAll('tr'))
+				.sort(comparer(Array.from(th.parentNode.children).indexOf(th), th.asc = !th.asc)) // th.asc instead of this.asc to allow strict mode
+				.forEach(tr => tbody.appendChild(tr) );
+		}))
+	);
+}
+</script>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<script type="text/javascript"> // html page
+"use strict";
+// Toggle visibility of elements
+function toggleElements(selector, visible) {
+	for (const ele of document.getElementById('container').querySelectorAll(selector)) {
+		if (visible) {
+			ele.classList.remove('hidden');
+		} else {
+			ele.classList.add('hidden');
+		}
+	}
+}
+
+</script>
+<style>
+/* Selection screen */
+#fileselector {
+	margin: 15px;
+}
+#fileselector span.li {
+	display: list-item;
+	padding-top: 0.2em;
+	margin-left: 2em;
+}
+
+/* html page */
+.hidden {
+	display: none;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+caption {
+  /* display: none;	*/
+}
+
+thead {
+	font-weight: bold;
+	background-color:#C5D8E1;
+}
+
+th {
+	border: 1px solid gray;
+	padding: 5px;
+	cursor: n-resize; /* Cursor indicating sorting */
+}
+
+tbody {
+	vertical-align: top;
+}
+
+tr {
+}
+
+tr:nth-child(even) {
+  /* background-color: #ECF2F5; */
+}
+
+td {
+	border: 1px solid gray;
+	padding: 5px;
+}
+
+.fieldset {
+	border-width: 0;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
+	padding-block-start: 0;
+	padding-inline-start: 0;
+	padding-inline-end: 0;
+	padding-block-end: 0;
+}
+.fieldset .item {
+	white-space: nowrap;		/* keep checkbox and label together */
+	display: inline;			/* but do no add extra line breaks per item */
+}
+
+/* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not relilaby. */
+.no-select,
+fieldset,
+select,
+input,
+label,
+button {
+	user-select: none;
+}
+</style>
+
+</head>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<body>
+
+<!-- The hidden radio buttons need to stay on top level -->
+<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" autocomplete="off" >
+<input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage(`EN`)" autocomplete="off" >
+<input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage(`FR`)" autocomplete="off" >
+<script type="text/javascript">
+"use strict";
+switch (EEP_Texts.getLanguage()) {	// do it as early as possible
+	case "DE" : document.getElementById("german").checked = true; break;
+	case "EN" : document.getElementById("english").checked = true; break;
+	case "FR" : document.getElementById("french").checked = true; break;
+}
+</script>
+
+<section id='fileselector'>
+<header class="flexRow">
+<div> <!-- left part -->
+<h3><span lang="de">EEP-Inventar</span><span lang="en">EEP Inventory</span><span lang="fr">EEP Inventaire</span></h3>
+</div>
+
+<div> <!-- right part -->
+<label for="german" class="langBtn">Deutsch</label>
+<label for="english" class="langBtn">English</label>
+<label for="french" class="langBtn">Français</label>
+</div>
+</header>
+
+<form action='#' onsubmit='return false;'> <!-- better not to use inline listener, explizit register is better -->
+<label for="fileinput">
+<span lang="de">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3).</span>
+<span lang="en">Select (or use Drag&amp;Drop) and load an EEP file (.anl3).</span>
+<span lang="fr">Sélectionnez un réseau EEP (nom_du_réseau.anl3) ou utilisez la fonction glisser-déposer.</span>
+</label>
+	<input type='file' id='fileinput' accept='.anl3' onchange='loadFile(this.files && this.files[0])' />
+	<!-- An extra button is not neccessary -->
+	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
+</form>
+
+<article>
+
+<p lang="de">Dieses Programm nutzt die Javascript-Funktion <a href='https://www.w3schools.com/xml/xml_parser.asp' target='_blank'>DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href='https://www.w3schools.com/xml/xml_tree.asp' target='_blank'>XML</a> aufgebaut ist, zu interpretieren und in das <a href='https://www.w3schools.com/xml/xml_dom.asp' target='_blank'>Document Object Model (DOM)</a> umzuwandeln.<br>
+Anschließend wird der Inhalt in verschiedenen Tabellen ausgegeben.</p>
+
+<p lang="en">This program uses the Javascript function <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> to analyse an <i>.anl3</i> file of EEP,  which contains <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> structured data, and to transform it into the <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
+The content is then displayed in various tables.</p>
+
+<p lang="fr">Ce programme utilise la fonction javascript <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> pour interpréter un fichier <i>.anl3</i> de EEP conçu en <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a>, pour le transformer au format <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
+Le contenu est ensuite affiché dans différents tableaux.</p>
+
+<p lang="de">Man kann die Tabellen (bei Firefox auch mit <kbd>Strg+A</kbd>) mit Copy &amp; Paste in ein Tabellenverarbeitungsprogramm übertragen.<br>
+Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.</p>
+
+<p lang="en">You may load the tables (in Firefox also use <kbd>Strg+A</kbd>) with Copy &amp; Paste into a spreadsheet application.<br>
+The tables can be sorted by clicking in the column-headers.</p>
+
+<p lang="fr">Il est possible de charger les tableaux dans un tableur en utilisant copier-coller (dans Firefox également avec <kbd>Strg+A</kbd>).<br>
+Les tableaux peuvent être triés en cliquant sur les entêtes des colonnes.</p>
+</p>
+
+<p lang="de">Zusätzlich wird die Bibliothek <a href='http://www.tablefilter.com/' target='_blank'>TableFilters</a> verwendet, um interaktive Funktionen zum Filtern in den Tabellen anzubieten.
+Die Filter-Operatoren werden auf der Projektseite im Kapitel <a href='https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators' target='_blank'>4.-Filter-operators</a> beschrieben.</p>
+
+<p lang="en">Additionally the <a href='http://www.tablefilter.com/' target='_blank'>TableFilters</a>-library is used to offer interactive functions for filtering in the tables.
+The filter-operators are described on the project-page in chapter <a href='https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators' target='_blank'>4.-Filter-operators</a>.</p>
+
+<p lang="fr">En plus la bibliothèque <a href='http://www.tablefilter.com/' target='_blank'>TableFilters</a> sert à offrir des fonctions interactives de filtrage à l'intérieur des tableaux.<br>
+Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre <a href='https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators' target='_blank'>4.-Filter-operators</a>.</p>
+
+<p lang="de">Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers den <a href="EEP_Gleisplan.html" target="_blank">Gleisplan</a> für die gleiche EEP-Anlage-Datei öffnet, dann kann man über die Links von Gleisen, Signalen oder Kontakten den Gleisplan auf das gewählte Objekt positionieren und das Info-Popup dort öffnen:
+<span class="li">wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet</span>
+<span class="li">wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt</span></p>
+
+<p lang="en">By opening the <a href="EEP_Gleisplan.html" target="_blank">track map</a> of the same installation in a further window or tab of the browser, you will be able, using the links of tracks, signals or contacts, to place the track map on the selected object and to open the info-popup there:<span class="li">if together with <kbd>&#x21E7; Shift</kbd>, then you get another new popup window</span>
+<span class="li">if together with <kbd>alt</kbd>, then you will get the code from the file for this object, too</span></p>
+
+<p lang="fr">En ouvrant le <a href="EEP_Gleisplan.html" target="_blank">plan de voies</a> d'un même réseau dans une fenêtre supplémentaire ou dans un nouvel onglet du navigateur, il est possible, en utilisant les liens de voies, signaux ou contacts, de placer le plan de voies sur l'objet sélectionné et d'ouvrir un info pop-up à cet endroit:
+<span class="li">en appuyant simultanément également sur <kbd>&#x21E7; Shift</kbd>, un nouveau pop-up s‘ouvrira</span>
+<span class="li">en appuyant simultanément également sur <kbd>alt</kbd>, tout le code du fichier *.anl3 correspondant à cet objet s‘affichera</span></p>
+
+</article>
+
+<footer>
+<hr>
+
+<p lang="de"><small>(c) Frank Buchholz, 2020, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (französische Übersetzung)</small></p>
+
+<p lang="en"><small>(c) Frank Buchholz, 2020, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (French translation)</small></p>
+
+<p lang="fr"><small>(c) Frank Buchholz, 2020, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français)</small></p>
+
+</footer>
+
+</section>  <!-- fileselector -->
+
+<section id='container' class='hidden'> <!-- The container shows the result -->
+
+<h3 id='filename'></h3>
+
+<div class='group'>
+<!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
+<fieldset class='fieldset'>
+	<div class="item"><label><input type='checkbox' name='Intro' 		checked autocomplete='off' onchange="toggleElements('.Intro', this.checked)"><a href='#divIntro'><span lang="de">Übersicht</span><span lang="en">Overview</span><span lang="fr">Présentation</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Weiche' 		checked autocomplete='off' onchange="toggleElements('.Weiche', this.checked)"><a href='#divWeiche'><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aguillages</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Signal' 		checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)"><a href='#divSignal'><span lang="de">Signale</span><span lang="en">Signals</span><span lang="fr">Signaux</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)"><a href='#divKontakt'><span lang="de">Kontakte</span><span lang="en">Contacts</span><span lang="fr">Contacts</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)"><a href='#divZugverband'><span lang="de">Zugverband</span><span lang="en">Train set</span><span lang="fr">Convoi ferroviaire</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'><span lang="de">Gleisstile</span><span lang="en">Track styles</span><span lang="fr">Styles de voie</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Gleisobjekt'	checked autocomplete='off' onchange="toggleElements('.Gleisobjekt', this.checked)"><a href='#divGleisobjekt'><span lang="de">Gleisobjekte</span><span lang="en">Track objects</span><span lang="fr">Objets de voie</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Kamera'	checked autocomplete='off' onchange="toggleElements('.Kamera', this.checked)"><a href='#divKamera'><span lang="de">Kameras</span><span lang="en">Cameras</span><span lang="fr">Caméras</span></a></label></div>
+	|
+	<!-- Hide filter row and filter related icons to make copy&paste to Excel easier -->
+	<div class="item"><label><input type='checkbox' name='Filter'		checked autocomplete='off' onchange="toggleElements('.fltrow,.rdiv', this.checked)"><span lang="de">Filter</span><span lang="en">Filter</span><span lang="fr">Filtre</span></label></div>
+</fieldset>
+</div>
+
+</section> <!-- container -->
+
+<script type="text/javascript"> // Broadcast Channel
+"use strict";
+// https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
+
+// Initialization: Connection to a broadcast channel
+const EEPchannel = new BroadcastChannel('EEP');
+
+// Example of a simple event handler that only
+// logs the event to the console
+EEPchannel.onmessage = function(ev) {
+	console.log(ev);
+}
+
+function postGleisMessage(GleissystemID, GleisID) {					// Gleis
+	EEPchannel.postMessage({
+		GleissystemID: 	GleissystemID,
+		GleisID: 		GleisID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
+	});
+}
+
+function postIDMessage(ID, GleissystemID, GleisID) {				// Signal oder Weiche
+	EEPchannel.postMessage({
+		ID: 			ID,
+		GleissystemID: 	GleissystemID,
+		GleisID: 		GleisID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
+	});
+}
+
+function postKontaktMessage(KontaktID, GleissystemID, GleisID) {	// Kontakt
+	EEPchannel.postMessage({
+		KontaktID: 		KontaktID,
+		GleissystemID: 	GleissystemID,
+		GleisID: 		GleisID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
+	});
+}
+
+function postKameraMessage(KameraID) {	// Kamera
+	EEPchannel.postMessage({
+		KameraID: 		KameraID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
+	});
+}
+
+const global = {};
+global.shiftDown 	= false;
+global.strgDown 	= false;
+global.altDown 		= false;
+document.addEventListener('keydown', function(event){
+    if			(event.keyCode === 16 || event.charCode === 16){
+        global.shiftDown = true;
+    } else if	(event.keyCode === 17 || event.charCode === 17){
+        global.strgDown = true;
+    } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = true;
+    }
+});
+document.addEventListener('keyup', function(event){
+    if			(event.keyCode === 16 || event.charCode === 16){
+        global.shiftDown = false;
+    } else if	(event.keyCode === 17 || event.charCode === 17){
+        global.strgDown = false;
+    } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = false;
+    }
+});
+
+// Disconnect the channel
+//EEPchannel.close();
+
+</script>
+
+</body>
+</html>
