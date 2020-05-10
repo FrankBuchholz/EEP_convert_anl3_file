@@ -1,8 +1,11 @@
 # Projekt: EEP_convert_anl3_file
 
-## Programm: EEP_Gleisplan.html
-Anzeige eines EEP-Gleisplans im Browser.
+Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konvertierung von Gleisplänen von EEP.
 
+Die Programme können direkt mit den angegebenen Links im Browser (Chrome oder Firefox) gestartet werden. In diesem Fall ist eine aktive Internetverbindung notwendig.
+Alternativ kann das Archiv `dist/EEP_convert_anl3_file.zip` auf [GitHub](https://github.com/FrankBuchholz/EEP_convert_anl3_file) in einem beliebigen Verzeichnis entpackt werden. Dann können die Programme lokal gestartet werden wobei keine Internetverbindung benötigt wird.
+
+## Programm: EEP_Gleisplan.html
 Der Gleisplan zu einer EEP-Anlage wird im Browser angezeigt.
 
 Solche EEP-Anlagen sind z.B. hier zu finden:<br>
@@ -70,11 +73,7 @@ Der Filter wird über dynamische Anpassung der CSS-Klassen von SVG-Gruppenelemen
 Die Interaktion mit dem Gleisplan-Programm erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
 
 ### Abhängigkeiten
-Die GitHub-Bibliothek [`svg-pan-zoom`](https://github.com/ariutta/svg-pan-zoom) wird online aufgerufen. Wenn man das Programm komplett lokal nutzen will muss diese Bibliothek ebenfalls lokal kopiert werden und der entsprechende script-Befehl angepasst werden.
-
-Die GitHub-Bibliothek [`toolwindow`](https://github.com/fluffynuts/toolwindow) wurde angepasst und ist Teil des Projektes. Wenn man das Programm komplett lokal nutzen will muss das Verzeichnis `toolwindow` mit den Dateien `toolwindow.js` und `toolwindow.css` ebenfalls lokal kopiert werden. 
-
-Die GitHub-Bibliothek [`rematrix`](https://github.com/jlmakes/rematrix) wurde eingebunden und ist Teil des Projektes. Wenn man das Programm komplett lokal nutzen will muss das Verzeichnis `rematrix` mit der Datei `rematrix.js` ebenfalls lokal kopiert werden. 
+Das Programm verwendet die GitHub-Bibliotheken [`svg-pan-zoom`](https://github.com/ariutta/svg-pan-zoom), [`toolwindow`](https://github.com/fluffynuts/toolwindow) und [`rematrix`](https://github.com/jlmakes/rematrix). 
 
 ---
 
@@ -106,7 +105,7 @@ Zusätzlich wird die GitHub-Bibliothek [`TableFilter`](https://github.com/koalyp
 Die Interaktion mit dem Gleisplan-Programm erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
 
 ### Abhängigkeiten
-Die GitHub-Bibliothek [`TableFilter`](https://github.com/koalyptus/TableFilter) wird online aufgerufen. Wenn man das Programm komplett lokal nutzen will muss diese Bibliothek ebenfalls lokal kopiert werden und der entsprechende script-Befehl angepasst werden.
+Das Programm verwendet die GitHub-Bibliothek [`TableFilter`](https://github.com/koalyptus/TableFilter).
 
 ---
 

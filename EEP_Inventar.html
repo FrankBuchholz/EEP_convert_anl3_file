@@ -112,8 +112,11 @@ https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators
 Data types, column operations
 https://www.tablefilter.com/data-types.html
 -->
-<script src="https://www.tablefilter.com/tablefilter/tablefilter.js"></script>
-<link href="https://www.tablefilter.com/tablefilter/style/tablefilter.css" rel="stylesheet">
+<!-- <script src="https://www.tablefilter.com/tablefilter/tablefilter.js"></script> -->
+<script src="node_modules/tablefilter/dist/tablefilter/tablefilter.js"></script>
+<!-- It's not neccessary to load the style sheet here because it's loaded automatically -->
+<!-- <link href="https://www.tablefilter.com/tablefilter/style/tablefilter.css" rel="stylesheet"> -->
+<!-- <link href="node_modules/tablefilter/dist/tablefilter/style/tablefilter.css" rel="stylesheet"> -->
 <style> /* mod tablefilter */
 /* no select/copy to clipboard. Firefox prevents selection even in case of Ctrl-A, but with Chrome it's not relilaby. */
 .rdiv,
@@ -1353,7 +1356,8 @@ function createTable( tab ) {
 	// Configuration via statements instead of object: http://www.tablefilter.com/features-no-configuration.html
 	// Feature toggle: http://www.tablefilter.com/toggle-features.html
 	const cfg = {
-		base_path: 'https://www.tablefilter.com/tablefilter/',
+		//base_path: 'https://www.tablefilter.com/tablefilter/',
+		base_path: 'node_modules/tablefilter/dist/tablefilter/',
 
 		//themes: [{ name: 'skyblue' }],	// Themes 'default', 'skyblue', 'transparent', 'mytheme'
 
