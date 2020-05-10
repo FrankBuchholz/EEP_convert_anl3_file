@@ -3,8 +3,13 @@
 	"version": "1.0.0",
 	"description": "Interaktive Anzeige des Gleisplans zu einer EEP-Anlage-Datei (.anl3)",
 	"keywords": [
-		"EEP", "anl3", "SVG", "PNG", "JPG",
-		"railroad", "track layout",
+		"EEP",
+		"anl3",
+		"SVG",
+		"PNG",
+		"JPG",
+		"railroad",
+		"track layout",
 		"inventar"
 	],
 	"homepage": "https://github.com/FrankBuchholz/EEP_convert_anl3_file#readme",
@@ -17,19 +22,24 @@
 		"email": "Frank.Buchholz@web.de",
 		"url": "https://www.eepforum.de/user/6667-frank-buchholz/"
 	},
-	"contributors": [{
+	"contributors": [
+		{
 			"name": "campersau",
 			"url": "https://github.com/campersau"
-		}, {
+		},
+		{
 			"name": "benny",
 			"url": "https://github.com/EEP-Benny"
-		}, {
+		},
+		{
 			"name": "Michael89",
 			"url": "https://www.eepforum.de/user/6-michael89/"
-		}, {
+		},
+		{
 			"name": "Messina",
 			"url": "https://www.eepforum.de/user/3932-messina/"
-		}, {
+		},
+		{
 			"name": "HStoni54",
 			"url": "https://www.eepforum.de/user/6783-hstoni54/"
 		}
@@ -41,11 +51,13 @@
 	"bugs": "https://github.com/FrankBuchholz/EEP_convert_anl3_file/issues",
 	"main": "EEP_Gleisplan.html",
 	"@comment dependencies": [
-		"rematrix and toolwindow are copied into this project, svg-pan-zoom is loaded dynamically"
+		"EEP_Gleisplan.html requires svg-pan-zoom, rematrix, toolwindow",
+		"EEP_Inventar.html requires tablefilter"
 	],
 	"dependencies": {
 		"rematrix": ">=0.4.1",
 		"svg-pan-zoom": ">=3.6.0",
+		"tablefilter": ">=0.6.97",
 		"toolwindow": ">=1.0.25"
 	},
 	"browserslist": [
