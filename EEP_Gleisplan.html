@@ -1484,9 +1484,9 @@ return nodeList;
 				// Analyzed and developed by HStoni54, https://www.eepforum.de/user/6783-hstoni54/
 
 				// Frame (= mMatrix)
-				const mFrame = [			DirX,  DirY,  DirZ,  0,    
-											NorX,  NorY,  NorZ,  0,    
-											BinX,  BinY,  BinZ,  0,    
+				const mFrame = [			DirX,  DirY,  DirZ,  0,
+											NorX,  NorY,  NorZ,  0,
+											BinX,  BinY,  BinZ,  0,
 											PosX,  PosY,  PosZ,  1,	];
 
 				// VectorBundle2
@@ -1515,7 +1515,7 @@ return nodeList;
 									-1, 0, 0, 0,
 									0,  0, 1, 0,
 									0,  0, 0, 1,	];
-								
+
 				// Rotation of point on helix related to start point (0° at start point = Identity)
 				/*
 				//const s 	= Math.atan(b/a); // better use atan2 to get the orientation automatically
@@ -1536,7 +1536,7 @@ return nodeList;
 							mFrame,
 							mVectorBundle2,
 							mOrientation,
-							// rematrix.rotateZ(angle) * 
+							// rematrix.rotateZ(angle) *
 							[	Math.cos(wPos),  Math.sin(wPos),  0,  	  0,
 								-Math.sin(wPos), Math.cos(wPos),  0,  	  0,
 								0,            0,            	  1,  	  0,
@@ -1583,11 +1583,11 @@ return nodeList;
 				const DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
 				const DeltaZ	= 0;
 				const d1		= Math.sqrt(DeltaX*DeltaX + DeltaY*DeltaY + DeltaZ*DeltaZ);
-				const d2		= Math.sqrt(	  (mEnd[posX]-mPos[posX]) * (mEnd[posX]-mPos[posX]) 
+				const d2		= Math.sqrt(	  (mEnd[posX]-mPos[posX]) * (mEnd[posX]-mPos[posX])
 												+ (mEnd[posY]-mPos[posY]) * (mEnd[posY]-mPos[posY])
 												+ (mEnd[posZ]-mPos[posZ]) * (mEnd[posZ]-mPos[posZ])
 												);
-				const dDiff		= Math.abs(d1-d2);								
+				const dDiff		= Math.abs(d1-d2);
 
 console.log("Helix Vergleich\t" + GleisID
 	+ "\tDelta:\t" + d1 + "\t" + d2 + "\t" + dDiff
@@ -1596,27 +1596,29 @@ console.log("Helix Vergleich\t" + GleisID
 				if (dDiff > 1) {	// difference is too large, go für Cubic interpolation
 					/* Interpolate Helix with Cubic:
 					Analyzed and developed by HStoni54, https://www.eepforum.de/user/6783-hstoni54/
-					
+
 					f = |far - near| / 2 / sqrt(a^2 + b^2)
 					B1 = mPos
 					B2 = mPos * translate3d(a*f,  0,  b*f)
 					B3 = mEnd * translate3d(-a*f, 0, -b*f)
 					B4 = mEnd
 					*/
-					
+
 					const f = Math.abs(far - near) / 2 / Math.sqrt(a*a + b*b);	// f = Math.abs(wMid);
 					const mB1 = mPos;
 					const mB2 = Rematrix.multiply(mPos, Rematrix.translate3d( a*f, 0,  b*f) );
 					const mB3 = Rematrix.multiply(mEnd, Rematrix.translate3d(-a*f, 0, -b*f) );
 					const mB4 = mEnd;
-					
-					mMatrix = Rematrix.identity();
-					Gleis.BezierPoints = [	[mB1[posX], mB1[posY], mB1[posZ]], 
-											[mB2[posX], mB2[posY], mB2[posZ]], 
-											[mB3[posX], mB3[posY], mB3[posZ]], 
-											[mB4[posX], mB4[posY], mB4[posZ]],	];
+
+					// hack to split the result into absolute coordinates for the start point and relative coordinates for the bezier points
+					mMatrix = Rematrix.translate3d(mPos[posX], mPos[posY], mPos[posZ]);
+					Gleis.BezierPoints = [	[mB1[posX] - mPos[posX], mB1[posY] - mPos[posY], mB1[posZ] - mPos[posZ]],
+											[mB2[posX] - mPos[posX], mB2[posY] - mPos[posY], mB2[posZ] - mPos[posZ]],
+											[mB3[posX] - mPos[posX], mB3[posY] - mPos[posY], mB3[posZ] - mPos[posZ]],
+											[mB4[posX] - mPos[posX], mB4[posY] - mPos[posY], mB4[posZ] - mPos[posZ]],	];
+
 				}
-				
+
 				Gleis.Helix = {	// Store Helix parameters
 					a: 		a,
 					b: 		b,
@@ -1624,7 +1626,7 @@ console.log("Helix Vergleich\t" + GleisID
 					mMid:	mMid,
 					mEnd:	mEnd,
 				};
-				
+
 // Error: wrong positions of Helix
 if ( 1 === 1
 // generic
@@ -2236,7 +2238,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				});
 				svgAppend(svgGleisGroup, {
 					svg_tag				: `circle`,
-					r					: 0.4, 
+					r					: 0.4,
 					transform			: `translate(${Gleis.BezierPoints[2][0]} ${-Gleis.BezierPoints[2][1]})`
 				});
 				svgAppend(svgGleisGroup, {
@@ -2521,7 +2523,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		} // Kontakte
 
 	} // Gleise
-		
+
 //### Test show start and end points of all tracks
 if (false) {
 for (const Gleis of Gleise) {
@@ -2538,7 +2540,7 @@ for (const Gleis of Gleise) {
 		+ (connections['EndeKoAbzweig']	? connections['EndeKoAbzweig'].GleisID 	: '') + "\t"
 	)
 }}
-	
+
 }
 
 function createSVGfinalize(SVGfragment) {
@@ -2760,7 +2762,7 @@ function createSVGforKameras(SVGfragment) {
 		- The default name is language dependent, see file eep.lng entry [OTHER]CAMERA_NAME
 		- Pos and Dir seem to have quite specific values
 		- Dir is not a unit vector
-		- Nor and Bin values might vary 
+		- Nor and Bin values might vary
 		<Kammera name="Leer" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
 			<Dreibein>
 				<Vektor x="6000" y="-6000" z="400">Pos</Vektor>
@@ -3084,7 +3086,7 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 						x: b1.x + ( (b4.x - b1.x) - (b4.y - b1.y) / (b4.dy / b4.dx) ) / ( 1 - ( (b1.dy / b1.dx) / (b4.dy / b4.dx)) ),
 						y: b1.y + ( (b4.y - b1.y) - (b4.x - b1.x) * (b4.dy / b4.dx) ) / ( 1 - ( (b4.dy / b4.dx) / (b1.dy / b1.dx)) ),
 					};
-			}	
+			}
 			b2 = {															// 2. Bezier point on tangent near B1
 					x: b1.x + (b3.x - b1.x) / f,							// works fine with f=4, but not with f=3
 					y: b1.y + (b3.y - b1.y) / f,							// (I guess we should calculate the factor dependant on s or a)
@@ -4252,7 +4254,7 @@ text.WeicheText {
 </section> <!-- container -->
 
 <!-- local library -->
-<!-- <script type="text/javascript" src="svg-pan-zoom/dist/svg-pan-zoom.js"></script>
+<!-- <script type="text/javascript" src="svg-pan-zoom/dist/svg-pan-zoom.js"></script> -->
 <!-- remote library on GitHub pages -->
 <script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <!-- Not possible: "Cross-Origin Read Blocking (CORB) blocked cross-origin response with MIME type text/plain."
@@ -5309,11 +5311,11 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 			} else {
 				// no text
 			}
-			
+
 			// Default translations
 			if (Text === "Fahrt") 	{ Text = _("Fahrt") };
 			if (Text === "Halt") 	{ Text = _("Halt") };
-			
+
 			return Text;
 		}
 	let SignalTypeText;
@@ -5784,10 +5786,10 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m<\/a>)`
 			+ `<br>${_('Höhe')}: ${PosZ.toFixed(0)}m`
 			+ `<br>${_('Blickrichtung')}: ` 		 + angle( -angleZ )			// svg: mirrored y-coordinate
-			+ " " + ['W', 'WNW', 'NW', 'NNW', 'N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)] 			
+			+ " " + ['W', 'WNW', 'NW', 'NNW', 'N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)] 
 			+ `<br>${_('Neigung')}: ` 				 + angle( angleY )			// Neigung Y
 			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : "")	// Neigung X
-			+ `<br>` + (Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6  
+			+ `<br>` + (Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6
 			+ objectToHTML(Kamera)
 	});
 }
