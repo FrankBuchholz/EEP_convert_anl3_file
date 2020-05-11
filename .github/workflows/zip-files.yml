@@ -1,15 +1,15 @@
-name: Archive files
+name: Archive files action
 
 on:
   push:
     paths-ignore:
-    - 'dist/**'    # Do not trigger the action if the push request is triggered by this action itself
+    - 'dist/**'    # Just to be sure to avoid recursion
     branches: 
     - master
 
 jobs:
   zip-files:
-    name: Archive files
+    name: Archive files job
 
     if: github.repository == 'FrankBuchholz/EEP_convert_anl3_file'
 
@@ -29,17 +29,10 @@ jobs:
       with:
         path: ${{ github.workspace }}/dist
         
-    - name: Commit # transfer the new zip file back into the repository
+    - name: Commit & push # transfer the new zip file back into the repository
       run: |
         git config --local user.email "action@github.com"   # dummy 
         git config --local user.name "GitHub Action"        # or use ${{ github.actor }}
         git add dist/EEP_convert_anl3_file.zip
         git commit -m "Update dist/EEP_convert_anl3_file.zip"
-        
-    - name: Push
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: 'master'    # Destination branch to push changes, default=master
-        force: false        # Determines if force push is used
-        tags: false         # Determines if --tags is used
+        git push
