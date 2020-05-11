@@ -1,0 +1,45 @@
+name: Archive files
+
+on:
+  push:
+    paths-ignore:
+    - 'dist/**'    # Do not trigger the action if the push request is triggered by this action itself
+    branches: 
+    - master
+
+jobs:
+  zip-files:
+    name: Archive files
+
+    if: github.repository == 'FrankBuchholz/EEP_convert_anl3_file'
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Build
+      run: zip -u ./dist/EEP_convert_anl3_file.zip -i EEP_Gleisplan.html EEP_Inventar.html EEP_Signale.html EEP_Texts.js EEP_Signale_Daten.js
+
+    - name: Upload artifact # The artifact shows up at the action log
+      if: ${{ success() }}
+      uses: actions/upload-artifact@v2
+      with:
+        path: ${{ github.workspace }}/dist
+        
+    - name: Commit # transfer the new zip file back into the repository
+      run: |
+        git config --local user.email "action@github.com"   # dummy 
+        git config --local user.name "GitHub Action"        # or use ${{ github.actor }}
+        git add dist/EEP_convert_anl3_file.zip
+        git commit -m "Update dist/EEP_convert_anl3_file.zip"
+        
+    - name: Push
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: 'master'    # Destination branch to push changes, default=master
+        force: false        # Determines if force push is used
+        tags: false         # Determines if --tags is used
