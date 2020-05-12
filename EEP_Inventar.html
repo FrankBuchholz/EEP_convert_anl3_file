@@ -2,8 +2,9 @@
 <html lang="de">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Inventar zu einer EEP-Anlage-Datei (.anl) anzeigen</title>
-<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird der Inhalt ausgegeben.">
+<META http-equiv="Content-Script-Type" content="text/javascript">
+<title>Inventar zu einer EEP-Anlage-Datei (.anl3) anzeigen</title>
+<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl3-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird der Inhalt ausgegeben.">
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,Inventar" />
 <meta name="language" content="de" />
@@ -289,7 +290,8 @@ function process_node(sutrackp) {
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
 		Signale 	= [], 	// ID (des Signals), Gleissystem, Gleis, Name, Meldung
 		Kontakte 	= [], 	// SetType, Gleissystem, Gleis, Kontakt
-		Zugverbaende = new Map(),//[], 	// ID (des Zugverbandes), Name, Gleisort, rollmaterialien
+		Zugverbaende = new Map(),//[], 	// ID (des Zugverbandes), Name, Gleisort, Fahrzeuge
+		Rollmaterialien = [], 	// Name (des Rollmaterials), Rollmaterial, Zugverband
 		Gleisstile	 = [],	// Gleisstil, Datei, Anzahl
 		Gleisobjekte = [],	// ID, [{GleissystemID, GleisID}], ImmoIdx, gsbname
 		Routen		= [],
@@ -403,10 +405,36 @@ mit
 
 				Laenge	= Math.abs( far - near );
 
-				// Depending on CurveType some adjustments might be required!
 				Gleis.PosX		= +FramePos.getAttribute("x");
 				Gleis.PosY		= +FramePos.getAttribute("y");
 				Gleis.PosZ		= +FramePos.getAttribute("z");
+
+				// Identify CurveType
+				const Curve 	= Gleis.getElementsByTagName("Curve")[0];
+				const EEPCurve  = Curve.getElementsByTagName("EEPCurve")[0];
+				const Line		= Curve.getElementsByTagName("Line")[0];
+				const Arc		= Curve.getElementsByTagName("Arc")[0];
+				const Helix		= Curve.getElementsByTagName("Helix")[0];
+				const Clothoid	= Curve.getElementsByTagName("Clothoid")[0];
+				const Cubic		= Curve.getElementsByTagName("Cubic")[0];
+				const Rotator	= Curve.getElementsByTagName("Rotator")[0];
+				const RotatorChain	= Curve.getElementsByTagName("RotatorChain")[0];
+				// Depending on CurveType some adjustments might be required!
+				// Let's start with a simple case.
+				if (EEPCurve) {	// EEPCurve = Line or Arc
+					 // assumption: Gleis.Frame does not contain relevant data
+					if (Math.abs(+FramePos.getAttribute("x")) > 1 ) {
+						console.log(`EEPCurve ${GleissystemText[GleissystemID]} ${GleisID} has Frame value`);
+					}
+
+					const Frame2	= EEPCurve.getElementsByTagName("Frame")[0];
+					const Frame2Pos	= Frame2.getElementsByTagName("Position")[0];
+
+					Gleis.PosX		= +Frame2Pos.getAttribute("x") / 100;
+					Gleis.PosY		= +Frame2Pos.getAttribute("y") / 100;
+					Gleis.PosZ		= +Frame2Pos.getAttribute("z") / 100;
+				}
+				// ... see more calculations in EEP_Gleisplan.html
 
 			} else {  /* EEP 15 */
 
@@ -508,18 +536,18 @@ mit
 			// Gleisstile
 			// <Gleis stil="1353" gsbname="\Gleisstile\Gleise\Beton2_Sch_C_LW1.3dm">
 			const StilID 		= Number(Gleis.getAttribute('stil'));
-			const Dateiname		= Gleis.getAttribute('gsbname');
+			const File			= Gleis.getAttribute('gsbname');
 
 			if (StilID == 0) { // What should we do if there is no value?
 			}
 
 			const index = Gleisstile.findIndex(function (element) {
-				return (element.ID == StilID && element.Name == Dateiname);
+				return (element.ID == StilID && element.Name == File);
 			});
 			if (index == -1) {
 				Gleisstile.push({
 					ID				: StilID,
-					Name			: Dateiname,
+					Name			: File,
 					Anzahl			: 1,
 				})
 			} else {
@@ -541,12 +569,21 @@ mit
 		const ZugID		= Zugverband.getAttribute('ZugID');
 		const Name		= Zugverband.getAttribute('name');
 		const Gleisort	= Zugverband.getElementsByTagName('Gleisort')[0];
-		const Rollmaterialien = [];
+		const Fahrzeuge = [];
 
 		const ZugverbandRollmaterial = Zugverband.getElementsByTagName('Rollmaterial');
+		let Position = 0;
 		for (const Rollmaterial of ZugverbandRollmaterial) {
-			Rollmaterialien.push({
+			Fahrzeuge.push({
 				Rollmaterial : Rollmaterial,
+			});
+			Position += 1;
+			Rollmaterialien.push({
+				Name		 : Rollmaterial.getAttribute('name'),  // sort field 
+				
+				Rollmaterial : Rollmaterial,
+				Zugverband	 : Zugverband,
+				Position 	 : Position,
 			});
 		}
 
@@ -557,7 +594,7 @@ mit
 			Zugverband		: Zugverband,
 			Gleisort 		: Gleisort,
 			Anzahl			: ZugverbandRollmaterial.length,
-			Rollmaterialien	: Rollmaterialien,
+			Fahrzeuge		: Fahrzeuge,
 		});
 	}
 
@@ -687,7 +724,7 @@ mit
 		const GleissystemID	= Weiche.GleissystemID;
 		const GleisID 		= Weiche.GleisID;
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
-		const Name			= Gleis.getAttribute('gsbname');
+		const File			= Gleis.getAttribute('gsbname');
 		const KontaktZiel 	= Gleis.getElementsByTagName('KontaktZiel')[0].textContent;
 		const GleisData		= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche
 		const clsid			= Gleis.getAttribute('clsid');
@@ -729,7 +766,7 @@ mit
 		{ th : `NextSigFn1`,		td : NextSigFn1 },
 		{ th : `NextSigFn2`,		td : NextSigFn2 },
 		{ th : _('GleisData'),		td : (GleisData != 0 ? GleisData + ': ' + GleisDataText[GleisData] : '') },
-		{ th : _('Name'),			td : Name },
+		{ th : _('Datei'),			td : File },
 
 		]) })
 
@@ -1182,6 +1219,114 @@ mit
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+	// Anzeige der Rollmaterialien
+	/*
+<Rollmaterial 
+x	clsid="16095510-0EAB-46AF-B294-CBB6D3516007" 	-> mit Antrieb
+x	clsid="7B0D0A3A-0882-44D6-B3E7-45D933A70F74" 	-> ohne Antrieb
+x	ausrichtung="1" 				Ausrichtung des Zugverbands (1=in Gleisrichtung, 0=entgegen der Gleisrichtung) 
+	bremsung="8.000001E-02" 		Aktuelle Bremseinstellung (von 0 bis 1) 
+	Flags="140" 					zusätzliche Eigenschaften (Bitarray) 140 = Straßenfahrzeug, 12 = anderes Fahrzeug
+	Masse="12400" 					Masse in Kilogramm 
+	Reibung="12.13" 				Reibung in Kilonewton ungebremst 
+	maxbremsung="125" 				Maximale Bremskraft in Kilonewton 
+x	vUeberhang="480" 				Vorderer Überhang in cm (ausgehend vom vorderen Radsatz) 
+x	hUeberhang="560" 				Hinterer Überhang in cm (ausgehend ebenfalls vom vorderen Radsatz) 
+	TotalDist="27119" 
+x	name="Claas Tucano 440 gelb" 	Eindeutiger Name des Rollmaterials 
+x	typ="STRASSE\LANDWIRTSCHAFT\CLAAS_TUCANO_440_GB_V102_SM2.3dm" 
+	LightStat="-218234880" 			Status des Beleuchtung 
+	Hook="0" 						immer 0, keine Funktion zu erkennen 
+	Active="1" 
+x	RollIdx="3" 
+	Favorite="0" 
+	ActCabin="1" 
+	ImmoIdx="0" 					Verweis auf zugehöriges Gleisobjekt des befahrbaren Rollmaterials 
+	zuStellung="0" 					1=Rollmaterial bei nächster Gleisverbindung anschließen, sonst 0
+	Wartender="0" 					Anzahl an Rollmaterialien entladen
+	LockEd="0"
+	>
+	<Zugmaschine 
+		leistung="0" 				Aktuelle Leistung (von 0 bis 1) 
+		gang="2"					Aktuell gewählter Gang 
+		>
+		<Motor 
+			leistung="310" 			Motorleistung in Kilowatt 
+			u1="300" 				Untere Drehzahlgrenze in Umdrehungen pro Minute 
+			u2="750" 				Obere Drehzahlgrenze in Umdrehungen pro Minute 
+			u3="1000"				Maximale Drehzahl in Umdrehungen pro Minute 
+		/>
+		<Getriebe 
+			treibradradius="100"	Radius der angetriebenen Achsen 
+			>
+			<Gang 
+				uebersetzung="-24"	Übersetzungsverhältnis des jeweiligen Ganges. Negative Werte = Rückwärtsgang. 
+			/>
+			<Gang 
+				uebersetzung="24"
+			/>
+			<Gang 
+				uebersetzung="16"
+			/>
+			<Gang 
+				uebersetzung="12"
+			/>
+		</Getriebe>
+	</Zugmaschine>
+</Rollmaterial>
+*/			
+
+	const clsidPropelled 	= "16095510-0EAB-46AF-B294-CBB6D3516007";
+	const clsidNotPropelled	= "7B0D0A3A-0882-44D6-B3E7-45D933A70F74";
+
+	div = createTable({
+		id		: 'Rollmaterial',
+		title 	: `${_('Rollmaterialien')} (${Rollmaterialien.length})`,
+		caption	: _('Rollmaterialien'),
+		content	: function(thead, tbody) {
+
+		Rollmaterialien.sort(orderByName).forEach(Rollmaterial => {
+
+		const Name			= Rollmaterial.Name;
+		const RollIdx		= Rollmaterial.Rollmaterial.getAttribute("RollIdx");
+		const clsid			= Rollmaterial.Rollmaterial.getAttribute("clsid");
+		const vUeberhang	= Rollmaterial.Rollmaterial.getAttribute("vUeberhang");
+		const hUeberhang	= Rollmaterial.Rollmaterial.getAttribute("hUeberhang");
+		const File			= Rollmaterial.Rollmaterial.getAttribute("typ");
+
+		const ZugverbandName = Rollmaterial.Zugverband.getAttribute('name');
+		const Position		= Rollmaterial.Position;
+		const ausrichtung	= Rollmaterial.Rollmaterial.getAttribute("ausrichtung");
+
+		const Zugmaschine	= Rollmaterial.Rollmaterial.getElementsByTagName("Zugmaschine")[0];
+		const Motor			= (Zugmaschine ? Zugmaschine.getElementsByTagName("Motor")[0] : false);
+		const leistung		= (Motor ? Motor.getAttribute("leistung") : 0);
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Name'),					td : Name },
+		{ th : _('RollIdx'),				td : RollIdx },
+
+		{ th : _('Angetrieben'),			td : (clsid === clsidPropelled ? 1 : 0) },
+		{ th : _('Leistung'),				td : leistung },
+
+		{ th : _('vUeberhang'),				td : vUeberhang },
+		{ th : _('hUeberhang'),				td : hUeberhang },
+
+		{ th : _('Zugverband'),				td : ZugverbandName },
+		{ th : _('Position'),				td : Position },
+		{ th : _('Ausrichtung'),			td : ausrichtung },
+
+		{ th : _('Datei'),					td : File },
+
+		]) })
+
+		return Rollmaterialien.length;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
 	// Anzeige der Gleisstile
 	div = createTable({
 		id		: 'Gleisstil',
@@ -1194,7 +1339,7 @@ mit
 		fillTable(thead, tbody, [
 
 		{ th : _('Stil'),			td : Gleisstil.ID 		},
-		{ th : _('Name'),			td : Gleisstil.Name 	},
+		{ th : _('Datei'),			td : Gleisstil.Name 	},
 		{ th : _('Anzahl'),			td : Gleisstil.Anzahl 	},
 
 		]) })
@@ -1226,7 +1371,7 @@ mit
 
 		const GebaudesammlungID = Gleisobjekt.Kollektor.GebaudesammlungID || '';
 		const ImmoIdx			= Gleisobjekt.Kollektor.ImmoIdx || '';
-		const Name 				= Gleisobjekt.Kollektor.gsbname || '';
+		const File				= Gleisobjekt.Kollektor.gsbname || '';
 
 		let GleissystemID;
 		let GleiseText;
@@ -1267,7 +1412,7 @@ mit
 			//GebaeudesammlungText[GebaudesammlungID] + ' ' +
 			ImmoIdx
 			},
-		{ th : _('Name'),			td : Name		},
+		{ th : _('Datei'),			td : File		},
 
 		]) })
 
@@ -1709,6 +1854,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	<div class="item"><label><input type='checkbox' name='Signal' 		checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)"><a href='#divSignal'><span lang="de">Signale</span><span lang="en">Signals</span><span lang="fr">Signaux</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)"><a href='#divKontakt'><span lang="de">Kontakte</span><span lang="en">Contacts</span><span lang="fr">Contacts</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)"><a href='#divZugverband'><span lang="de">Zugverband</span><span lang="en">Train set</span><span lang="fr">Convoi ferroviaire</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Rollmaterial'	checked autocomplete='off' onchange="toggleElements('.Rollmaterial', this.checked)"><a href='#divRollmaterial'><span lang="de">Rollmaterialien</span><span lang="en">Rolling stock</span><span lang="fr">Matériel roulant</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'><span lang="de">Gleisstile</span><span lang="en">Track styles</span><span lang="fr">Styles de voie</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisobjekt'	checked autocomplete='off' onchange="toggleElements('.Gleisobjekt', this.checked)"><a href='#divGleisobjekt'><span lang="de">Gleisobjekte</span><span lang="en">Track objects</span><span lang="fr">Objets de voie</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Kamera'	checked autocomplete='off' onchange="toggleElements('.Kamera', this.checked)"><a href='#divKamera'><span lang="de">Kameras</span><span lang="en">Cameras</span><span lang="fr">Caméras</span></a></label></div>
