@@ -939,6 +939,36 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		EN : `Automatic`,
 		FR : `Automatique`,
 	},
+	'Rollmaterialien' : {
+		DE : `Rollmaterialien`,
+		EN : `Rolling stock`,
+		FR : `Matériel roulant`,
+	},
+	'Angetrieben' : {	//### new
+		DE : `Angetrieben`,
+		EN : `Propelled`,
+		FR : `propulsé`,
+	},
+	'Leistung' : {	//### new
+		DE : `Leistung (kW)`,
+		EN : `Power (kW)`,
+		FR : `Puissance kW`,
+	},
+	'vUeberhang' : {	//### new
+		DE : `Vorderer Überhang (cm)`,
+		EN : `Front overhang (cm)`,
+		FR : `Porte-à-faux avant (cm)`,
+	},
+	'hUeberhang' : {	//### new
+		DE : `Hinterer Überhang (cm)`,
+		EN : `Rear overhang (cm)`,
+		FR : `Porte-à-faux arrière (cm)`,
+	},
+	'RollIdx' : {	//### new
+		DE : `RollIdx`,
+		EN : `RollIdx`,
+		FR : `RollIdx`,
+	},
 	'Filter' : {
 		DE : `Filter`,
 		EN : `Filter`,
