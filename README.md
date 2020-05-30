@@ -2,7 +2,7 @@
 
 Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konvertierung von Gleisplänen von EEP.
 
-Die Programme können direkt mit den angegebenen Links im Browser (Chrome oder Firefox) gestartet werden. In diesem Fall ist eine aktive Internetverbindung notwendig.
+Die Programme können direkt mit den angegebenen Links im Browser (Chrome, Firefox oder MS Edge) gestartet werden. In diesem Fall ist eine aktive Internetverbindung notwendig.
 Alternativ kann das Archiv [`dist/EEP_convert_anl3_file.zip`](https://github.com/FrankBuchholz/EEP_convert_anl3_file/raw/master/dist/EEP_convert_anl3_file.zip) auf [GitHub](https://github.com/FrankBuchholz/EEP_convert_anl3_file) in einem beliebigen Verzeichnis entpackt werden. Dann können die Programme lokal gestartet werden wobei keine Internetverbindung benötigt wird.
 
 ## Programm: EEP_Gleisplan.html
