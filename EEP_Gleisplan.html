@@ -321,21 +321,21 @@ Aperçu des <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_S
 Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
 Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br>
-Das Programm läuft in aktuellen Versionen von Google Chrome und Firefox, nicht jedoch im Internet Explorer oder MS Edge.</small></p>
+Das Programm läuft in aktuellen Versionen von Google Chrome, Firefox oder MS Edge, nicht jedoch im Internet Explorer.</small></p>
 
 <p lang="en">
 <small><strong>Technical description</strong><br>
 This program uses the Javascript function <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> to analyse an <i>.anl3</i> file of EEP,  which contains <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> structured data, and to transform it into the <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
 Then it dynamically creates the graphic of the track plan using Javascript using <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a> commands. The formatting of the graphical elements using the SVG variant of <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a> is separated from the definition of the graphic.<br>
 The Browser shows such SVG graphics directly. The programs uses the libraries <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> for pan  and zoom and <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> to show popup windows.<br>
-The program runs with current versions of Google Chrome and Firefox, but not with Internet Explorer or MS Edge.</small></p>
+The program runs with current versions of Google Chrome, Firefox or MS Edge, but not with Internet Explorer.</small></p>
 
 <p lang="fr">
 <small><strong>Description technique</strong><br>
 Ce programme utilise la fonction javascript <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> pour interpréter un fichier <i>.anl3</i> de EEP conçu en <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a>, pour le transformer au format <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
 Ensuite le graphique du plan de voies est reconstitué dynamiquement en javascript avec des instructions <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>. Le formatage des éléments graphiques s‘effectue séparément de la définition du graphique avec la variante SVG de <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
 Le navigateur est capable d‘afficher directement les graphiques SVG. En plus celui-ci utilise les bibliothèques <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> pour les déplacements et le zooming, ainsi que <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> pour visualiser les pop-ups.<br>
-Le programme fonctionne correctement avec les versions actuelles de  Google Chrome et Firefox. Internet Explorer / MS Edge n‘est plus supporté.</small></p>
+Le programme fonctionne correctement avec les versions actuelles de Google Chrome, Firefox et MS Edge. Internet Explorer n‘est plus supporté.</small></p>
 
 </article>
 
@@ -3173,6 +3173,24 @@ function svgAppend(svg_node, obj) {
 	Convert long scale transform notation to the shorts one: scale(2 2) → scale(2)
 	Convert long rotate transform notation to the short one: translate(cx cy) rotate(a) translate(-cx -cy) → rotate(a cx cy)
 	Decrease accuracy of floating-point numbers in transforms keeping a specified number of decimals: Smart rounds values like 2.349 to 2.35.
+	*/
+	
+	/* SVG operates in 2D, however, using CSS styles for the SVG elements we could enable 3D:
+	https://oreillymedia.github.io/Using_SVG/extras/ch11-3d.html
+	https://css-tricks.com/things-watch-working-css-3d/
+	
+	transform-style: preserve-3d: 
+	translate3d(tx, ty, tz): translate it by the given lengths along each axis
+	translateZ(tz): similar to the new translateX and translateY functions, this shorthand allows you to specify a translation along the z-axis only
+	scale3d(sx,sy,sz): change the scale in all dimensions by the specified factors
+	scaleZ(sz): change the z-scale only (similar to the new scaleX and scaleY functions)
+	rotateX(a): use the x-axis as a pivot (or hinge) to rotate the coordinate system by the specified angle; x-coordinates will not change, but y and z coordinates will
+	rotateY(a): use the y-axis as a pivot to rotate the coordinate system by the specified angle; y-coordinates will not change, but x and z coordinates will
+	rotateZ(a): use the z-axis as a pivot to rotate the coordinate system by the specified angle; this has the same effect on coordinates as the 2D rotate function, but it forces 3D drawing methods to be used
+	rotate3d(vx,vy,vz,a): create a pivot using the vector (straight line) from the origin to the point (vx,vy,vz), and rotate the coordinate system around it by the angle a. The official definition of how to calculate the rotation involves extensive trigonometry. As an heuristic, the direction of rotation for a positive angle is determined by pointing the thumb along the pivot vector, and then curving the fingers; as always, you would use the left hand for the default coordinate system and the right hand for a reflected coordinate system.
+	For all these functions, the CSS syntax rules apply: angles and lengths must include units.
+
+	Another option would be to replace svg with x3D based on https://www.x3dom.org/
 	*/
 
 	let element = document.createElementNS(svgNS, obj.svg_tag);
