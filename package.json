@@ -58,12 +58,13 @@
 		"rematrix": ">=0.4.1",
 		"svg-pan-zoom": ">=3.6.0",
 		"tablefilter": ">=0.6.97",
-		"toolwindow": ">=1.0.25"
+		"toolwindow": ">=1.0.25",
+		"x3dom": "^1.8.1"
 	},
 	"browserslist": [
-		"Chrome > 1",
-		"Firefox > 1",
-		"not IE",
-		"not Edge"
+		"Chrome >= 54",
+		"Firefox >= 38",
+		"Edge >= 83",
+		"not IE"
 	]
 }
