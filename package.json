@@ -5,6 +5,7 @@
 	"keywords": [
 		"EEP",
 		"anl3",
+		"X3D",
 		"SVG",
 		"PNG",
 		"JPG",
@@ -51,7 +52,7 @@
 	"bugs": "https://github.com/FrankBuchholz/EEP_convert_anl3_file/issues",
 	"main": "EEP_Gleisplan.html",
 	"@comment dependencies": [
-		"EEP_Gleisplan.html requires svg-pan-zoom, rematrix, toolwindow",
+		"EEP_Gleisplan.html requires svg-pan-zoom, rematrix, toolwindow, x3dom",
 		"EEP_Inventar.html requires tablefilter"
 	],
 	"dependencies": {

@@ -13,12 +13,12 @@
 
 <script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
 
-<!-- *** We need to load x3dom early *** -->
-<script type='text/javascript' src='node_modules/x3dom/x3dom.js'/>
+<!--*** We need to load x3dom early ***-->
+<script type="text/javascript" src="node_modules/x3dom/x3dom.js"></script>
 
 <script type="text/javascript"> // Experiment to load scripts dynamically either from relative path or from fixed URL - not used yet
 "use strict";
-<!--
+<!-- (this comment hides the scipt tag in the comment)
 /* Source: https://humanwhocodes.com/blog/2009/07/28/the-best-way-to-load-external-javascript/
 Usage:
 <script type="text/javascript">
@@ -650,6 +650,7 @@ function createGraphics(sutrackp, initProgress, incrementProgress) {
 	const SVGfragment = document.createDocumentFragment();
 	// Append new x3d elements to this root node which we append to the x3d node later
 	const x3d_fragment = document.createDocumentFragment();
+	x3d_initialization(x3d_fragment);
 
 	return initProgress(Gleissysteme.length).then(function() {
 		let promise = null;
@@ -2063,6 +2064,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			});
 			
 			x3d_createElement(x3d_GleisGroup, {
+				GleissystemID		: GleissystemID,
 				type				: `line`,
 				length				: Laenge,
 				startPoint			: mMatrix,
@@ -2112,6 +2114,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 			});
 			
 			x3d_createElement(x3d_GleisGroup, {
+				GleissystemID		: GleissystemID,
 				type				: `arc`,
 				radius				: Radius,
 				angle				: Winkel,
@@ -2591,24 +2594,7 @@ function createGraphicsFinalize(SVGfragment, x3d_fragment) {
 	// Test: process all nodes recursivly
 	//process_node(sutrackp);
 
-	/*** x3d runtime https://doc.x3dom.org/author/runtime.html ***/
-
-	const x3d = document.getElementById('x3d');
-
-	// Zooms so that all objects are visible.
-	// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ
-    x3d.runtime.showAll();		
-
-	//x3d.runtime.fitAll();
-
-	// Navigates to the initial viewpoint.
-	//x3d.runtime.resetView();
-
-
-	// Zooms so that a given object is fully visible.
-	// obj		the scene-graph element on which to focus
-	// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ
-	//x3d.runtime.showObject (obj, axis);
+	x3d_finalization(x3d_fragment);
 
 	global.timestamp.svgCreated = Date.now();
 	console.log('create svg:' + (global.timestamp.svgCreated - global.timestamp.fileParsed) / 1000 + 'sec');
@@ -3264,6 +3250,40 @@ function svgAppend(svg_node, obj) {
 	return element;
 }
 
+function x3d_initialization(x3d_node) {
+
+	const MaterialEisenbahn		= document.createElement("Material");
+	MaterialEisenbahn.setAttribute("DEF", "MaterialEisenbahn" );
+	MaterialEisenbahn.setAttribute("diffuseColor", [.6, .1, .1] );		// red
+	MaterialEisenbahn.setAttribute("emissiveColor", [.2, .05, .05] );
+	x3d_node.appendChild(MaterialEisenbahn);
+	
+	const MaterialStrassenbahn		= document.createElement("Material");
+	MaterialStrassenbahn.setAttribute("DEF", "MaterialStrassenbahn" );
+	MaterialStrassenbahn.setAttribute("diffuseColor", [.8, .8, .8] );	// grey
+	MaterialStrassenbahn.setAttribute("emissiveColor", [.4, .4, .4] );
+	x3d_node.appendChild(MaterialStrassenbahn);	
+	
+	const MaterialStrasse		= document.createElement("Material");
+	MaterialStrasse.setAttribute("DEF", "MaterialStrasse" );
+	MaterialStrasse.setAttribute("diffuseColor", [.5, .5, .5] );		// grey
+	MaterialStrasse.setAttribute("emissiveColor", [.2, .2, .2] );
+	x3d_node.appendChild(MaterialStrasse);	
+	
+	const MaterialWasserwege	= document.createElement("Material");
+	MaterialWasserwege.setAttribute("DEF", "MaterialWasserwege" );
+	MaterialWasserwege.setAttribute("diffuseColor", [.1, .1, .6] );		// blue
+	MaterialWasserwege.setAttribute("emissiveColor", [.05, .05, .2] );
+	x3d_node.appendChild(MaterialWasserwege);	
+	
+	const MaterialSteuerstrecken = document.createElement("Material");
+	MaterialSteuerstrecken.setAttribute("DEF", "MaterialSteuerstrecken" );
+	MaterialSteuerstrecken.setAttribute("diffuseColor", [.1, .6, .1] );	// green
+	MaterialSteuerstrecken.setAttribute("emissiveColor", [.05, .2, .05] );
+	x3d_node.appendChild(MaterialSteuerstrecken);	
+
+}
+
 function x3d_createGroup(x3d_node, obj) {
 	const element = document.createElement("Group");
 	element.setAttribute("DEF", obj.Group);
@@ -3273,96 +3293,100 @@ function x3d_createGroup(x3d_node, obj) {
 }
 
 function x3d_createElement(x3d_node, obj) {
-	// Common obj parameters: type, startPoint
+	// Common obj parameters: GleissystemID, type, startPoint
 
 	const size = 1; // size of the track
+	const a90 = Math.PI / 2; //1.570796;
 
-	const Material 		= document.createElement("Material");
+	// Create tags used for all shapes
+	const MatrixTransform 	= document.createElement("MatrixTransform");
+	const Transform 		= document.createElement("Transform");
+	const Shape 			= document.createElement("Shape");
+	const Appearance 		= document.createElement("Appearance");
+	const Material 			= document.createElement("Material");
 
-	const Appearance 	= document.createElement("Appearance");
+	// Connect tags
+	MatrixTransform.appendChild(Transform);
+	//Transform.appendChild(Shape); // do it later depending on type
+	Shape.appendChild(Appearance);
 	Appearance.appendChild(Material);
 
-	const Shape 		= document.createElement("Shape");
-	Shape.appendChild(Appearance);
-	
-	const Transform 	= document.createElement("Transform");
-	//Transform.appendChild(Shape); // do it later depending on type
-
-	const MatrixTransform 	= document.createElement("MatrixTransform");
+	// Set start point
 	MatrixTransform.setAttribute("matrix", x3dom.fields.SFMatrix4f.fromArray(obj.startPoint));
-	MatrixTransform.appendChild(Transform);
 
-
+	// Define material
+	/*
+	<Material ambientIntensity='0.2' diffuseColor='0.8,0.8,0.8' emissiveColor='0,0,0' metadata='X3DMetadataObject' shininess='0.2' specularColor='0,0,0' transparency='0' ></Material>
+	*/
+	Material.setAttribute("USE", 
+		"Material"+{1: "Eisenbahn", 2: "Strassenbahn", 3: "Strasse", 4: "Wasserwege", 5: "Steuerstrecken"}[obj.GleissystemID] );
+	
+	// Define transform and shape depending on type
 	if (obj.type === "line") {	// specific obj parameters: length
 		/*
-		<MatrixTransform matrix='1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1'>
+		<MatrixTransform matrix="1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1">
 		<Transform rotation="0 0 1   90°">
 			<Shape>
-				<Cylinder radius="size" height="length"'/>
+				<Cylinder radius="size" height="length"/>
 				<Appearance>
-					<Material diffuseColor='0 0 0' emissiveColor='1 0.5 1'/>
+					<Material diffuseColor="0 0 0" emissiveColor="1 0.5 1"/>
 				</Appearance>
 			</Shape>
 		</Transform>
 		</MatrixTransform>
 		*/
-	Material.setAttribute("diffuseColor", '.1 .6 .1' );
-	Material.setAttribute("emissiveColor", '.05 .2 .05' );
+		Transform.setAttribute("rotation", [0, 0, 1, a90]); // rotateZ 90°
 
-		Transform.setAttribute("rotation", "0 0 1 1.570796"); // rotateZ 90°
-
-		Transform.setAttribute("translation", new x3dom.fields.SFVec3f(obj.length/2, 0, 0)); // Shift by half of length
-		//Transform.setAttribute("translation", x3dom.fields.SFVec3f.fromArray([obj.length/2, 0, 0])); // Alternate form
+		//Transform.setAttribute("translation", new x3dom.fields.SFVec3f(obj.length/2, 0, 0)); // Shift by half of length
+		//Transform.setAttribute("translation", x3dom.fields.SFVec3f.fromArray([obj.length/2, 0, 0]));
+		Transform.setAttribute("translation", [obj.length/2, 0, 0]); // Shift by half of length
 		/*
 		const Cylinder 	= document.createElement("Cylinder");
 		Cylinder.setAttribute("radius", size );
 		Cylinder.setAttribute("height", obj.length );
 		Shape.appendChild(Cylinder);
 		*/
-		// A cone shows the direction of the track, too
+		// A cone indicates the direction of the track, too
 		const Cone 		= document.createElement("Cone");
-		Cone.setAttribute("bottomRadius", 1.2*size   );
-		Cone.setAttribute("topRadius",    0.8*size );
-		Cone.setAttribute("height", obj.length );
+		Cone.setAttribute("bottomRadius",	1.2*size	);
+		Cone.setAttribute("topRadius",		0.8*size 	);
+		Cone.setAttribute("height", 		obj.length	);
 		Shape.appendChild(Cone);
 		
 		Transform.appendChild(Shape);
 	
 	} else if (obj.type === "arc") {	// specific obj parameters: radius, angle
 		/*
-		<MatrixTransform matrix='1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1'>
+		<MatrixTransform matrix="1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1">
 		<Transform rotation="1 0 0   90°">
 		<Transform rotation="0 1 0  -90°" translation="0, 0, -radius">
 			<Shape>
-				<Torus innerRadius="radius-size/2" outerRadius="radius+size/2" angle='angle'>
+				<Torus innerRadius="radius-size/2" outerRadius="radius+size/2" angle="angle">
 				<Appearance>
-					<Material emissiveColor='1 1 0'/>
+					<Material emissiveColor="1 1 0"/>
 				</Appearance>
 			</Shape>
 		</Transform>
 		</Transform>
 		</MatrixTransform>
 		*/
-	Material.setAttribute("diffuseColor", '.6 .1 .1' );
-	Material.setAttribute("emissiveColor", '.2 .05 .05' );
 
-		Transform.setAttribute("rotation", "1 0 0 1.570796"); // rotateX +90°
+		Transform.setAttribute("rotation", [1, 0, 0, a90]); // rotateX +90°
 
 		const Transform2 	= document.createElement("Transform");
-		Transform2.setAttribute("rotation", "0 1 0 -1.570796"); // rotateY -90°
-		Transform2.setAttribute("translation", new x3dom.fields.SFVec3f(0, 0, -obj.radius)); // Shift by radius
+		Transform2.setAttribute("rotation", [0, 1, 0, -a90]); // rotateY -90°
+		//Transform2.setAttribute("translation", new x3dom.fields.SFVec3f(0, 0, -obj.radius)); // Shift by radius
+		Transform2.setAttribute("translation", [0, 0, -obj.radius]); // Shift by radius
 		if (obj.angle < 0.0)  {
-			Transform2.setAttribute("scale", "1 1 -1"); // flip to get clockwise torus
+			Transform2.setAttribute("scale", "1 1 -1"); // flip to set clockwise orientation of the torus
   		}
 
 		const Torus 	= document.createElement("Torus");
 		Torus.setAttribute("innerRadius", obj.radius - size );
 		Torus.setAttribute("outerRadius", obj.radius + size );
 		Torus.setAttribute("insideOutsideRadius", true );
-		if (obj.angle >= 0.0)  {
-			Torus.setAttribute("angle", obj.angle );
-		} else {
-			Torus.setAttribute("angle", -obj.angle );
+		Torus.setAttribute("angle", Math.abs(obj.angle) );
+		if (obj.angle < 0.0)  {
 			Torus.setAttribute("ccw", true );
 		}
 		Shape.appendChild(Torus);
@@ -3370,12 +3394,41 @@ function x3d_createElement(x3d_node, obj) {
 		Transform2.appendChild(Shape);
 		Transform.appendChild(Transform2);
 	
+	} else if (obj.type === "cubic") {	// specific obj parameters: bezier points
+		// https://www.web3d.org/x3d/content/examples/Basic/NURBS/NurbsCurveExampleIndex.html 
+		// http://jsbin.com/volusukava/edit?html,output
+		
 	}
 	
 	// Results
 	const element = MatrixTransform;
 	x3d_node.appendChild(element);
 	return element;
+}
+
+function x3d_finalization(x3d_node) {
+	
+	/*** x3d runtime https://doc.x3dom.org/author/runtime.html ***/
+
+	const x3d = document.getElementById("x3d");
+
+	// Zooms so that all objects are visible.
+	// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ (default)
+    x3d.runtime.showAll("negZ");		
+	//x3d.runtime.fitAll();
+	//x3d.runtime.resetView();
+
+	// Show debug window
+    //x3d.runtime.debug(false); // see tag x3dom	
+	
+	// Swap direction of the mouse wheel to match the direction of zooming in EEP
+	// Increase speed of pan and zoom
+    //x3d.runtime.speed(-4); // ses tag NavigationInfo	
+
+	// Zooms so that a given object is fully visible.
+	// obj		the scene-graph element on which to focus
+	// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ
+	//x3d.runtime.showObject (obj, axis);
 }
 
 
@@ -4435,8 +4488,8 @@ text.WeicheText {
 
 </svg>
 
-<!-- ### x3dom ### -->
-<link rel='stylesheet' type='text/css' href='node_modules/x3dom/x3dom.css'/>
+<!--*** x3dom ***-->
+<link rel="stylesheet" type="text/css" href="node_modules/x3dom/x3dom.css"/>
 <style>
 /* Override styles from x3dom.css */
 
@@ -4448,37 +4501,98 @@ x3d {
 </style>
 <!--
 
-Navigation:
+Runtime:
+runtime https://doc.x3dom.org/author/runtime.html
+
+Key functions:
+see 
+x3dom.X3DDocument.prototype.onKeyDown
+x3dom.X3DDocument.prototype.onKeyUp
+x3dom.X3DDocument.prototype.onKeyPress
+
+a			zoom to show all elements and move to top view
+c			Toggle viewfrustum culling
+i			fit view (zoom to show all elements in current orientation)
+r			reset view
+u			upright view
+t			light view
+
++ -			increase/decrease pan and zoom speed
+
+d			show/hide debug window
+v			show clicked viewpoint position in debug window
+
+e			Navigation mode "examine"
+f			Navigation mode "fly"
+g			Navigation mode "game"
+h			Navigation mode "helicopter"
+l			Navigation mode "lookat"
+n			Navigation mode "turntable"
+o			Navigation mode "lookaround" (look around like in fly, but don't move)
+w			Navigation mode "walk"
+y			Navigation mode "freefly"
+
+3 4			Increase/decrease POP error tolerance
+6 7			Increase/decrease helicopter height
+9 8			Increase/decrease helicopter angle
+
+m			Toogle render mode: triangles | points | lines
+p			Toggle pick mode: color | texCoord | box | idBuf
+s			Toggle small feature culling
+
+enter		? 
+Page up		switch to prev viewpoint (Toggle view: show fit | show all | Z | Y | X | ortho
+Page down 	switch to next viewpoint 
+end			switch to last viewpoint
+home		switch to first viewpoint
+left		? strafe left
+up			? strafe forward
+right		? strafe right
+down		? strafe backwards
+
+Navigation modes:
 https://doc.x3dom.org/tutorials/animationInteraction/navigation/example.html
 https://doc.x3dom.org/tutorials/animationInteraction/navigation/index.html
-	Non-interactive camera movement:
-		r				reset view
-		a				show all
-		u				upright view
-	Walk (w):
-	Fly (f):
-		left click		move forward
-		right click 	move backward
-	Examine (e):
-		left click		rotate
-		right click 	zoom
-		middle click	pan
-		rolling			zoom
-	Helicopter (h):
-		left click		move forward
-		8				look down
-		9				look up
-		6				move higher
-		7				move lower
-	Look at (l):
-		left click		move in
-		right click 	move out
-	Game (g):
-						rotate view
-		arrow up		move forward			
-		arrow down		move backward			
-		arrow left		strafe left	
-		arrow right		strafe right		
+https://www.web3d.org/wiki/index.php/General_X3D_Navigation_Behaviors
+
+Non-interactive camera movement:
+Reset view				r
+Show all				a
+Upright					u
+
+Examine (e) single object: best for rotating solitary objects
+Rotate					Left / Left + Shift
+Pan						Mid / Left + Ctrl
+Zoom					Right / Wheel / Left + Alt
+Set center of rotation	Double-click left
+
+Walk (w): also allows exploration, but on the ground
+Move forward			Left
+Move backward			Right
+
+Fly (f): allows zooming in, out and around
+FreeFly (y):
+Move forward			Left
+Move backward			Right
+
+Helicopter (h):
+Move forward			Left
+look down				8
+look up					9
+move higher				6
+move lower				7
+
+Look at (l): use pointer to select geometry of interest
+Move in					Left
+Move out				Right
+
+Game (g):
+To look around (rotate view) move the mouse.
+Move forward			Cursor up
+Move backwards			Cursor down
+Strafe left				Cursor left
+Strafe right			Cursor right
+
 
 https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geometry2D.html#NodeReference
 
@@ -4492,7 +4606,7 @@ https://www.web3d.org/x3d/content/X3dTooltips.html#X3D
 					https://www.web3d.org/x3d/content/X3dTooltips.html#Appearance
 						https://www.web3d.org/x3d/content/X3dTooltips.html#Material
 					https://www.web3d.org/x3d/content/X3dTooltips.html#Arc2D
-					https://www.web3d.org/x3d/content/X3dTooltips.html#Circle2D			requires X3D profile='Full'
+					https://www.web3d.org/x3d/content/X3dTooltips.html#Circle2D			requires X3D profile="Full"
 					https://www.web3d.org/x3d/content/X3dTooltips.html#Disk2D
 					https://www.web3d.org/x3d/content/X3dTooltips.html#Rectangle2D
 					https://www.web3d.org/x3d/content/X3dTooltips.html#Box
@@ -4508,9 +4622,9 @@ https://doc.x3dom.org/tutorials/animationInteraction/navigation/index.html
 Runtime:
 https://doc.x3dom.org/author/runtime.html
 
-<Transform rotation='0 1 0 yaw'>
-  <Transform rotation='0 0 1 pitch'>
-    <Transform rotation='1 0 0 roll'>
+<Transform rotation="0 1 0 yaw">
+  <Transform rotation="0 0 1 pitch">
+    <Transform rotation="1 0 0 roll">
        <Shape></Shape>
     </Transform>
   </Transform>
@@ -4528,7 +4642,7 @@ https://doc.x3dom.org/author/runtime.html
 	class="hidden"
 	
 	showLog="false"
-	showStat="true"
+	showStat="false"
 	showProgress="true"
 	showTouchpoints="true"
 	PrimitiveQuality="High"
@@ -4536,23 +4650,38 @@ https://doc.x3dom.org/author/runtime.html
 	
 	width="100%"><!-- width="600px" height="600px" height="100%" -->
 	<head>
-		<meta name='title' content='EEP Gleisplan'/>
+		<meta name="title" content="EEP Gleisplan"/>
 		<meta name="filename" content="EEP_Gleisplan.x3d" />
 		<meta name="generator" content="EEP Gleisplan" />
-   </head>
-
-	<!-- https://doc.x3dom.org/author/Core/Scene.html -->
+	</head>
+	
+	<!-- 
+	https://doc.x3dom.org/author/Core/Scene.html 
+	<Scene bboxCenter='0,0,0' bboxSize='-1,-1,-1' children='X3DChildNode' doPickPass='true' metadata='X3DMetadataObject' pickMode='"idBuf"' render='true' shadowObjectIdMapping='""' ></Scene>
+	-->
 	<scene id="sutrackpX3D"><!-- hier werden dynamisch die weiteren x3d-Elemente der EEP Anlage angefügt -->
+   
+		<!--
+		https://doc.x3dom.org/author/Navigation/NavigationInfo.html
+		<NavigationInfo avatarSize='[ 0.25, 1.6, 0.75 ]' bind='false' description='""' explorationMode=''all'' headlight='true' isActive='false' metadata='X3DMetadataObject' reverseScroll='false' speed='1.0' transitionTime='1.0' transitionType='["LINEAR"]' type='["EXAMINE","ANY"]' typeParams='[-0.4,60,0.05,2.8]' visibilityLimit='0.0' walkDamping='2.0' ></NavigationInfo>
+		-->
+		<NavigationInfo reverseScroll='true' speed='4.0'></NavigationInfo> <!-- type="turntable" typeParams="0.0 0.0 0.01 1.57" -->
 
-		<WorldInfo title='EEP Gleisplan'></WorldInfo> <!-- For unknown reasons it's neccessary to close all tags explicitly. -->
+		<!-- We need to close all tags explicitly: <WorldInfo ...></WorldInfo> but not <WorldInfo ... />
+		see https://x3dom.org/docs-old/troubleshooting.html#i-am-not-seeing-anything -->
+		<WorldInfo title="EEP Gleisplan"></WorldInfo>
 
+		<!--
 		<Viewpoint id="camera1" description="Kamera 1" centerOfRotation="0 -1 0" position="0 -1 70" orientation="0 0 1 0"  fieldOfView="0.76"></Viewpoint>
 		<Viewpoint id="camera2" description="Kamera 1" centerOfRotation="0 0 0" position="-50 0 0" orientation="1 0 0 0"  fieldOfView="0.76"></Viewpoint>
-
-		<Viewpoint description='Oblique view' orientation='-0.59028 0.76927 0.2445 0.987861' position='20 20 20'></Viewpoint>
-		<Viewpoint description='View from X axis' orientation='0 1 0 1.570796' position='20 0 0'></Viewpoint>
-		<Viewpoint description='View from Y axis' orientation='1 0 0 -1.570796' position='0 20 0'></Viewpoint>
-		<Viewpoint description='View from Z axis'></Viewpoint>
+		-->
+		
+		<Viewpoint description="Oblique view" orientation="-0.59028 0.76927 0.2445 0.987861" position="1000 1000 100"></Viewpoint>
+		<Viewpoint description="View from Z axis (from top)" 	orientation="0 0 1 0"  			position="0 0 100"></Viewpoint>
+		<Viewpoint description="View from X axis (to west)" 	orientation="0 1 0 1.570796" 	position="1000 0 0"></Viewpoint>
+		<Viewpoint description="View from Y axis (to north)" 	orientation="1 0 0 -1.570796" 	position="0 1000 0"></Viewpoint>
+		<Viewpoint description="View from X axis (to east)" 	orientation="0 -1 0 1.570796" 	position="1000 0 0"></Viewpoint>
+		<Viewpoint description="View from Y axis (to south)" 	orientation="-1 0 0 -1.570796" 	position="0 1000 0"></Viewpoint>
 
 		<!-- <background DEF="background" transparency="0.1" skyColor="0 0.5 0"/> -->
 
@@ -4565,126 +4694,126 @@ https://doc.x3dom.org/author/runtime.html
 		-->
 
 		<!-- Coordinate system -->
-		<Collision DEF='DoNotCollideWithVisualizationWidget' enabled='true'>
+		<Collision DEF="DoNotCollideWithVisualizationWidget" enabled="true">
 			<!-- Invoke CoordinateAxes in other scenes as an Inline child inside a scaling Transform node, at the topmost level of the scene graph. -->
 			<!-- This NavigationInfo allows examine mode and will be overridden by any parent scene. -->
 			<!-- Note each label rotates about the scene's vertical Y axis for consistency, enabling local orientation by user -->
 			<Group>
 				<!-- Vertical Y arrow and label -->
-				<Group DEF='ArrowGreen'>
+				<Group DEF="ArrowGreen">
 					<Shape>
-						<Cylinder DEF='ArrowCylinder' radius='.025' height="20" top='false'></Cylinder>
-						<Appearance DEF='Green'>
-							<Material diffuseColor='.1 .6 .1' emissiveColor='.05 .2 .05'></Material>
+						<Cylinder DEF="ArrowCylinder" radius=".025" height="20" top="false"></Cylinder>
+						<Appearance DEF="Green">
+							<Material diffuseColor=".1 .6 .1" emissiveColor=".05 .2 .05"></Material>
 						</Appearance>
 					</Shape>
-					<Transform translation='0 10 0'>
+					<Transform translation="0 10 0">
 						<Shape>
-							<Cone DEF='ArrowCone' bottomRadius='.05' height='.1' side='true' bottom='true' solid='true'></Cone>
-							<Appearance USE='Green'></Appearance>
+							<Cone DEF="ArrowCone" bottomRadius=".05" height=".1" side="true" bottom="true" solid="true"></Cone>
+							<Appearance USE="Green"></Appearance>
 						</Shape>
 					</Transform>
 				</Group>
-				<Transform translation='0 1.08 0'>
-					<Billboard axisOfRotation='0 1 0'>
+				<Transform translation="0 1.08 0">
+					<Billboard axisOfRotation="0 1 0">
 						<Shape>
-							<Appearance DEF='LABEL_APPEARANCE'>
-								<Material diffuseColor='1 1 .3' emissiveColor='.33 .33 .1'></Material>
+							<Appearance DEF="LABEL_APPEARANCE">
+								<Material diffuseColor="1 1 .3" emissiveColor=".33 .33 .1"></Material>
 							</Appearance>
-							<Text string='"+Y" "Nord"'>
-								<FontStyle DEF='LABEL_FONT_TOP' family='"SANS"' justify='"MIDDLE" "END"' size='.2'></FontStyle>
+							<Text string=""+Y" "Nord"">
+								<FontStyle DEF="LABEL_FONT_TOP" family='"SANS"' justify='"MIDDLE" "END"' size=".2"></FontStyle>
 							</Text>
 						</Shape>
 					</Billboard>
 				</Transform>
-				<Transform translation='0 -1.08 0'>
-					<Billboard axisOfRotation='0 1 0'>
+				<Transform translation="0 -1.08 0">
+					<Billboard axisOfRotation="0 1 0">
 						<Shape>
-							<Appearance USE='LABEL_APPEARANCE'></Appearance>
+							<Appearance USE="LABEL_APPEARANCE"></Appearance>
 							<Text string='"-Y" "Süd"'>
-								<FontStyle USE='LABEL_FONT_TOP'></FontStyle>
+								<FontStyle USE="LABEL_FONT_TOP"></FontStyle>
 							</Text>
 						</Shape>
 					</Billboard>
 				</Transform>
 			</Group>
-			<Transform rotation='0 0 1 -1.570796'>  <!-- rotateZ -90° -->
+			<Transform rotation="0 0 1 -1.570796">  <!-- rotateZ -90° -->
 
 				<!-- Horizontal X arrow and label -->
 				<Group>
-					<Group DEF='ArrowRed'>
+					<Group DEF="ArrowRed">
 						<Shape>
-							<Cylinder USE='ArrowCylinder'></Cylinder>
-							<Appearance DEF='Red'>
-								<Material diffuseColor='.7 .1 .1' emissiveColor='.33 0 0'></Material>
+							<Cylinder USE="ArrowCylinder"></Cylinder>
+							<Appearance DEF="Red">
+								<Material diffuseColor=".7 .1 .1" emissiveColor=".33 0 0"></Material>
 							</Appearance>
 						</Shape>
-						<Transform translation='0 10 0'>
+						<Transform translation="0 10 0">
 							<Shape>
-								<Cone USE='ArrowCone' bottomRadius='1' height='2' side='true' bottom='true' solid='true'></Cone>
-								<Appearance USE='Red'/>
+								<Cone USE="ArrowCone" bottomRadius="1" height="2" side="true" bottom="true" solid="true"></Cone>
+								<Appearance USE="Red"/>
 							</Shape>
 						</Transform>
 					</Group>
-					<Transform rotation='0 0 1 1.570796' translation='.072 1.1 0'>  <!-- rotateZ +90° -->
+					<Transform rotation="0 0 1 1.570796" translation=".072 1.1 0">  <!-- rotateZ +90° -->
 						<!-- note label rotated back to original coordinate frame -->
-						<Billboard axisOfRotation='0 1 0'>
+						<Billboard axisOfRotation="0 1 0">
 							<Shape>
-								<Appearance USE='LABEL_APPEARANCE'></Appearance>
+								<Appearance USE="LABEL_APPEARANCE"></Appearance>
 								<Text string='"+X" "Ost"'>
-									<FontStyle DEF='LABEL_FONT' family='"SANS"' justify='"MIDDLE" "MIDDLE"' style='"PLAIN"' size='.2'></FontStyle>
+									<FontStyle DEF="LABEL_FONT" family='"SANS"' justify='"MIDDLE" "MIDDLE"' style='"PLAIN"' size=".2"></FontStyle>
 								</Text>
 							</Shape>
 						</Billboard>
 					</Transform>
-					<Transform rotation='0 0 1 1.570796' translation='.072 -1.1 0'> <!-- rotateZ +90° -->
+					<Transform rotation="0 0 1 1.570796" translation=".072 -1.1 0"> <!-- rotateZ +90° -->
 						<!-- note label rotated back to original coordinate frame -->
-						<Billboard axisOfRotation='0 1 0'>
+						<Billboard axisOfRotation="0 1 0">
 							<Shape>
-								<Appearance USE='LABEL_APPEARANCE'></Appearance>
+								<Appearance USE="LABEL_APPEARANCE"></Appearance>
 								<Text string='"-X" "West"'>
-									<FontStyle USE='LABEL_FONT'></FontStyle>
+									<FontStyle USE="LABEL_FONT"></FontStyle>
 								</Text>
 							</Shape>
 						</Billboard>
 					</Transform>
 				</Group>
 			</Transform>
-			<Transform rotation='1 0 0 1.570796'> <!-- rotateX +90° -->
+			<Transform rotation="1 0 0 1.570796"> <!-- rotateX +90° -->
 				<!-- Perpendicular Z arrow and label, note right-hand rule -->
 				<Group>
-					<Group DEF='ArrowBlue'>
+					<Group DEF="ArrowBlue">
 						<Shape>
-							<Cylinder USE='ArrowCylinder'></Cylinder>
-							<Appearance DEF='Blue'>
-								<Material diffuseColor='.3 .3 1' emissiveColor='.1 .1 .33'></Material>
+							<Cylinder USE="ArrowCylinder"></Cylinder>
+							<Appearance DEF="Blue">
+								<Material diffuseColor=".3 .3 1" emissiveColor=".1 .1 .33"></Material>
 							</Appearance>
 						</Shape>
-						<Transform translation='0 10 0'>
+						<Transform translation="0 10 0">
 							<Shape>
-								<Cone USE='ArrowCone' bottomRadius='1' height='2' side='true' bottom='true' solid='true'></Cone>
-								<Appearance USE='Blue'></Appearance>
+								<Cone USE="ArrowCone" bottomRadius="1" height="2" side="true" bottom="true" solid="true"></Cone>
+								<Appearance USE="Blue"></Appearance>
 							</Shape>
 						</Transform>
 					</Group>
-					<Transform rotation='1 0 0 -1.570796' translation='0 1.1 .072'> <!-- rotateX +90° -->
+					<Transform rotation="1 0 0 -1.570796" translation="0 1.1 .072"> <!-- rotateX +90° -->
 						<!-- note label rotated back to original coordinate frame -->
-						<Billboard axisOfRotation='0 1 0'>
+						<Billboard axisOfRotation="0 1 0">
 							<Shape>
-								<Appearance USE='LABEL_APPEARANCE'></Appearance>
+								<Appearance USE="LABEL_APPEARANCE"></Appearance>
 								<Text string='"+Z" "Oben"'>
-									<FontStyle USE='LABEL_FONT'></FontStyle>
+									<FontStyle USE="LABEL_FONT"></FontStyle>
 								</Text>
 							</Shape>
 						</Billboard>
 					</Transform>
-					<Transform rotation='1 0 0 -1.570796' translation='0 -1.1 .072'> <!-- rotateX +90° -->
+					<Transform rotation="1 0 0 -1.570796" translation="0 -1.1 .072"> <!-- rotateX +90° -->
 						<!-- note label rotated back to original coordinate frame -->
-						<Billboard axisOfRotation='0 1 0'>
+						<Billboard axisOfRotation="0 1 0">
 							<Shape>
-								<Appearance USE='LABEL_APPEARANCE'></Appearance>
+								<Appearance USE="LABEL_APPEARANCE"></Appearance>
 								<Text string='"-Z" "Unten"'>
-									<FontStyle USE='LABEL_FONT'></FontStyle>
+									<FontStyle USE="LABEL_FONT"></FontStyle>
 								</Text>
 							</Shape>
 						</Billboard>
@@ -4692,6 +4821,20 @@ https://doc.x3dom.org/author/runtime.html
 				</Group>
 			</Transform>
 		</Collision>
+		
+		<!-- Grid -->
+		<!-- 
+		<Shape>
+			<LineSet vertexCount='2' containerField='geometry'>
+				<Coordinate point='-100 0 0   100 0 0'/>
+			</LineSet>
+			<Appearance>
+				<Material emissiveColor='1 0 0'/>
+				<LineProperties linewidthScaleFactor='20' containerField='lineProperties'/>
+			</Appearance>
+		</Shape>
+		-->
+		
 	</scene>
 </x3d>
 
@@ -4877,12 +5020,14 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	document.getElementById("svg_x3d").addEventListener("click", function(ev) {
 		msg();
 		ev.preventDefault()
-		// Set flex-direction: row (the x3d element tries to use the full height of the screen)
-		document.getElementById("main").classList.remove("column");
-		document.getElementById("main").classList.add("row");
 		// Toogle between svg and x3d
 		document.getElementById("svg").classList.toggle("hidden");
 		document.getElementById("x3d").classList.toggle("hidden");
+		// Workaround for x3d (the x3d element tries to use the full height of the screen): Set flex-direction: row
+		if (!document.getElementById("x3d").classList.contains("hidden")) {
+			document.getElementById("main").classList.remove("column");
+			document.getElementById("main").classList.add("row");
+		}
 	});
 	
 	// Button swap
