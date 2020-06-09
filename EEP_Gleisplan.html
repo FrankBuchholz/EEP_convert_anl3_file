@@ -2063,7 +2063,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				transform 			: matrixToTransform(mMatrix)
 			});
 			
-			x3d_createElement(x3d_GleisGroup, {
+			x3d_createTrack(x3d_GleisGroup, {
 				GleissystemID		: GleissystemID,
 				type				: `line`,
 				length				: Laenge,
@@ -2113,7 +2113,7 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				transform 			: matrixToTransform(mMatrix)
 			});
 			
-			x3d_createElement(x3d_GleisGroup, {
+			x3d_createTrack(x3d_GleisGroup, {
 				GleissystemID		: GleissystemID,
 				type				: `arc`,
 				radius				: Radius,
@@ -2581,7 +2581,7 @@ function createGraphicsFinalize(SVGfragment, x3d_fragment) {
 	createSVGforGleisobjekte(SVGfragmentBackground);
 	createSVGforRahmen(SVGfragmentBackground);
 
-	createSVGforKameras(SVGfragment);
+	createGraphicsforKameras(SVGfragment, x3d_fragment);
 
 	// Now we can append the fragments to the svg node
 	// Order: 1. Gleisobjekte (Flächen), 2. Rahmen, 3. Gleise (Linien), 4. Kameras
@@ -2723,7 +2723,7 @@ function createSVGforGleisobjekte(SVGfragment) {
 	}
 }
 
-function createSVGforKameras(SVGfragment) {
+function createGraphicsforKameras(SVGfragment, x3d_fragment) {
 /*
 	in:
 		sutrackp.getElementsByTagName("Kammerasammlung")
@@ -2785,6 +2785,8 @@ function createSVGforKameras(SVGfragment) {
 		Objektentfernung:			100.0	DOFSubDist
 */
 	let svgKamerasGroup;
+	let x3d_KamerasGroup;
+
 	const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
 	const Kameras = Kamerasammlung.getElementsByTagName("Kammera");
 	let KameraID = 0;
@@ -2817,25 +2819,12 @@ function createSVGforKameras(SVGfragment) {
 		Kamera.KameraID 			= KameraID;
 		global.KameraSet[KameraID] 	= Kamera;
 
-		// Process Kamera
-		if (!svgKamerasGroup) {		// First Kamera
-			// Show checkbox
-			document.getElementById("CheckboxKamera").classList.remove("hidden");
-
-			// Create svg group node
-			svgKamerasGroup = svgAppend(SVGfragment, {
-				svg_tag	: `g`,
-				id		: `Kamera`,
-				"class"	: `Kamera`,
-			});
-		}
-
 		/*
 		<Kammera name="Anlage" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="11.96" FOV="0.6981317" TakeSwitch="0">
 		*/
-		const Dynamic 	= Kamera.getAttribute("Dynamic");
+		Kamera.Dynamic 				= Kamera.getAttribute("Dynamic");
 
-		let Laenge, mMatrix;
+		let mMatrix;
 		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
 
 		const Dreibein	= Kamera.getElementsByTagName("Dreibein")[0];
@@ -2868,50 +2857,72 @@ function createSVGforKameras(SVGfragment) {
 		mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 		Kamera.mPos = mMatrix;
 
-		Laenge = 40;	// arbitrary length
-
-		let svgKameraGroup = svgAppend(svgKamerasGroup, {
-			svg_tag	: `g`,
-			id		: KameraID,
-		});
-
-		// Show circle at Point
-		svgAppend(svgKameraGroup, {
-			svg_tag				: `circle`,
-			r					: 2,
-			transform 			: matrixToTransform(Kamera.mPos),
-		});
-
-		// Draw Line
-		svgAppend(svgKameraGroup, {
-			svg_tag				: `path`,
-			d 					: `M 2 0 H ${Laenge}`,
-			transform 			: matrixToTransform(Kamera.mPos)
-		});
-
-		//Show Name
-		svgAppend(svgKameraGroup, {
-			svg_tag			: `text`,
-			text			: Name,			// 📷 \u1F4F7
-			dx				: `2`, 			// Shift text right
-			dy				: `-0.3em`, 	// Shift text up
-			//dy			: `1em`, 		// Shift text below the track
-			transform 		: matrixToTransform(Kamera.mPos)
-							  + ` scale(1 -1)`,
-		});
-
-		// show Hoehe in the middle below the track (left-adjusted)
-		svgAppend(svgKameraGroup, {
-			svg_tag			: `text`,
-			text			: `[${PosZ.toFixed(0)}m]`,
-			dx				: `2`, 		// Shift text right a little bit
-			dy				: `1em`, 		// Shift text below the track
-			"class"			: `Hoehe`,
-			transform 		: matrixToTransform(Kamera.mPos)
-							  + ` scale(1 -1)`,
-		});
-
+		// Process Kamera
+		if (!svgKamerasGroup) {		// First Kamera
+			// Show checkbox
+			document.getElementById("CheckboxKamera").classList.remove("hidden");
+		}
+		svgKamerasGroup = createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera);
+		
+		x3d_KamerasGroup = x3d_createCamera(x3d_fragment, x3d_KamerasGroup, Kamera);
 	}
+}
+
+function createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera) {
+
+	const Laenge = 40;	// arbitrary length
+
+	if (!svgKamerasGroup) {		// First Kamera
+		// Create svg group node
+		svgKamerasGroup = svgAppend(SVGfragment, {
+			svg_tag	: `g`,
+			id		: `Kamera`,
+			"class"	: `Kamera`,
+		});
+	}
+	
+	const svgKameraGroup = svgAppend(svgKamerasGroup, {
+		svg_tag	: `g`,
+		id		: Kamera.KameraID,
+	});
+
+	// Show circle at Point
+	svgAppend(svgKameraGroup, {
+		svg_tag				: `circle`,
+		r					: 2,
+		transform 			: matrixToTransform(Kamera.mPos),
+	});
+
+	// Draw Line
+	svgAppend(svgKameraGroup, {
+		svg_tag				: `path`,
+		d 					: `M 2 0 H ${Laenge}`,
+		transform 			: matrixToTransform(Kamera.mPos)
+	});
+
+	//Show Name
+	svgAppend(svgKameraGroup, {
+		svg_tag			: `text`,
+		text			: Kamera.Name,	// 📷 \u1F4F7
+		dx				: `2`, 			// Shift text right
+		dy				: `-0.3em`, 	// Shift text up
+		//dy			: `1em`, 		// Shift text below the track
+		transform 		: matrixToTransform(Kamera.mPos)
+						  + ` scale(1 -1)`,
+	});
+
+	// show Hoehe in the middle below the track (left-adjusted)
+	svgAppend(svgKameraGroup, {
+		svg_tag			: `text`,
+		text			: `[${Kamera.mPos[14].toFixed(0)}m]`,	// PosZ
+		dx				: `2`, 		// Shift text right a little bit
+		dy				: `1em`, 		// Shift text below the track
+		"class"			: `Hoehe`,
+		transform 		: matrixToTransform(Kamera.mPos)
+						  + ` scale(1 -1)`,
+	});
+	
+	return svgKamerasGroup;
 }
 
 function createSVGforRahmen(SVGfragment) {
@@ -3252,47 +3263,65 @@ function svgAppend(svg_node, obj) {
 
 function x3d_initialization(x3d_node) {
 
+	const WorldInfo		= document.createElement("WorldInfo");
+	WorldInfo.setAttribute("title", "EEP Gleisplan" );
+	WorldInfo.setAttribute("info", ["EEP Gleisplan", "X3D"] );
+	x3d_node.appendChild(WorldInfo);
+
+	// Define material
+	const x3d_MaterialGroup = x3d_createGroup(x3d_node, {
+			Group	: `Material`,
+			render	: `false`,		
+		});
+	/*
+	<Material ambientIntensity='0.2' diffuseColor='0.8,0.8,0.8' emissiveColor='0,0,0' metadata='X3DMetadataObject' shininess='0.2' specularColor='0,0,0' transparency='0' ></Material>
+	*/
 	const MaterialEisenbahn		= document.createElement("Material");
 	MaterialEisenbahn.setAttribute("DEF", "MaterialEisenbahn" );
 	MaterialEisenbahn.setAttribute("diffuseColor", [.6, .1, .1] );		// red
 	MaterialEisenbahn.setAttribute("emissiveColor", [.2, .05, .05] );
-	x3d_node.appendChild(MaterialEisenbahn);
+	x3d_MaterialGroup.appendChild(MaterialEisenbahn);
 	
 	const MaterialStrassenbahn		= document.createElement("Material");
 	MaterialStrassenbahn.setAttribute("DEF", "MaterialStrassenbahn" );
 	MaterialStrassenbahn.setAttribute("diffuseColor", [.8, .8, .8] );	// grey
 	MaterialStrassenbahn.setAttribute("emissiveColor", [.4, .4, .4] );
-	x3d_node.appendChild(MaterialStrassenbahn);	
+	x3d_MaterialGroup.appendChild(MaterialStrassenbahn);	
 	
 	const MaterialStrasse		= document.createElement("Material");
 	MaterialStrasse.setAttribute("DEF", "MaterialStrasse" );
 	MaterialStrasse.setAttribute("diffuseColor", [.5, .5, .5] );		// grey
 	MaterialStrasse.setAttribute("emissiveColor", [.2, .2, .2] );
-	x3d_node.appendChild(MaterialStrasse);	
+	x3d_MaterialGroup.appendChild(MaterialStrasse);	
 	
 	const MaterialWasserwege	= document.createElement("Material");
 	MaterialWasserwege.setAttribute("DEF", "MaterialWasserwege" );
 	MaterialWasserwege.setAttribute("diffuseColor", [.1, .1, .6] );		// blue
 	MaterialWasserwege.setAttribute("emissiveColor", [.05, .05, .2] );
-	x3d_node.appendChild(MaterialWasserwege);	
+	x3d_MaterialGroup.appendChild(MaterialWasserwege);	
 	
 	const MaterialSteuerstrecken = document.createElement("Material");
 	MaterialSteuerstrecken.setAttribute("DEF", "MaterialSteuerstrecken" );
 	MaterialSteuerstrecken.setAttribute("diffuseColor", [.1, .6, .1] );	// green
 	MaterialSteuerstrecken.setAttribute("emissiveColor", [.05, .2, .05] );
-	x3d_node.appendChild(MaterialSteuerstrecken);	
+	x3d_MaterialGroup.appendChild(MaterialSteuerstrecken);	
 
 }
 
 function x3d_createGroup(x3d_node, obj) {
 	const element = document.createElement("Group");
 	element.setAttribute("DEF", obj.Group);
-	element.setAttribute("class", obj["class"]);
+	if (obj.class) {
+		element.setAttribute("class", obj.class);
+	}
+	if (obj.render) {
+		element.setAttribute("render", obj.render);
+	}
 	x3d_node.appendChild(element);
 	return element;
 }
 
-function x3d_createElement(x3d_node, obj) {
+function x3d_createTrack(x3d_node, obj) {
 	// Common obj parameters: GleissystemID, type, startPoint
 
 	const size = 1; // size of the track
@@ -3308,18 +3337,15 @@ function x3d_createElement(x3d_node, obj) {
 	// Connect tags
 	MatrixTransform.appendChild(Transform);
 	//Transform.appendChild(Shape); // do it later depending on type
+	//Shape.appendChild(Box|Cylinder|Cone|...);	// do it later depending on type
 	Shape.appendChild(Appearance);
 	Appearance.appendChild(Material);
 
 	// Set start point
 	MatrixTransform.setAttribute("matrix", x3dom.fields.SFMatrix4f.fromArray(obj.startPoint));
 
-	// Define material
-	/*
-	<Material ambientIntensity='0.2' diffuseColor='0.8,0.8,0.8' emissiveColor='0,0,0' metadata='X3DMetadataObject' shininess='0.2' specularColor='0,0,0' transparency='0' ></Material>
-	*/
-	Material.setAttribute("USE", 
-		"Material"+{1: "Eisenbahn", 2: "Strassenbahn", 3: "Strasse", 4: "Wasserwege", 5: "Steuerstrecken"}[obj.GleissystemID] );
+	// Use material
+	Material.setAttribute("USE", "Material"+GleissystemCode[obj.GleissystemID] );
 	
 	// Define transform and shape depending on type
 	if (obj.type === "line") {	// specific obj parameters: length
@@ -3386,9 +3412,6 @@ function x3d_createElement(x3d_node, obj) {
 		Torus.setAttribute("outerRadius", obj.radius + size );
 		Torus.setAttribute("insideOutsideRadius", true );
 		Torus.setAttribute("angle", Math.abs(obj.angle) );
-		if (obj.angle < 0.0)  {
-			Torus.setAttribute("ccw", true );
-		}
 		Shape.appendChild(Torus);
 		
 		Transform2.appendChild(Shape);
@@ -3406,6 +3429,107 @@ function x3d_createElement(x3d_node, obj) {
 	return element;
 }
 
+function x3d_createCamera(x3d_node, x3d_KamerasGroup, Kamera) {
+	//Kamera contains Name, KameraID, mPos, Dynamic
+
+	/* Demo: Kamera 'Anlage'
+	Position: (422m, -229m)
+	Höhe: 89m
+	Blickrichtung: 149.4° WNW
+	Neigung: 13.3°
+	statisch
+
+	<Kammera name="Anlage" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
+	<Dreibein>
+	<Vektor x="42240.82" y="-22886.84" z="8889.759">Pos</Vektor>
+	<Vektor x="-0.8373405" y="0.4961019" z="-0.22966">Dir</Vektor>
+	<Vektor x="-0.509729" y="-0.8603457" z="0">Nor</Vektor>
+	<Vektor x="-0.1858733" y="0.1101244" z="0.9763635">Bin</Vektor>
+	</Dreibein>
+	</Kammera>		
+	
+	Neigung X 	0.00°
+	Neigung Y	13.28°
+	Neigung Z	149.35°
+
+	Sichtfeld 	0.00
+	Brennweite 	100.0 mm
+	Blendenwert	f/3.6
+	Objektentfernung	100.0
+	Hyperfokale Entfernung	935.48
+	Automatische Schärfentiefe
+	.. vor dem Zielobjekt	9.65
+	.. hinter dem Zielobjekt11.96
+	.. Objektentfernung	100.0
+	
+	Activate specific Viewpoint:
+	<button onclick="document.getElementById('Anlage').setAttribute('set_bind','true');">Kamera: Anlage</button>
+	*/
+	
+	const description = "📷 "+ Kamera.KameraID + " " + Kamera.Name;
+
+	const fieldOfView = 0.37; 	// Die EEP-Standardbrennweite 100mm scheint gut zu fieldOfView="0.37" zu passen.
+	const a90 = Math.PI / 2; 	// 1.570796;
+
+	/* The position matrix contains the raw data to calculate the values for tags position and orientation.
+	However, it's easier to use MatrixTransform instead: 
+	<MatrixTransform Kamera.mPos>
+		<Transform rotateZ -90°>
+			<Transform rotateX +90°>
+				<Viewpoint 
+					description="Camera"
+					position="0 0 0" 
+					orientation="1 0 0 0" 
+					centerOfRotation="0 0 0" 
+					fieldOfView="angle" 
+					></Viewpoint>
+			</Transform>
+		</Transform>
+	</MatrixTransform>
+	*/
+
+	if (!x3d_KamerasGroup) {		// First Kamera
+		// Create x3d group node
+		x3d_KamerasGroup = x3d_createGroup(x3d_node, {
+			Group	: `Kamera`,
+			render	: `false`,		
+		});
+	}
+	
+	// Create tags 
+	const MatrixTransform 	= document.createElement("MatrixTransform");
+	const RotateZ 			= document.createElement("Transform");
+	const RotateX 			= document.createElement("Transform");
+	const Viewpoint 		= document.createElement("Viewpoint");
+
+	// Connect tags
+	MatrixTransform.appendChild(RotateZ);
+	RotateZ.appendChild(RotateX);
+	RotateX.appendChild(Viewpoint);
+
+	// Define group
+	MatrixTransform.setAttribute("DEF", "Camera-" + Kamera.KameraID);	// DEF is used within x3d
+
+	// Set position
+	MatrixTransform.setAttribute("matrix", x3dom.fields.SFMatrix4f.fromArray(Kamera.mPos));
+	
+	// Set orientation
+	RotateZ.setAttribute("rotation", [0, 0, 1, -a90]); // rotateZ -90°
+	RotateX.setAttribute("rotation", [1, 0, 0,  a90]); // rotateX +90°
+
+	// Set camera
+	Viewpoint.setAttribute("id", "Camera-" + Kamera.KameraID);	// id is used by Javascript
+	Viewpoint.setAttribute("description", description);
+	Viewpoint.setAttribute("position", "0 0 0");
+	Viewpoint.setAttribute("orientation", [1, 0, 0, 0]);
+	Viewpoint.setAttribute("fieldOfView", fieldOfView);
+
+	// Result
+	const element = MatrixTransform;
+	x3d_KamerasGroup.appendChild(element);
+	return x3d_KamerasGroup;
+}
+
 function x3d_finalization(x3d_node) {
 	
 	/*** x3d runtime https://doc.x3dom.org/author/runtime.html ***/
@@ -3419,11 +3543,11 @@ function x3d_finalization(x3d_node) {
 	//x3d.runtime.resetView();
 
 	// Show debug window
-    //x3d.runtime.debug(false); // see tag x3dom	
+    //x3d.runtime.debug(false); // override part of tag x3dom	
 	
 	// Swap direction of the mouse wheel to match the direction of zooming in EEP
 	// Increase speed of pan and zoom
-    //x3d.runtime.speed(-4); // ses tag NavigationInfo	
+    x3d.runtime.speed(-4); // override part of tag NavigationInfo
 
 	// Zooms so that a given object is fully visible.
 	// obj		the scene-graph element on which to focus
@@ -4511,7 +4635,7 @@ x3dom.X3DDocument.prototype.onKeyUp
 x3dom.X3DDocument.prototype.onKeyPress
 
 a			zoom to show all elements and move to top view
-c			Toggle viewfrustum culling
+c			?Toggle viewfrustum culling
 i			fit view (zoom to show all elements in current orientation)
 r			reset view
 u			upright view
@@ -4594,6 +4718,31 @@ Strafe left				Cursor left
 Strafe right			Cursor right
 
 
+EEP 3D View:
+
+Hineinzoomen				Num+ (or SPACE)
+Herauszoomen				Num- (or R)
+
+Schwenken nach rechts		Cursor right
+Schwenken nach links		Cursor left
+Schwenken nach oben			Cursor up
+Schwenken nach unten		Cursor down
+
+Drehen nach rechts			Shift+Cursor right
+Drehen nach links			Shift+Cursor left
+Drehen nach oben			Shift+Cursor up
+Drehen nach unten			Shift+Cursor down
+
+Verschieben nach rechts		Strg+Cursor right
+Verschieben nach links		Strg+Cursor left
+Verschieben nach vorne		Strg+Cursor up
+Verschieben nach hinten		Strg+Cursor down
+
+Höher						Page up
+Niedriger					Page down
+Schnell Höher				Shift+Page up
+Schnell Niedriger			Shift+Page down
+
 https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geometry2D.html#NodeReference
 
 https://www.web3d.org/x3d/content/X3dTooltips.html#X3D
@@ -4632,7 +4781,7 @@ https://doc.x3dom.org/author/runtime.html
 
 
 -->
-<!-- https://doc.x3dom.org/tutorials/basics/runtimeConfiguration/index.html -->
+<!-- https://doc.x3dom.org/author/configuration.html -->
 <x3d profile="Interactive"
 	xmlns:xsd="http://www.w3.org/2001/XMLSchema-instance"
 	version="4.0"
@@ -4647,6 +4796,7 @@ https://doc.x3dom.org/author/runtime.html
 	showTouchpoints="true"
 	PrimitiveQuality="High"
 	useGeoCache="true"
+	runtimeEnabled="true"
 	
 	width="100%"><!-- width="600px" height="600px" height="100%" -->
 	<head>
@@ -4665,23 +4815,15 @@ https://doc.x3dom.org/author/runtime.html
 		https://doc.x3dom.org/author/Navigation/NavigationInfo.html
 		<NavigationInfo avatarSize='[ 0.25, 1.6, 0.75 ]' bind='false' description='""' explorationMode=''all'' headlight='true' isActive='false' metadata='X3DMetadataObject' reverseScroll='false' speed='1.0' transitionTime='1.0' transitionType='["LINEAR"]' type='["EXAMINE","ANY"]' typeParams='[-0.4,60,0.05,2.8]' visibilityLimit='0.0' walkDamping='2.0' ></NavigationInfo>
 		-->
-		<NavigationInfo reverseScroll='true' speed='4.0'></NavigationInfo> <!-- type="turntable" typeParams="0.0 0.0 0.01 1.57" -->
 
-		<!-- We need to close all tags explicitly: <WorldInfo ...></WorldInfo> but not <WorldInfo ... />
-		see https://x3dom.org/docs-old/troubleshooting.html#i-am-not-seeing-anything -->
-		<WorldInfo title="EEP Gleisplan"></WorldInfo>
-
-		<!--
-		<Viewpoint id="camera1" description="Kamera 1" centerOfRotation="0 -1 0" position="0 -1 70" orientation="0 0 1 0"  fieldOfView="0.76"></Viewpoint>
-		<Viewpoint id="camera2" description="Kamera 1" centerOfRotation="0 0 0" position="-50 0 0" orientation="1 0 0 0"  fieldOfView="0.76"></Viewpoint>
-		-->
-		
-		<Viewpoint description="Oblique view" orientation="-0.59028 0.76927 0.2445 0.987861" position="1000 1000 100"></Viewpoint>
-		<Viewpoint description="View from Z axis (from top)" 	orientation="0 0 1 0"  			position="0 0 100"></Viewpoint>
-		<Viewpoint description="View from X axis (to west)" 	orientation="0 1 0 1.570796" 	position="1000 0 0"></Viewpoint>
-		<Viewpoint description="View from Y axis (to north)" 	orientation="1 0 0 -1.570796" 	position="0 1000 0"></Viewpoint>
-		<Viewpoint description="View from X axis (to east)" 	orientation="0 -1 0 1.570796" 	position="1000 0 0"></Viewpoint>
-		<Viewpoint description="View from Y axis (to south)" 	orientation="-1 0 0 -1.570796" 	position="0 1000 0"></Viewpoint>
+		<!-- Default camera top down view -->
+		<Viewpoint 
+			description="Default"
+			position="0 0 100" 
+			orientation="0 0 1 0" 
+			centerOfRotation="0 0 0" 
+			fieldOfView="0.37" 
+			></Viewpoint>
 
 		<!-- <background DEF="background" transparency="0.1" skyColor="0 0.5 0"/> -->
 
@@ -5200,6 +5342,10 @@ EEPchannel.onmessage = function(ev) {
 		centerPosition(Kamera.mPos);
 
 		showKameraInfo(KameraID);
+		
+		// x3d Activate camera
+		document.getElementById("Camera-" + KameraID).setAttribute("set_bind","true");
+		
 		return true;
 
 	} else if (GleissystemID && GleisID) {	// Gleis
@@ -6276,8 +6422,6 @@ function showKameraInfo(KameraID) {
 	const Kamera 		= global.KameraSet[KameraID];
 	if (!Kamera) { return; }
 
-	const Dynamic 	= Kamera.getAttribute("Dynamic");
-
 	const [DirX, DirY, DirZ, d0, NorX, NorY, NorZ, n0, BinX, BinY, BinZ, b0, PosX, PosY, PosZ, scale ] = Kamera.mPos;
 
 	// https://www.matheplanet.com/default3.html?call=viewtopic.php?topic=140833&ref=https%3A%2F%2Fwww.google.com%2F
@@ -6390,7 +6534,7 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			+ " " + ['W', 'WNW', 'NW', 'NNW', 'N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)] 
 			+ `<br>${_('Neigung')}: ` 				 + angle( angleY )			// Neigung Y
 			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : "")	// Neigung X
-			+ `<br>` + (Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6
+			+ `<br>` + (Kamera.Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6
 			+ objectToHTML(Kamera)
 	});
 }
