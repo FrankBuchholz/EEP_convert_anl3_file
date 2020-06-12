@@ -3274,6 +3274,7 @@ function x3d_initialization(x3d_node) {
 
 function x3d_createGroup(x3d_node, obj) {
 	const element = document.createElement("Group");
+	element.setAttribute("id", "x3d_"+obj.Group);
 	element.setAttribute("DEF", obj.Group);
 	if (obj.class) {
 		element.setAttribute("class", obj.class);
@@ -3515,12 +3516,28 @@ function x3d_finalization(x3d_node) {
 	
 	// Swap direction of the mouse wheel to match the direction of zooming in EEP
 	// Increase speed of pan and zoom
-    x3d.runtime.speed(-4); // override part of tag NavigationInfo
+    //x3d.runtime.speed(-4); // override part of tag NavigationInfo
 
 	// Zooms so that a given object is fully visible.
 	// obj		the scene-graph element on which to focus
 	// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ
 	//x3d.runtime.showObject (obj, axis);
+
+/* does not work
+	// Button Zoom-In
+	document.getElementById("zoom-in").addEventListener("click", function(ev) {
+		const x3d = document.getElementById("x3d");
+		const viewpoint = x3d.viewpoint.moveFwd();
+	});
+	// Button Zoom-Out
+	document.getElementById("zoom-out").addEventListener("click", function(ev) {
+		const x3d = document.getElementById("x3d");
+		const viewpoint = x3d.viewpoint.moveBwd();
+	});
+*/
+
+
+
 }
 
 
@@ -4847,12 +4864,13 @@ https://doc.x3dom.org/author/runtime.html
 		
 		<!--
 		https://doc.x3dom.org/author/Navigation/NavigationInfo.html
-		<NavigationInfo avatarSize='[ 0.25, 1.6, 0.75 ]' bind='false' description='""' explorationMode=''all'' headlight='true' isActive='false' metadata='X3DMetadataObject' reverseScroll='false' speed='1.0' transitionTime='1.0' transitionType='["LINEAR"]' type='["EXAMINE","ANY"]' typeParams='[-0.4,60,0.05,2.8]' visibilityLimit='0.0' walkDamping='2.0' ></NavigationInfo>
+		<NavigationInfo avatarSize='[ 0.25, 1.6, 0.75 ]' bind='false' description='""' explorationMode='"all"' headlight='true' isActive='false' metadata='X3DMetadataObject' reverseScroll='false' speed='1.0' transitionTime='1.0' transitionType='["LINEAR"]' type='["EXAMINE","ANY"]' typeParams='[-0.4,60,0.05,2.8]' visibilityLimit='0.0' walkDamping='2.0' ></NavigationInfo>
 		-->
-
-		<!-- Default camera top down view -->
-		<Viewpoint bind="true"
-			description="Default"
+		<NavigationInfo reverseScroll="true" speed="4.0"></NavigationInfo>
+		
+		<!-- Default camera with top down view -->
+		<Viewpoint id="x3d_dynamicCamera" bind="true"
+			description="dynamic Camera"
 			position="0 0 100" 
 			orientation="0 0 1 0" 
 			centerOfRotation="0 0 0" 
@@ -5234,6 +5252,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		ev.preventDefault();
 		panZoom.zoomOut();
 	});
+
 	// Button Reset
 	document.getElementById("reset").addEventListener("click", function(ev) {
 		msg();
@@ -5243,6 +5262,13 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		panZoom.resetZoom();
 		// Pan and zoom to used area
 		showUsedArea(panZoom, true);
+		
+		// x3d
+		// Activate dynamic camera
+		document.getElementById("x3d_dynamicCamera").setAttribute("set_bind", "true");
+		// Zooms so that all objects are visible.
+		// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ (default)
+		document.getElementById("x3d").runtime.showAll("negZ");		
 	});
 	// Button ResetZoom
 	document.getElementById("resetzoom").addEventListener("click", function(ev) {
@@ -5251,6 +5277,12 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		panZoom.resetZoom();
 		// Zoom to used area
 		showUsedArea(panZoom);
+		
+		// x3d
+		// Activate dynamic camera
+		document.getElementById("x3d_dynamicCamera").setAttribute("set_bind", "true");
+		// Zooms so that all objects are visible. Keep current orientation of camera.
+		document.getElementById("x3d").runtime.fitAll();		
 	});
 	// Slider strokeWidth (in case of very large files, it might be better to use "change" event instead of "input" event to switch off live updates)
 	document.getElementById("strokeWidth").addEventListener("input", function(ev) {
@@ -5441,7 +5473,16 @@ function centerItem() {
 			return false;
 		}
 
+		// svg
 		centerPosition(Gleis.mMid); // Mitte des Gleises
+		
+		// x3d
+		// Activate dynamic camera
+		document.getElementById("x3d_dynamicCamera").setAttribute("set_bind", "true");
+		const element = document.getElementById(`x3d_G${GleissystemID}-${GleisID}`);
+		//document.getElementById("x3d").runtime.fitObject(element);		// view object in current view direction
+		document.getElementById("x3d").runtime.showObject(element, "posZ");	// view object in top down view
+		
 		//msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 		msg('Positioning', GleissystemText[GleissystemID], GleisID);
 		return true;
