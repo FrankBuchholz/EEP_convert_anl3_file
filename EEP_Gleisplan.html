@@ -2063,14 +2063,12 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				transform 			: matrixToTransform(mMatrix)
 			});
 			
-			if (global.activeTracks[GleissystemID].includes(GleisID)) {
 			x3d_createTrack(x3d_GleisGroup, {
 				GleissystemID		: GleissystemID,
 				type				: `line`,
 				length				: Laenge,
 				startPoint			: mMatrix,
 			});
-			}
 			
 		} else { // Show arc. Kruemmung != 0
 
@@ -2115,7 +2113,6 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				transform 			: matrixToTransform(mMatrix)
 			});
 			
-			if (global.activeTracks[GleissystemID].includes(GleisID)) {
 			x3d_createTrack(x3d_GleisGroup, {
 				GleissystemID		: GleissystemID,
 				type				: `arc`,
@@ -2123,7 +2120,6 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				angle				: Winkel,
 				startPoint			: mMatrix,
 			});
-			}
 
 		}
 
@@ -5798,6 +5794,15 @@ function toggleElements(selector, visible) {
 			ele.classList.add("hidden");
 		}
 	}
+	
+	for (const ele of document.getElementById("x3d").querySelectorAll(selector)) {
+		if (visible) {
+			ele.setAttribute("render", "true");
+		} else {
+			ele.setAttribute("render", "false");
+		}
+	}
+	
 }
 
 // Toggle visibility of marker
@@ -6962,7 +6967,7 @@ function x3d_setColors(GleissystemFarbe) {
 	Background.setAttribute("skyColor", 	x3dom.fields.SFColor.colorParse(GleissystemFarbe["Hintergrund"]).toString() );
 	Background.setAttribute("groundColor", 	x3dom.fields.SFColor.colorParse(GleissystemFarbe["Hintergrund"]).toString() );
 
-	GleissystemFarbDefinition.map(function(farbe) {
+	GleissystemFarbDefinition.forEach(function(farbe) {
 		// Define Material
 		/*
 		<Material ambientIntensity='0.2' diffuseColor='0.8,0.8,0.8' emissiveColor='0,0,0' metadata='X3DMetadataObject' shininess='0.2' specularColor='0,0,0' transparency='0' ></Material>
