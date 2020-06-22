@@ -15,6 +15,7 @@
 
 <!--*** We need to load x3dom early ***-->
 <script type="text/javascript" src="node_modules/x3dom/x3dom.js"></script>
+<script type="text/javascript" src="modules/x3dom/x3dom_extensions.js"></script>
 
 <script type="text/javascript"> // Experiment to load scripts dynamically either from relative path or from fixed URL - not used yet
 "use strict";
@@ -3407,7 +3408,7 @@ function x3d_createTrack(x3d_node, obj) {
 			Transform2.setAttribute("scale", "1 1 -1"); // flip to set clockwise orientation of the torus
   		}
 
-		const subdivision = Math.max(24, Math.floor(Math.abs(obj.angle)*120));
+		const subdivision = Math.max(24, Math.floor(Math.abs(obj.angle*120)));
 		const Torus 	= document.createElement("Torus");
 		Torus.setAttribute("innerRadius", obj.radius - size );
 		Torus.setAttribute("outerRadius", obj.radius + size );
@@ -3549,7 +3550,6 @@ function x3d_finalization(x3d_node) {
 	// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ (default)
     x3d.runtime.showAll("negZ");		
 	//x3d.runtime.fitAll();
-	//x3d.runtime.resetView();
 
 	// Show debug window
     //x3d.runtime.debug(false); // override part of tag x3dom	
@@ -3576,62 +3576,103 @@ function x3d_finalization(x3d_node) {
 	});
 */
 
-	// Add event listener to all shapes
-	document.getElementById("sutrackpX3D").addEventListener("click", x3d_handler);
+	// Add event listener to all shapes (it is not neccessary to assign them to the shapes individually)
+	document.getElementById("sutrackpX3D").addEventListener("click", clickOnShape);
+	document.getElementById("sutrackpX3D").addEventListener("mouseover", mouseoverOnShape);
+	document.getElementById("sutrackpX3D").addEventListener("mouseout", mouseoutOnShape);
 
 	global.timestamp.x3dCreate = global.timestamp.x3dCreate + Date.now() - t0;
-}
 
-function x3d_handler(event) {
-		/*
-		event.type								"click"	
-		event.button 							1
-		event.target.nodeName					"SHAPE"
-		event.target.tagName					"SHAPE"
-		event.hitObject.nodeName				"SHAPE"
-		event.hitPnt							[x,y,z]
-		event.layerX 							x
-		event.layerY							y
-		event.normalX							x
-		event.normalY							y
-		event.normalZ							z
-		event.worldX							x
-		event.worldY							y
-		event.worldZ							z
-		event.viewarea...
-		event.target.parentNode...parentNode.tagName	"GROUP"
-		event.target.parentNode...parentNode.id		"x3d_G1-7"
-		*/
-		
-	switch (event.type) {	
-		
-	case "click": 	// Show details popup
-        event.cancelBubble = true;
-        event.stopPropagation();
+function clickOnShape(event) {
+	/*
+	event.type								"click"	
+	event.button 							1
+	event.target.nodeName					"SHAPE"
+	event.target.tagName					"SHAPE"
+	event.hitObject.nodeName				"SHAPE"
+	event.hitPnt							[x,y,z]
+	event.layerX 							x
+	event.layerY							y
+	event.normalX							x
+	event.normalY							y
+	event.normalZ							z
+	event.worldX							x
+	event.worldY							y
+	event.worldZ							z
+	event.viewarea...
+	event.target.parentNode...parentNode.tagName	"GROUP"
+	event.target.parentNode...parentNode.id			"x3d_G1-7"
+	*/
+	
+	event.cancelBubble = true;
+	event.stopPropagation();
 
-		document.getElementById('x3d_Point').setAttribute('translation', event.hitPnt)
+	// Find group node having an id 	
+	let element = event.target;
+	while (element && element.tagName != "GROUP" && element.id === "") {
+		element = element.parentNode;
+	}
 	
-		// find group node having an id 	
-		let element = event.target;
-		while (element && element.tagName != "GROUP" && element.id === "") {
-			element = element.parentNode;
-		}
-		
-		// Show details popup
-		if (element.id.substr(0, 5)  === "x3d_G") {	// Gleis
-			const GleisCode 		= element.id.substr(5);
-			const GleisTextArray 	= GleisCode.split("-");
-			const GleissystemID 	= GleisTextArray[0];
-			const GleisID 			= GleisTextArray[1];
-			showGleisInfo(GleissystemID, GleisID);
-		}
-	
+	// Show details popup
+	if (element.id.substr(0, 5)  === "x3d_G") {	// Gleis
+		const GleisCode 		= element.id.substr(5);
+		const GleisTextArray 	= GleisCode.split("-");
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
+		showGleisInfo(GleissystemID, GleisID);
 	}
 
+	// Place the coordinate system at the hit point
+	document.getElementById('x3d_Point').setAttribute('translation', event.hitPnt)
 }
 
-} // end function createGraphics
+function mouseoverOnShape(event) {
+	const element = event.target;
+	//element.highlight(true, "1 0.5 0");// this x3dom function whould touch all shapes of the track system because they USE the same material
+	//return;
 
+	// Suggestion from campersau: change USE material (but this does not show any effect unless you remove and add the Material node)
+	const Appearance = element.getElementsByTagName("Appearance")[0];
+	Appearance.childNodes.forEach(node => {
+		if (node.nodeName === "MATERIAL") {
+			const Material = node;
+			if (!Material.getAttribute("originalUSE")) {
+				Material.setAttribute("originalUSE", Material.getAttribute("USE") );
+			}
+			Material.setAttribute("USE", "MaterialHighlight" );
+			// remove Material from DOM
+			Appearance.removeChild(Material);
+			// reassign Material to DOM
+			Appearance.appendChild(Material);
+		}
+	})
+
+}
+
+function mouseoutOnShape(event) {
+	const element = event.target;
+	//element.highlight(false, "1 0.5 0");	// this x3dom function whould touch all shapes of the track system because they USE the same material
+	//return;
+
+	// Suggestion from campersau: change USE material (but this does not show any effect unless you remove and add the Material node)
+	const Appearance = element.getElementsByTagName("Appearance")[0];
+	Appearance.childNodes.forEach(node => {
+		if (node.nodeName === "MATERIAL") {
+			const Material = node;
+			Material.setAttribute("USE", Material.getAttribute("originalUSE") );
+			//Material.removeAttribute("originalUSE");
+			// remove Material fronm DOM
+			Appearance.removeChild(Material);
+			// reassign Material to DOM
+			Appearance.appendChild(Material);
+		}
+	})
+  
+}
+
+} // end x3d_finalization
+
+} // end function createGraphics
 
 /* Not used anymore
 function svgAppendTextPath(svg_node, obj) {
@@ -3899,11 +3940,11 @@ input[type="number"]#jpgQuality {
 <button id="svg_x3d"><span lang="de">SVG/X3D</span><span lang="en">SVG/X3D</span><span lang="fr">SVG/X3D</span></button>
 <button id="swap"><span lang="de">Tauschen</span><span lang="en">Swap</span><span lang="fr">Échanger</span></button>
 <!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
-<button id="savePNG"><span lang="de">Export</span><span lang="en">Export</span><span lang="fr">Exp.</span> PNG/JPG/SVG</button>
+<button id="savePNG" class="svgControl"><span lang="de">Export</span><span lang="en">Export</span><span lang="fr">Exp.</span> PNG/JPG/SVG</button>
 <button id="setColors"><span lang="de">Farben</span><span lang="en">Colours</span><span lang="fr">Couleurs</span></button>
 <br>
-<button id="zoom-in">+</button>
-<button id="zoom-out">-</button>
+<button id="zoom-in" class="svgControl">+</button>
+<button id="zoom-out" class="svgControl">-</button>
 <button id="resetzoom"><span lang="de">Zoom zurücksetzen</span><span lang="en">Reset zoom</span><span lang="fr">Réinit. le zoom</span></button>
 <button id="reset"><span lang="de">Alles zurücksetzen</span><span lang="en">Reset all</span><span lang="fr">Réinit. tout</span></button>
 <!-- enable/disable of controls of SvgPanZoom within the graphic
@@ -3911,9 +3952,11 @@ input[type="number"]#jpgQuality {
 	<button id="disable">disable controls</button>
 -->
 <br>
+<div class="svgControl">
 <span lang="de">Linie</span><span lang="en">Line</span><span lang="fr">Ligne</span>&nbsp;<input type="range" min="1" max="150" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
 <br>
 <span lang="de">Schrift</span><span lang="en">Font</span><span lang="fr">Écriture</span>&nbsp;<input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
+<div>
 </article>
 
 <article class="group no-select"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
@@ -4238,9 +4281,11 @@ if (typeof module === "undefined") {
 </script>
 <!-- End: Two handled slider for min/max height -->
 
+<div class="svgControl">
 <span lang="de">Sichtbarer Bereich</span><span lang="en">Visible area</span><span lang="fr">Zone visible</span>: <span id="visibleArea"> </span><br>
 <span lang="de">Zentrum des Bereichs</span><span lang="en">Center of the area</span><span lang="fr">Centre de la zone</span>: <span id="centerPosition"> </span><br>
 <span lang="de">Cursor</span><span lang="en">Cursor</span><span lang="fr">Curseur</span>: <span id="cursorPosition"> </span>
+</div>
 </article>
 
 <article class="group no-select"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
@@ -4289,6 +4334,39 @@ if (typeof module === "undefined") {
 	<div class="item"><label>
 	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('.general', this.checked)"><span lang="de">Rahmen</span><span lang="en">Frame</span><span lang="fr">Cadre</span></label></div>
 </fieldset>
+
+<div class="x3dControl"><!-- ### translation missing -->
+	X3D:
+	<table>
+		<tr>
+			<td>Navigation Mode:</td>
+			<td align="right">
+				<select onchange="document.getElementById('x3d').runtime[value]();">
+					<option selected="selected"	value="examine">Examine</option>
+					<option value="turnTable">TurnTable</option>
+					<option value="lookAt">LookAt</option>
+					<option value="lookAround">LookAround</option>
+					<option value="fly">Fly</option>
+					<option value="freeFly">FreeFly</option>
+					<option value="game">Game</option>
+					<option value="helicopter">Helicopter</option>
+					<option value="walk">Walk</option>
+					<option value="noNav">None</option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td>Debug Display:</td>
+			<td align="right">
+				<label><input type="checkbox" onclick="document.getElementById('x3d').runtime.statistics(this.checked);"></input>
+				Stats</label>
+				<input type="checkbox" onclick="document.getElementById('x3d').runtime.debug();"></input>
+				<label>Log</label>
+			</td>
+		</tr>
+	</table>
+</div>
+
 </article>
 
 </nav> <!-- controls -->
@@ -4696,11 +4774,20 @@ text.WeicheText {
 <style>
 /* <![CDATA[ */
 /* Override styles from x3dom.css */
-
+.x3dom-canvas {
+    cursor:crosshair;
+}
+.x3dom-canvas-mousedown {
+  cursor:grabbing; /* it's neccessary to define it again */
+}
 /* Additional styles for x3dom */
 x3d {
+	width: 100%; 
+	height: 100%;	/* does not work because the x3d element takes always full window height */
 	/* background: var(--Hintergrund-color); */ /* it's not possible to use CSS variables here */
 	border: 0; /* 1px dotted #3983ab; */
+	margin: 0; 
+	padding: 0;
 }
 /* ]]> */
 </style>
@@ -4716,11 +4803,11 @@ x3dom.X3DDocument.prototype.onKeyUp
 x3dom.X3DDocument.prototype.onKeyPress
 
 a			zoom to show all elements and move to top view
-c			?Toggle viewfrustum culling
 i			fit view (zoom to show all elements in current orientation)
-r			reset view
+r			reset current view
 u			upright view
 t			light view
+c			?Toggle viewfrustum culling
 
 + -			increase/decrease pan and zoom speed
 
@@ -4761,8 +4848,9 @@ https://doc.x3dom.org/tutorials/animationInteraction/navigation/index.html
 https://www.web3d.org/wiki/index.php/General_X3D_Navigation_Behaviors
 
 Non-interactive camera movement:
-Reset view				r
-Show all				a
+Reset current view		r
+Show all 				a
+Fit all					i
 Upright					u
 
 Examine (e) single object: best for rotating solitary objects
@@ -4797,38 +4885,48 @@ Move forward			Cursor up
 Move backwards			Cursor down
 Strafe left				Cursor left
 Strafe right			Cursor right
+"pitch" angle X, min -89°, max +89°, 
+"yaw" angle Y, min 0°, max +360°
 
 
 EEP 3D View:
 
-Hineinzoomen				Num+ (or SPACE)		Mausrad drehen im Bildzentrum
-Herauszoomen				Num- (or R)			Mausrad drehen im Bildzentrum
+"roll" 	= turn around x axis, turn camera around point of view - this never should happen
+"pitch" = turn around y axis, turn camera to look up or down
+"yaw" 	= turn around z axis, turn camera to look left or right
+"move" 	= change position keeping orientation
 
-Schwenken der Kamera
-Schwenken nach rechts		Cursor right		Mausrad drehen am rechten/linken Bildrand
-Schwenken nach links		Cursor left			Mausrad drehen am rechten/linken Bildrand
-Schwenken nach oben			Cursor up			Mausrad drehen am oberen/unteren Bildrand
-Schwenken nach unten		Cursor down			Mausrad drehen am oberen/unteren Bildrand
+"move forward": 			Num+ (or SPACE) / Turn mouse wheel forward while mouse is in the center
+"move backward": 			Num- (or R) / Turn mouse wheel backward while mouse is in the center
 
-Drehen um das Objekt in der Mitte
-Drehen nach rechts			Shift+Cursor right
-Drehen nach links			Shift+Cursor left
-Drehen nach oben			Shift+Cursor up
-Drehen nach unten			Shift+Cursor down
-Drehen Richtung Mauszeiger 						Mittlere Mausttaste gemäß Position beim Klicken	
+Rotate camera (but never roll it around its local x axis)
+Yaw right: 					Cursor right / Turn mouse wheel while mouse is near left or right edge
+Yaw left: 					Cursor left / Turn mouse wheel while mouse is near left or right edge
+Pitch up: 					Cursor up / Turn mouse wheel while mouse is near top or bottom edge
+Pitch down: 				Cursor down / Turn mouse wheel while mouse is near top or bottom edge
 
-Verschieben der Kamera auf gleicher Höhe
-Verschieben nach rechts		Strg+Cursor right
-Verschieben nach links		Strg+Cursor left
-Verschieben nach vorne		Strg+Cursor up
-Verschieben nach hinten		Strg+Cursor down
-Verschieben Richtung Mauszeiger 				Rechte Mausttaste Position gemäß relativ zur Bildmitte	
+Move with constant height on a circle around the object at center keeping it in focus
+Move right and adjust yaw: 	Shift+Cursor right
+Move left and adjust yaw: 	Shift+Cursor left
 
-Standpunkt der Kamera 
-Höher						Page up
-Niedriger					Page down
-Schnell Höher				Shift+Page up
-Schnell Niedriger			Shift+Page down
+Move up or down keeping the object in the center in focus
+Move up and adjust pitch: 	Shift+Cursor up
+Move down and adjust pitch: Shift+Cursor down
+
+Combine both movements (circle around object + up/down keeingg the object in focus ): Drag with middle mouse button pressed
+
+Move camera in a 2D plane on current height
+Move camera right: 			Strg+Cursor right
+Move camera left: 			Strg+Cursor left
+Move camera forward: 		Strg+Cursor up
+Move camera backward: 		Strg+Cursor down
+Move camera towards mouse: 	Right mouse button
+
+Change height of camera keeping orientation
+Raise camera: 				Page up
+Lower camera: 				Page down
+Raise camera fast: 			Shift+Page up
+Lower camera fast: 			Shift+Page down
 
 ?Kamera auf Ursprung zentrieren	Pos1
 ?							Ende
@@ -4888,8 +4986,7 @@ https://doc.x3dom.org/author/runtime.html
 	PrimitiveQuality="High"
 	useGeoCache="true"
 	runtimeEnabled="true"
-	
-	width="100%"><!-- width="600px" height="600px" height="100%" -->
+	>
 	<head>
 		<meta name="title" content="EEP Gleisplan"/>
 		<meta name="filename" content="EEP_Gleisplan.x3d" />
@@ -4960,6 +5057,15 @@ https://doc.x3dom.org/author/runtime.html
 				diffuseColor="#842121" 
 				emissiveColor="#100404"
 				></Material>	<!-- brown 		"#A52A2A" -->
+			<Material id="MaterialHighlight" 		DEF="MaterialHighlight"
+				diffuseColor="1.0 0.5 0.0" 
+				emissiveColor="0.5 0.25 0.0"
+				></Material>	<!-- brown 		"#A52A2A" -->
+			<Material 								DEF="MaterialGrid"
+				diffuseColor="0.0 0.0 0.5"
+				specularColor="0.0 0.0 0.0"
+				emissiveColor="0.3 0.3 0.3"
+				></Material>	
 		</Group>
 		
 		<!--
@@ -4976,7 +5082,6 @@ https://doc.x3dom.org/author/runtime.html
 			centerOfRotation="0 0 0" 
 			fieldOfView="0.37" 
 			></Viewpoint>
-
 
 		<!-- Transform: The order of operation is
 			apply the center offset,
@@ -5129,19 +5234,20 @@ https://doc.x3dom.org/author/runtime.html
 		<Group id="x3d_Grid" class="general">
 			<Shape isPickable="false">
 				<Appearance sortKey="-1">
-					<Material DEF="gridMaterial" diffuseColor="0.0 0.0 0.5" specularColor="0.0 0.0 0.0" emissiveColor="0.3 0.3 0.3"></Material>
+					<Material USE="MaterialGrid"></Material>
 				</Appearance>
 				<Plane id="x3d_Plane" solid="false" size="2000 2000" center="0 0 0" subdivision="20 20" primType='"LINES"'></Plane>
 			</Shape>
 			<Shape isPickable="false">
 				<Appearance sortKey="-1">
-					<Material USE="gridMaterial"></Material>
+					<Material USE="MaterialGrid"></Material>
 				</Appearance>
 				<IndexedLineSet coordIndex="0 1 2 3 0 -1" colorPerVertex="false" lit="false">
 					<Coordinate id="x3d_PlaneBorder" point="-1000.0 -1000.0 0.0 , -1000.0 1000.0 0.0 , 1000.0 1000.0 0.0, 1000.0 -1000.0 0.0"></Coordinate>
 				</IndexedLineSet>
 			</Shape>		
 		</Group>
+
 	</scene>
 </x3d>
 
@@ -5329,9 +5435,19 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		ev.preventDefault()
 		// Toogle between svg and x3d
 		document.getElementById("svg").classList.toggle("hidden");
-		document.getElementById("x3d").classList.toggle("hidden");
-		// Workaround for x3d (the x3d element tries to use the full height of the screen): Set flex-direction: row
-		if (!document.getElementById("x3d").classList.contains("hidden")) {
+		const x3dIsHidden = document.getElementById("x3d").classList.toggle("hidden");
+		
+		const controls = document.getElementById("controls");
+		if (x3dIsHidden) {
+			// svg is active
+			controls.querySelectorAll(".svgControl").forEach(element => element.classList.remove("hidden"));
+			controls.querySelectorAll(".x3dControl").forEach(element => element.classList.add("hidden"));
+		} else {
+			// x3d is active
+			controls.querySelectorAll(".svgControl").forEach(element => element.classList.add("hidden"));
+			controls.querySelectorAll(".x3dControl").forEach(element => element.classList.remove("hidden"));
+
+			// Workaround for x3d (the x3d element tries to use the full height of the screen): Set flex-direction: row
 			document.getElementById("main").classList.remove("column");
 			document.getElementById("main").classList.add("row");
 		}
@@ -5344,16 +5460,20 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		// Toogle between flex-direction: column and flex-direction: row
 		document.getElementById("main").classList.toggle("column");
 		document.getElementById("main").classList.toggle("row");
-		// Swapping changes the size of the svg element
-		oldSizes = panZoom.getSizes();
-		panZoom.resize();
-		newSizes = panZoom.getSizes();
-		// The top left point keeps its position. We need to pan to keep the center being centered.
-		panZoom.panBy({
-			x: (newSizes.width - oldSizes.width) 	/ 2 ,
-			y: (newSizes.height - oldSizes.height)	/ 2 ,
-		});
-		showArea(panZoom);
+		
+		// If the svg element is hidden, then we would get zero height and width after panZoom.resize();
+		if (!document.getElementById("svg").classList.contains("hidden")) {
+			// Swapping changes the size of the svg element
+			const oldSizes = panZoom.getSizes();
+			panZoom.resize();
+			const newSizes = panZoom.getSizes();
+			// The top left point keeps its position. We need to pan to keep the center being centered.
+			panZoom.panBy({
+				x: (newSizes.width - oldSizes.width) 	/ 2 ,
+				y: (newSizes.height - oldSizes.height)	/ 2 ,
+			});
+			showArea(panZoom);
+		}
 	});
 
 	// Button Zoom-In
@@ -5396,7 +5516,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		
 		// x3d
 		// Activate dynamic camera
-		document.getElementById("x3d_dynamicCamera").setAttribute("set_bind", "true");
+		//document.getElementById("x3d_dynamicCamera").setAttribute("set_bind", "true");
 		// Zooms so that all objects are visible. Keep current orientation of camera.
 		document.getElementById("x3d").runtime.fitAll();		
 	});
@@ -5869,7 +5989,7 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 		// Issue: Name is not an unique key
 		showKameraInfo(KameraID);
 
-	} else if (event.target.parentElement.classList !== "general") {			// Gleis (hopefully)
+	} else if (!event.target.parentElement.classList.contains("general")) {	// Gleis (hopefully)
 		const GleisCode 		= event.target.parentElement.id;
 		const GleisTextArray 	= GleisCode.substring(1).split("-");
 		const GleissystemID 	= GleisTextArray[0];
