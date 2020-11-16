@@ -9,28 +9,28 @@
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,Gleisplan" />
 <meta name="language" content="de" />
-<link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
+<!-- <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon"> -->
+<link rel="icon" href="images/favicon.ico" type="image/x-icon">
 
 <script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
 
 <!--*** We need to load x3dom early ***-->
+<!-- <script type="text/javascript" src="https://x3dom.org/download/dev/x3dom.js"></script> -->
 <script type="text/javascript" src="node_modules/x3dom/x3dom.js"></script>
 <script type="text/javascript" src="modules/x3dom/x3dom_extensions.js"></script>
 
 <script type="text/javascript"> // Experiment to load scripts dynamically either from relative path or from fixed URL - not used yet
 "use strict";
-<!-- (this comment hides the scipt tag in the comment)
 /* Source: https://humanwhocodes.com/blog/2009/07/28/the-best-way-to-load-external-javascript/
 Usage:
-<script type="text/javascript">
+<s.cript type="text/javascript">
 loadScript("http://your.cdn.com/script.js", function(){
     //initialization code
 });
-</script>
+</s.cript>
 */
-//-->
 function loadScript(url, callback){
-	const script = document.createElement("script")
+	const script = document.createElement("script");
 	script.type = "text/javascript";
 	script.onload = function(){	// IE would require different calls
 		callback();
@@ -1974,13 +1974,13 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		}
 
 		// Group node for Gleis
-		const classList = Gleisart[clsid]
-						+ " " + CurveType
-						+ " " + `stil-${stil}`
-						+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
-						+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
-						// Ein Kamerafahrweg ist immer unsichtbar
-						+ " " + (stil == 100000 || (unsichtbar.includes(parseInt(stil)) && GleisData != 16) ? "unsichtbar" : "sichtbar");
+		const classList = Gleisart[clsid] 
+			+ " " + CurveType
+			+ " " + `stil-${stil}`
+			+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
+			+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
+			// Ein Kamerafahrweg ist immer unsichtbar
+			+ " " + (stil == 100000 || (unsichtbar.includes(parseInt(stil)) && GleisData != 16) ? "unsichtbar" : "sichtbar");
 		const svgGleisGroup = svgAppend(svgGleissystemGroup, {
 			svg_tag	: `g`,
 			id		: `G${GleissystemID}-${GleisID}`,
@@ -1988,8 +1988,8 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		});
 
 		const x3d_GleisGroup = x3d_createGroup(x3d_GleissystemGroup, {
-			Group	: `G${GleissystemID}-${GleisID}`,
-			"class"	: classList,
+			Group: `G${GleissystemID}-${GleisID}`,
+			"class": classList,
 		});
 
 		// Calculate end point and create svg curve
@@ -2063,14 +2063,14 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				d 					: `M 0 0 H ${Laenge}`,
 				transform 			: matrixToTransform(mMatrix)
 			});
-			
+
 			x3d_createTrack(x3d_GleisGroup, {
-				GleissystemID		: GleissystemID,
-				type				: `line`,
-				length				: Laenge,
-				startPoint			: mMatrix,
+				GleissystemID: GleissystemID,
+				type: `line`,
+				length: Laenge,
+				startPoint: mMatrix,
 			});
-			
+
 		} else { // Show arc. Kruemmung != 0
 
 			/* SVG: Gebogenes Gleis
@@ -2113,13 +2113,13 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 				d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
 				transform 			: matrixToTransform(mMatrix)
 			});
-			
+
 			x3d_createTrack(x3d_GleisGroup, {
-				GleissystemID		: GleissystemID,
-				type				: `arc`,
-				radius				: Radius,
-				angle				: Winkel,
-				startPoint			: mMatrix,
+				GleissystemID: GleissystemID,
+				type: `arc`,
+				radius: Radius,
+				angle: Winkel,
+				startPoint: mMatrix,
 			});
 
 		}
@@ -2582,7 +2582,7 @@ function createGraphicsFinalize(SVGfragment, x3d_fragment) {
 	createSVGforGleisobjekte(SVGfragmentBackground);
 	createSVGforRahmen(SVGfragmentBackground);
 
-	x3d_createGrid(x3d_fragment);
+	x3d_createGrid(x3d_fragment);											 
 
 	createGraphicsforKameras(SVGfragment, x3d_fragment);
 
@@ -2792,7 +2792,7 @@ function createGraphicsforKameras(SVGfragment, x3d_fragment) {
 		Objektentfernung:			100.0	DOFSubDist
 */
 	let svgKamerasGroup;
-	let x3d_KamerasGroup;
+	let x3d_KamerasGroup;									 
 
 	const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
 	const Kameras = Kamerasammlung.getElementsByTagName("Kammera");
@@ -2829,7 +2829,7 @@ function createGraphicsforKameras(SVGfragment, x3d_fragment) {
 		/*
 		<Kammera name="Anlage" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="11.96" FOV="0.6981317" TakeSwitch="0">
 		*/
-		Kamera.Dynamic 				= Kamera.getAttribute("Dynamic");
+		Kamera.Dynamic 	= Kamera.getAttribute("Dynamic");
 
 		let mMatrix;
 		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
@@ -2865,32 +2865,32 @@ function createGraphicsforKameras(SVGfragment, x3d_fragment) {
 		Kamera.mPos = mMatrix;
 
 		// Process Kamera
-		if (!svgKamerasGroup) {		// First Kamera
+		if (!svgKamerasGroup) { // First Kamera
 			// Show checkbox
 			document.getElementById("CheckboxKamera").classList.remove("hidden");
 		}
 		svgKamerasGroup = createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera);
-		
+
 		x3d_KamerasGroup = x3d_createCamera(x3d_fragment, x3d_KamerasGroup, Kamera);
 	}
 }
 
 function createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera) {
 
-	const Laenge = 40;	// arbitrary length
+	const Laenge = 40; // arbitrary length
 
-	if (!svgKamerasGroup) {		// First Kamera
+	if (!svgKamerasGroup) { // First Kamera
 		// Create svg group node
 		svgKamerasGroup = svgAppend(SVGfragment, {
-			svg_tag	: `g`,
-			id		: `Kamera`,
-			"class"	: `Kamera`,
+			svg_tag: `g`,
+			id: `Kamera`,
+			"class": `Kamera`,
 		});
 	}
-	
+
 	const svgKameraGroup = svgAppend(svgKamerasGroup, {
-		svg_tag	: `g`,
-		id		: Kamera.KameraID,
+		svg_tag: `g`,
+		id: Kamera.KameraID,
 	});
 
 	// Show circle at Point
@@ -2910,26 +2910,26 @@ function createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera) {
 	//Show Name
 	svgAppend(svgKameraGroup, {
 		svg_tag			: `text`,
-		text			: Kamera.Name,	// 📷 \u1F4F7
+		text			: Kamera.Name,			// 📷 \u1F4F7
 		dx				: `2`, 			// Shift text right
 		dy				: `-0.3em`, 	// Shift text up
 		//dy			: `1em`, 		// Shift text below the track
-		transform 		: matrixToTransform(Kamera.mPos)
-						  + ` scale(1 -1)`,
+		transform: matrixToTransform(Kamera.mPos)
+			+ ` scale(1 -1)`,																   
 	});
 
 	// show Hoehe in the middle below the track (left-adjusted)
 	svgAppend(svgKameraGroup, {
 		svg_tag			: `text`,
-		text			: `[${Kamera.mPos[14].toFixed(0)}m]`,	// PosZ
+		text			: `[${Kamera.mPos[14].toFixed(0)}m]`, // PosZ
 		dx				: `2`, 		// Shift text right a little bit
 		dy				: `1em`, 		// Shift text below the track
 		"class"			: `Hoehe`,
-		transform 		: matrixToTransform(Kamera.mPos)
-						  + ` scale(1 -1)`,
-	});
-	
-	return svgKamerasGroup;
+		transform: matrixToTransform(Kamera.mPos)
+			+ ` scale(1 -1)`,
+	});				   
+
+	return svgKamerasGroup;									   
 }
 
 function createSVGforRahmen(SVGfragment) {
@@ -2968,7 +2968,7 @@ function createSVGforRahmen(SVGfragment) {
 	// Group for additional general elements
 	let svg_general_group = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
-		"class"	: `general`,
+		"class": `general`,
 	});
 
 	// Box zur Anzeige der Groesse der Anlage
@@ -3005,23 +3005,23 @@ function createSVGforRahmen(SVGfragment) {
 function x3d_createGrid(x3d_fragment) {
 	const minX = 100 * Math.floor(global.usedArea.min.x / 100);
 	const minY = 100 * Math.floor(global.usedArea.min.y / 100);
-	const maxX = 100 * Math.ceil( global.usedArea.max.x / 100);
-	const maxY = 100 * Math.ceil( global.usedArea.max.y / 100);
+	const maxX = 100 * Math.ceil(global.usedArea.max.x / 100);
+	const maxY = 100 * Math.ceil(global.usedArea.max.y / 100);
 	const sizeX = Math.abs(maxX - minX);
 	const sizeY = Math.abs(maxY - minY);
-	
+
 	// <Plane id="x3d_Plane" solid="false" size="2000 2000" center="0 0 0" subdivision="20 20" primType='"LINES"'>
 	const Plane = document.getElementById("x3d_Plane");
 	Plane.setAttribute("size", [sizeX, sizeY]);
-	Plane.setAttribute("center", [minX + sizeX/2, minY + sizeY/2, 0.0]);
-	Plane.setAttribute("subdivision", [sizeX/100, sizeY/100]);
+	Plane.setAttribute("center", [minX + sizeX / 2, minY + sizeY / 2, 0.0]);
+	Plane.setAttribute("subdivision", [sizeX / 100, sizeY / 100]);
 
 	// <Coordinate id="x3d_PlaneBorder point="-1000.0 -1000.0 0.0 , -1000.0 1000.0 0.0 , 1000.0 1000.0 0.0, 1000.0 -1000.0 0.0">
 	const Coordinate = document.getElementById("x3d_PlaneBorder");
 	Coordinate.setAttribute("point",
 		`${minX} ${minY} 0, ${minX} ${maxY} 0, ${maxX} ${maxY} 0, ${maxX} ${minY} 0`
 	);
-	
+
 }
 
 // Generate matrix command for svg
@@ -3255,7 +3255,7 @@ function svgAppend(svg_node, obj) {
 	https://oreillymedia.github.io/Using_SVG/extras/ch11-3d.html
 	https://css-tricks.com/things-watch-working-css-3d/
 	
-	transform-style: preserve-3d:
+	transform-style: preserve-3d: 
 	translate3d(tx, ty, tz): translate it by the given lengths along each axis
 	translateZ(tz): similar to the new translateX and translateY functions, this shorthand allows you to specify a translation along the z-axis only
 	scale3d(sx,sy,sz): change the scale in all dimensions by the specified factors
@@ -3294,8 +3294,8 @@ function x3d_initialization(x3d_node) {
 	const t0 = Date.now();
 
 	const WorldInfo = document.getElementById("WorldInfo");
-	WorldInfo.setAttribute("title", "EEP Gleisplan" );
-	WorldInfo.setAttribute("info", ["EEP Gleisplan", "X3D"] );
+	WorldInfo.setAttribute("title", "EEP Gleisplan");
+	WorldInfo.setAttribute("info", ["EEP Gleisplan", "X3D"]);
 
 	global.timestamp.x3dCreate = Date.now() - t0;
 }
@@ -3305,9 +3305,9 @@ function x3d_createGroup(x3d_node, obj) {
 
 	const element = document.createElement("Group");
 	//element.addEventListener("click", x3d_handler); // not possible yet because addEventListener only works after the X3DOM engine has been initialized
-	for( const attribute in obj ) {
+	for (const attribute in obj) {
 		if (attribute === "Group") {
-			element.setAttribute("id", "x3d_"+obj.Group);
+			element.setAttribute("id", "x3d_" + obj.Group);
 			//element.setAttribute("DEF", obj.Group);
 		} else {
 			element.setAttribute(attribute, obj[attribute]);
@@ -3327,11 +3327,11 @@ function x3d_createTrack(x3d_node, obj) {
 	const a90 = Math.PI / 2; //1.570796;
 
 	// Create tags used for all shapes
-	const MatrixTransform 	= document.createElement("MatrixTransform");
-	const Transform 		= document.createElement("Transform");
-	const Shape 			= document.createElement("Shape");
-	const Appearance 		= document.createElement("Appearance");
-	const Material 			= document.createElement("Material");
+	const MatrixTransform = document.createElement("MatrixTransform");
+	const Transform = document.createElement("Transform");
+	const Shape = document.createElement("Shape");
+	const Appearance = document.createElement("Appearance");
+	const Material = document.createElement("Material");
 
 	// Connect tags
 	MatrixTransform.appendChild(Transform);
@@ -3340,14 +3340,29 @@ function x3d_createTrack(x3d_node, obj) {
 	Shape.appendChild(Appearance);
 	Appearance.appendChild(Material);
 
-	// Set start point
-	MatrixTransform.setAttribute("matrix", x3dom.fields.SFMatrix4f.fromArray(obj.startPoint));
+	// Set start point (convert from orientation +Z up of EEP to +Y up of x3dom)
+	let m = x3dom.fields.SFMatrix4f.fromArray(obj.startPoint);
+	/*
+	// swap y and z axis
+	const swapYZ = new x3dom.fields.SFMatrix4f(
+		1,  0,  0,  0, 
+		0,  0,  1,  0, 
+		0,  1,  0,  0,  
+		0,  0,  0,  1);
+	*/
+	// rotate around x axis by -90°
+	const rotateX90 = new x3dom.fields.SFMatrix4f(
+		1, 0, 0, 0,
+		0, 0, +1, 0,
+		0, -1, 0, 0,
+		0, 0, 0, 1);
+	MatrixTransform.setAttribute("matrix", rotateX90.mult(m));
 
 	// Use material
-	Material.setAttribute("USE", "Material"+GleissystemCode[obj.GleissystemID] );
-	
+	Material.setAttribute("USE", "Material" + GleissystemCode[obj.GleissystemID]);
+
 	// Define transform and shape depending on type
-	if (obj.type === "line") {	// specific obj parameters: length
+	if (obj.type === "line") { // specific obj parameters: length
 		/*
 		<MatrixTransform matrix="1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1">
 		<Transform rotation="0 0 1   90°">
@@ -3364,13 +3379,13 @@ function x3d_createTrack(x3d_node, obj) {
 
 		//Transform.setAttribute("translation", new x3dom.fields.SFVec3f(obj.length/2, 0, 0)); // Shift by half of length
 		//Transform.setAttribute("translation", x3dom.fields.SFVec3f.fromArray([obj.length/2, 0, 0]));
-		Transform.setAttribute("translation", [obj.length/2, 0, 0]); // Shift by half of length
-		
-		const Cylinder 	= document.createElement("Cylinder");
-		Cylinder.setAttribute("radius", size );
-		Cylinder.setAttribute("height", obj.length );
+		Transform.setAttribute("translation", [obj.length / 2, 0, 0]); // Shift by half of length
+
+		const Cylinder = document.createElement("Cylinder");
+		Cylinder.setAttribute("radius", size);
+		Cylinder.setAttribute("height", obj.length);
 		Shape.appendChild(Cylinder);
-		
+
 		// A cone indicates the direction of the track, too
 		/*
 		const Cone 		= document.createElement("Cone");
@@ -3379,10 +3394,10 @@ function x3d_createTrack(x3d_node, obj) {
 		Cone.setAttribute("height", 		obj.length	);
 		Shape.appendChild(Cone);
 		*/
-		
+
 		Transform.appendChild(Shape);
-	
-	} else if (obj.type === "arc") {	// specific obj parameters: radius, angle
+
+	} else if (obj.type === "arc") { // specific obj parameters: radius, angle
 		/*
 		<MatrixTransform matrix="1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1">
 		<Transform rotation="1 0 0   90°">
@@ -3400,32 +3415,32 @@ function x3d_createTrack(x3d_node, obj) {
 
 		Transform.setAttribute("rotation", [1, 0, 0, a90]); // rotateX +90°
 
-		const Transform2 	= document.createElement("Transform");
+		const Transform2 = document.createElement("Transform");
 		Transform2.setAttribute("rotation", [0, 1, 0, -a90]); // rotateY -90°
 		//Transform2.setAttribute("translation", new x3dom.fields.SFVec3f(0, 0, -obj.radius)); // Shift by radius
 		Transform2.setAttribute("translation", [0, 0, -obj.radius]); // Shift by radius
-		if (obj.angle < 0.0)  {
+		if (obj.angle < 0.0) {
 			Transform2.setAttribute("scale", "1 1 -1"); // flip to set clockwise orientation of the torus
-  		}
+		}
 
-		const subdivision = Math.max(24, Math.floor(Math.abs(obj.angle*120)));
-		const Torus 	= document.createElement("Torus");
-		Torus.setAttribute("innerRadius", obj.radius - size );
-		Torus.setAttribute("outerRadius", obj.radius + size );
-		Torus.setAttribute("insideOutsideRadius", true );
-		Torus.setAttribute("angle", Math.abs(obj.angle) );
-		Torus.setAttribute("subdivision", [subdivision, subdivision] );
+		const subdivision = Math.max(24, Math.floor(Math.abs(obj.angle * 120)));
+		const Torus = document.createElement("Torus");
+		Torus.setAttribute("innerRadius", obj.radius - size);
+		Torus.setAttribute("outerRadius", obj.radius + size);
+		Torus.setAttribute("insideOutsideRadius", true);
+		Torus.setAttribute("angle", Math.abs(obj.angle));
+		Torus.setAttribute("subdivision", [subdivision, subdivision]);
 		Shape.appendChild(Torus);
-		
+
 		Transform2.appendChild(Shape);
 		Transform.appendChild(Transform2);
-	
-	} else if (obj.type === "cubic") {	// specific obj parameters: bezier points
+
+	} else if (obj.type === "cubic") { // specific obj parameters: bezier points
 		// https://www.web3d.org/x3d/content/examples/Basic/NURBS/NurbsCurveExampleIndex.html 
 		// http://jsbin.com/volusukava/edit?html,output
-		
+
 	}
-	
+
 	// Results
 	const element = MatrixTransform;
 	x3d_node.appendChild(element);
@@ -3453,7 +3468,7 @@ function x3d_createCamera(x3d_node, x3d_KamerasGroup, Kamera) {
 	<Vektor x="-0.1858733" y="0.1101244" z="0.9763635">Bin</Vektor>
 	</Dreibein>
 	</Kammera>		
-	
+
 	Neigung X 	0.00°
 	Neigung Y	13.28°
 	Neigung Z	149.35°
@@ -3467,15 +3482,15 @@ function x3d_createCamera(x3d_node, x3d_KamerasGroup, Kamera) {
 	.. vor dem Zielobjekt	9.65
 	.. hinter dem Zielobjekt11.96
 	.. Objektentfernung	100.0
-	
+
 	Activate specific Viewpoint:
 	<button onclick="document.getElementById('Anlage').setAttribute('set_bind','true');">Kamera: Anlage</button>
 	*/
-	
-	const description = "📷 "+ Kamera.KameraID + " " + Kamera.Name;
 
-	const fieldOfView = 0.37; 	// Die EEP-Standardbrennweite 100mm scheint gut zu fieldOfView="0.37" zu passen.
-	const a90 = Math.PI / 2; 	// 1.570796;
+	const description = "📷 " + Kamera.KameraID + " " + Kamera.Name;
+
+	const fieldOfView = 0.37; // Die EEP-Standardbrennweite 100mm scheint gut zu fieldOfView="0.37" zu passen.
+	const a90 = Math.PI / 2; // 1.570796;
 
 	/* The position matrix contains the raw data to calculate the values for tags position and orientation.
 	However, it's easier to use MatrixTransform instead: 
@@ -3494,20 +3509,20 @@ function x3d_createCamera(x3d_node, x3d_KamerasGroup, Kamera) {
 	</MatrixTransform>
 	*/
 
-	if (!x3d_KamerasGroup) {		// First Kamera
+	if (!x3d_KamerasGroup) { // First Kamera
 		// Create x3d group node
 		x3d_KamerasGroup = x3d_createGroup(x3d_node, {
-			Group	: `Kamera`,
-			id		: `x3d_Cameras`,		
-			render	: `false`,		
+			Group: `Kamera`,
+			id: `x3d_Cameras`,
+			render: `false`,
 		});
 	}
-	
+
 	// Create tags 
-	const MatrixTransform 	= document.createElement("MatrixTransform");
-	const RotateZ 			= document.createElement("Transform");
-	const RotateX 			= document.createElement("Transform");
-	const Viewpoint 		= document.createElement("Viewpoint");
+	const MatrixTransform = document.createElement("MatrixTransform");
+	const RotateZ = document.createElement("Transform");
+	const RotateX = document.createElement("Transform");
+	const Viewpoint = document.createElement("Viewpoint");
 
 	// Connect tags
 	MatrixTransform.appendChild(RotateZ);
@@ -3518,14 +3533,22 @@ function x3d_createCamera(x3d_node, x3d_KamerasGroup, Kamera) {
 	//MatrixTransform.setAttribute("DEF", "Camera-" + Kamera.KameraID);	// DEF is used within x3d
 
 	// Set position
-	MatrixTransform.setAttribute("matrix", x3dom.fields.SFMatrix4f.fromArray(Kamera.mPos));
-	
+	// Set start point (convert from orientation +Z up of EEP to +Y up of x3dom)
+	let m = x3dom.fields.SFMatrix4f.fromArray(Kamera.mPos);
+	// rotate around x axis by -90°
+	const rotateX90 = new x3dom.fields.SFMatrix4f(
+		1, 0, 0, 0,
+		0, 0, +1, 0,
+		0, -1, 0, 0,
+		0, 0, 0, 1);
+	MatrixTransform.setAttribute("matrix", rotateX90.mult(m));
+
 	// Set orientation
 	RotateZ.setAttribute("rotation", [0, 0, 1, -a90]); // rotateZ -90°
-	RotateX.setAttribute("rotation", [1, 0, 0,  a90]); // rotateX +90°
+	RotateX.setAttribute("rotation", [1, 0, 0, a90]); // rotateX +90°
 
 	// Set camera
-	Viewpoint.setAttribute("id", "Camera-" + Kamera.KameraID);	// id is used by Javascript
+	Viewpoint.setAttribute("id", "Camera-" + Kamera.KameraID); // id is used by Javascript
 	Viewpoint.setAttribute("description", description);
 	Viewpoint.setAttribute("position", "0 0 0");
 	Viewpoint.setAttribute("orientation", [1, 0, 0, 0]);
@@ -3541,40 +3564,40 @@ function x3d_createCamera(x3d_node, x3d_KamerasGroup, Kamera) {
 
 function x3d_finalization(x3d_node) {
 	const t0 = Date.now();
-	
+
 	/*** x3d runtime https://doc.x3dom.org/author/runtime.html ***/
 
 	const x3d = document.getElementById("x3d");
 
 	// Zooms so that all objects are visible.
-	// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ (default)
-    x3d.runtime.showAll("negZ");		
+	// axis		the axis as string, one of: posX, negX, posY (view up), negY (view down), posZ, negZ (default)
+	x3d.runtime.showAll("negY");
 	//x3d.runtime.fitAll();
 
 	// Show debug window
-    //x3d.runtime.debug(false); // override part of tag x3dom	
-	
+	//x3d.runtime.debug(false); // override part of tag x3dom	
+
 	// Swap direction of the mouse wheel to match the direction of zooming in EEP
 	// Increase speed of pan and zoom
-    //x3d.runtime.speed(-4); // override part of tag NavigationInfo
+	//x3d.runtime.speed(-4); // override part of tag NavigationInfo
 
 	// Zooms so that a given object is fully visible.
 	// obj		the scene-graph element on which to focus
 	// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ
 	//x3d.runtime.showObject (obj, axis);
 
-/* does not work
-	// Button Zoom-In
-	document.getElementById("zoom-in").addEventListener("click", function(ev) {
-		const x3d = document.getElementById("x3d");
-		const viewpoint = x3d.viewpoint.moveFwd();
-	});
-	// Button Zoom-Out
-	document.getElementById("zoom-out").addEventListener("click", function(ev) {
-		const x3d = document.getElementById("x3d");
-		const viewpoint = x3d.viewpoint.moveBwd();
-	});
-*/
+	/* does not work
+		// Button Zoom-In
+		document.getElementById("zoom-in").addEventListener("click", function(ev) {
+			const x3d = document.getElementById("x3d");
+			const viewpoint = x3d.viewpoint.moveFwd();
+		});
+		// Button Zoom-Out
+		document.getElementById("zoom-out").addEventListener("click", function(ev) {
+			const x3d = document.getElementById("x3d");
+			const viewpoint = x3d.viewpoint.moveBwd();
+		});
+	*/
 
 	// Add event listener to all shapes (it is not neccessary to assign them to the shapes individually)
 	document.getElementById("sutrackpX3D").addEventListener("click", clickOnShape);
@@ -3583,92 +3606,95 @@ function x3d_finalization(x3d_node) {
 
 	global.timestamp.x3dCreate = global.timestamp.x3dCreate + Date.now() - t0;
 
-function clickOnShape(event) {
-	/*
-	event.type								"click"	
-	event.button 							1
-	event.target.nodeName					"SHAPE"
-	event.target.tagName					"SHAPE"
-	event.hitObject.nodeName				"SHAPE"
-	event.hitPnt							[x,y,z]
-	event.layerX 							x
-	event.layerY							y
-	event.normalX							x
-	event.normalY							y
-	event.normalZ							z
-	event.worldX							x
-	event.worldY							y
-	event.worldZ							z
-	event.viewarea...
-	event.target.parentNode...parentNode.tagName	"GROUP"
-	event.target.parentNode...parentNode.id			"x3d_G1-7"
-	*/
-	
-	event.cancelBubble = true;
-	event.stopPropagation();
+	function clickOnShape(event) {
+		/*
+		event.type								"click"	
+		event.button 							1
+		event.target.nodeName					"SHAPE"
+		event.target.tagName					"SHAPE"
+		event.hitObject.nodeName				"SHAPE"
+		event.hitPnt							[x,y,z]
+		event.layerX 							x
+		event.layerY							y
+		event.normalX							x
+		event.normalY							y
+		event.normalZ							z
+		event.worldX							x
+		event.worldY							y
+		event.worldZ							z
+		event.viewarea...
+		event.target.parentNode...parentNode.tagName	"GROUP"
+		event.target.parentNode...parentNode.id			"x3d_G1-7"
+		*/
 
-	// Find group node having an id 	
-	let element = event.target;
-	while (element && element.tagName != "GROUP" && element.id === "") {
-		element = element.parentNode;
+		event.cancelBubble = true;
+		event.stopPropagation();
+
+		// Find group node having an id 	
+		let element = event.target;
+		while (element && element.tagName != "GROUP" && element.id === "") {
+			element = element.parentNode;
+		}
+
+		// Show details popup
+		if (element.id.substr(0, 5) === "x3d_G") { // Gleis
+			const GleisCode = element.id.substr(5);
+			const GleisTextArray = GleisCode.split("-");
+			const GleissystemID = GleisTextArray[0];
+			const GleisID = GleisTextArray[1];
+			showGleisInfo(GleissystemID, GleisID);
+		}
+
+		// Place the coordinate system at the hit point
+		document.getElementById('x3d_Point').setAttribute('translation', event.hitPnt)
 	}
-	
-	// Show details popup
-	if (element.id.substr(0, 5)  === "x3d_G") {	// Gleis
-		const GleisCode 		= element.id.substr(5);
-		const GleisTextArray 	= GleisCode.split("-");
-		const GleissystemID 	= GleisTextArray[0];
-		const GleisID 			= GleisTextArray[1];
-		showGleisInfo(GleissystemID, GleisID);
-	}
 
-	// Place the coordinate system at the hit point
-	document.getElementById('x3d_Point').setAttribute('translation', event.hitPnt)
-}
+	function mouseoverOnShape(event) {
+		const element = event.target;
+		//element.highlight(true, "1 0.5 0");// this x3dom function whould touch all shapes of the track system because they USE the same material
+		//return;
 
-function mouseoverOnShape(event) {
-	const element = event.target;
-	//element.highlight(true, "1 0.5 0");// this x3dom function whould touch all shapes of the track system because they USE the same material
-	//return;
-
-	// Suggestion from campersau: change USE material (but this does not show any effect unless you remove and add the Material node)
-	const Appearance = element.getElementsByTagName("Appearance")[0];
-	Appearance.childNodes.forEach(node => {
-		if (node.nodeName === "MATERIAL") {
-			const Material = node;
-			if (!Material.getAttribute("originalUSE")) {
-				Material.setAttribute("originalUSE", Material.getAttribute("USE") );
+		/* Suggestion from campersau: change USE attribute of Material
+		Limitation: setAttribute("USE", ...) does not show any effect unless you remove and add the node from DOM.
+		A Switch note works only for Shape but not for Appearance or Material.
+		*/
+		const Appearance = element.getElementsByTagName("Appearance")[0];
+		Appearance.childNodes.forEach(node => {
+			if (node.nodeName === "MATERIAL") {
+				const Material = node;
+				if (!Material.getAttribute("originalUSE")) {
+					Material.setAttribute("originalUSE", Material.getAttribute("USE"));
+				}
+				Material.setAttribute("USE", "MaterialHighlight");
+				// remove Material from DOM
+				//Appearance.removeChild(Material); // not required / implicit done by appendChild()
+				// reassign Material to DOM
+				Appearance.appendChild(Material);
 			}
-			Material.setAttribute("USE", "MaterialHighlight" );
-			// remove Material from DOM
-			Appearance.removeChild(Material);
-			// reassign Material to DOM
-			Appearance.appendChild(Material);
-		}
-	})
+		})
 
-}
+	}
 
-function mouseoutOnShape(event) {
-	const element = event.target;
-	//element.highlight(false, "1 0.5 0");	// this x3dom function whould touch all shapes of the track system because they USE the same material
-	//return;
+	function mouseoutOnShape(event) {
+		const element = event.target;
+		//element.highlight(false, "1 0.5 0");	// this x3dom function whould touch all shapes of the track system because they USE the same material
+		//return;
 
-	// Suggestion from campersau: change USE material (but this does not show any effect unless you remove and add the Material node)
-	const Appearance = element.getElementsByTagName("Appearance")[0];
-	Appearance.childNodes.forEach(node => {
-		if (node.nodeName === "MATERIAL") {
-			const Material = node;
-			Material.setAttribute("USE", Material.getAttribute("originalUSE") );
-			//Material.removeAttribute("originalUSE");
-			// remove Material fronm DOM
-			Appearance.removeChild(Material);
-			// reassign Material to DOM
-			Appearance.appendChild(Material);
-		}
-	})
-  
-}
+		// Suggestion from campersau: change USE material (but this does not show any effect unless you remove and add the Material node)
+		const Appearance = element.getElementsByTagName("Appearance")[0];
+		Appearance.childNodes.forEach(node => {
+			if (node.nodeName === "MATERIAL") {
+				const Material = node;
+				Material.setAttribute("USE", Material.getAttribute("originalUSE"));
+				//Material.removeAttribute("originalUSE");
+				// remove Material fronm DOM
+				Appearance.removeChild(Material);
+				// reassign Material to DOM
+				Appearance.appendChild(Material);
+			}
+		})
+
+	}
 
 } // end x3d_finalization
 
@@ -3953,10 +3979,10 @@ input[type="number"]#jpgQuality {
 -->
 <br>
 <div class="svgControl">
-<span lang="de">Linie</span><span lang="en">Line</span><span lang="fr">Ligne</span>&nbsp;<input type="range" min="1" max="150" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
-<br>
-<span lang="de">Schrift</span><span lang="en">Font</span><span lang="fr">Écriture</span>&nbsp;<input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
-<div>
+	<span lang="de">Linie</span><span lang="en">Line</span><span lang="fr">Ligne</span>&nbsp;<input type="range" min="1" max="150" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
+	<br>
+	<span lang="de">Schrift</span><span lang="en">Font</span><span lang="fr">Écriture</span>&nbsp;<input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
+<div>				 
 </article>
 
 <article class="group no-select"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
@@ -4123,8 +4149,8 @@ API:
 				var(--range-color) 	0,				/* constant color starting with left slider */
 				var(--range-color) 	var(--high), 	/* constant color ending at right slider */
 				transparent 		0				/* no color right of sliders */
-			) no-repeat 0 45% / 100% 40%;			/* "0" "relative vertical position" / "relative width" "relative height=thickness" */
-		--range-color: hsl(190, 80%, 20%);			/* base color of bar hsl(hue, satuation, lightness)*/
+			) no-repeat 0 45% / 100% 20%;			/* "0" "relative vertical position" / "relative width" "relative height=thickness" */
+		--range-color: hsl(190, 80%, 40%);			/* base color of bar hsl(hue, satuation, lightness)*/
 	}
 
 		input[type="range"].multirange.ghost::-webkit-slider-runnable-track {
@@ -4281,7 +4307,7 @@ if (typeof module === "undefined") {
 </script>
 <!-- End: Two handled slider for min/max height -->
 
-<div class="svgControl">
+<div class="svgControl">											
 <span lang="de">Sichtbarer Bereich</span><span lang="en">Visible area</span><span lang="fr">Zone visible</span>: <span id="visibleArea"> </span><br>
 <span lang="de">Zentrum des Bereichs</span><span lang="en">Center of the area</span><span lang="fr">Centre de la zone</span>: <span id="centerPosition"> </span><br>
 <span lang="de">Cursor</span><span lang="en">Cursor</span><span lang="fr">Curseur</span>: <span id="cursorPosition"> </span>
@@ -4335,36 +4361,37 @@ if (typeof module === "undefined") {
 	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('.general', this.checked)"><span lang="de">Rahmen</span><span lang="en">Frame</span><span lang="fr">Cadre</span></label></div>
 </fieldset>
 
-<div class="x3dControl"><!-- ### translation missing -->
+<div class="x3dControl hidden">	<!-- ### translation missing -->
 	X3D:
 	<table>
 		<tr>
 			<td>Navigation Mode:</td>
 			<td align="right">
 				<select onchange="document.getElementById('x3d').runtime[value]();">
-					<option selected="selected"	value="examine">Examine</option>
-					<option value="turnTable">TurnTable</option>
-					<option value="lookAt">LookAt</option>
-					<option value="lookAround">LookAround</option>
-					<option value="fly">Fly</option>
-					<option value="freeFly">FreeFly</option>
-					<option value="game">Game</option>
-					<option value="helicopter">Helicopter</option>
-					<option value="walk">Walk</option>
+					<option selected="selected"	value="examine">Examine (e)</option>
+					<option value="turnTable">TurnTable (n)</option>
+					<option value="lookAt">LookAt (l)</option>
+					<option value="lookAround">LookAround (o)</option>
+					<option value="fly">Fly (f)</option>
+					<option value="freeFly">FreeFly (y)</option>
+					<option value="game">Game (g)</option>
+					<option value="helicopter">Helicopter (h)</option>
+					<option value="walk">Walk (w)</option>
 					<option value="noNav">None</option>
 				</select>
 			</td>
 		</tr>
-		<tr>
-			<td>Debug Display:</td>
-			<td align="right">
-				<label><input type="checkbox" onclick="document.getElementById('x3d').runtime.statistics(this.checked);"></input>
-				Stats</label>
-				<input type="checkbox" onclick="document.getElementById('x3d').runtime.debug();"></input>
-				<label>Log</label>
-			</td>
-		</tr>
 	</table>
+	<tr>
+		<td>Debug Display:</td>
+		<td align="right">
+			<label><input type="checkbox" onclick="document.getElementById('x3d').runtime.statistics(this.checked);"></input>Stats</label>
+			<label><input type="checkbox" onclick="document.getElementById('x3d').runtime.debug();"></input>Log</label>
+		</td>
+	</tr>
+	<p>Keys:<br> Camera: home: first, end: last, alt+pageUp: next, alt+pageDown: previos, r: reset<br> View: a: all, i: fit, u: upright, m: render mode<br> Mode: e: examine, f: fly, y: freefly, w: walk, h: helicopter, l: lookAt, o: lookaround,
+		g: game, n: turntable<br> Info: space: statistics, d: debug window, v: print view info<br> Navigation speed: +: increase, -: decrease
+	</p>
 </div>
 
 </article>
@@ -4770,23 +4797,29 @@ text.WeicheText {
 </svg>
 
 <!--*** x3dom ***-->
-<link rel="stylesheet" type="text/css" href="node_modules/x3dom/x3dom.css"/>
+<!--
+<link rel="stylesheet" type="text/css" href="https://x3dom.org/download/dev/x3dom.css"/>
+-->
+<link rel="stylesheet" type="text/css" href="node_modules/x3dom/x3dom.css" />
 <style>
 /* <![CDATA[ */
 /* Override styles from x3dom.css */
+
 .x3dom-canvas {
-    cursor:crosshair;
+	cursor: crosshair;
 }
+
 .x3dom-canvas-mousedown {
-  cursor:grabbing; /* it's neccessary to define it again */
+	cursor: grabbing;	/* it's neccessary to define it again */
 }
 /* Additional styles for x3dom */
+
 x3d {
-	width: 100%; 
+	width: 100%;
 	height: 100%;	/* does not work because the x3d element takes always full window height */
-	/* background: var(--Hintergrund-color); */ /* it's not possible to use CSS variables here */
-	border: 0; /* 1px dotted #3983ab; */
-	margin: 0; 
+	/* background: var(--Hintergrund-color); */	/* it's not possible to use CSS variables here */
+	border: 0;	/* 1px dotted #3983ab; */
+	margin: 0;
 	padding: 0;
 }
 /* ]]> */
@@ -4960,6 +4993,15 @@ https://doc.x3dom.org/tutorials/animationInteraction/navigation/index.html
 Runtime:
 https://doc.x3dom.org/author/runtime.html
 
+Get current camera:
+x3d.runtime.getActiveBindable("Viewpoint");
+
+Get current navigation type:
+x3d.runtime.navigationType();
+
+Get current speed:
+x3d.runtime.speed();
+
 <Transform rotation="0 1 0 yaw">
   <Transform rotation="0 0 1 pitch">
     <Transform rotation="1 0 0 roll">
@@ -4968,17 +5010,23 @@ https://doc.x3dom.org/author/runtime.html
   </Transform>
 </Transform>
 
+Calculate and convert rotation:
+https://github.com/gaschler/rotationconverter
+http://www.andre-gaschler.com/rotationconverter/
+
+Calculate colors:
+http://doc.instantreality.org/tools/color_calculator/
 
 -->
 <!-- https://doc.x3dom.org/author/configuration.html -->
-<x3d profile="Interactive"
+<x3d profile="Interactive" 
 	xmlns:xsd="http://www.w3.org/2001/XMLSchema-instance"
 	version="4.0"
 	xsd:noNamespaceSchemaLocation="http://www.web3d.org/specifications/x3d-4.0.xsd"
-	
+
 	id="x3d"
 	class="hidden"
-	
+
 	showLog="false"
 	showStat="false"
 	showProgress="true"
@@ -4987,111 +5035,104 @@ https://doc.x3dom.org/author/runtime.html
 	useGeoCache="true"
 	runtimeEnabled="true"
 	>
+
 	<head>
-		<meta name="title" content="EEP Gleisplan"/>
+		<meta name="title" content="EEP Gleisplan" />
 		<meta name="filename" content="EEP_Gleisplan.x3d" />
 		<meta name="generator" content="EEP Gleisplan" />
 	</head>
-	
+
 	<!-- 
 	https://doc.x3dom.org/author/Core/Scene.html 
 	<Scene bboxCenter='0,0,0' bboxSize='-1,-1,-1' children='X3DChildNode' doPickPass='true' metadata='X3DMetadataObject' pickMode='"idBuf"' render='true' shadowObjectIdMapping='""' ></Scene>
+	pickMode : box (no highlight), idBuf 0, idBuf24 3, idBufId 4, color 1, texCoord 2
 	-->
-	<scene id="sutrackpX3D"> <!-- hier werden dynamisch die weiteren x3d-Elemente der EEP Anlage angefügt -->
+	<scene id="sutrackpX3D" pickMode="idBuf">	<!-- hier werden dynamisch die weiteren x3d-Elemente der EEP Anlage angefügt -->
 
 		<!-- https://doc.x3dom.org/tutorials/models/inline/index.html 
 		CORS Error in case of local installation, no way to get around that  -->
 		<!-- <inline url="EEP_Gleisplan.x3d"></inline> -->
-		
+
 		<WorldInfo id="WorldInfo" title="EEP Gleisplan" info='"EEP Gleisplan" "X3D"'></WorldInfo>
 
-		<Background id="Background" transparency="0" skyColor="1 1 1" groundColor="1 1 1"></Background>  
-		<!-- http://create3000.de/users-guide/tutorials/adding-backgrounds/ -->
-		<!-- does not work well because of a 90° rotation 
-		<Background id="Background"
-			transparency="0.8" 
-			skyAngle='0.8,
-					  1.3,
-					  1.4,
-					  1.5708'
-			skyColor='0.21 0.31 0.59,
-					  0.33 0.45 0.7,
-					  0.57 0.66 0.85,
-					  0.6 0.73 0.89,
-					  0.7 0.83 0.98'
-			groundAngle='0.659972,
-						 1.2,
-						 1.39912,
-						 1.5708'
-			groundColor='0.105712 0.156051 0.297,
-						 0.187629 0.255857 0.398,
-						 0.33604 0.405546 0.542,
-						 0.3612 0.469145 0.602,
-						 0.39471 0.522059 0.669'
-			></background>
-			-->
+		<!--
+		<Background id="x3d_Background" 
+		transparency="0" 
+		skyColor='0.1 0.1 0.6, 0.2 0.2 0.9, 0.4 0.8 0.9' 	// blue
+		skyAngle='1.1, 1.5708' 
+		groundColor='0.2 0.4 0.2, 0.3 0.6 0.3, 0.4 0.8 0.4'	// green
+		groundAngle='1.1, 1.5708'
+		>
+		</Background> 
+		-->
+		<Background id="x3d_Background" transparency="0" skyColor='0.1 0.1 0.6, 0.2 0.2 0.9, 0.4 0.8 0.9' skyAngle='1.1, 1.5708' groundColor="1 1 1">
+		</Background>
 
 		<Group id="x3d_Material" render="false">
 			<!-- Default colors with factors 0.8 respective 0.1 -->
-			<Material id="MaterialEisenbahn" 		DEF="MaterialEisenbahn"
-				diffuseColor="#CC0000" 
-				emissiveColor="#190000"
-				></Material>		<!-- red 		"#FF0000"  -->
-			<Material id="MaterialStrassenbahn" 	DEF="MaterialStrassenbahn"
-				diffuseColor="#878787" 
-				emissiveColor="#101010"
-				></Material>	<!-- dark grey 	"#A9A9A9" -->
-			<Material id="MaterialStrasse" 			DEF="MaterialStrasse"
-				diffuseColor="#666666" 
-				emissiveColor="#0C0C0C"
-				></Material>	<!-- light grey	"#808080" -->
-			<Material id="MaterialWasserwege" 		DEF="MaterialWasserwege"
-				diffuseColor="#0000CC" 
-				emissiveColor="#000019"
-				></Material>	<!-- blue 		"#0000FF" -->
-			<Material id="MaterialSteuerstrecken" 	DEF="MaterialSteuerstrecken"
-				diffuseColor="#660066" 
-				emissiveColor="#0C000C"
-				></Material>	<!-- purple 	"#800080" -->
-			<Material id="MaterialGBS" 				DEF="MaterialGBS"
-				diffuseColor="#842121" 
-				emissiveColor="#100404"
-				></Material>	<!-- brown 		"#A52A2A" -->
-			<Material id="MaterialHighlight" 		DEF="MaterialHighlight"
-				diffuseColor="1.0 0.5 0.0" 
-				emissiveColor="0.5 0.25 0.0"
-				></Material>	<!-- brown 		"#A52A2A" -->
-			<Material 								DEF="MaterialGrid"
-				diffuseColor="0.0 0.0 0.5"
-				specularColor="0.0 0.0 0.0"
-				emissiveColor="0.3 0.3 0.3"
-				></Material>	
+			<Material id="MaterialEisenbahn" DEF="MaterialEisenbahn" diffuseColor="#CC0000" emissiveColor="#190000"></Material>				<!-- red 		"#FF0000" -->
+			<Material id="MaterialStrassenbahn" DEF="MaterialStrassenbahn" diffuseColor="#878787" emissiveColor="#101010"></Material>		<!-- dark grey 	"#A9A9A9" -->
+			<Material id="MaterialStrasse" DEF="MaterialStrasse" diffuseColor="#666666" emissiveColor="#0C0C0C"></Material>					<!-- light grey	"#808080" -->
+			<Material id="MaterialWasserwege" DEF="MaterialWasserwege" diffuseColor="#0000CC" emissiveColor="#000019"></Material>			<!-- blue 		"#0000FF" -->
+			<Material id="MaterialSteuerstrecken" DEF="MaterialSteuerstrecken" diffuseColor="#660066" emissiveColor="#0C000C"></Material>	<!-- purple 	"#800080" -->
+			<Material id="MaterialGBS" DEF="MaterialGBS" diffuseColor="#842121" emissiveColor="#100404"></Material>							<!-- brown 		"#A52A2A" -->
+			<Material id="MaterialHighlight" DEF="MaterialHighlight" diffuseColor="1.0 0.5 0.0" emissiveColor="0.5 0.25 0.0"></Material>	<!-- yellow -->
+			<Material DEF="MaterialGrid" diffuseColor="0.0 0.0 0.5" specularColor="0.0 0.0 0.0" emissiveColor="0.3 0.3 0.3"></Material>
 		</Group>
-		
+
 		<!--
 		https://doc.x3dom.org/author/Navigation/NavigationInfo.html
-		<NavigationInfo avatarSize='[ 0.25, 1.6, 0.75 ]' bind='false' description='""' explorationMode='"all"' headlight='true' isActive='false' metadata='X3DMetadataObject' reverseScroll='false' speed='1.0' transitionTime='1.0' transitionType='["LINEAR"]' type='["EXAMINE","ANY"]' typeParams='[-0.4,60,0.05,2.8]' visibilityLimit='0.0' walkDamping='2.0' ></NavigationInfo>
+		<NavigationInfo 
+
+		headlight='true' 						true, false
+		reverseScroll='false'					false, true 
+
+		type='["EXAMINE","ANY"]'				"none", "examine", "turntable", "fly", "freefly", "lookat", "lookaround", "walk", "game", "helicopter", "any"
+		typeParams='[-0.4, 60, 0.05, 2.8]'		[0] helicopter view angle theta (pitch), default: -23°
+												[1] helicopter height, default: 60m
+												[2] min vertical rotation angle theta (pitch), default: 3°
+												[3] max vertical rotation angle theta (pitch), default: 160°
+												[4] (optional) turntable min orbit rotation angle phi (yaw)
+												[5] (optional) turntable max orbit rotation angle phi (yaw)
+												[6] (optional) turntable min zoom amount 
+												[7] (optional) turntable max zoom amount  
+
+		explorationMode='"all"' 				"none": 0, "rotate" : 1, "zoom" : 2, "pan" : 4, "all" : 7 
+
+		avatarSize='[ 0.25, 1.6, 0.75 ]' 
+		walkDamping='2.0' 
+		visibilityLimit='0.0' 
+		speed='1.0' 							+: backwards, -: forward
+		transitionTime='1.0' 
+		transitionType='["LINEAR"]' 
+
+		bind='false' 
+		description='""' 
+		isActive='false' 
+		metadata='X3DMetadataObject' 
+		>
+		</NavigationInfo>
 		-->
-		<NavigationInfo reverseScroll="true" speed="4.0" type='"EXAMINE" "ANY"'></NavigationInfo>
-		
+		<NavigationInfo type='"EXAMINE" "ANY"' explorationMode='"ROTATE" "ZOOM" "PAN"' reverseScroll="true" speed="4.0"></NavigationInfo>
+
 		<!-- Default camera with top down view -->
-		<Viewpoint id="x3d_dynamicCamera" bind="true"
-			description="dynamic Camera"
-			position="0 0 100" 
-			orientation="0 0 1 0" 
-			centerOfRotation="0 0 0" 
-			fieldOfView="0.37" 
-			></Viewpoint>
+		<Viewpoint id="x3d_dynamicCamera" bind="true" description="dynamic Camera" position="0 100 0" orientation="-1 0 0 1.57198" centerOfRotation="0 0 0" fieldOfView="0.37"></Viewpoint>
+
+		<Viewpoint id="look up +1 0 0 1.57198" position="0 -100 0" orientation="+1 0 0 1.57198" centerOfRotation="0 0 0" fieldOfView="0.37"></Viewpoint>
+		<Viewpoint id="look down -1 0 0 1.57198" position="0 +100 0" orientation="-1 0 0 1.57198" centerOfRotation="0 0 0" fieldOfView="0.37"></Viewpoint>
 
 		<!-- Transform: The order of operation is
-			apply the center offset,
-			scaleOrientation and scale,
-			rotation,
-			restore the center offset,
-			translation.
+		apply the center offset,
+		scaleOrientation and scale,
+		rotation,
+		restore the center offset,
+		translation.
 		-->
 
-		<!-- Coordinate system -->
+		<!-- Coordinate system 
+		EEP:	+X West, -X East, +Y North, -Y South, +Z Up, -Z Down, 
+		x3dom: 	-X West, +X East, -Z North, +Z South, +Y Up, -Y Down
+		-->
 		<Group id="x3d_Axis" class="general">
 			<!-- small point at origin -->
 			<Transform scale=".15 .15 .15">
@@ -5105,147 +5146,149 @@ https://doc.x3dom.org/author/runtime.html
 			<!-- Invoke CoordinateAxes in other scenes as an Inline child inside a scaling Transform node, at the topmost level of the scene graph. -->
 			<!-- This NavigationInfo allows examine mode and will be overridden by any parent scene. -->
 			<!-- Note each label rotates about the scene's vertical Y axis for consistency, enabling local orientation by user -->
-			<Transform id="x3d_Point"> <!-- onclick shape: translate this to event.hitPnt -->
-			<Group>
-				<!-- Vertical Y arrow and label -->
-				<Group DEF="ArrowGreen">
-					<Shape isPickable="false">
-						<Cylinder DEF="ArrowCylinder" radius=".025" height="20" top="false"></Cylinder>
-						<Appearance DEF="Green">
-							<Material diffuseColor=".1 .6 .1" emissiveColor=".05 .2 .05"></Material>
-						</Appearance>
-					</Shape>
-					<Transform translation="0 10 0">
-						<Shape isPickable="false">
-							<Cone DEF="ArrowCone" bottomRadius=".05" height=".1" side="true" bottom="true" solid="true"></Cone>
-							<Appearance USE="Green"></Appearance>
-						</Shape>
-					</Transform>
-				</Group>
-				<Transform translation="0 1.08 0">
-					<Billboard axisOfRotation="0 1 0">
-						<Shape isPickable="false">
-							<Appearance DEF="LABEL_APPEARANCE">
-								<Material diffuseColor="1 1 .3" emissiveColor=".33 .33 .1"></Material>
-							</Appearance>
-							<Text string=""+Y" "Nord"">
-								<FontStyle DEF="LABEL_FONT_TOP" family='"SANS"' justify='"MIDDLE" "END"' size=".2"></FontStyle>
-							</Text>
-						</Shape>
-					</Billboard>
-				</Transform>
-				<Transform translation="0 -1.08 0">
-					<Billboard axisOfRotation="0 1 0">
-						<Shape isPickable="false">
-							<Appearance USE="LABEL_APPEARANCE"></Appearance>
-							<Text string='"-Y" "Süd"'>
-								<FontStyle USE="LABEL_FONT_TOP"></FontStyle>
-							</Text>
-						</Shape>
-					</Billboard>
-				</Transform>
-			</Group>
-			<Transform rotation="0 0 1 -1.570796">  <!-- rotateZ -90° -->
-				<!-- Horizontal X arrow and label -->
+			<Transform id="x3d_Point">	<!-- onclick shape: translate this to event.hitPnt -->
 				<Group>
-					<Group DEF="ArrowRed">
+					<!-- Vertical Y arrow and label -->
+					<Group DEF="ArrowGreen">
 						<Shape isPickable="false">
-							<Cylinder USE="ArrowCylinder"></Cylinder>
-							<Appearance DEF="Red">
-								<Material diffuseColor=".7 .1 .1" emissiveColor=".33 0 0"></Material>
+							<Cylinder DEF="ArrowCylinder" radius=".025" height="20" top="false"></Cylinder>
+							<Appearance DEF="Green">
+								<Material diffuseColor=".1 .6 .1" emissiveColor=".05 .2 .05"></Material>
 							</Appearance>
 						</Shape>
 						<Transform translation="0 10 0">
 							<Shape isPickable="false">
-								<Cone USE="ArrowCone" bottomRadius="1" height="2" side="true" bottom="true" solid="true"></Cone>
-								<Appearance USE="Red"/>
+								<Cone DEF="ArrowCone" bottomRadius=".05" height=".1" side="true" bottom="true" solid="true"></Cone>
+								<Appearance USE="Green"></Appearance>
 							</Shape>
 						</Transform>
 					</Group>
-					<Transform rotation="0 0 1 1.570796" translation=".072 1.1 0">  <!-- rotateZ +90° -->
-						<!-- note label rotated back to original coordinate frame -->
+					<Transform translation="0 1.08 0">
 						<Billboard axisOfRotation="0 1 0">
 							<Shape isPickable="false">
-								<Appearance USE="LABEL_APPEARANCE"></Appearance>
-								<Text string='"+X" "Ost"'>
-									<FontStyle DEF="LABEL_FONT" family='"SANS"' justify='"MIDDLE" "MIDDLE"' style='"PLAIN"' size=".2"></FontStyle>
+								<Appearance DEF="LABEL_APPEARANCE">
+									<Material diffuseColor=".9 .9 .9" emissiveColor=".2 .2 .2"></Material>
+								</Appearance>
+								<Text string='"+Y" "Oben"'>
+									<FontStyle DEF="LABEL_FONT_TOP" family='"SANS"' justify='"MIDDLE" "END"' style='"PLAIN"' size=".2"></FontStyle>
 								</Text>
 							</Shape>
 						</Billboard>
 					</Transform>
-					<Transform rotation="0 0 1 1.570796" translation=".072 -1.1 0"> <!-- rotateZ +90° -->
-						<!-- note label rotated back to original coordinate frame -->
+					<Transform translation="0 -1.08 0">
 						<Billboard axisOfRotation="0 1 0">
 							<Shape isPickable="false">
 								<Appearance USE="LABEL_APPEARANCE"></Appearance>
-								<Text string='"-X" "West"'>
-									<FontStyle USE="LABEL_FONT"></FontStyle>
+								<Text string='"-Y" "Unten"'>
+									<FontStyle USE="LABEL_FONT_TOP"></FontStyle>
 								</Text>
 							</Shape>
 						</Billboard>
 					</Transform>
 				</Group>
-			</Transform>
-			<Transform rotation="1 0 0 1.570796"> <!-- rotateX +90° -->
-				<!-- Perpendicular Z arrow and label, note right-hand rule -->
-				<Group>
-					<Group DEF="ArrowBlue">
-						<Shape isPickable="false">
-							<Cylinder USE="ArrowCylinder"></Cylinder>
-							<Appearance DEF="Blue">
-								<Material diffuseColor=".3 .3 1" emissiveColor=".1 .1 .33"></Material>
-							</Appearance>
-						</Shape>
-						<Transform translation="0 10 0">
+				<Transform rotation="0 0 1 -1.570796">	<!-- rotateZ -90° -->
+					<!-- Horizontal X arrow and label -->
+					<Group>
+						<Group DEF="ArrowRed">
 							<Shape isPickable="false">
-								<Cone USE="ArrowCone" bottomRadius="1" height="2" side="true" bottom="true" solid="true"></Cone>
-								<Appearance USE="Blue"></Appearance>
+								<Cylinder USE="ArrowCylinder"></Cylinder>
+								<Appearance DEF="Red">
+									<Material diffuseColor=".7 .1 .1" emissiveColor=".33 0 0"></Material>
+								</Appearance>
 							</Shape>
+							<Transform translation="0 10 0">
+								<Shape isPickable="false">
+									<Cone USE="ArrowCone" bottomRadius="1" height="2" side="true" bottom="true" solid="true"></Cone>
+									<Appearance USE="Red" />
+								</Shape>
+							</Transform>
+						</Group>
+						<Transform rotation="0 0 1 1.570796" translation=".072 1.1 0">	<!-- rotateZ +90° -->
+							<!-- note label rotated back to original coordinate frame -->
+							<Billboard axisOfRotation="0 1 0">
+								<Shape isPickable="false">
+									<Appearance USE="LABEL_APPEARANCE"></Appearance>
+									<Text string='"+X" "Ost"'>
+										<FontStyle DEF="LABEL_FONT" family='"SANS"' justify='"MIDDLE" "MIDDLE"' style='"PLAIN"' size=".2"></FontStyle>
+									</Text>
+								</Shape>
+							</Billboard>
+						</Transform>
+						<Transform rotation="0 0 1 1.570796" translation=".072 -1.1 0">	<!-- rotateZ +90° -->
+							<!-- note label rotated back to original coordinate frame -->
+							<Billboard axisOfRotation="0 1 0">
+								<Shape isPickable="false">
+									<Appearance USE="LABEL_APPEARANCE"></Appearance>
+									<Text string='"-X" "West"'>
+										<FontStyle USE="LABEL_FONT"></FontStyle>
+									</Text>
+								</Shape>
+							</Billboard>
 						</Transform>
 					</Group>
-					<Transform rotation="1 0 0 -1.570796" translation="0 1.1 .072"> <!-- rotateX +90° -->
-						<!-- note label rotated back to original coordinate frame -->
-						<Billboard axisOfRotation="0 1 0">
-							<Shap isPickable="false"e>
-								<Appearance USE="LABEL_APPEARANCE"></Appearance>
-								<Text string='"+Z" "Oben"'>
-									<FontStyle USE="LABEL_FONT"></FontStyle>
-								</Text>
-							</Shape>
-						</Billboard>
-					</Transform>
-					<Transform rotation="1 0 0 -1.570796" translation="0 -1.1 .072"> <!-- rotateX +90° -->
-						<!-- note label rotated back to original coordinate frame -->
-						<Billboard axisOfRotation="0 1 0">
+				</Transform>
+				<Transform rotation="1 0 0 -1.570796">	<!-- rotateX -90° -->
+					<!-- Perpendicular Z arrow and label, note right-hand rule -->
+					<Group>
+						<Group DEF="ArrowBlue">
 							<Shape isPickable="false">
-								<Appearance USE="LABEL_APPEARANCE"></Appearance>
-								<Text string='"-Z" "Unten"'>
-									<FontStyle USE="LABEL_FONT"></FontStyle>
-								</Text>
+								<Cylinder USE="ArrowCylinder"></Cylinder>
+								<Appearance DEF="Blue">
+									<Material diffuseColor=".3 .3 1" emissiveColor=".1 .1 .33"></Material>
+								</Appearance>
 							</Shape>
-						</Billboard>
-					</Transform>
-				</Group>
-			</Transform>
+							<Transform translation="0 10 0">
+								<Shape isPickable="false">
+									<Cone USE="ArrowCone" bottomRadius="1" height="2" side="true" bottom="true" solid="true"></Cone>
+									<Appearance USE="Blue"></Appearance>
+								</Shape>
+							</Transform>
+						</Group>
+						<Transform rotation="1 0 0 -1.570796" translation="0 1.1 .072">	<!-- rotateX +90° -->
+							<!-- note label rotated back to original coordinate frame -->
+							<Billboard axisOfRotation="0 1 0">
+								<Shape isPickable="false" e>
+									<Appearance USE="LABEL_APPEARANCE"></Appearance>
+									<Text string='"+Z" "Nord"'>
+										<FontStyle USE="LABEL_FONT"></FontStyle>
+									</Text>
+								</Shape>
+							</Billboard>
+						</Transform>
+						<Transform rotation="1 0 0 -1.570796" translation="0 -1.1 .072">	<!-- rotateX +90° -->
+							<!-- note label rotated back to original coordinate frame -->
+							<Billboard axisOfRotation="0 1 0">
+								<Shape isPickable="false">
+									<Appearance USE="LABEL_APPEARANCE"></Appearance>
+									<Text string='"-Z" "Süd"'>
+										<FontStyle USE="LABEL_FONT"></FontStyle>
+									</Text>
+								</Shape>
+							</Billboard>
+						</Transform>
+					</Group>
+				</Transform>
 			</Transform>
 		</Group>
-		
+
 		<!-- Grid -->
 		<Group id="x3d_Grid" class="general">
-			<Shape isPickable="false">
-				<Appearance sortKey="-1">
-					<Material USE="MaterialGrid"></Material>
-				</Appearance>
-				<Plane id="x3d_Plane" solid="false" size="2000 2000" center="0 0 0" subdivision="20 20" primType='"LINES"'></Plane>
-			</Shape>
-			<Shape isPickable="false">
-				<Appearance sortKey="-1">
-					<Material USE="MaterialGrid"></Material>
-				</Appearance>
-				<IndexedLineSet coordIndex="0 1 2 3 0 -1" colorPerVertex="false" lit="false">
-					<Coordinate id="x3d_PlaneBorder" point="-1000.0 -1000.0 0.0 , -1000.0 1000.0 0.0 , 1000.0 1000.0 0.0, 1000.0 -1000.0 0.0"></Coordinate>
-				</IndexedLineSet>
-			</Shape>		
+			<Transform rotation="1 0 0 1.570796">	<!-- rotateX 90° -->
+				<Shape isPickable="false">
+					<Appearance sortKey="-1">
+						<Material USE="MaterialGrid"></Material>
+					</Appearance>
+					<Plane id="x3d_Plane" solid="false" size="2000 2000" center="0 0 0" subdivision="20 20" primType='"LINES"'></Plane>
+				</Shape>
+				<Shape isPickable="false">
+					<Appearance sortKey="-1">
+						<Material USE="MaterialGrid"></Material>
+					</Appearance>
+					<IndexedLineSet coordIndex="0 1 2 3 0 -1" colorPerVertex="false" lit="false">
+						<Coordinate id="x3d_PlaneBorder" point="-1000.0 -1000.0 0.0 , -1000.0 1000.0 0.0 , 1000.0 1000.0 0.0, 1000.0 -1000.0 0.0"></Coordinate>
+					</IndexedLineSet>
+				</Shape>
+			</Transform>
 		</Group>
 
 	</scene>
@@ -5266,6 +5309,7 @@ See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
 
 <script type="text/javascript"> // svg-pan-zoom
 "use strict";
+
 function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
@@ -5428,15 +5472,15 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		ev.preventDefault();
 		return false;
 	});
-
+	
 	// Button svg_x3d
 	document.getElementById("svg_x3d").addEventListener("click", function(ev) {
 		msg();
 		ev.preventDefault()
-		// Toogle between svg and x3d
+			// Toogle between svg and x3d
 		document.getElementById("svg").classList.toggle("hidden");
 		const x3dIsHidden = document.getElementById("x3d").classList.toggle("hidden");
-		
+
 		const controls = document.getElementById("controls");
 		if (x3dIsHidden) {
 			// svg is active
@@ -5452,7 +5496,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 			document.getElementById("main").classList.add("row");
 		}
 	});
-	
+
 	// Button swap
 	document.getElementById("swap").addEventListener("click", function(ev) {
 		msg();
@@ -5460,7 +5504,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		// Toogle between flex-direction: column and flex-direction: row
 		document.getElementById("main").classList.toggle("column");
 		document.getElementById("main").classList.toggle("row");
-		
+
 		// If the svg element is hidden, then we would get zero height and width after panZoom.resize();
 		if (!document.getElementById("svg").classList.contains("hidden")) {
 			// Swapping changes the size of the svg element
@@ -5498,14 +5542,14 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		panZoom.resetZoom();
 		// Pan and zoom to used area
 		showUsedArea(panZoom, true);
-		
+
 		// x3d
 		// Activate dynamic camera
 		document.getElementById("x3d_dynamicCamera").setAttribute("set_bind", "true");
 		// Zooms so that all objects are visible.
-		// axis		the axis as string, one of: posX, negX, posY, negY, posZ, negZ (default)
-		document.getElementById("x3d").runtime.showAll("negZ");		
-	});
+		// axis		the axis as string, one of: posX, negX, posY (view up), negY (view down), posZ, negZ (default)
+		document.getElementById("x3d").runtime.showAll("negY");
+	});			   
 	// Button ResetZoom
 	document.getElementById("resetzoom").addEventListener("click", function(ev) {
 		msg();
@@ -5513,13 +5557,13 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		panZoom.resetZoom();
 		// Zoom to used area
 		showUsedArea(panZoom);
-		
+
 		// x3d
 		// Activate dynamic camera
 		//document.getElementById("x3d_dynamicCamera").setAttribute("set_bind", "true");
 		// Zooms so that all objects are visible. Keep current orientation of camera.
-		document.getElementById("x3d").runtime.fitAll();		
-	});
+		document.getElementById("x3d").runtime.fitAll();
+	});			   
 	// Slider strokeWidth (in case of very large files, it might be better to use "change" event instead of "input" event to switch off live updates)
 	document.getElementById("strokeWidth").addEventListener("input", function(ev) {
 		msg();
@@ -5641,10 +5685,10 @@ EEPchannel.onmessage = function(ev) {
 		centerPosition(Kamera.mPos);
 
 		showKameraInfo(KameraID);
-		
+
 		// x3d Activate camera
-		document.getElementById("Camera-" + KameraID).setAttribute("set_bind","true");
-		
+		document.getElementById("Camera-" + KameraID).setAttribute("set_bind", "true");
+
 		return true;
 
 	} else if (GleissystemID && GleisID) {	// Gleis
@@ -5709,16 +5753,16 @@ function centerItem() {
 			return false;
 		}
 
-		// svg
+		 // svg					  
 		centerPosition(Gleis.mMid); // Mitte des Gleises
-		
+
 		// x3d
 		// Activate dynamic camera
 		document.getElementById("x3d_dynamicCamera").setAttribute("set_bind", "true");
 		const element = document.getElementById(`x3d_G${GleissystemID}-${GleisID}`);
 		//document.getElementById("x3d").runtime.fitObject(element);		// view object in current view direction
-		document.getElementById("x3d").runtime.showObject(element, "posZ");	// view object in top down view
-		
+		document.getElementById("x3d").runtime.showObject(element, "negY"); // view object in top down view
+
 		//msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
 		msg('Positioning', GleissystemText[GleissystemID], GleisID);
 		return true;
@@ -5989,7 +6033,7 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 		// Issue: Name is not an unique key
 		showKameraInfo(KameraID);
 
-	} else if (!event.target.parentElement.classList.contains("general")) {	// Gleis (hopefully)
+	} else if (!event.target.parentElement.classList.contains("general")) { // Gleis (hopefully)
 		const GleisCode 		= event.target.parentElement.id;
 		const GleisTextArray 	= GleisCode.substring(1).split("-");
 		const GleissystemID 	= GleisTextArray[0];
@@ -6034,16 +6078,16 @@ function toggleElements(selector, visible) {
 			ele.classList.add("hidden");
 		}
 	}
-	
+
 	for (const ele of document.getElementById("x3d").querySelectorAll(selector)) {
 		if (visible) {
 			ele.setAttribute("render", "true");
 		} else {
 			ele.setAttribute("render", "false");
-		}
-	}
-	
-}
+		}			 
+	}			 
+
+}	 
 
 // Toggle visibility of marker
 function toggleMarker(visible) {
@@ -6165,12 +6209,12 @@ function changeHeightRange(valueLow, valueHigh) {
 			}
 		}
 	}
-	
+
 	// Adjust x3d group elements
 	const x3dElem = document.getElementById("x3d");
 	for (const groupElem of x3dElem.getElementsByTagName("group")) {
-		for (const className of groupElem.classList){
-			if (className.substring(0,7) === "height=") {  // Example: "height=123"
+		for (const className of groupElem.classList) {
+			if (className.substring(0, 7) === "height=") { // Example: "height=123"
 				const height = +className.substring(7);
 				if (height < minZ || height > maxZ) {
 					groupElem.setAttribute("render", "false");
@@ -6179,8 +6223,8 @@ function changeHeightRange(valueLow, valueHigh) {
 				}
 			}
 		}
-	}	
-	
+	}
+
 }
 </script>
 
@@ -6755,6 +6799,8 @@ function showKameraInfo(KameraID) {
 	const Kamera 		= global.KameraSet[KameraID];
 	if (!Kamera) { return; }
 
+	const Dynamic 	= Kamera.getAttribute("Dynamic");
+
 	const [DirX, DirY, DirZ, d0, NorX, NorY, NorZ, n0, BinX, BinY, BinZ, b0, PosX, PosY, PosZ, scale ] = Kamera.mPos;
 
 	// https://www.matheplanet.com/default3.html?call=viewtopic.php?topic=140833&ref=https%3A%2F%2Fwww.google.com%2F
@@ -6798,7 +6844,7 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 
 	const angleZ 	= ( Math.cos(angleY) === 0 ? 'error' :
 						-Math.acos( Math.min(1, Math.max(-1, DirX/Math.cos(angleY)) )) 	// protect against rounding errors
-						* (DirY<0 ? -1 : 1) );											// adjust sign
+						* (DirY<0 ? -1 : 1) );	// adjust sign										// adjust sign
 
 /*console.log(Kamera.Name
 //	+ '\nasin( DirX )=\t' + angle( -Math.asin( DirX ) )
@@ -7112,6 +7158,7 @@ function exportGraphic(fileType) {
 	// Load img
 	img.src = url;
 }
+
 function exportData(dataURL, fileType) {
 	// Get file name without extension
 	const filename = document.getElementById("filename").textContent;
@@ -7176,6 +7223,7 @@ const GleissystemFarbDefinition = [{
 	color: "#FFFFFF"	/* white; */
 }];
 let GleissystemFarbe;
+
 function loadColors() {
 	GleissystemFarbe = JSON.parse(localStorage.getItem("GleissystemFarbe"));
 
@@ -7185,6 +7233,7 @@ function loadColors() {
 		resetColors();
 	}
 }
+
 function resetColors() {
 	// reset color values
 	GleissystemFarbe = {};
@@ -7198,6 +7247,7 @@ function resetColors() {
 	// purge local storage
 	localStorage.removeItem("GleissystemFarbe");
 }
+
 function setColors() {
 	// set SVG CSS variables
 	const colorVariables = GleissystemFarbDefinition.map(function(farbe) {
@@ -7215,28 +7265,31 @@ function x3d_setColors(GleissystemFarbe) {
 
 	// Define Background
 	/*
-	<Background id="Background" transparency="0.5" skyColor="1 1 1" groundColor="1 1 1"></Background>
+	<Background id="x3d_Background" transparency="0.5" skyColor="1 1 1" groundColor="1 1 1"></Background>
 	*/
-	const Background = document.getElementById("Background" );
+	const Background = document.getElementById("x3d_Background");
 	// type MFColor: not possible to use hex values directly
 	// we have to use the same color for sky and ground because the horizon is tilted by 90°
-	Background.setAttribute("skyColor", 	x3dom.fields.SFColor.colorParse(GleissystemFarbe["Hintergrund"]).toString() );
-	Background.setAttribute("groundColor", 	x3dom.fields.SFColor.colorParse(GleissystemFarbe["Hintergrund"]).toString() );
+	//Background.removeAttribute("skyAngle");	// we use just one color
+	//Background.setAttribute("skyColor", 	x3dom.fields.SFColor.colorParse(GleissystemFarbe["Hintergrund"]).toString() );
+	Background.removeAttribute("groundAngle"); // we use just one color
+	Background.setAttribute("groundColor", x3dom.fields.SFColor.colorParse(GleissystemFarbe["Hintergrund"]).toString());
 
 	GleissystemFarbDefinition.forEach(function(farbe) {
 		// Define Material
 		/*
 		<Material ambientIntensity='0.2' diffuseColor='0.8,0.8,0.8' emissiveColor='0,0,0' metadata='X3DMetadataObject' shininess='0.2' specularColor='0,0,0' transparency='0' ></Material>
 		*/
-		const Material = document.getElementById("Material"+farbe.name );
+		const Material = document.getElementById("Material" + farbe.name);
 		if (Material) {
-			Material.setAttribute("diffuseColor", GleissystemFarbe[farbe.name] || farbe.color );
-			Material.setAttribute("emissiveColor", "#101010" );
+			Material.setAttribute("diffuseColor", GleissystemFarbe[farbe.name] || farbe.color);
+			Material.setAttribute("emissiveColor", "#101010");
 		}
 	});
 }
 
 let colorPickerWindow;
+
 function showColorPickerWindow() {
 	if (!colorPickerWindow) {
 		const content = GleissystemFarbDefinition.map(function(farbe) {
@@ -7319,7 +7372,6 @@ javascript:(function(){document.getElementById(%27modCSS%27).textContent=%27
 %27;})();
 
 */
-
 </style>
 
 </main> <!-- Main screen -->
