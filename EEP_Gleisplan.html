@@ -253,7 +253,7 @@ Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F1
 Zoom-in, -out, -reset<br>
 Auswahl der anzuzeigenden Gleissysteme<br>
 Auswahl der anzuzeigenden Informationen (GleisID, Kurventyp, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Gleisobjekte, Kamera, Rahmen)<br>
-Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise)<br>
+Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise, virtuelle Verbindungen)<br>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
 Die Positionierung ist auch über das <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm möglich!<br>
@@ -268,7 +268,7 @@ Switch between vertical and horizontal alignment (Full screen using <kbd>F11</kb
 Zoom-in, -out, -reset<br>
 Choose displayed track systems<br>
 Choose displayed information (TrackID, curve type, track style, height, switches, signals, contacts, marker, track objects, cameras, border)<br>
-Choose displayed tracks (active/inactive tracks with/without rolling stocks, visible/invisible tracks)<br>
+Choose displayed tracks (active/inactive tracks with/without rolling stocks, visible/invisible tracks, virtual connections)<br>
 Store current view as picture (png/jpg/svg)<br>
 Position track plan at specific track, respective track of a signal or switch<br>
 You can use the <a href="EEP_Inventar.html" target="_blank">inventory</a> program as well to position the view!<br>
@@ -283,7 +283,7 @@ Alterner la position de la barre entre horizontale et verticale (<kbd>F11</kbd> 
 Zoom-in, -out, -reset<br>
 Sélection des systèmes de voies<br>
 Sélection des informations à visualiser (ID voie, variante de voie, style de voie, hauteur, aiguillages, signaux, contacts,marqueurs,objets de voie, caméras, cadre)<br>
-Sélection des voies à visualiser (voies actives/inactives. avec/sansmatériels roulants)<br>
+Sélection des voies à visualiser (voies actives/inactives. avec/sansmatériels roulants, connexion virtuelle)<br>
 Mémoriser l‘image actuelle au format (png/jpg/svg)<br>
 Concentrer la vue sur une voie déterminée, resp. sur la voie d‘un signal ou d‘un aiguillage<br>
 Le postionnement est également possible par le programme <a href="EEP_Inventar.html" target="_blank">Inventaire</a>!<br>
@@ -822,13 +822,13 @@ function prepareGleissysteme(sutrackp) {
 			if (!trackConnections[GleissystemID][GleisID1]) {
 				 trackConnections[GleissystemID][GleisID1] = {};
 			}
-			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2, Flags : Flags };
+			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2, Flags : Flags, Direction : "forward" };
 
 			// Store relation GleisID2 -> GleisID1
 			if (!trackConnections[GleissystemID][GleisID2]) {
 				 trackConnections[GleissystemID][GleisID2] = {};
 			}
-			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1, Flags : Flags };
+			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1, Flags : Flags, Direction : "backward"  };
 		}
 	}
 	// Now we are able to show connections on detail popups
@@ -2524,23 +2524,51 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 	} // Gleise
 
-//### Test show start and end points of all tracks
-if (false) {
-for (const Gleis of Gleise) {
-	const connections = global.trackConnections[Gleis.GleissystemID][Gleis.getAttribute('GleisID')] || {};
-	console.log( "\t"
-		+ Gleis.GleissystemID + "\t"
-		+ Gleis.getAttribute('GleisID') + "\t"
-		+ Gleis.CurveType + "\t"
-		+ Gleis.mPos[12]  + "\t" + Gleis.mPos[13]  + "\t" + Gleis.mPos[14]  + "\t"
-		+ Gleis.mEnd[12]  + "\t" + Gleis.mEnd[13]  + "\t" + Gleis.mEnd[14]  + "\t"
-		+ (connections['Anfang']		? connections['Anfang'].GleisID 		: '') + "\t"
-		+ (connections['Ende']			? connections['Ende'].GleisID 			: '') + "\t"
-		+ (connections['EndeAbzweig']	? connections['EndeAbzweig'].GleisID 	: '') + "\t"
-		+ (connections['EndeKoAbzweig']	? connections['EndeKoAbzweig'].GleisID 	: '') + "\t"
-	)
-}}
+	// Process virtual connections
+	let svgVirtuellGroup;
+	for ( const GleisID in global.trackConnections[GleissystemID]) {
 
+		const Gleis   = global.Gleissysteme[GleissystemID][GleisID];
+
+		const connections = global.trackConnections[GleissystemID][GleisID] || {};
+		for (const Anschluss in connections) {	// Anfang, Ende, EndeAbzweig, EndeKoAbzweig
+
+			const connection = connections[Anschluss];
+			if (connection.Flags & connection.Direction === "forward") {	// Virtual connection in forward direction
+
+				const connectedGleis   = global.Gleissysteme[GleissystemID][connection.GleisID];
+
+				const vPos = ( Anschluss            === "Anfang" ? Gleis.mPos          : Gleis.mEnd          );	// Start of virtual connection	
+				const vEnd = ( connection.Anschluss === "Anfang" ? connectedGleis.mPos : connectedGleis.mEnd );	// End of virtual connection	
+
+/*
+console.log( "Gleis\t"
+	+ GleissystemID + " " + GleisID + "\t"
+	+ Anschluss + "\t"
+	+ vPos[12].toFixed(1)  + "\t" + vPos[13].toFixed(1)  + "\t" // + vPos[14].toFixed(1) + "\t"
+	+ "Gleis\t"
+	+ GleissystemID + " " + connection.GleisID + "\t"
+	+ connection.Anschluss+ "\t"
+	+ vEnd[12].toFixed(1)  + "\t" + vEnd[13].toFixed(1)  + "\t" // + vEnd[14].toFixed(1) + "\t"
+)
+*/
+
+				if (!svgVirtuellGroup) {
+					svgVirtuellGroup = svgAppend(svgGleissystemGroup, {
+						svg_tag	: `g`,
+						id		: `V${GleissystemID}`,
+						"class"	: "virtual",
+					});	
+				}
+				svgAppend(svgVirtuellGroup, {
+					svg_tag	: `path`,
+					id		: `V${GleissystemID}-${GleisID}-${Anschluss}`,
+					d 		: `M ${vPos[12]} ${-vPos[13]} L ${vEnd[12]} ${-vEnd[13]}`,
+				});
+
+			}
+		}
+	}
 }
 
 function createSVGfinalize(SVGfragment) {
@@ -3873,6 +3901,8 @@ if (typeof module === "undefined") {
 	<input type="checkbox" name="sichtbar" 		checked autocomplete="off" onchange="toggleElements('.sichtbar', this.checked)"><span lang="de">sichtbar</span><span lang="en">visible</span><span lang="fr">visible</span></label></div>
 	<div class="item"><label>	<!-- unsichtbar -->
 	<input type="checkbox" name="unsichtbar" 	checked autocomplete="off" onchange="toggleElements('.unsichtbar', this.checked)"><span lang="de">unsichtbar</span><span lang="en">invisible</span><span lang="fr">invisible</span></label></div>
+	<div class="item"><label>	<!-- virtual -->
+	<input type="checkbox" name="virtual" 	    checked autocomplete="off" onchange="toggleElements('.virtual', this.checked)"><span lang="de">virtuell</span><span lang="en">virtual</span><span lang="fr">virtuel</span></label></div>
 	<div class="item"><label>	<!-- Marker -->
 	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)"><span lang="de">Marker</span><span lang="en">Marker</span><span lang="fr">Marqueurs</span></label></div>
 	<div class="item hidden" id="CheckboxGleisobjekt"><label>	<!-- only visible if there are elements of that type -->
@@ -4177,7 +4207,12 @@ text.WeicheText {
 }
 
 .unsichtbar {	/* unsichtbare Gleisstile */
-	stroke-dasharray: 0.4 0.2;
+	stroke-dasharray: 0.6 0.2;
+}
+
+.virtual {	/* virtuelle Gleisstile */
+	stroke-dasharray: 0.3 0.2;
+	stroke-opacity: 0.5;
 }
 
 .inactive {		/* inaktive Gleisstile */
@@ -4932,9 +4967,18 @@ target						|circle::undefined
 target.parentElement		|g:G1-47:Normal
 rangeParent					|g:G1-47:Normal
 rangeParent.parentElement	|g:Eisenbahn:undefined
+
+Virtual connection
+event.target.parentElement.parentElement.id					""
+event.target.parentElement.parentElement.id					""
+event.target.parentElement.classList[0]						virtual
+event.target.parentElement.classList.contains("virtual")	true
+event.target.classList[0]									undefined	
+event.target.parentElement.id								V4
+event.target.id												V4-1
 */
 
-	if (event.target.parentElement.classList[0] === "Signal") {			// Signal
+	if (event.target.parentElement.classList.contains("Signal")) {			// Signal
 		const SignalCode 		= event.target.parentElement.id;
 		const SignalID 			= Number(SignalCode.substring(1));
 
@@ -4945,7 +4989,7 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 
 		showSignalInfo(SignalID, GleissystemID, GleisID);
 
-	} else if (event.target.parentElement.classList[0] === "Kontakt") {	// Kontakt
+	} else if (event.target.parentElement.classList.contains("Kontakt")) {	// Kontakt
 		const KontaktCode		= event.target.parentElement.id;
 		const KontaktID 		= KontaktCode.substring(1);
 
@@ -4956,7 +5000,18 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 
 		showKontaktInfo(KontaktID, GleissystemID, GleisID);
 
-	} else if (event.target.classList[0] === "WeicheText") { 			// Weiche
+	} else if (event.target.parentElement.classList.contains("virtual")) {	// virtual connection
+
+		const virtualConnectionCode 		= event.target.id;
+		const virtualConnectionTextArray 	= virtualConnectionCode.substring(1).split("-");
+
+		const GleissystemID 	= virtualConnectionTextArray[0];
+		const GleisID 			= virtualConnectionTextArray[1];
+		const Anschluss 		= virtualConnectionTextArray[2];
+		
+		showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss);
+
+	} else if (event.target.classList.contains("WeicheText")) { 			// Weiche
 		const WeicheCode 		= event.target.id;
 		const WeicheID 			= WeicheCode.substring(1)
 
@@ -5169,6 +5224,48 @@ function objectToHTML(object) {
 	}
 
 	return s;
+}
+
+function showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss) {
+	const posX = 12, posY = 13, posZ = 14;
+
+	const Gleissystem = global.Gleissysteme[GleissystemID];
+	if (!Gleissystem){ return; }
+
+	const Gleis 	= Gleissystem[GleisID];
+	if (!Gleis){ return; }
+
+	const connections = global.trackConnections[GleissystemID][GleisID];
+	if (!connections){ return; }
+
+	const connection = connections[Anschluss];
+	if (!connection){ return; }
+
+	const connectedGleis = global.Gleissysteme[GleissystemID][connection.GleisID];
+
+	const vPos = ( Anschluss            === "Anfang" ? Gleis.mPos          : Gleis.mEnd          );	// Start of virtual connection	
+	const vEnd = ( connection.Anschluss === "Anfang" ? connectedGleis.mPos : connectedGleis.mEnd );	// End of virtual connection	
+
+	// Kurzform in msg-Element
+	msg("", GleissystemText[GleissystemID] + " " + GleisID + " " 
+			+ Anschluss + " (" + vPos[posX].toFixed(0) + "m, " + vPos[posY].toFixed(0) + "m) "
+			+ "⇔" + " "
+			+ GleissystemText[GleissystemID] + " " + connection.GleisID + " "
+			+ connection.Anschluss + " (" + vEnd[posX].toFixed(0) + "m, " + vEnd[posY].toFixed(0) + ") "
+			+ _('virtuell')
+	);
+
+	// Ausführlich im Info Popup
+	const _i = "</i>", _a = "</a>";
+	showInfoWindow({
+		code: "V" + GleissystemID + "-" + GleisID + "-" + Anschluss,
+		title: `${GleissystemText[GleissystemID]} ${GleisID} ⇔ ${connection.GleisID} ${_('virtuell')}`,	// ☍ 260D ↝ 219D ↝ 2192 ↣ 21A3 ↦ 21A6 ⇄ 21C4 ⇔ 21D4 ⇿ 21FF
+		content:
+			`${_('Anfang')}: ${GleissystemText[GleissystemID]} ${GleisID} ${Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vPos}])">${vPos[posX].toFixed(0)}m, ${vPos[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Ende')}: ${GleissystemText[GleissystemID]} ${connection.GleisID} ${connection.Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vEnd}])">${vEnd[posX].toFixed(0)}m, ${vEnd[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Länge')}: ${Math.sqrt((vPos[posX]-vEnd[posX])**2 + (vPos[posY]-vEnd[posY])**2).toFixed(0)}m`
+			//+ objectToHTML( xxx )
+	});
 }
 
 function showGleisInfo(GleissystemID, GleisID) {
@@ -5830,6 +5927,7 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			+ objectToHTML(Kamera)
 	});
 }
+
 </script>
 <script type="text/javascript"> // toolwindow
 "use strict";
