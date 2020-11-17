@@ -9,24 +9,23 @@
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,Gleisplan" />
 <meta name="language" content="de" />
-<link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
+<!-- <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon"> -->
+<link rel="icon" href="images/favicon.ico" type="image/x-icon">
 
 <script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
 
 <script type="text/javascript"> // Experiment to load scripts dynamically either from relative path or from fixed URL - not used yet
 "use strict";
-<!--
 /* Source: https://humanwhocodes.com/blog/2009/07/28/the-best-way-to-load-external-javascript/
 Usage:
-<script type="text/javascript">
+<s.cript type="text/javascript">
 loadScript("http://your.cdn.com/script.js", function(){
     //initialization code
 });
-</script>
+</s.cript>
 */
-//-->
 function loadScript(url, callback){
-	const script = document.createElement("script")
+	const script = document.createElement("script");
 	script.type = "text/javascript";
 	script.onload = function(){	// IE would require different calls
 		callback();
@@ -254,7 +253,7 @@ Wechsel zwischen vertikaler und horizontaler Ausrichtung (Fullscreen mit <kbd>F1
 Zoom-in, -out, -reset<br>
 Auswahl der anzuzeigenden Gleissysteme<br>
 Auswahl der anzuzeigenden Informationen (GleisID, Kurventyp, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Gleisobjekte, Kamera, Rahmen)<br>
-Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise)<br>
+Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise, virtuelle Verbindungen)<br>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
 Die Positionierung ist auch über das <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm möglich!<br>
@@ -269,7 +268,7 @@ Switch between vertical and horizontal alignment (Full screen using <kbd>F11</kb
 Zoom-in, -out, -reset<br>
 Choose displayed track systems<br>
 Choose displayed information (TrackID, curve type, track style, height, switches, signals, contacts, marker, track objects, cameras, border)<br>
-Choose displayed tracks (active/inactive tracks with/without rolling stocks, visible/invisible tracks)<br>
+Choose displayed tracks (active/inactive tracks with/without rolling stocks, visible/invisible tracks, virtual connections)<br>
 Store current view as picture (png/jpg/svg)<br>
 Position track plan at specific track, respective track of a signal or switch<br>
 You can use the <a href="EEP_Inventar.html" target="_blank">inventory</a> program as well to position the view!<br>
@@ -284,7 +283,7 @@ Alterner la position de la barre entre horizontale et verticale (<kbd>F11</kbd> 
 Zoom-in, -out, -reset<br>
 Sélection des systèmes de voies<br>
 Sélection des informations à visualiser (ID voie, variante de voie, style de voie, hauteur, aiguillages, signaux, contacts,marqueurs,objets de voie, caméras, cadre)<br>
-Sélection des voies à visualiser (voies actives/inactives. avec/sansmatériels roulants)<br>
+Sélection des voies à visualiser (voies actives/inactives. avec/sansmatériels roulants, connexion virtuelle)<br>
 Mémoriser l‘image actuelle au format (png/jpg/svg)<br>
 Concentrer la vue sur une voie déterminée, resp. sur la voie d‘un signal ou d‘un aiguillage<br>
 Le postionnement est également possible par le programme <a href="EEP_Inventar.html" target="_blank">Inventaire</a>!<br>
@@ -823,13 +822,13 @@ function prepareGleissysteme(sutrackp) {
 			if (!trackConnections[GleissystemID][GleisID1]) {
 				 trackConnections[GleissystemID][GleisID1] = {};
 			}
-			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2, Flags : Flags };
+			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2, Flags : Flags, Direction : "forward" };
 
 			// Store relation GleisID2 -> GleisID1
 			if (!trackConnections[GleissystemID][GleisID2]) {
 				 trackConnections[GleissystemID][GleisID2] = {};
 			}
-			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1, Flags : Flags };
+			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1, Flags : Flags, Direction : "backward"  };
 		}
 	}
 	// Now we are able to show connections on detail popups
@@ -1963,16 +1962,17 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 		}
 
 		// Group node for Gleis
+		const classList = Gleisart[clsid] 
+			+ " " + CurveType
+			+ " " + `stil-${stil}`
+			+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
+			+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
+			// Ein Kamerafahrweg ist immer unsichtbar
+			+ " " + (stil == 100000 || (unsichtbar.includes(parseInt(stil)) && GleisData != 16) ? "unsichtbar" : "sichtbar");
 		const svgGleisGroup = svgAppend(svgGleissystemGroup, {
 			svg_tag	: `g`,
 			id		: `G${GleissystemID}-${GleisID}`,
-			"class"	: Gleisart[clsid]
-						+ " " + CurveType
-						+ " " + `stil-${stil}`
-						+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
-						+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
-						// Ein Kamerafahrweg ist immer unsichtbar
-						+ " " + (stil == 100000 || (unsichtbar.includes(parseInt(stil)) && GleisData != 16) ? "unsichtbar" : "sichtbar"),
+			"class"	: classList,
 		});
 
 		// Calculate end point and create svg curve
@@ -2524,23 +2524,51 @@ console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}
 
 	} // Gleise
 
-//### Test show start and end points of all tracks
-if (false) {
-for (const Gleis of Gleise) {
-	const connections = global.trackConnections[Gleis.GleissystemID][Gleis.getAttribute('GleisID')] || {};
-	console.log( "\t"
-		+ Gleis.GleissystemID + "\t"
-		+ Gleis.getAttribute('GleisID') + "\t"
-		+ Gleis.CurveType + "\t"
-		+ Gleis.mPos[12]  + "\t" + Gleis.mPos[13]  + "\t" + Gleis.mPos[14]  + "\t"
-		+ Gleis.mEnd[12]  + "\t" + Gleis.mEnd[13]  + "\t" + Gleis.mEnd[14]  + "\t"
-		+ (connections['Anfang']		? connections['Anfang'].GleisID 		: '') + "\t"
-		+ (connections['Ende']			? connections['Ende'].GleisID 			: '') + "\t"
-		+ (connections['EndeAbzweig']	? connections['EndeAbzweig'].GleisID 	: '') + "\t"
-		+ (connections['EndeKoAbzweig']	? connections['EndeKoAbzweig'].GleisID 	: '') + "\t"
-	)
-}}
+	// Process virtual connections
+	let svgVirtuellGroup;
+	for ( const GleisID in global.trackConnections[GleissystemID]) {
 
+		const Gleis   = global.Gleissysteme[GleissystemID][GleisID];
+
+		const connections = global.trackConnections[GleissystemID][GleisID] || {};
+		for (const Anschluss in connections) {	// Anfang, Ende, EndeAbzweig, EndeKoAbzweig
+
+			const connection = connections[Anschluss];
+			if (connection.Flags & connection.Direction === "forward") {	// Virtual connection in forward direction
+
+				const connectedGleis   = global.Gleissysteme[GleissystemID][connection.GleisID];
+
+				const vPos = ( Anschluss            === "Anfang" ? Gleis.mPos          : Gleis.mEnd          );	// Start of virtual connection	
+				const vEnd = ( connection.Anschluss === "Anfang" ? connectedGleis.mPos : connectedGleis.mEnd );	// End of virtual connection	
+
+/*
+console.log( "Gleis\t"
+	+ GleissystemID + " " + GleisID + "\t"
+	+ Anschluss + "\t"
+	+ vPos[12].toFixed(1)  + "\t" + vPos[13].toFixed(1)  + "\t" // + vPos[14].toFixed(1) + "\t"
+	+ "Gleis\t"
+	+ GleissystemID + " " + connection.GleisID + "\t"
+	+ connection.Anschluss+ "\t"
+	+ vEnd[12].toFixed(1)  + "\t" + vEnd[13].toFixed(1)  + "\t" // + vEnd[14].toFixed(1) + "\t"
+)
+*/
+
+				if (!svgVirtuellGroup) {
+					svgVirtuellGroup = svgAppend(svgGleissystemGroup, {
+						svg_tag	: `g`,
+						id		: `V${GleissystemID}`,
+						"class"	: "virtual",
+					});	
+				}
+				svgAppend(svgVirtuellGroup, {
+					svg_tag	: `path`,
+					id		: `V${GleissystemID}-${GleisID}-${Anschluss}`,
+					d 		: `M ${vPos[12]} ${-vPos[13]} L ${vEnd[12]} ${-vEnd[13]}`,
+				});
+
+			}
+		}
+	}
 }
 
 function createSVGfinalize(SVGfragment) {
@@ -2554,8 +2582,8 @@ function createSVGfinalize(SVGfragment) {
 
 	// Now we can append the fragments to the svg node
 	// Order: 1. Gleisobjekte (Flächen), 2. Rahmen, 3. Gleise (Linien), 4. Kameras
-	document.getElementById("sutrackp").appendChild(SVGfragmentBackground);
-	document.getElementById("sutrackp").appendChild(SVGfragment);
+	document.getElementById("sutrackpSVG").appendChild(SVGfragmentBackground);
+	document.getElementById("sutrackpSVG").appendChild(SVGfragment);
 
 	// Test: process all nodes recursivly
 	//process_node(sutrackp);
@@ -2781,25 +2809,12 @@ function createSVGforKameras(SVGfragment) {
 		Kamera.KameraID 			= KameraID;
 		global.KameraSet[KameraID] 	= Kamera;
 
-		// Process Kamera
-		if (!svgKamerasGroup) {		// First Kamera
-			// Show checkbox
-			document.getElementById("CheckboxKamera").classList.remove("hidden");
-
-			// Create svg group node
-			svgKamerasGroup = svgAppend(SVGfragment, {
-				svg_tag	: `g`,
-				id		: `Kamera`,
-				"class"	: `Kamera`,
-			});
-		}
-
 		/*
 		<Kammera name="Anlage" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="11.96" FOV="0.6981317" TakeSwitch="0">
 		*/
-		const Dynamic 	= Kamera.getAttribute("Dynamic");
+		Kamera.Dynamic 	= Kamera.getAttribute("Dynamic");
 
-		let Laenge, mMatrix;
+		let mMatrix;
 		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
 
 		const Dreibein	= Kamera.getElementsByTagName("Dreibein")[0];
@@ -2832,50 +2847,70 @@ function createSVGforKameras(SVGfragment) {
 		mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 		Kamera.mPos = mMatrix;
 
-		Laenge = 40;	// arbitrary length
-
-		let svgKameraGroup = svgAppend(svgKamerasGroup, {
-			svg_tag	: `g`,
-			id		: KameraID,
-		});
-
-		// Show circle at Point
-		svgAppend(svgKameraGroup, {
-			svg_tag				: `circle`,
-			r					: 2,
-			transform 			: matrixToTransform(Kamera.mPos),
-		});
-
-		// Draw Line
-		svgAppend(svgKameraGroup, {
-			svg_tag				: `path`,
-			d 					: `M 2 0 H ${Laenge}`,
-			transform 			: matrixToTransform(Kamera.mPos)
-		});
-
-		//Show Name
-		svgAppend(svgKameraGroup, {
-			svg_tag			: `text`,
-			text			: Name,			// 📷 \u1F4F7
-			dx				: `2`, 			// Shift text right
-			dy				: `-0.3em`, 	// Shift text up
-			//dy			: `1em`, 		// Shift text below the track
-			transform 		: matrixToTransform(Kamera.mPos)
-							  + ` scale(1 -1)`,
-		});
-
-		// show Hoehe in the middle below the track (left-adjusted)
-		svgAppend(svgKameraGroup, {
-			svg_tag			: `text`,
-			text			: `[${PosZ.toFixed(0)}m]`,
-			dx				: `2`, 		// Shift text right a little bit
-			dy				: `1em`, 		// Shift text below the track
-			"class"			: `Hoehe`,
-			transform 		: matrixToTransform(Kamera.mPos)
-							  + ` scale(1 -1)`,
-		});
-
+		// Process Kamera
+		if (!svgKamerasGroup) { // First Kamera
+			// Show checkbox
+			document.getElementById("CheckboxKamera").classList.remove("hidden");
+		}
+		svgKamerasGroup = createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera);
 	}
+}
+
+function createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera) {
+
+	const Laenge = 40; // arbitrary length
+
+	if (!svgKamerasGroup) { // First Kamera
+		// Create svg group node
+		svgKamerasGroup = svgAppend(SVGfragment, {
+			svg_tag: `g`,
+			id: `Kamera`,
+			"class": `Kamera`,
+		});
+	}
+
+	const svgKameraGroup = svgAppend(svgKamerasGroup, {
+		svg_tag: `g`,
+		id: Kamera.KameraID,
+	});
+
+	// Show circle at Point
+	svgAppend(svgKameraGroup, {
+		svg_tag				: `circle`,
+		r					: 2,
+		transform 			: matrixToTransform(Kamera.mPos),
+	});
+
+	// Draw Line
+	svgAppend(svgKameraGroup, {
+		svg_tag				: `path`,
+		d 					: `M 2 0 H ${Laenge}`,
+		transform 			: matrixToTransform(Kamera.mPos)
+	});
+
+	//Show Name
+	svgAppend(svgKameraGroup, {
+		svg_tag			: `text`,
+		text			: Kamera.Name,			// 📷 \u1F4F7
+		dx				: `2`, 			// Shift text right
+		dy				: `-0.3em`, 	// Shift text up
+		//dy			: `1em`, 		// Shift text below the track
+		transform: matrixToTransform(Kamera.mPos)
+			+ ` scale(1 -1)`,																   
+	});
+
+	// show Hoehe in the middle below the track (left-adjusted)
+	svgAppend(svgKameraGroup, {
+		svg_tag			: `text`,
+		text			: `[${Kamera.mPos[14].toFixed(0)}m]`, // PosZ
+		dx				: `2`, 		// Shift text right a little bit
+		dy				: `1em`, 		// Shift text below the track
+		"class"			: `Hoehe`,
+		transform: matrixToTransform(Kamera.mPos)
+			+ ` scale(1 -1)`,
+	});				   
+
+	return svgKamerasGroup;									   
 }
 
 function createSVGforRahmen(SVGfragment) {
@@ -2914,7 +2949,7 @@ function createSVGforRahmen(SVGfragment) {
 	// Group for additional general elements
 	let svg_general_group = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
-		id		: `general`,
+		"class": `general`,
 	});
 
 	// Box zur Anzeige der Groesse der Anlage
@@ -3190,7 +3225,7 @@ function svgAppend(svg_node, obj) {
 	rotate3d(vx,vy,vz,a): create a pivot using the vector (straight line) from the origin to the point (vx,vy,vz), and rotate the coordinate system around it by the angle a. The official definition of how to calculate the rotation involves extensive trigonometry. As an heuristic, the direction of rotation for a positive angle is determined by pointing the thumb along the pivot vector, and then curving the fingers; as always, you would use the left hand for the default coordinate system and the right hand for a reflected coordinate system.
 	For all these functions, the CSS syntax rules apply: angles and lengths must include units.
 
-	Another option would be to replace svg with x3D based on https://www.x3dom.org/
+	Another option would be to replace svg with x3d based on https://www.x3dom.org/
 	*/
 
 	let element = document.createElementNS(svgNS, obj.svg_tag);
@@ -3444,6 +3479,7 @@ const convexhull = new function() {
 
 <section id="heading"> <!-- The heading shows the header and the controls -->
 <style> /* heading */
+/* <![CDATA[ */
 #heading {
 	background-color: var(--body-background-color);
 	color: var(--body-text-color);
@@ -3469,6 +3505,7 @@ input[type="number"]#jpgQuality {
 	white-space: nowrap;		/* keep checkbox and label together */
 	display:inline;				/* but do no add extra line breaks per item */
 }
+/* ]]> */
 </style>
 <nav id="controls">
 
@@ -3479,11 +3516,11 @@ input[type="number"]#jpgQuality {
 <article class="group no-select"> <!-- Buttons, line and font size -->
 <button id="swap"><span lang="de">Tauschen</span><span lang="en">Swap</span><span lang="fr">Échanger</span></button>
 <!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
-<button id="savePNG"><span lang="de">Export</span><span lang="en">Export</span><span lang="fr">Exp.</span> PNG/JPG/SVG</button>
+<button id="savePNG" class="svgControl"><span lang="de">Export</span><span lang="en">Export</span><span lang="fr">Exp.</span> PNG/JPG/SVG</button>
 <button id="setColors"><span lang="de">Farben</span><span lang="en">Colours</span><span lang="fr">Couleurs</span></button>
 <br>
-<button id="zoom-in">+</button>
-<button id="zoom-out">-</button>
+<button id="zoom-in" class="svgControl">+</button>
+<button id="zoom-out" class="svgControl">-</button>
 <button id="resetzoom"><span lang="de">Zoom zurücksetzen</span><span lang="en">Reset zoom</span><span lang="fr">Réinit. le zoom</span></button>
 <button id="reset"><span lang="de">Alles zurücksetzen</span><span lang="en">Reset all</span><span lang="fr">Réinit. tout</span></button>
 <!-- enable/disable of controls of SvgPanZoom within the graphic
@@ -3491,9 +3528,11 @@ input[type="number"]#jpgQuality {
 	<button id="disable">disable controls</button>
 -->
 <br>
+<div class="svgControl">					
 <span lang="de">Linie</span><span lang="en">Line</span><span lang="fr">Ligne</span>&nbsp;<input type="range" min="1" max="150" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
 <br>
 <span lang="de">Schrift</span><span lang="en">Font</span><span lang="fr">Écriture</span>&nbsp;<input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
+<div>		  
 </article>
 
 <article class="group no-select"> <!-- Auswahl des im Zentrum anzuzeigendes Objektes -->
@@ -3592,6 +3631,7 @@ API:
 	HTML: Use the multiple attribute to enable the second handle. Use data-drag-middle attribute to enable moving both handles by dragging the middle of the track between them.
 -->
 <style>
+/* <![CDATA[ */
 @supports (--css: variables) {
 	input[type="range"].multirange {
 		padding: 0;
@@ -3679,6 +3719,7 @@ API:
 		}
 
 }
+/* ]]> */
 </style>
 
 <style>
@@ -3816,9 +3857,11 @@ if (typeof module === "undefined") {
 </script>
 <!-- End: Two handled slider for min/max height -->
 
+<div class="svgControl">
 <span lang="de">Sichtbarer Bereich</span><span lang="en">Visible area</span><span lang="fr">Zone visible</span>: <span id="visibleArea"> </span><br>
 <span lang="de">Zentrum des Bereichs</span><span lang="en">Center of the area</span><span lang="fr">Centre de la zone</span>: <span id="centerPosition"> </span><br>
 <span lang="de">Cursor</span><span lang="en">Cursor</span><span lang="fr">Curseur</span>: <span id="cursorPosition"> </span>
+</div>
 </article>
 
 <article class="group no-select"> <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
@@ -3858,6 +3901,8 @@ if (typeof module === "undefined") {
 	<input type="checkbox" name="sichtbar" 		checked autocomplete="off" onchange="toggleElements('.sichtbar', this.checked)"><span lang="de">sichtbar</span><span lang="en">visible</span><span lang="fr">visible</span></label></div>
 	<div class="item"><label>	<!-- unsichtbar -->
 	<input type="checkbox" name="unsichtbar" 	checked autocomplete="off" onchange="toggleElements('.unsichtbar', this.checked)"><span lang="de">unsichtbar</span><span lang="en">invisible</span><span lang="fr">invisible</span></label></div>
+	<div class="item"><label>	<!-- virtual -->
+	<input type="checkbox" name="virtual" 	    checked autocomplete="off" onchange="toggleElements('.virtual', this.checked)"><span lang="de">virtuell</span><span lang="en">virtual</span><span lang="fr">virtuel</span></label></div>
 	<div class="item"><label>	<!-- Marker -->
 	<input type="checkbox" name="Marker" 		checked autocomplete="off" onchange="toggleMarker(this.checked)"><span lang="de">Marker</span><span lang="en">Marker</span><span lang="fr">Marqueurs</span></label></div>
 	<div class="item hidden" id="CheckboxGleisobjekt"><label>	<!-- only visible if there are elements of that type -->
@@ -3865,7 +3910,7 @@ if (typeof module === "undefined") {
 	<div class="item hidden" id="CheckboxKamera"><label>		<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)"><span lang="de">Kameras</span><span lang="en">Cameras</span><span lang="fr">Caméras</span></label></div>
 	<div class="item"><label>
-	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('#general', this.checked)"><span lang="de">Rahmen</span><span lang="en">Frame</span><span lang="fr">Cadre</span></label></div>
+	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('.general', this.checked)"><span lang="de">Rahmen</span><span lang="en">Frame</span><span lang="fr">Cadre</span></label></div>
 </fieldset>
 </article>
 
@@ -4162,7 +4207,12 @@ text.WeicheText {
 }
 
 .unsichtbar {	/* unsichtbare Gleisstile */
-	stroke-dasharray: 0.4 0.2;
+	stroke-dasharray: 0.6 0.2;
+}
+
+.virtual {	/* virtuelle Gleisstile */
+	stroke-dasharray: 0.3 0.2;
+	stroke-opacity: 0.5;
 }
 
 .inactive {		/* inaktive Gleisstile */
@@ -4263,7 +4313,7 @@ text.WeicheText {
 
 </defs>
 
-<g id="sutrackp" class="svg-pan-zoom_viewport">
+<g id="sutrackpSVG" class="svg-pan-zoom_viewport">
 <!-- hier werden dynamisch die weiteren svg-Elemente der EEP Anlage eingefügt -->
 </g>
 
@@ -4284,6 +4334,7 @@ See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
 
 <script type="text/javascript"> // svg-pan-zoom
 "use strict";
+
 function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
@@ -4454,16 +4505,20 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		// Toogle between flex-direction: column and flex-direction: row
 		document.getElementById("main").classList.toggle("column");
 		document.getElementById("main").classList.toggle("row");
-		// Swapping changes the size of the svg element
-		oldSizes = panZoom.getSizes();
-		panZoom.resize();
-		newSizes = panZoom.getSizes();
-		// The top left point keeps its position. We need to pan to keep the center being centered.
-		panZoom.panBy({
-			x: (newSizes.width - oldSizes.width) 	/ 2 ,
-			y: (newSizes.height - oldSizes.height)	/ 2 ,
-		});
-		showArea(panZoom);
+
+		// If the svg element is hidden, then we would get zero height and width after panZoom.resize();
+		if (!document.getElementById("svg").classList.contains("hidden")) {
+			// Swapping changes the size of the svg element
+			const oldSizes = panZoom.getSizes();
+			panZoom.resize();
+			const newSizes = panZoom.getSizes();
+			// The top left point keeps its position. We need to pan to keep the center being centered.
+			panZoom.panBy({
+				x: (newSizes.width - oldSizes.width) 	/ 2 ,
+				y: (newSizes.height - oldSizes.height)	/ 2 ,
+			});
+			showArea(panZoom);
+		}
 	});
 
 	// Button Zoom-In
@@ -4478,6 +4533,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		ev.preventDefault();
 		panZoom.zoomOut();
 	});
+
 	// Button Reset
 	document.getElementById("reset").addEventListener("click", function(ev) {
 		msg();
@@ -4911,9 +4967,18 @@ target						|circle::undefined
 target.parentElement		|g:G1-47:Normal
 rangeParent					|g:G1-47:Normal
 rangeParent.parentElement	|g:Eisenbahn:undefined
+
+Virtual connection
+event.target.parentElement.parentElement.id					""
+event.target.parentElement.parentElement.id					""
+event.target.parentElement.classList[0]						virtual
+event.target.parentElement.classList.contains("virtual")	true
+event.target.classList[0]									undefined	
+event.target.parentElement.id								V4
+event.target.id												V4-1
 */
 
-	if (event.target.parentElement.classList[0] === "Signal") {			// Signal
+	if (event.target.parentElement.classList.contains("Signal")) {			// Signal
 		const SignalCode 		= event.target.parentElement.id;
 		const SignalID 			= Number(SignalCode.substring(1));
 
@@ -4924,7 +4989,7 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 
 		showSignalInfo(SignalID, GleissystemID, GleisID);
 
-	} else if (event.target.parentElement.classList[0] === "Kontakt") {	// Kontakt
+	} else if (event.target.parentElement.classList.contains("Kontakt")) {	// Kontakt
 		const KontaktCode		= event.target.parentElement.id;
 		const KontaktID 		= KontaktCode.substring(1);
 
@@ -4935,7 +5000,18 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 
 		showKontaktInfo(KontaktID, GleissystemID, GleisID);
 
-	} else if (event.target.classList[0] === "WeicheText") { 			// Weiche
+	} else if (event.target.parentElement.classList.contains("virtual")) {	// virtual connection
+
+		const virtualConnectionCode 		= event.target.id;
+		const virtualConnectionTextArray 	= virtualConnectionCode.substring(1).split("-");
+
+		const GleissystemID 	= virtualConnectionTextArray[0];
+		const GleisID 			= virtualConnectionTextArray[1];
+		const Anschluss 		= virtualConnectionTextArray[2];
+		
+		showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss);
+
+	} else if (event.target.classList.contains("WeicheText")) { 			// Weiche
 		const WeicheCode 		= event.target.id;
 		const WeicheID 			= WeicheCode.substring(1)
 
@@ -4952,7 +5028,7 @@ rangeParent.parentElement	|g:Eisenbahn:undefined
 		// Issue: Name is not an unique key
 		showKameraInfo(KameraID);
 
-	} else if (event.target.parentElement.id !== "general") {			// Gleis (hopefully)
+	} else if (!event.target.parentElement.classList.contains("general")) { // Gleis (hopefully)
 		const GleisCode 		= event.target.parentElement.id;
 		const GleisTextArray 	= GleisCode.substring(1).split("-");
 		const GleissystemID 	= GleisTextArray[0];
@@ -5148,6 +5224,48 @@ function objectToHTML(object) {
 	}
 
 	return s;
+}
+
+function showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss) {
+	const posX = 12, posY = 13, posZ = 14;
+
+	const Gleissystem = global.Gleissysteme[GleissystemID];
+	if (!Gleissystem){ return; }
+
+	const Gleis 	= Gleissystem[GleisID];
+	if (!Gleis){ return; }
+
+	const connections = global.trackConnections[GleissystemID][GleisID];
+	if (!connections){ return; }
+
+	const connection = connections[Anschluss];
+	if (!connection){ return; }
+
+	const connectedGleis = global.Gleissysteme[GleissystemID][connection.GleisID];
+
+	const vPos = ( Anschluss            === "Anfang" ? Gleis.mPos          : Gleis.mEnd          );	// Start of virtual connection	
+	const vEnd = ( connection.Anschluss === "Anfang" ? connectedGleis.mPos : connectedGleis.mEnd );	// End of virtual connection	
+
+	// Kurzform in msg-Element
+	msg("", GleissystemText[GleissystemID] + " " + GleisID + " " 
+			+ Anschluss + " (" + vPos[posX].toFixed(0) + "m, " + vPos[posY].toFixed(0) + "m) "
+			+ "⇔" + " "
+			+ GleissystemText[GleissystemID] + " " + connection.GleisID + " "
+			+ connection.Anschluss + " (" + vEnd[posX].toFixed(0) + "m, " + vEnd[posY].toFixed(0) + ") "
+			+ _('virtuell')
+	);
+
+	// Ausführlich im Info Popup
+	const _i = "</i>", _a = "</a>";
+	showInfoWindow({
+		code: "V" + GleissystemID + "-" + GleisID + "-" + Anschluss,
+		title: `${GleissystemText[GleissystemID]} ${GleisID} ⇔ ${connection.GleisID} ${_('virtuell')}`,	// ☍ 260D ↝ 219D ↝ 2192 ↣ 21A3 ↦ 21A6 ⇄ 21C4 ⇔ 21D4 ⇿ 21FF
+		content:
+			`${_('Anfang')}: ${GleissystemText[GleissystemID]} ${GleisID} ${Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vPos}])">${vPos[posX].toFixed(0)}m, ${vPos[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Ende')}: ${GleissystemText[GleissystemID]} ${connection.GleisID} ${connection.Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vEnd}])">${vEnd[posX].toFixed(0)}m, ${vEnd[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Länge')}: ${Math.sqrt((vPos[posX]-vEnd[posX])**2 + (vPos[posY]-vEnd[posY])**2).toFixed(0)}m`
+			//+ objectToHTML( xxx )
+	});
 }
 
 function showGleisInfo(GleissystemID, GleisID) {
@@ -5693,8 +5811,6 @@ function showKameraInfo(KameraID) {
 	const Kamera 		= global.KameraSet[KameraID];
 	if (!Kamera) { return; }
 
-	const Dynamic 	= Kamera.getAttribute("Dynamic");
-
 	const [DirX, DirY, DirZ, d0, NorX, NorY, NorZ, n0, BinX, BinY, BinZ, b0, PosX, PosY, PosZ, scale ] = Kamera.mPos;
 
 	// https://www.matheplanet.com/default3.html?call=viewtopic.php?topic=140833&ref=https%3A%2F%2Fwww.google.com%2F
@@ -5807,10 +5923,11 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			+ " " + ['W', 'WNW', 'NW', 'NNW', 'N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)] 
 			+ `<br>${_('Neigung')}: ` 				 + angle( angleY )			// Neigung Y
 			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : "")	// Neigung X
-			+ `<br>` + (Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6
+			+ `<br>` + (Kamera.Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6
 			+ objectToHTML(Kamera)
 	});
 }
+
 </script>
 <script type="text/javascript"> // toolwindow
 "use strict";
@@ -6052,6 +6169,7 @@ function exportGraphic(fileType) {
 	// Load img
 	img.src = url;
 }
+
 function exportData(dataURL, fileType) {
 	// Get file name without extension
 	const filename = document.getElementById("filename").textContent;
@@ -6116,6 +6234,7 @@ const GleissystemFarbDefinition = [{
 	color: "#FFFFFF"	/* white; */
 }];
 let GleissystemFarbe;
+
 function loadColors() {
 	GleissystemFarbe = JSON.parse(localStorage.getItem("GleissystemFarbe"));
 
@@ -6125,6 +6244,7 @@ function loadColors() {
 		resetColors();
 	}
 }
+
 function resetColors() {
 	// reset color values
 	GleissystemFarbe = {};
@@ -6138,18 +6258,20 @@ function resetColors() {
 	// purge local storage
 	localStorage.removeItem("GleissystemFarbe");
 }
+
 function setColors() {
 	// set SVG CSS variables
-	const defaultColorVariables = GleissystemFarbDefinition.map(function(farbe) {
+	const colorVariables = GleissystemFarbDefinition.map(function(farbe) {
 		return `--${farbe.name}-color: ${GleissystemFarbe[farbe.name] || farbe.color};`;
 	}).join("");
-	document.getElementById("css-track-colors").textContent = `svg { ${defaultColorVariables} }`;
+	document.getElementById("css-track-colors").textContent = `svg { ${colorVariables} }`;
 
 	// Update color in storage
 	localStorage.setItem("GleissystemFarbe", JSON.stringify(GleissystemFarbe));
 }
 
 let colorPickerWindow;
+
 function showColorPickerWindow() {
 	if (!colorPickerWindow) {
 		const content = GleissystemFarbDefinition.map(function(farbe) {
@@ -6232,7 +6354,6 @@ javascript:(function(){document.getElementById(%27modCSS%27).textContent=%27
 %27;})();
 
 */
-
 </style>
 
 </main> <!-- Main screen -->
