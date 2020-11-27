@@ -500,11 +500,15 @@ function updateUi(fn) {
 "use strict";
 // Process root node (sutrackp)
 // EEP: Static texts
-let GleissystemText, Gleisart, GleisDataText, WeichenstellungText, GebaeudesammlungText;
+let TrackSystemTexts, Gleisart, GleisDataText, WeichenstellungText, GebaeudesammlungText;
 
+function TrackSystemText(GleissystemID) {
+	return TrackSystemTexts[global.TrackSystem[GleissystemID]];
+}
+	
 function loadStaticTexts() {
 
-GleissystemText = { 			// GleissystemID : Text,
+TrackSystemTexts = { 			// per TrackSystemNumber 1-6 (caution: GleissystemID could show other numbers, too) 
 	1 : _('Eisenbahn'),
 	2 : _('Strassenbahn'),
 	3 : _('Strasse'),
@@ -720,12 +724,23 @@ function prepareGleissysteme(sutrackp) {
 
 	const Gleissysteme 	= sutrackp.getElementsByTagName("Gleissystem");
 	for (const Gleissystem of Gleissysteme) {
-
-		// Use attribute TrackSystemNumber instead of GleissystemID if available
-		let GleissystemID 	= Gleissystem.getAttribute("TrackSystemNumber");
-		if (!GleissystemID) {
-			GleissystemID 	= Gleissystem.getAttribute("GleissystemID");
+		// Use both attributes GleissystemID and TrackSystemNumber if available
+		let GleissystemID     = Gleissystem.getAttribute('GleissystemID');
+		let TrackSystemNumber = Gleissystem.getAttribute('TrackSystemNumber');
+		if (GleissystemID && !TrackSystemNumber) {
+			TrackSystemNumber = GleissystemID;
+		} else if (!GleissystemID && TrackSystemNumber) {
+			GleissystemID = TrackSystemNumber;
 		}
+		
+		// Store relationship between GleissystemID and TrackSystemNumber 
+		if (!global.TrackSystem) {
+			global.TrackSystem = {};
+		}
+		if (!global.TrackSystem[GleissystemID]) {
+			global.TrackSystem[GleissystemID] = TrackSystemNumber;
+		}
+
 		global.Gleissysteme[GleissystemID] = {};
 		activeTracks[GleissystemID] = [];
 		trackSignals[GleissystemID] = [];
@@ -909,14 +924,14 @@ function prepareGleissysteme(sutrackp) {
 					let nextGleisID, Anschluss;
 
 					if (!trackConnections[GleissystemID][currentGleisID]) { // should not happen
-						console.log(`Error: Signal ${SignalID} no connected track for ${GleissystemText[GleissystemID]} ${currentGleisID}`);
+						console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}`);
 						break;
 					}
 
 					if (ParaOderAnti == 1) { // look forward
 
 						if (!trackConnections[GleissystemID][currentGleisID].Ende) { // should not happen
-							console.log(`Error: no connected track for ${GleissystemText[GleissystemID]} ${currentGleisID}.Ende`);
+							console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Ende`);
 							break;
 						}
 
@@ -927,7 +942,7 @@ function prepareGleissysteme(sutrackp) {
 					} else {				// look backward
 
 						if (!trackConnections[GleissystemID][currentGleisID].Anfang) { // should not happen
-							console.log(`Error: Signal ${SignalID} no connected track for ${GleissystemText[GleissystemID]} ${currentGleisID}.Anfang`);
+							console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Anfang`);
 							break;
 						}
 
@@ -1125,23 +1140,20 @@ function prepareGleissysteme(sutrackp) {
 }
 
 function createSVGforGleissystem(Gleissystem, SVGfragment) {
-	// Use attribute TrackSystemNumber instead of GleissystemID if available
-	let GleissystemID 	= Gleissystem.getAttribute("TrackSystemNumber");
-	if (!GleissystemID) {
-		GleissystemID 	= Gleissystem.getAttribute("GleissystemID");
-	}
 
+	const GleissystemID 	= Gleissystem.getAttribute("GleissystemID");
+	
 	// Append groups to the root node; append other elements to these group nodes
 	const svgGleissystemGroup = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
-		"class"	: `${GleissystemCode[GleissystemID]}`,
+		"class"	: `${GleissystemCode[global.TrackSystem[GleissystemID]]}`,
 	});
 
 	const Gleise = Gleissystem.getElementsByTagName("Gleis");
 
 	// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
 	if (Gleise.length > 0) {
-		for (const ele of document.getElementsByClassName(GleissystemCode[GleissystemID])) {
+		for (const ele of document.getElementsByClassName(GleissystemCode[global.TrackSystem[GleissystemID]])) {
 			ele.classList.remove("hidden");
 		}
 	}
@@ -1195,7 +1207,7 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 			const far 		= +Interval.getAttribute("far");
 
 if (near > far) { console.log('near ' + near + ' > far ' + far + ' for '
-	+ GleissystemText[GleissystemID] + ' ' + GleisID
+	+ TrackSystemText(GleissystemID) + ' ' + GleisID
 )}
 			const Frame		= Gleis.getElementsByTagName("Frame")[0];
 			const FramePos	= Frame.getElementsByTagName("Position")[0];
@@ -1213,7 +1225,7 @@ if (near > far) { console.log('near ' + near + ' > far ' + far + ' for '
 			const FrameNor	= Frame.getElementsByTagName("Vector")[(swap ? 2 : 1)];
 			const FrameBin	= Frame.getElementsByTagName("Vector")[(swap ? 1 : 2)];
 if (swap) { console.log('Swap frame vektor Nor<->Bin for '
-	+ GleissystemText[GleissystemID] + ' ' + GleisID
+	+ TrackSystemText(GleissystemID) + ' ' + GleisID
 )}
 
 			Laenge	= Math.abs( far - near );
@@ -1254,12 +1266,12 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 			}
 /*
 if (DirX == NorY ) {
-	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
+	console.log(TrackSystemText(GleissystemID) + ' ' + GleisID
 		+ ' DirX == NorY'
 	);
 }
 if (BinZ == -1 ) {
-	console.log(GleissystemText[GleissystemID] + ' ' + GleisID
+	console.log(TrackSystemText(GleissystemID) + ' ' + GleisID
 		+ ' BinZ == -1'
 	);
 	//BinZ = 1;
@@ -1289,7 +1301,7 @@ if (BinZ == -1 ) {
 
 				 // assumption: Gleis.Frame does not contain relevant data
 				if (Math.abs(+FramePos.getAttribute("x")) > 1 ) {
-					console.log(`EEPCurve ${GleissystemText[GleissystemID]} ${GleisID} has Frame value`);
+					console.log(`EEPCurve ${TrackSystemText(GleissystemID)} ${GleisID} has Frame value`);
 				}
 
 				const Frame2	= EEPCurve.getElementsByTagName("Frame")[0];
@@ -1666,7 +1678,7 @@ if ( 1 === 1
 ||	(GleissystemID == "3" && GleisID == "573"	)
 ||	(GleissystemID == "3" && GleisID == "592"	)
 ){
-	console.log('\t' + GleissystemText[GleissystemID] + '\t' + GleisID
+	console.log('\t' + TrackSystemText(GleissystemID) + '\t' + GleisID
 		+ '\t'
 		+ '\tPos\t'  + PosX  + '\t' + PosY  + '\t' + PosZ
 		+ '\tDir\t'  + DirX  + '\t' + DirY  + '\t' + DirZ
@@ -1844,7 +1856,7 @@ Arc 	215	x	1467.390	y	-1822.741	z	12.384
 				Gleis.BezierPoints = [ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z]];
 
 /*
-console.log(`Cubic ${GleissystemText[GleissystemID]} ${GleisID}`
+console.log(`Cubic ${TrackSystemText(GleissystemID)} ${GleisID}`
 + ' Pos ' + FramePos.getAttribute("x")  + ' ' + FramePos.getAttribute("y")  + ' ' + FramePos.getAttribute("z")
 + ' Dir ' + FrameDir.getAttribute("dx") + ' ' + FrameDir.getAttribute("dy") + ' ' + FrameDir.getAttribute("dz")
 + ' Nor ' + FrameNor.getAttribute("dx") + ' ' + FrameNor.getAttribute("dy") + ' ' + FrameNor.getAttribute("dz")
@@ -1862,17 +1874,17 @@ console.log(`Cubic ${GleissystemText[GleissystemID]} ${GleisID}`
 				Kruemmung = +Rotator.getAttribute("a");
 				const KruemmungZ = +Rotator.getAttribute("b");
 				if (KruemmungZ * Laenge > 1) {
-					console.log(`Rotator ${GleissystemText[GleissystemID]} ${GleisID} has large KruemmungZ`);
+					console.log(`Rotator ${TrackSystemText(GleissystemID)} ${GleisID} has large KruemmungZ`);
 				}
 
 			} else if (RotatorChain) {
 				CurveType 	= 'RotatorChain';
-				console.log(`RotatorChain not supported yet: ${GleissystemText[GleissystemID]} ${GleisID}`);
+				console.log(`RotatorChain not supported yet: ${TrackSystemText(GleissystemID)} ${GleisID}`);
 				continue;
 
 			} else { // curve not supported yet
 				CurveType 	= 'others';
-				console.log(`other curve type not supported yet:  ${GleissystemText[GleissystemID]} ${GleisID}`);
+				console.log(`other curve type not supported yet:  ${TrackSystemText(GleissystemID)} ${GleisID}`);
 				continue;
 			}
 
@@ -1911,7 +1923,7 @@ console.log(`Cubic ${GleissystemText[GleissystemID]} ${GleisID}`
 /*
 const Interval = Gleis.getElementsByTagName("Interval")[0];
 if (0 != +Interval.getAttribute("near")) {
-console.log(`near != 0 ${GleissystemText[GleissystemID]} ${GleisID} ${CurveType}`
+console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}`
 + ' ' + Interval.getAttribute("near")
 + ' ' + Interval.getAttribute("far")
 );
@@ -2686,7 +2698,7 @@ function createSVGforGleisobjekte(SVGfragment) {
 		const svgGleisobjektGroup = svgAppend(svgGleisobjekteGroup, {
 			svg_tag	: `g`,
 			id		: `GO` + GleisobjektID,
-			"class"	: `${GleissystemCode[GleissystemID]}`
+			"class"	: `${GleissystemCode[global.TrackSystem[GleissystemID]]}`
 						+ ` height=${Gleisobjekt.PosZ.toFixed(2)}`	// Height
 		});
 		// simplified: show outer rectangle
@@ -4679,20 +4691,20 @@ EEPchannel.onmessage = function(ev) {
 
 		const Gleissystem = global.Gleissysteme[GleissystemID];
 		if (!Gleissystem) {
-			//msg(`Gleissystem ${GleissystemID} ${GleissystemText[GleissystemID]} existiert nicht`);
-			msg('TrackSystemNotExists', GleissystemID, GleissystemText[GleissystemID]);
+			//msg(`Gleissystem ${GleissystemID} ${TrackSystemText(GleissystemID)} existiert nicht`);
+			msg('TrackSystemNotExists', GleissystemID, TrackSystemText(GleissystemID));
 			return false;
 		}
 		const Gleis = Gleissystem[GleisID];
 		if (!Gleis) {
-			//msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
-			msg('TrackNotExists', GleissystemText[GleissystemID], GleisID);
+			//msg(`${TrackSystemText(GleissystemID)} ${GleisID} existiert nicht`);
+			msg('TrackNotExists', TrackSystemText(GleissystemID), GleisID);
 			return false;
 		}
 
 		centerPosition(Gleis.mMid); // Mitte des Gleises
-		//msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-		msg('Positioning', GleissystemText[GleissystemID], GleisID);
+		//msg(`Positionierung auf ${TrackSystemText(GleissystemID)} ${GleisID}`);
+		msg('Positioning', TrackSystemText(GleissystemID), GleisID);
 
 		showGleisInfo(GleissystemID, GleisID);
 		return true;
@@ -4719,27 +4731,35 @@ function centerItem() {
 	const sel 	= o.options[o.selectedIndex].value;			// e.g. 1-6, I (statt W, S), K
 	const val 	= Number(document.getElementById("number").value);
 
-	if (sel >= "1" && sel <= "6") { // Gleissystem
+	if (sel >= "1" && sel <= "6") {	// TracksystemNumber
 
-		const GleissystemID = Number(sel);
+		const TracksystemNumber = Number(sel);
+		
+		let GleissystemID; // Find GleissystemID for TracksystemNumber 
+		for (const key in global.TrackSystem) { 
+			if (global.TrackSystem[key] == TracksystemNumber) {
+				GleissystemID = key;
+			}
+		}
+		
 		const GleisID 		= val;
 
 		const Gleissystem = global.Gleissysteme[GleissystemID];
 		if (!Gleissystem) {
-			//msg(`Gleissystem ${GleissystemID} ${GleissystemText[GleissystemID]} existiert nicht`);
-			msg('TrackSystemNotExists', GleissystemID, GleissystemText[GleissystemID]);
+			//msg(`Gleissystem ${GleissystemID} ${TrackSystemText(GleissystemID)} existiert nicht`);
+			msg('TrackSystemNotExists', GleissystemID, TrackSystemText(GleissystemID));
 			return false;
 		}
 		const Gleis = Gleissystem[GleisID];
 		if (!Gleis) {
-			//msg(`${GleissystemText[GleissystemID]} ${GleisID} existiert nicht`);
-			msg('TrackNotExists', GleissystemText[GleissystemID], GleisID);
+			//msg(`${TrackSystemText(GleissystemID)} ${GleisID} existiert nicht`);
+			msg('TrackNotExists', TrackSystemText(GleissystemID), GleisID);
 			return false;
 		}
 
 		centerPosition(Gleis.mMid); // Mitte des Gleises
-		//msg(`Positionierung auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-		msg('Positioning', GleissystemText[GleissystemID], GleisID);
+		//msg(`Positionierung auf ${TrackSystemText(GleissystemID)} ${GleisID}`);
+		msg('Positioning', TrackSystemText(GleissystemID), GleisID);
 		return true;
 
 	} else if (sel === "I" || sel === 'S' || sel === 'W') {		// I = Signal/Weiche (Nummern übergreifend über alle Gleissysteme)
@@ -5247,10 +5267,10 @@ function showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss) {
 	const vEnd = ( connection.Anschluss === "Anfang" ? connectedGleis.mPos : connectedGleis.mEnd );	// End of virtual connection	
 
 	// Kurzform in msg-Element
-	msg("", GleissystemText[GleissystemID] + " " + GleisID + " " 
+	msg("", TrackSystemText(GleissystemID) + " " + GleisID + " " 
 			+ Anschluss + " (" + vPos[posX].toFixed(0) + "m, " + vPos[posY].toFixed(0) + "m) "
 			+ "⇔" + " "
-			+ GleissystemText[GleissystemID] + " " + connection.GleisID + " "
+			+ TrackSystemText(GleissystemID) + " " + connection.GleisID + " "
 			+ connection.Anschluss + " (" + vEnd[posX].toFixed(0) + "m, " + vEnd[posY].toFixed(0) + ") "
 			+ _('virtuell')
 	);
@@ -5259,10 +5279,10 @@ function showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss) {
 	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
 		code: "V" + GleissystemID + "-" + GleisID + "-" + Anschluss,
-		title: `${GleissystemText[GleissystemID]} ${GleisID} ⇔ ${connection.GleisID} ${_('virtuell')}`,	// ☍ 260D ↝ 219D ↝ 2192 ↣ 21A3 ↦ 21A6 ⇄ 21C4 ⇔ 21D4 ⇿ 21FF
+		title: `${TrackSystemText(GleissystemID)} ${GleisID} ⇔ ${connection.GleisID} ${_('virtuell')}`,	// ☍ 260D ↝ 219D ↝ 2192 ↣ 21A3 ↦ 21A6 ⇄ 21C4 ⇔ 21D4 ⇿ 21FF
 		content:
-			`${_('Anfang')}: ${GleissystemText[GleissystemID]} ${GleisID} ${Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vPos}])">${vPos[posX].toFixed(0)}m, ${vPos[posY].toFixed(0)}m<\/a>)`
-			+ `<br>${_('Ende')}: ${GleissystemText[GleissystemID]} ${connection.GleisID} ${connection.Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vEnd}])">${vEnd[posX].toFixed(0)}m, ${vEnd[posY].toFixed(0)}m<\/a>)`
+			`${_('Anfang')}: ${TrackSystemText(GleissystemID)} ${GleisID} ${Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vPos}])">${vPos[posX].toFixed(0)}m, ${vPos[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('Ende')}: ${TrackSystemText(GleissystemID)} ${connection.GleisID} ${connection.Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vEnd}])">${vEnd[posX].toFixed(0)}m, ${vEnd[posY].toFixed(0)}m<\/a>)`
 			+ `<br>${_('Länge')}: ${Math.sqrt((vPos[posX]-vEnd[posX])**2 + (vPos[posY]-vEnd[posY])**2).toFixed(0)}m`
 			//+ objectToHTML( xxx )
 	});
@@ -5301,7 +5321,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 	}
 
 	// Kurzform in msg-Element
-	msg("", GleissystemText[GleissystemID] + " " + GleisID,
+	msg("", TrackSystemText(GleissystemID) + " " + GleisID,
 			Gleisart[clsid],
 			_('Stil') + " " + stil,
 			gsbname
@@ -5325,7 +5345,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
 		code: "Gleis " + GleissystemID + "-" + GleisID,
-		title: `${GleissystemText[GleissystemID]} ${GleisID}`,
+		title: `${TrackSystemText(GleissystemID)} ${GleisID}`,
 		content:
 			`${_('Position')} ${_('Anfang')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mPos}])">${Gleis.mPos[posX].toFixed(0)}m, ${Gleis.mPos[posY].toFixed(0)}m<\/a>)`
 			+ `<br>${_('Mitte')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[posX].toFixed(0)}m, ${Gleis.mMid[posY].toFixed(0)}m<\/a>)`
@@ -5363,8 +5383,8 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 														// 20: Weichen einer Straßen-T-Kreuzung
 
 	// Kurzform in msg-Element
-	//msg(`Weiche ${WeicheID} auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-	msg('SwitchLocation', WeicheID, GleissystemText[GleissystemID], GleisID);
+	//msg(`Weiche ${WeicheID} auf ${TrackSystemText(GleissystemID)} ${GleisID}`);
+	msg('SwitchLocation', WeicheID, TrackSystemText(GleissystemID), GleisID);
 
 	// Show connected tracks
 	let connectionText = "";
@@ -5386,7 +5406,7 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 		title: _('Weiche') + " " + WeicheID,
 		content:
 			`<i>${_('Position')}: `
-				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}]);">${GleissystemText[GleissystemID]} ${GleisID}<\/a>`
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}]);">${TrackSystemText(GleissystemID)} ${GleisID}<\/a>`
 				+ `<\/i>`
 			+ `<br>${_('Gleisart')}: ${Gleisart[clsid]}`
 			+ (GleisData   != 0 ? `<br>` + GleisDataText[GleisData] : "")
@@ -5477,7 +5497,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 	}
 
 	// Kurzform in msg-Element
-	msg("", `${SignalTypeText} ${SignalID} ${File} ${_('auf')} ${GleissystemText[GleissystemID]} ${GleisID}`
+	msg("", `${SignalTypeText} ${SignalID} ${File} ${_('auf')} ${TrackSystemText(GleissystemID)} ${GleisID}`
 		+ `, ${_('Signalstellung')} ${Stellung} ${SignalstellungText}`
 		+ (KontaktZiel != null && KontaktZiel != 0 ? `, ${_('Kontaktziel')}=${KontaktZiel}` : ""));
 
@@ -5511,7 +5531,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		title: `${SignalTypeText} ${SignalID}`,
 		content:
 			`<i>${_('Position')}: `
-				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${GleissystemText[GleissystemID]} ${GleisID}`
+				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${TrackSystemText(GleissystemID)} ${GleisID}`
 				+ ` +${Position.toFixed(1)}m<\/a><\/i>`
 			+ `<br>${_('Name')}: ${File}`
 			+ (Signalstellung[File] && File !== getSignalName(File) ? `<br>${getSignalName(File)}` : "")
@@ -5755,8 +5775,8 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	//const Zugverband = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
 
 	// Kurzform in msg-Element
-	//msg(`Kontakt auf ${GleissystemText[GleissystemID]} ${GleisID}`);
-	msg('ContactLocation', GleissystemText[GleissystemID], GleisID);
+	//msg(`Kontakt auf ${TrackSystemText(GleissystemID)} ${GleisID}`);
+	msg('ContactLocation', TrackSystemText(GleissystemID), GleisID);
 
 	// Ausführlich im Info Popup
 	showInfoWindow({
@@ -5765,7 +5785,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 		content:
 			`<i>${_('Position')}: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kontakt.mPos}]);">`
-				+ `${GleissystemText[GleissystemID]} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
+				+ `${TrackSystemText(GleissystemID)} ${GleisID} +${Position.toFixed(1)}m<\/a><\/i>`
 			+ `<br>${_('Kontakttyp')} ` + SetType + ": "
 			// KontaktTyp[SetType] mit Modifikation
 			+ getKontaktIcon(GleissystemID, SetType, SetValue) + " "

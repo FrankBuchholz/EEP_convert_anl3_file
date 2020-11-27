@@ -180,7 +180,7 @@ function process_node(sutrackp) {
 //console.log(sutrackp.nodeName);
 
 	// EEP: Static texts
-	const GleissystemText = { 			// GleissystemID
+	const TrackSystemTexts = { 			// per TrackSystemNumber 1-6 (caution: GleissystemID could show other numbers, too) 
 		1 : _('Eisenbahn'),
 		2 : _('Strassenbahn'),
 		3 : _('Strasse'),
@@ -188,6 +188,10 @@ function process_node(sutrackp) {
 		5 : _('Steuerstrecken'),			// nicht in EEP 9
 		6 : _('GBS'),						// nicht in EEP 9
 	};
+	
+	function TrackSystemText(GleissystemID) {
+		return TrackSystemTexts[TrackSystem[GleissystemID]];
+	}
 
 	const GebaeudesammlungText = { 		// GebaeudesammlungID
 		1 : _('Eisenbahn'),
@@ -290,6 +294,7 @@ function process_node(sutrackp) {
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
 		Signale 	= [], 	// ID (des Signals), Gleissystem, Gleis, Name, Meldung
 		Kontakte 	= [], 	// SetType, Gleissystem, Gleis, Kontakt
+		virtualConnections = [], // Gleissystem, Gleis1, Anschluss1, Gleis2, Anschluss
 		Zugverbaende = new Map(),//[], 	// ID (des Zugverbandes), Name, Gleisort, Fahrzeuge
 		Rollmaterialien = [], 	// Name (des Rollmaterials), Rollmaterial, Zugverband
 		Gleisstile	 = [],	// Gleisstil, Datei, Anzahl
@@ -300,13 +305,24 @@ function process_node(sutrackp) {
 
 	const KameraNamen = {};	// Verwendung: Name = KameraNamen[index];
 
+	const TrackSystem = {};	// Relationship between GleissystemID and TrackSystemNumber
+
 	// Extract data from Gleissystem
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
-		// Use attribute TrackSystemNumber instead of GleissystemID if available
-		let GleissystemID 	= Gleissystem.getAttribute('TrackSystemNumber');
-		if (!GleissystemID) {
-			GleissystemID 	= Gleissystem.getAttribute('GleissystemID');
+		// Use both attributes GleissystemID and TrackSystemNumber if available
+		let GleissystemID     = Gleissystem.getAttribute('GleissystemID');
+		let TrackSystemNumber = Gleissystem.getAttribute('TrackSystemNumber');
+		if (GleissystemID && !TrackSystemNumber) {
+			TrackSystemNumber = GleissystemID;
+		} else if (!GleissystemID && TrackSystemNumber) {
+			GleissystemID = TrackSystemNumber;
 		}
+		
+		// Store relationship between GleissystemID and TrackSystemNumber 
+		if (!TrackSystem[GleissystemID]) {
+			TrackSystem[GleissystemID] = TrackSystemNumber;
+		}
+
 		GleisMap.set(GleissystemID, new Map());
 
 		for (const Gleis of Gleissystem.getElementsByTagName('Gleis')) {
@@ -422,9 +438,10 @@ mit
 				// Depending on CurveType some adjustments might be required!
 				// Let's start with a simple case.
 				if (EEPCurve) {	// EEPCurve = Line or Arc
+
 					 // assumption: Gleis.Frame does not contain relevant data
 					if (Math.abs(+FramePos.getAttribute("x")) > 1 ) {
-						console.log(`EEPCurve ${GleissystemText[GleissystemID]} ${GleisID} has Frame value`);
+						console.log(`EEPCurve ${TrackSystemText(GleissystemID)} ${GleisID} has Frame value`);
 					}
 
 					const Frame2	= EEPCurve.getElementsByTagName("Frame")[0];
@@ -433,8 +450,71 @@ mit
 					Gleis.PosX		= +Frame2Pos.getAttribute("x") / 100;
 					Gleis.PosY		= +Frame2Pos.getAttribute("y") / 100;
 					Gleis.PosZ		= +Frame2Pos.getAttribute("z") / 100;
+
+				} else if (Line) {
+
+					const Position	= Line.getElementsByTagName("VectorBundle")[0].getElementsByTagName("Position")[0];
+					
+					const PosX2		= +Position.getAttribute("x");		// dX
+					const PosY2		= +Position.getAttribute("y");		// dY
+					const PosZ2		= +Position.getAttribute("z");		// dZ
+
+					Gleis.PosX		+= PosX2;
+					Gleis.PosY		+= PosY2;
+					Gleis.PosZ		+= PosZ2;
+
+				} else if (Arc) {
+
+					// relative position of center point of the Arc
+					const Pos 	= Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
+					const PosX2 = +Pos.getAttribute("x");
+					const PosY2 = +Pos.getAttribute("y");
+					const PosZ2 = +Pos.getAttribute("z");
+					// The distance of the center point = curve radius is the length of the second vector
+					const Nor 	= Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
+					const MidX2 = +Nor.getAttribute("dx");
+					const MidY2 = +Nor.getAttribute("dy");
+					const MidZ2 = +Nor.getAttribute("dz");
+					// Translate by distance of mid point of circle
+					Gleis.PosX		+= PosX2 - MidX2; 
+					Gleis.PosY		+= PosY2 - MidY2; 
+					Gleis.PosZ		+= PosZ2 - MidZ2;
+
+				} else if (Helix) {
+
+					// ... see more calculations in EEP_Gleisplan.html
+				
+				} else if (Clothoid) {
+				
+					// ... see more calculations in EEP_Gleisplan.html
+
+				} else if (Cubic) {
+				
+					// If Frame.Position = 0 and Cubic.Position <> 0 then treat Cubic.Position as the starting point of the curve
+					const PositionA	= Cubic.getElementsByTagName("Position")[0];
+					const pX		= +PositionA.getAttribute("x");
+					const pY		= +PositionA.getAttribute("y");
+					const pZ		= +PositionA.getAttribute("z");
+				
+					Gleis.PosX		+= pX; 
+					Gleis.PosY		+= pY; 
+					Gleis.PosZ		+= pZ;
+					
+				} else if (Rotator) {
+
+					// A Rotator looks like an Arc if we can ignore the z-axis
+
+				} else if (RotatorChain) {
+
+					console.log(`RotatorChain not supported yet: ${TrackSystemText(GleissystemID)} ${GleisID}`);
+					continue;
+
+				} else { // curve not supported yet
+
+					console.log(`other curve type not supported yet:  ${TrackSystemText(GleissystemID)} ${GleisID}`);
+					continue;
+				
 				}
-				// ... see more calculations in EEP_Gleisplan.html
 
 			} else {  /* EEP 15 */
 
@@ -554,6 +634,28 @@ mit
 				Gleisstile[index].Anzahl = Gleisstile[index].Anzahl + 1;
 			}
 
+		}
+	
+		for (const Gleisverbindung of Gleissystem.getElementsByTagName('Gleisverbindung')) {
+			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="2" Anschluss2="Ende" Flags="1"/>
+			const GleisID1   = Gleisverbindung.getAttribute('GleisID1');
+			const Anschluss1 = Gleisverbindung.getAttribute('Anschluss1');
+			const GleisID2   = Gleisverbindung.getAttribute('GleisID2');
+			const Anschluss2 = Gleisverbindung.getAttribute('Anschluss2');
+			const Flags      = Gleisverbindung.getAttribute('Flags');
+
+			if (Flags && Flags == 1) { // Virtual connection
+				virtualConnections.push({
+					//ID				: ID,  // sort fields
+					//Name			: Name,
+
+					GleissystemID 	: GleissystemID,
+					GleisID1 		: GleisID1,
+					Anschluss1 		: Anschluss1,
+					GleisID2 		: GleisID2,
+					Anschluss2 		: Anschluss2,
+				});
+			}
 		}
 	}
 
@@ -750,7 +852,7 @@ mit
 		{ th : _('Gleis'),
 			td :
 				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
-				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ TrackSystemText(GleissystemID) + ' ' + GleisID
 				+ `<\/a>`,
 			html : true, },
 		{ th : `x (m)`,				td : Gleis.PosX.toFixed(0) },
@@ -909,7 +1011,7 @@ mit
 		{ th : _('Gleis'),
 			td :
 				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
-				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ TrackSystemText(GleissystemID) + ' ' + GleisID
 				+ `<\/a>`,
 			html : true, },
 		{ th : `x (m)`,					td : Gleis.PosX.toFixed(0), },
@@ -1127,14 +1229,14 @@ mit
 					+ `<\/a> `
 					+ _('auf')
 					+ ` <a href="javascript:void(0);" onclick="javascript:postGleisMessage(${Ziel.GleissystemID},${Ziel.GleisID});">`
-					+ GleissystemText[Ziel.GleissystemID] + ' ' + Ziel.GleisID
+					+ TrackSystemText(Ziel.GleissystemID) + ' ' + Ziel.GleisID
 					+ `<\/a>`
 				: 	''),
 			html : true,
 		},
 		{ th : _('Gleis'),
 			td :  `<a href="javascript:void(0);" onclick="javascript:postKontaktMessage(${KontaktID},${GleissystemID},${GleisID});">`
-				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ TrackSystemText(GleissystemID) + ' ' + GleisID
 				+ `<\/a>`,
 			html : true,
 		},
@@ -1170,6 +1272,41 @@ mit
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+	// Anzeige der virtuellen Verbindungen
+	div = createTable({
+		id		: 'virtualConnections',
+		title 	: `${_('virtualConnections')} (${virtualConnections.length})`,
+		caption	: _('virtualConnections'),
+		content	: function(thead, tbody) {
+
+		//virtualConnections.sort(orderByID).forEach(virtualConnection => {
+		virtualConnections.forEach(virtualConnection => {
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Gleis'),
+			td :
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${virtualConnection.GleissystemID},${virtualConnection.GleisID1});">`
+				+ TrackSystemText(virtualConnection.GleissystemID) + ' ' + virtualConnection.GleisID1
+				+ `<\/a>`,
+			html : true, },
+		{ th : _('Anschluss'),		td : virtualConnection.Anschluss1 	},
+		{ th : _('Gleis'),
+			td :
+				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${virtualConnection.GleissystemID},${virtualConnection.GleisID2});">`
+				+ TrackSystemText(virtualConnection.GleissystemID) + ' ' + virtualConnection.GleisID2
+				+ `<\/a>`,
+			html : true, },
+		{ th : _('Anschluss'),		td : virtualConnection.Anschluss2 	},
+
+		]) })
+
+		return virtualConnections.length;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
 	// Anzeige der Zugverbände
 	div = createTable({
 		id		: 'Zugverband',
@@ -1198,7 +1335,7 @@ mit
 		{ th : _('Zugverband'),				td : ZugID },
 		{ th : _('Gleis'),	td :
 				  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
-				+ GleissystemText[GleissystemID] + ' ' + GleisID
+				+ TrackSystemText(GleissystemID) + ' ' + GleisID
 				+ `<\/a>`, html : true, },
 		{ th : `x (m)`,						td : Gleis.PosX.toFixed(0) },
 		{ th : `y (m)`,						td : Gleis.PosY.toFixed(0) },
@@ -1390,7 +1527,7 @@ x	RollIdx="3"
 			GleissystemID = GleisSysID;
 
 			if (!GleiseText) {
-				GleiseText = GleissystemText[GleissystemID];
+				GleiseText = TrackSystemText(GleissystemID);
 			}
 			GleiseText += ' '
 				+ `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
@@ -1853,6 +1990,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	<div class="item"><label><input type='checkbox' name='Weiche' 		checked autocomplete='off' onchange="toggleElements('.Weiche', this.checked)"><a href='#divWeiche'><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aguillages</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Signal' 		checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)"><a href='#divSignal'><span lang="de">Signale</span><span lang="en">Signals</span><span lang="fr">Signaux</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)"><a href='#divKontakt'><span lang="de">Kontakte</span><span lang="en">Contacts</span><span lang="fr">Contacts</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='virtualConnections' 	checked autocomplete='off' onchange="toggleElements('.virtualConnections', this.checked)"><a href='#divvirtualConnections'><span lang="de">virtuelle Verbindungen</span><span lang="en">Virtual connections</span><span lang="fr">Connexions virtuelles</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)"><a href='#divZugverband'><span lang="de">Zugverband</span><span lang="en">Train set</span><span lang="fr">Convoi ferroviaire</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Rollmaterial'	checked autocomplete='off' onchange="toggleElements('.Rollmaterial', this.checked)"><a href='#divRollmaterial'><span lang="de">Rollmaterialien</span><span lang="en">Rolling stock</span><span lang="fr">Matériel roulant</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'><span lang="de">Gleisstile</span><span lang="en">Track styles</span><span lang="fr">Styles de voie</span></a></label></div>

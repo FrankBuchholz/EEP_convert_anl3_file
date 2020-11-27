@@ -909,6 +909,16 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		EN : `Tip's text`,
 		FR : `Info-texte`,
 	},
+	virtualConnections : {
+		DE : `Virtuelle Verbindungen`, 
+		EN : `Virtual Connections`, 
+		FR : `Connexions virtuelles`, 
+	},
+	Anschluss : {
+		DE : `Anschluss`, 
+		EN : `Connection`, 
+		FR : `Connexion`, 
+	},
 	Zugverband : {
 		DE : `Zugverband`,
 		EN : `Train set`,
