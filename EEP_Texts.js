@@ -86,6 +86,16 @@ msg : {
 		EN : `Graphic of type $1 exported in size $2`, 
 		FR : `Graphique de type $1 exportee à la dimension $2`, 
 	},
+	'automatic stroke width' : {
+		DE : `Automatische Linienbreite`, 
+		EN : `Automatic line width`, 
+		FR : `Largeur de ligne automatique`, 
+	},
+	'manual stroke width' : {
+		DE : `Manuelle Linienbreite`, 
+		EN : `Manual line width`, 
+		FR : `Largeur de ligne manuelle`, 
+	},
 	X : {
 		DE : ``, 
 		EN : ``, 
