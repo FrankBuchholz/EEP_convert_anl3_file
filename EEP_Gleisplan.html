@@ -447,7 +447,7 @@ function loadFile(file) {
 			document.getElementById("strokeWidth").value = strokeWidth;
 			const fontSize = localStorage.getItem("fontSize") || document.getElementById("fontSize").value;
 			document.getElementById("fontSize").value = fontSize;
-
+			// Checkboxes require spectial treatment
 			for (let i = 0; i < localStorage.length; i++) {
 				const key = localStorage.key(i);
 				if (key.indexOf("checkbox_") === 0) { // Read checkbox settings
@@ -468,7 +468,6 @@ function loadFile(file) {
 			// Activate Pan and Zoom
 			global.SvgPanZoom = SvgPanZoom();
 			changefontSize(fontSize);
-			changeStrokeWidth(strokeWidth);
 			return;
 
 		}, function(err) {
@@ -3513,7 +3512,7 @@ input[type="number"]#jpgQuality {
 	padding-inline-end: 0;
 	padding-block-end: 0;
 }
-#controls .fieldset .item {
+#controls .item {
 	white-space: nowrap;		/* keep checkbox and label together */
 	display:inline;				/* but do no add extra line breaks per item */
 }
@@ -3542,6 +3541,11 @@ input[type="number"]#jpgQuality {
 <br>
 <div class="svgControl">					
 <span lang="de">Linie</span><span lang="en">Line</span><span lang="fr">Ligne</span>&nbsp;<input type="range" min="1" max="150" value="75" name="strokeWidth" id="strokeWidth" autocomplete="off" />
+<!-- <fieldset class="fieldset"> -->
+<span class="item"><label id="Checkbox_autoStrokeWidth"> <!-- Firefox keeps the status of the checkbox between page loads by default. -->
+<input type="checkbox" id="autoStrokeWidth" name="autoStrokeWidth" checked autocomplete="off" /><span lang="de">Auto</span><span lang="en">Auto</span><span lang="fr">Auto</span>	 <!-- Automatisch / Automatically / Automatiquement -->
+</label></span>
+<!-- </fieldset> -->
 <br>
 <span lang="de">Schrift</span><span lang="en">Font</span><span lang="fr">Écriture</span>&nbsp;<input type="range" min="1" max="100" value="75" name="fontSize" id="fontSize" autocomplete="off" />
 <div>		  
@@ -4372,6 +4376,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
 	const onZoom = function(newZoom) {
 		msg();
+		changeStrokeWidth(panZoom);
 		showArea(this);
 	};
 
@@ -4568,8 +4573,20 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	document.getElementById("strokeWidth").addEventListener("input", function(ev) {
 		msg();
 		ev.preventDefault();
-		changeStrokeWidth(ev.target.value);
 		localStorage.setItem("strokeWidth", ev.target.value);
+		changeStrokeWidth(panZoom);
+	});
+	// Checkbox auto stroke width
+	document.getElementById("autoStrokeWidth").addEventListener("input", function(ev) {
+		msg();
+		ev.preventDefault();
+		if (ev.target.checked) {
+			msg("automatic stroke width");
+		} else {
+			msg("manual stroke width");
+		}		
+		localStorage.setItem("checkbox_autoStrokeWidth", ev.target.checked);
+		changeStrokeWidth(panZoom);
 	});
 	// Slider fontSize (in case of very large files, it might be better to use "change" event instead of "input" event to switch off live updates)
 	document.getElementById("fontSize").addEventListener("input", function(ev) {
@@ -4645,8 +4662,8 @@ EEPchannel.onmessage = function(ev) {
 		if (Meldung) {
 			// Signal gefunden
 			centerPosition(Meldung.mPos);
-			//msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
-			msg('SignalLocation', ID, GleissystemText[Meldung.GleissystemID], Meldung.GleisID);
+			//msg(`Das Signal ${ID} befindet sich auf ${TrackSystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			msg('SignalLocation', ID, TrackSystemText[Meldung.GleissystemID], Meldung.GleisID);
 
 			showSignalInfo(ID, GleissystemID, GleisID);
 			return true;
@@ -4658,8 +4675,8 @@ EEPchannel.onmessage = function(ev) {
 			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
 			const GleisID = Gleis.getAttribute("GleisID");
 			centerPosition(Gleis.mEnd);
-			//msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
-			msg('SwitchLocation', ID, GleissystemText[Gleis.GleissystemID], Gleis.GleisID);
+			//msg(`Die Weiche ${ID} befindet sich auf ${TrackSystemText[Gleis.GleissystemID]} ${GleisID}`);
+			msg('SwitchLocation', ID, TrackSystemText[Gleis.GleissystemID], Gleis.GleisID);
 
 			showWeicheInfo(ID, GleissystemID, GleisID);
 			return true;
@@ -4770,8 +4787,8 @@ function centerItem() {
 		if (Meldung) {
 			// Signal gefunden
 			centerPosition(Meldung.mPos);
-			//msg(`Das Signal ${ID} befindet sich auf ${GleissystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
-			msg('SignalLocation', ID, GleissystemText[Meldung.GleissystemID], Meldung.GleisID);
+			//msg(`Das Signal ${ID} befindet sich auf ${TrackSystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
+			msg('SignalLocation', ID, TrackSystemText[Meldung.GleissystemID], Meldung.GleisID);
 			return true;
 		}
 
@@ -4781,8 +4798,8 @@ function centerItem() {
 			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
 			const GleisID = Gleis.getAttribute("GleisID");
 			centerPosition(Gleis.mEnd);
-			//msg(`Die Weiche ${ID} befindet sich auf ${GleissystemText[Gleis.GleissystemID]} ${GleisID}`);
-			msg('SwitchLocation', ID, GleissystemText[Gleis.GleissystemID], GleisID);
+			//msg(`Die Weiche ${ID} befindet sich auf ${TrackSystemText[Gleis.GleissystemID]} ${GleisID}`);
+			msg('SwitchLocation', ID, TrackSystemText[Gleis.GleissystemID], GleisID);
 			return true;
 		}
 
@@ -5148,23 +5165,69 @@ function msg(key, ...args) {
 	}
 }
 
-function changeStrokeWidth(value) {
-	// Use exponential function to convert the slider value into range [0.11 .. 2.12] with f(75) = 1
-	// f = 0.1054 * exp(0.03 * v)
-	const factor = 0.1054 * Math.exp(0.03 * value);
+function changeStrokeWidth(panZoom) {
+
+	const sliderValue 		= document.getElementById("strokeWidth").value;
+	const autoStrokeWidth 	= document.getElementById("autoStrokeWidth").checked;
+	
+	let strokeWidth;
+
+	if (autoStrokeWidth) {
+		// automatic stroke width
+		const sizes 	= panZoom.getSizes();	// width height of svg area
+												// viewBox (x y width height)
+												// realZoom = min(width/viewBox.width, height/viewBox.height)
+		const zoom 		= panZoom.getZoom();	// zoom factor
+
+		if (!sizes.realZoom) {
+			sizes.realZoom = 1
+		}
+		// It seems that a quadratic relationship between 1/realZoom and strokeFactor works well 
+		strokeWidth = -0.07 / sizes.realZoom / sizes.realZoom + 1.6 / sizes.realZoom
+		// Adjust automatic value slightly depending on slider
+		strokeWidth *= ( 0.25 + sliderValue / 50 );
+
+console.log( "changeStrokeWidth"
+	+ "\tautoStrokeWidth\t" 	+ autoStrokeWidth
+	+ "\tsliderValue\t" 		+ sliderValue 
+	+ "\tstrokeWidth\t" 		+ strokeWidth
+	+ "\tzoom\t" 				+ zoom
+	+ "\trealZoom\t" 			+ sizes.realZoom
+	+ "\twidth\t" 				+ sizes.width
+	+ "\theight\t" 				+ sizes.height
+	+ "\tviewBox.width\t" 		+ sizes.viewBox.width
+	+ "\tviewBox.height\t" 		+ sizes.viewBox.height
+)	
+
+	} else {
+		// manual stroke width
+		// Use exponential function to convert the slider value into range [0.11 .. 2.12] with f(75) = 1
+		// f = 0.1054 * exp(0.03 * v)
+		strokeWidth = 0.1054 * Math.exp(0.03 * sliderValue);
+		
+		// smalles lines look better
+		strokeWidth *= 0.5;
+
+console.log( "changeStrokeWidth"
+	+ "\tautoStrokeWidth\t" 	+ autoStrokeWidth
+	+ "\tsliderValue\t" 		+ sliderValue 
+	+ "\tstrokeWidth\t" 		+ strokeWidth
+)
+
+	}
 
 	// Modify svg css (nice, but only works in the browser, not during PNG export)
 	/*
 	const cssVariables = document.getElementById("css-strokeWidth-variables").sheet.rules[0].style;
-	cssVariables.setProperty("--normal-stroke-width", `${0.5 * factor}px`);
-	cssVariables.setProperty("--narrow-stroke-width", `${0.25 * factor}px`);
+	cssVariables.setProperty("--normal-stroke-width", `${ strokeWidth }px`);
+	cssVariables.setProperty("--narrow-stroke-width", `${ strokeWidth / 2 }px`);
 	*/
 
 	// Modify svg css to use same setting during PNG export
 	document.getElementById("css-strokeWidth-variables").textContent =
 		`svg {
-			--normal-stroke-width: ${0.5 * factor}px;
-			--narrow-stroke-width: ${0.25 * factor}px;
+			--normal-stroke-width: ${ strokeWidth }px;
+			--narrow-stroke-width: ${ strokeWidth / 2 }px;
 		}`
 }
 
@@ -5796,7 +5859,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 				? `<br>${_('Kontaktziel')} ${KontaktZiel}: `
 					+ ( Ziel ?
 							`<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
-							+ `${Ziel.Typ} ${Ziel.ID} ${_('auf')} ${GleissystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
+							+ `${Ziel.Typ} ${Ziel.ID} ${_('auf')} ${TrackSystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
 							+ `<\/a>`
 						  : _('unbekannt')
 					  )
