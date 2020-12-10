@@ -5355,9 +5355,9 @@ function changeStrokeWidth(panZoom) {
 		if (!sizes.realZoom) {
 			sizes.realZoom = 1;
 		}
-		// It seems that a quadratic relationship between 1/realZoom and strokeFactor works well 
-		strokeWidth = -0.07 / sizes.realZoom / sizes.realZoom + 1.6 / sizes.realZoom
-		// Adjust automatic value slightly depending on slider
+		// It seems that a power function for realZoom works quite well
+		strokeWidth = 1.5 * sizes.realZoom ** -0.7;
+		// Adjust automatic value slightly depending on slider with factor range [0.25 .. 3.25]
 		strokeWidth *= ( 0.25 + sliderValue / 50 );
 
 console.log( "changeStrokeWidth"
