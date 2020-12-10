@@ -16,6 +16,16 @@
 
 <script type="text/javascript"> // Experiment to load scripts dynamically either from relative path or from fixed URL - not used yet
 "use strict";
+/* Interface
+required standard objects:
+	document
+public api:
+	loadScript
+*/
+(function(api) {
+// public api
+api.loadScript = loadScript;
+
 /* Source: https://humanwhocodes.com/blog/2009/07/28/the-best-way-to-load-external-javascript/
 Usage:
 <s.cript type="text/javascript">
@@ -33,9 +43,11 @@ function loadScript(url, callback){
 	script.src = url;
 	document.getElementsByTagName("head")[0].appendChild(script);
 }
+})(this); // end module
 </script>
 
 <style> /* html page */
+/* <![CDATA[ */
 html, body { /* deactivate default settings */
 	margin: 0;
 	padding: 0;
@@ -154,7 +166,7 @@ kbd {
 #french:checked~#selectObject options[lang="en"]	{
 	display: none;
 }
-
+/* ]]> */
 </style>
 </head>
 
@@ -165,8 +177,14 @@ kbd {
 <input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" autocomplete="off" >
 <input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage(`EN`)" autocomplete="off" >
 <input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage(`FR`)" autocomplete="off" >
-<script type="text/javascript">
+<script type="text/javascript"> // Language selection
 "use strict";
+/* Interface
+required standard objects:
+	document
+required global data:
+	EEP_Texts
+*/
 switch (EEP_Texts.getLanguage()) {	// do it as early as possible
 	case "DE" : document.getElementById("german").checked = true; break;
 	case "EN" : document.getElementById("english").checked = true; break;
@@ -352,6 +370,7 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 </footer>
 
 <style> /* Selection screen */
+/* <![CDATA[ */
 #fileselector {
 	margin: 15px;
 }
@@ -360,6 +379,7 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 	padding-top: 0.2em;
 	margin-left: 2em;
 }
+/* ]]> */
 </style>
 
 <script type="text/javascript" src="node_modules/rematrix/dist/rematrix.js"></script> <!-- https://github.com/jlmakes/rematrix -->
@@ -367,8 +387,36 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 <!-- <script type="text/javascript" src="https://unpkg.com/rematrix@0.4.1/dist/rematrix.min.js"></script> --> <!-- version 0.4.1 -->
 <script type="text/javascript"> // Load and process file
 "use strict";
-
+/* Interface
+required standard objects:
+	DOMParser
+	Event
+	FileReader
+	Promise
+	console 
+	document
+	localStorage
+	requestAnimationFrame
+	window
+required global data:
+	EEP_Texts
+required functions:
+	_
+	SvgPanZoom
+	changefontSize
+	createSVG
+	loadColors
+public data:
+	global
+public api:
+	loadFile
+*/
+(function(api) {
+// public api
+api.loadFile = loadFile;
+// public data
 const global = {}; // Collection of all global variables
+api.global = global;
 
 function loadFile(file) {
 	let fr;	// upvalue for function processFile
@@ -481,25 +529,73 @@ function loadFile(file) {
 		});
 	}
 
-}
-
-// helper method which waits some time to let the browser update the ui
-function updateUi(fn) {
-	return new Promise(function(resolve) {
-		requestAnimationFrame(function() {
-			const result = fn();
+	// helper method which waits some time to let the browser update the ui
+	function updateUi(fn) {
+		return new Promise(function(resolve) {
 			requestAnimationFrame(function() {
-				resolve(result);
+				const result = fn();
+				requestAnimationFrame(function() {
+					resolve(result);
+				});
 			});
 		});
-	});
-}
+	}
+
+	function bodyAppend(tagName, innerHTML) {
+		var elm = document.createElement(tagName);
+		elm.textContent = innerHTML;
+		document.body.appendChild(elm);
+	}
+}	// loadFile
+})(this); // end module
 </script>
 <script type="text/javascript"> // DOM2SVG
 "use strict";
+/* Interface
+required standard objects:
+	console
+	document
+required global data:
+	Rematrix
+	global
+required functions:
+	_
+	convexhull
+	getKontaktIcon
+public api:
+	TrackSystemText
+	createSVG
+	loadStaticTexts
+public data:
+	GebaeudesammlungText
+	GleisDataText
+	Gleisart
+	TrackSystemCode
+	TrackSystemTexts
+	WeichenstellungText
+	unsichtbar
+*/
+/* [Access to public data does not work this way.]
+(function(api) {
+// public api
+api.TrackSystemText = TrackSystemText;
+api.createSVG = createSVG;
+api.loadStaticTexts = loadStaticTexts;
+// public data
+*/
+let GebaeudesammlungText, GleisDataText, Gleisart, TrackSystemCode, TrackSystemTexts, WeichenstellungText, unsichtbar;
+/*
+api.GebaeudesammlungText = GebaeudesammlungText;
+api.GleisDataText = GleisDataText;
+api.Gleisart = Gleisart;
+api.TrackSystemCode = TrackSystemCode;
+api.TrackSystemTexts = TrackSystemTexts;
+api.WeichenstellungText = WeichenstellungText;
+api.unsichtbar = unsichtbar;
+*/
+
 // Process root node (sutrackp)
 // EEP: Static texts
-let TrackSystemTexts, Gleisart, GleisDataText, WeichenstellungText, GebaeudesammlungText;
 
 function TrackSystemText(GleissystemID) {
 	return TrackSystemTexts[global.TrackSystem[GleissystemID]];
@@ -553,11 +649,11 @@ GebaeudesammlungText = {		// GebaeudesammlungID : Text,
 	4 : _('Immobilien'),
 	5 : _('Landschaftselemente'),
 	6 : _('Sonstiges'),			//  (Wasserwege)
-}
+};
 
-}
+} // end function loadStaticTexts
 
-const GleissystemCode = { 			// GleissystemID : Code,
+TrackSystemCode = { 			// TracksystemID : Code,
 	1 : "Eisenbahn",
 	2 : "Strassenbahn",
 	3 : "Strasse",
@@ -570,7 +666,7 @@ const GleissystemCode = { 			// GleissystemID : Code,
 http://up.picr.de/33875489iu.pdf
 http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
 */
-const unsichtbar = [			// unsichtbare Gleisstile
+unsichtbar = [			// unsichtbare Gleisstile
 17,		// \Gleisstile\Sonstiges\Wasserweg_unsichtbar.3dm
 28,		// Gleis
 35,		// Straßenbahn
@@ -764,7 +860,7 @@ function prepareGleissysteme(sutrackp) {
 						ID				: WeicheID,
 						GleissystemID 	: GleissystemID,
 						GleisID			: GleisID,
-					}
+					};
 				}
 			}
 
@@ -790,7 +886,7 @@ function prepareGleissysteme(sutrackp) {
 							ID				: SignalID,
 							GleissystemID 	: GleissystemID,
 							GleisID			: GleisID,
-						}
+						};
 					}
 				}
 			}
@@ -887,7 +983,7 @@ function prepareGleissysteme(sutrackp) {
 
 				// Now we can follow the tracks to find the position of the main signal on the track
 				let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
-				let Laenge
+				let Laenge;
 				if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 					const Interval 	= Gleis.getElementsByTagName("Interval")[0];
 					const near		= +Interval.getAttribute("near");
@@ -956,7 +1052,7 @@ function prepareGleissysteme(sutrackp) {
 						break;
 					}
 
-					let Laenge
+					let Laenge;
 					if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 						const Interval 	= Gleis.getElementsByTagName("Interval")[0];
 						const near		= +Interval.getAttribute("near");
@@ -1136,7 +1232,7 @@ function prepareGleissysteme(sutrackp) {
 	global.activeTracks = activeTracks;
 
 	return Gleissysteme;
-}
+} // end function prepareGleissysteme
 
 function createSVGforGleissystem(Gleissystem, SVGfragment) {
 
@@ -1145,14 +1241,14 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 	// Append groups to the root node; append other elements to these group nodes
 	const svgGleissystemGroup = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
-		"class"	: `${GleissystemCode[global.TrackSystem[GleissystemID]]}`,
+		"class"	: `${TrackSystemCode[global.TrackSystem[GleissystemID]]}`,
 	});
 
 	const Gleise = Gleissystem.getElementsByTagName("Gleis");
 
 	// Zeige die Checkbox zum ein-/ausblenden (und andere Elemente) nur dann an, wenn ein Gleissystem auch Gleise enthält
 	if (Gleise.length > 0) {
-		for (const ele of document.getElementsByClassName(GleissystemCode[global.TrackSystem[GleissystemID]])) {
+		for (const ele of document.getElementsByClassName(TrackSystemCode[global.TrackSystem[GleissystemID]])) {
 			ele.classList.remove("hidden");
 		}
 	}
@@ -1207,7 +1303,7 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 
 if (near > far) { console.log('near ' + near + ' > far ' + far + ' for '
 	+ TrackSystemText(GleissystemID) + ' ' + GleisID
-)}
+);}
 			const Frame		= Gleis.getElementsByTagName("Frame")[0];
 			const FramePos	= Frame.getElementsByTagName("Position")[0];
 			const FrameDir	= Frame.getElementsByTagName("Vector")[0];
@@ -1225,7 +1321,7 @@ if (near > far) { console.log('near ' + near + ' > far ' + far + ' for '
 			const FrameBin	= Frame.getElementsByTagName("Vector")[(swap ? 1 : 2)];
 if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 	+ TrackSystemText(GleissystemID) + ' ' + GleisID
-)}
+);}
 
 			Laenge	= Math.abs( far - near );
 
@@ -1542,7 +1638,7 @@ return nodeList;
 				const wEnd = (far) 		/ r;
 
 				// mPos
-				const mPos = mMatrix = [
+				mMatrix = [
 							mFrame,
 							mVectorBundle2,
 							mOrientation,
@@ -1554,6 +1650,7 @@ return nodeList;
 							mHelix,
 							mSwap,
 						  ].reduce(Rematrix.multiply);
+				const mPos = mMatrix;
 				const mMid = [
 							mFrame,
 							mVectorBundle2,
@@ -1601,7 +1698,7 @@ return nodeList;
 
 console.log("Helix Vergleich\t" + GleisID
 	+ "\tDelta:\t" + d1 + "\t" + d2 + "\t" + dDiff
-)
+);
 
 				if (dDiff > 1) {	// difference is too large, go für Cubic interpolation
 					/* Interpolate Helix with Cubic:
@@ -1638,6 +1735,7 @@ console.log("Helix Vergleich\t" + GleisID
 				};
 
 // Error: wrong positions of Helix
+/*
 if ( 1 === 1
 // generic
 ||	((PosX2 != 0 || PosY2 != 0) && (DirX2 != 1 || DirY2 != 0))
@@ -1690,6 +1788,7 @@ if ( 1 === 1
 		+ '\tNor2\t' + NorX2 + '\t' + NorY2 + '\t' + NorZ2
 	);
 }
+*/
 
 			} else if (Clothoid) {
 				CurveType 	= 'Clothoid';
@@ -1864,7 +1963,7 @@ console.log(`Cubic ${TrackSystemText(GleissystemID)} ${GleisID}`
 + ' vB  ' + VectorB.getAttribute("dx") 	+ ' ' + VectorB.getAttribute("dy") 	+ ' ' + VectorB.getAttribute("dz")
 + ' vC  ' + VectorC.getAttribute("dx") 	+ ' ' + VectorC.getAttribute("dy") 	+ ' ' + VectorC.getAttribute("dz")
 + ' vD  ' + VectorD.getAttribute("dx") 	+ ' ' + VectorD.getAttribute("dy") 	+ ' ' + VectorD.getAttribute("dz")
-)
+);
 */
 
 			} else if (Rotator) {
@@ -2116,8 +2215,8 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 		if (Key_Id) {
 			// Show text of Weiche at the end of the track
 			let Code = "W";
-			if (GleisData == 18 || GleisData == 19) { Code = "DWK" };
-			if (GleisData == 20 || GleisData == 21) { Code = "T-W" };
+			if (GleisData == 18 || GleisData == 19) { Code = "DWK"; }
+			if (GleisData == 20 || GleisData == 21) { Code = "T-W"; }
 			svgAppend(svgGleisGroup, {
 				svg_tag			: `text`,
 				id				: `W${Key_Id}`,
@@ -2275,7 +2374,7 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 					r					: 0.4,
 					transform 			: matrixToTransform(Gleis.Helix.mEnd),
 				});
-			};
+			}
 			// Show circle at Point
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `circle`,
@@ -2545,7 +2644,7 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 		for (const Anschluss in connections) {	// Anfang, Ende, EndeAbzweig, EndeKoAbzweig
 
 			const connection = connections[Anschluss];
-			if (connection.Flags & connection.Direction === "forward") {	// Virtual connection in forward direction
+			if (connection.Flags && connection.Direction === "forward") {	// Virtual connection in forward direction
 
 				const connectedGleis   = global.Gleissysteme[GleissystemID][connection.GleisID];
 
@@ -2580,7 +2679,7 @@ console.log( "Gleis\t"
 			}
 		}
 	}
-}
+} // end function createSVGforGleissystem
 
 function createSVGfinalize(SVGfragment) {
 
@@ -2596,9 +2695,6 @@ function createSVGfinalize(SVGfragment) {
 	document.getElementById("sutrackpSVG").appendChild(SVGfragmentBackground);
 	document.getElementById("sutrackpSVG").appendChild(SVGfragment);
 
-	// Test: process all nodes recursivly
-	//process_node(sutrackp);
-
 	global.timestamp.svgCreated = Date.now();
 	console.log('create svg:' + (global.timestamp.svgCreated - global.timestamp.fileParsed) / 1000 + 'sec');
 }
@@ -2608,7 +2704,7 @@ function createSVGforGleisobjekte(SVGfragment) {
 	in:
 		global.Gleisobjekte
 		global.Gleissysteme
-		GleissystemCode
+		TrackSystemCode
 
 	mod:
 		document.getElementById("CheckboxGleisobjekt")
@@ -2637,23 +2733,23 @@ function createSVGforGleisobjekte(SVGfragment) {
 				const posX = 12, posY = 13;
 
 				if (minX === undefined ||
-					minX > Gleis.mPos[posX]) { minX = Gleis.mPos[posX] };
+					minX > Gleis.mPos[posX]) { minX = Gleis.mPos[posX]; }
 				if (maxX === undefined ||
-					maxX < Gleis.mPos[posX]) { maxX = Gleis.mPos[posX] };
+					maxX < Gleis.mPos[posX]) { maxX = Gleis.mPos[posX]; }
 				if (minY === undefined ||
-					minY > Gleis.mPos[posY]) { minY = Gleis.mPos[posY] };
+					minY > Gleis.mPos[posY]) { minY = Gleis.mPos[posY]; }
 				if (maxY === undefined ||
-					maxY < Gleis.mPos[posY]) { maxY = Gleis.mPos[posY] };
+					maxY < Gleis.mPos[posY]) { maxY = Gleis.mPos[posY]; }
 
-				if (minX > Gleis.mMid[posX]) { minX = Gleis.mMid[posX] };
-				if (maxX < Gleis.mMid[posX]) { maxX = Gleis.mMid[posX] };
-				if (minY > Gleis.mMid[posY]) { minY = Gleis.mMid[posY] };
-				if (maxY < Gleis.mMid[posY]) { maxY = Gleis.mMid[posY] };
+				if (minX > Gleis.mMid[posX]) { minX = Gleis.mMid[posX]; }
+				if (maxX < Gleis.mMid[posX]) { maxX = Gleis.mMid[posX]; }
+				if (minY > Gleis.mMid[posY]) { minY = Gleis.mMid[posY]; }
+				if (maxY < Gleis.mMid[posY]) { maxY = Gleis.mMid[posY]; }
 
-				if (minX > Gleis.mEnd[posX]) { minX = Gleis.mEnd[posX] };
-				if (maxX < Gleis.mEnd[posX]) { maxX = Gleis.mEnd[posX] };
-				if (minY > Gleis.mEnd[posY]) { minY = Gleis.mEnd[posY] };
-				if (maxY < Gleis.mEnd[posY]) { maxY = Gleis.mEnd[posY] };
+				if (minX > Gleis.mEnd[posX]) { minX = Gleis.mEnd[posX]; }
+				if (maxX < Gleis.mEnd[posX]) { maxX = Gleis.mEnd[posX]; }
+				if (minY > Gleis.mEnd[posY]) { minY = Gleis.mEnd[posY]; }
+				if (maxY < Gleis.mEnd[posY]) { maxY = Gleis.mEnd[posY]; }
 
 				// Collect start- mid- and end-points of Gleise to calculate the convex hull
 				//points.push({ x: Gleis.mPos[posX], y: Gleis.mPos[posY], });
@@ -2697,7 +2793,7 @@ function createSVGforGleisobjekte(SVGfragment) {
 		const svgGleisobjektGroup = svgAppend(svgGleisobjekteGroup, {
 			svg_tag	: `g`,
 			id		: `GO` + GleisobjektID,
-			"class"	: `${GleissystemCode[global.TrackSystem[GleissystemID]]}`
+			"class"	: `${TrackSystemCode[global.TrackSystem[GleissystemID]]}`
 						+ ` height=${Gleisobjekt.PosZ.toFixed(2)}`	// Height
 		});
 		// simplified: show outer rectangle
@@ -3113,7 +3209,7 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 			b1 = {x: p.x,   y: p.y,	  dx: dx,  dy: dy,  w: w, };			// first 1. Bezier point
 
 			pathPoints.push( {x: b1.x,   y: -b1.y,  z: 0,  w: b1.w, } );	// first 1. Bezier point
-		};
+		}
 
 		const f = 4;	// limit 4: max 45°, 3: max 60°
 		if ( (b1 && Math.abs(w - b1.w) > (Math.PI / f)) 			// Draw new curve if difference of the angles exceeds limit
@@ -3136,7 +3232,7 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 			b2 = {															// 2. Bezier point on tangent near B1
 					x: b1.x + (b3.x - b1.x) / f,							// works fine with f=4, but not with f=3
 					y: b1.y + (b3.y - b1.y) / f,							// (I guess we should calculate the factor dependant on s or a)
-				}
+				};
 
 			if (L1 < L2) {	// forward
 				pathPoints.push( 	{x: b2.x,   y: -b2.y, } );					// 2. Bezier point
@@ -3150,7 +3246,7 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 
 			// Prepare next part
 			b1 = { x: b4.x,  y: b4.y,  dx: dx,  dy: dy,  w: w, };	// next 1. Bezier point
-		};
+		}
 
 		// next
 		s += ds;
@@ -3181,21 +3277,6 @@ function calcClothoidCurve(A, L1, L2, RotationCCW) {
 		Winkel: pathPoints[i].w + (L1<L2 ? 0 : Math.PI), };
 
 	return [points, svgBezierPath];
-}
-
-function process_node(node) {
-	bodyAppend("p", node.nodeName + "|" + node.nodeValue + "|" + node.nodeType);
-
-	// Process child elements
-	for(let i=0; i<node.childNodes.length; i++) {
-		process_node(node.childNodes[i]);
-	}
-}
-
-function bodyAppend(tagName, innerHTML) {
-	var elm = document.createElement(tagName);
-	elm.textContent = innerHTML;
-	document.body.appendChild(elm);
 }
 
 function svgAppend(svg_node, obj) {
@@ -3294,7 +3375,9 @@ function svgAppendTextPath(svg_node, obj) {
 	return text;
 }
 */
-
+/*
+})(this); // end module
+*/
 </script>
 
 <script type="text/javascript"> // https://www.nayuki.io/page/convex-hull-algorithm
@@ -3321,9 +3404,16 @@ https://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Mono
  * along with this program (see COPYING.txt and COPYING.LESSER.txt).
  * If not, see <http://www.gnu.org/licenses/>.
  */
-
 "use strict";
-
+/* Interface
+public data:
+	convexhull
+*/
+/* [Access to public data does not work this way.]
+(function(api) {
+// public api
+api.convexhull = convexhull;
+*/
 const convexhull = new function() {
 
 	// Returns a new array of points representing the convex hull of
@@ -3394,28 +3484,34 @@ const convexhull = new function() {
 		else if (a.y < b.y)	return -1;			// and in case of a tie, by y-coordinate
 		else if (a.y > b.y)	return +1;
 		else				return 0;			// identical points
-	};
+	}
 
 	function cross(q, p, r) {
 		return 	(q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x);
 	}
 
 };
+/*
+})(this); // end module
+*/
 </script>
 </section>  <!-- Selection screen -->
 
 <section id="loading" class="hidden"> <!-- Progress bar screen -->
 <span lang="de">Lade</span><span lang="en">Load</span><span lang="fr">Charge</span>... <progress id="progress" class="hidden" max="100"></progress>
 <style> /* Progress bar screen */
+/* <![CDATA[ */
 #loading {						/* progress bar */
 	text-align: center;
 	width: 100%;
 }
+/* ]]> */
 </style>
 </section> <!-- Progress bar screen -->
 
 <main id="main" class="column hidden"> <!-- Main screen -->
 <style> /* Flex main screen */
+/* <![CDATA[ */
 #main {
 	margin: 0;
 	padding: 0;
@@ -3486,6 +3582,7 @@ const convexhull = new function() {
 	flex: 1;
 	height: 100%;
 }
+/* ]]> */
 </style>
 
 <section id="heading"> <!-- The heading shows the header and the controls -->
@@ -3645,6 +3742,10 @@ API:
 	JS: Use the multirange(element) function to process sliders added to the page later.
 	CSS: Use the --range-color property to change the color of the range. Use the --track-background property for more extensive customization.
 	HTML: Use the multiple attribute to enable the second handle. Use data-drag-middle attribute to enable moving both handles by dragging the middle of the track between them.
+Check for updates(on top of #45):
+	https://github.com/LeaVerou/multirange/pull/46		IE compatibility												-> No need to apply this update
+	https://github.com/LeaVerou/multirange/issues/47	In chrome browser the color left to the left handle looks wrong	-> No solution yet
+	https://github.com/LeaVerou/multirange/pull/48		Made polyfill not apply on SSR									-> No need to apply this update
 -->
 <style>
 /* <![CDATA[ */
@@ -3739,15 +3840,30 @@ API:
 </style>
 
 <style>
+/* <![CDATA[ */
 #heightRange {
 	width: 200px;
 }
+/* ]]> */
 </style>
 <input id="heightRange" type="range" multiple value="0,100" data-drag-middle /><br>
 
-<script type="text/javascript">
+<script type="text/javascript"> // multi range slider
 "use strict";
-(function() {
+/* Interface
+required standard objects:
+	HTMLInputElement
+	document
+	module
+	self
+required functions:
+	changeHeightRange
+public api:
+	multirange
+*/
+(function(api) {
+// public api (via self respective module)
+//	multirange
 
 var supportsMultiple = self.HTMLInputElement && "valueLow" in HTMLInputElement.prototype;
 
@@ -3851,11 +3967,11 @@ var multirange = function(input) {
 	}
 
 	update();
-}
+};
 
 multirange.init = function() {
 	[].slice.call(document.querySelectorAll("input[type=range][multiple]:not(.multirange)")).forEach(multirange);
-}
+};
 
 if (typeof module === "undefined") {
 	self.multirange = multirange;
@@ -3868,8 +3984,7 @@ if (typeof module === "undefined") {
 } else {
 	module.exports = multirange;
 }
-
-})(this);
+})(this); // end module
 </script>
 <!-- End: Two handled slider for min/max height -->
 
@@ -4350,6 +4465,38 @@ See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
 
 <script type="text/javascript"> // svg-pan-zoom
 "use strict";
+/* Interface
+required standard objects:
+	BroadcastChannel
+	console
+	document
+	localStorage
+	window
+required global data:
+	EEP_Texts
+	global
+required functions:
+	TrackSystemText
+	changeStrokeWidth
+	changefontSize
+	showColorPickerWindow
+	showExportWindow
+	showGleisInfo
+	showKameraInfo
+	showKontaktInfo
+	showSignalInfo
+	showVirtualConnectionInfo
+	showWeicheInfo
+public api:
+	SvgPanZoom
+	centerItem
+	centerPosition
+*/
+(function(api) {
+// public api
+api.SvgPanZoom = SvgPanZoom;
+api.centerItem = centerItem;
+api.centerPosition = centerPosition;
 
 function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 
@@ -4367,7 +4514,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		const topLimit = -((sizes.viewBox.y + sizes.viewBox.height) * sizes.realZoom) + gutterHeight;
 		const bottomLimit = sizes.height - gutterHeight - (sizes.viewBox.y * sizes.realZoom);
 
-		customPan = {};
+		const customPan = {};
 		customPan.x = Math.max(leftLimit, Math.min(rightLimit,  newPan.x));
 		customPan.y = Math.max(topLimit,  Math.min(bottomLimit, newPan.y));
 
@@ -4400,10 +4547,10 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 		// , contain: false // enable or disable viewport contain the svg (default false)
 		// , center: true // enable or disable viewport centering in SVG (default true)
 		// , refreshRate: "auto" // Maximum number of frames per second (altering SVG viewport)
-		// , beforeZoom: function(oldZoom, newZoom){return true;}
+		// , beforeZoom: function(oldZoom, newZoom){ return true; }
 		// , onZoom: function(ZoomScale){}
 		, onZoom: onZoom
-		// , beforePan: function(oldPan, newPan){return customPan} // oldPan.x, oldPan.y, newPan.x, newPan.y
+		// , beforePan: function(oldPan, newPan){ return customPan; } // oldPan.x, oldPan.y, newPan.x, newPan.y
 		, beforePan: beforePan
 		// , onPan: function(newPan){}
 		, onPan: onPan
@@ -4518,7 +4665,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	// Button swap
 	document.getElementById("swap").addEventListener("click", function(ev) {
 		msg();
-		ev.preventDefault()
+		ev.preventDefault();
 		// Toogle between flex-direction: column and flex-direction: row
 		document.getElementById("main").classList.toggle("column");
 		document.getElementById("main").classList.toggle("row");
@@ -4554,7 +4701,7 @@ function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
 	// Button Reset
 	document.getElementById("reset").addEventListener("click", function(ev) {
 		msg();
-		ev.preventDefault()
+		ev.preventDefault();
 		panZoom.fit();
 		panZoom.center();
 		panZoom.resetZoom();
@@ -4662,8 +4809,8 @@ EEPchannel.onmessage = function(ev) {
 		if (Meldung) {
 			// Signal gefunden
 			centerPosition(Meldung.mPos);
-			//msg(`Das Signal ${ID} befindet sich auf ${TrackSystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
-			msg('SignalLocation', ID, TrackSystemText[Meldung.GleissystemID], Meldung.GleisID);
+			//msg(`Das Signal ${ID} befindet sich auf ${TrackSystemText(Meldung.GleissystemID)} ${Meldung.GleisID}`);
+			msg('SignalLocation', ID, TrackSystemText(Meldung.GleissystemID), Meldung.GleisID);
 
 			showSignalInfo(ID, GleissystemID, GleisID);
 			return true;
@@ -4675,8 +4822,8 @@ EEPchannel.onmessage = function(ev) {
 			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
 			const GleisID = Gleis.getAttribute("GleisID");
 			centerPosition(Gleis.mEnd);
-			//msg(`Die Weiche ${ID} befindet sich auf ${TrackSystemText[Gleis.GleissystemID]} ${GleisID}`);
-			msg('SwitchLocation', ID, TrackSystemText[Gleis.GleissystemID], Gleis.GleisID);
+			//msg(`Die Weiche ${ID} befindet sich auf ${TrackSystemText(Gleis.GleissystemID)} ${GleisID}`);
+			msg('SwitchLocation', ID, TrackSystemText(Gleis.GleissystemID), Gleis.GleisID);
 
 			showWeicheInfo(ID, GleissystemID, GleisID);
 			return true;
@@ -4739,7 +4886,7 @@ EEPchannel.onmessage = function(ev) {
 	return { // public interface
 		centerItem: centerItem,
 		centerPosition: centerPosition,
-	}
+	};
 
 function centerItem() {
 	// Get input values
@@ -4787,8 +4934,8 @@ function centerItem() {
 		if (Meldung) {
 			// Signal gefunden
 			centerPosition(Meldung.mPos);
-			//msg(`Das Signal ${ID} befindet sich auf ${TrackSystemText[Meldung.GleissystemID]} ${Meldung.GleisID}`);
-			msg('SignalLocation', ID, TrackSystemText[Meldung.GleissystemID], Meldung.GleisID);
+			//msg(`Das Signal ${ID} befindet sich auf ${TrackSystemText(Meldung.GleissystemID)} ${Meldung.GleisID}`);
+			msg('SignalLocation', ID, TrackSystemText(Meldung.GleissystemID), Meldung.GleisID);
 			return true;
 		}
 
@@ -4798,8 +4945,8 @@ function centerItem() {
 			//const GleissystemID = Gleissystem.getAttribute("GleissystemID");
 			const GleisID = Gleis.getAttribute("GleisID");
 			centerPosition(Gleis.mEnd);
-			//msg(`Die Weiche ${ID} befindet sich auf ${TrackSystemText[Gleis.GleissystemID]} ${GleisID}`);
-			msg('SwitchLocation', ID, TrackSystemText[Gleis.GleissystemID], GleisID);
+			//msg(`Die Weiche ${ID} befindet sich auf ${TrackSystemText(Gleis.GleissystemID)} ${GleisID}`);
+			msg('SwitchLocation', ID, TrackSystemText(Gleis.GleissystemID), GleisID);
 			return true;
 		}
 
@@ -4825,47 +4972,13 @@ function centerPosition(Position) {
 	panZoom.pan({x: panX, y: panY});
 }
 
-}
-
-// Handle special keys
-global.shiftDown 	= false;
-global.strgDown 	= false;
-global.altDown 		= false;
-// Clear key status when window gets focus (mainly to omit Alt key)
-window.addEventListener("focus", function(event) {
-	global.shiftDown 	= false;
-	global.strgDown 	= false;
-	global.altDown 		= false;
-});
-//window.addEventListener("blur", function(event) {});
-// Activate key
-document.addEventListener("keydown", function(event){
-    if			(event.keyCode === 16 || event.charCode === 16){
-        global.shiftDown = true;
-    } else if	(event.keyCode === 17 || event.charCode === 17){
-        global.strgDown = true;
-    } else if	(event.keyCode === 18 || event.charCode === 18){
-        global.altDown = true;
-    }
-});
-// Deactivate key
-document.addEventListener("keyup", function(event){
-    if			(event.keyCode === 16 || event.charCode === 16){
-        global.shiftDown = false;
-    } else if	(event.keyCode === 17 || event.charCode === 17){
-        global.strgDown = false;
-    } else if	(event.keyCode === 18 || event.charCode === 18){
-        global.altDown = false;
-    }
-});
-
 // Show cursor position
-function showPosition(t, event) {
-	const pan 	= t.getPan();	// (x y)
-	const sizes = t.getSizes();	// width height of svg area
+function showPosition(panZoom, event) {
+	const pan 	= panZoom.getPan();	// (x y)
+	const sizes = panZoom.getSizes();	// width height of svg area
 								// viewBox (x y width height)
 								// realZoom = min(width/viewBox.width, height/viewBox.height)
-	//const zoom 	= t.getZoom();	// zoom factor
+	//const zoom 	= panZoom.getZoom();	// zoom factor
 
 	const posX	= ( event.offsetX - pan.x) / sizes.realZoom;
 	const posY	= ( event.offsetY - pan.y) / sizes.realZoom;
@@ -4876,12 +4989,12 @@ function showPosition(t, event) {
 }
 
 // Show coordinates of visible area
-function showArea(t, event) {
-	const pan 		= t.getPan();	// (x y)
-	const sizes 	= t.getSizes();	// width height of svg area
+function showArea(panZoom, event) {
+	const pan 		= panZoom.getPan();	// (x y)
+	const sizes 	= panZoom.getSizes();	// width height of svg area
 								// viewBox (x y width height)
 								// realZoom = min(width/viewBox.width, height/viewBox.height)
-	//const zoom 		= t.getZoom();	// zoom factor
+	//const zoom 		= panZoom.getZoom();	// zoom factor
 
 	const minX		= (-pan.x) / sizes.realZoom;
 	const minY		= (-pan.y) / sizes.realZoom;
@@ -4900,7 +5013,7 @@ function showArea(t, event) {
 }
 
 // Show element
-function showElement(t, event) {
+function showElement(panZoom, event) {
 	if (!event || event.target.id === "svg") { return; }
 /*
 console.log("");
@@ -5050,7 +5163,7 @@ event.target.id												V4-1
 
 	} else if (event.target.classList.contains("WeicheText")) { 			// Weiche
 		const WeicheCode 		= event.target.id;
-		const WeicheID 			= WeicheCode.substring(1)
+		const WeicheID 			= WeicheCode.substring(1);
 
 		const GleisCode 		= event.target.parentElement.id;
 		const GleisTextArray 	= GleisCode.substring(1).split("-");
@@ -5094,10 +5207,70 @@ function showUsedArea(panZoom, pan) {
 	}
 	panZoom.zoom(scale);
 }
+
+} // end function SvgPanZoom
+
+// Handle special keys
+global.shiftDown 	= false;
+global.strgDown 	= false;
+global.altDown 		= false;
+// Clear key status when window gets focus (mainly to omit Alt key)
+window.addEventListener("focus", function(event) {
+	global.shiftDown 	= false;
+	global.strgDown 	= false;
+	global.altDown 		= false;
+});
+//window.addEventListener("blur", function(event) {});
+// Activate key
+document.addEventListener("keydown", function(event){
+    if			(event.keyCode === 16 || event.charCode === 16){
+        global.shiftDown = true;
+    } else if	(event.keyCode === 17 || event.charCode === 17){
+        global.strgDown = true;
+    } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = true;
+    }
+});
+// Deactivate key
+document.addEventListener("keyup", function(event){
+    if			(event.keyCode === 16 || event.charCode === 16){
+        global.shiftDown = false;
+    } else if	(event.keyCode === 17 || event.charCode === 17){
+        global.strgDown = false;
+    } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = false;
+    }
+});
+
+})(this); // end module
 </script>
 
 <script type="text/javascript"> // Main screen
 "use strict";
+/* Interface
+required standard objects:
+	console
+	document
+required global data:
+	EEP_Texts
+	global
+public api:
+	changeHeightRange
+	changeStrokeWidth
+	changefontSize
+	msg
+	toggleElements
+	toggleMarker
+*/
+(function(api) {
+// public api
+api.changeHeightRange = changeHeightRange;
+api.changeStrokeWidth = changeStrokeWidth;
+api.changefontSize = changefontSize;
+api.msg = msg;
+api.toggleElements = toggleElements;
+api.toggleMarker = toggleMarker;
+
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
 	msg();
@@ -5180,7 +5353,7 @@ function changeStrokeWidth(panZoom) {
 		const zoom 		= panZoom.getZoom();	// zoom factor
 
 		if (!sizes.realZoom) {
-			sizes.realZoom = 1
+			sizes.realZoom = 1;
 		}
 		// It seems that a quadratic relationship between 1/realZoom and strokeFactor works well 
 		strokeWidth = -0.07 / sizes.realZoom / sizes.realZoom + 1.6 / sizes.realZoom
@@ -5197,7 +5370,7 @@ console.log( "changeStrokeWidth"
 	+ "\theight\t" 				+ sizes.height
 	+ "\tviewBox.width\t" 		+ sizes.viewBox.width
 	+ "\tviewBox.height\t" 		+ sizes.viewBox.height
-)	
+);
 
 	} else {
 		// manual stroke width
@@ -5212,7 +5385,7 @@ console.log( "changeStrokeWidth"
 	+ "\tautoStrokeWidth\t" 	+ autoStrokeWidth
 	+ "\tsliderValue\t" 		+ sliderValue 
 	+ "\tstrokeWidth\t" 		+ strokeWidth
-)
+);
 
 	}
 
@@ -5228,7 +5401,7 @@ console.log( "changeStrokeWidth"
 		`svg {
 			--normal-stroke-width: ${ strokeWidth }px;
 			--narrow-stroke-width: ${ strokeWidth / 2 }px;
-		}`
+		}`;
 }
 
 function changefontSize(value) {
@@ -5279,6 +5452,7 @@ function changeHeightRange(valueLow, valueHigh) {
 		}
 	}
 }
+})(this); // end module
 </script>
 
 <link rel="stylesheet" href="node_modules/toolwindow/dist/toolwindow.css"/>
@@ -5291,8 +5465,47 @@ function changeHeightRange(valueLow, valueHigh) {
 
 <aside id="infoPopup"> <!-- Info Window -->
 <script type="text/javascript" src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
-<script type="text/javascript">  // Show information in Info Box
+<script type="text/javascript"> // Show information in Info Box
 "use strict";
+/* Interface
+required standard objects:
+	console
+required global data:
+	EEP_Texts
+	GebaeudesammlungText
+	GleisDataText
+	Gleisart
+	Signalstellung
+	WeichenstellungText
+	global
+required functions:
+	_
+	TrackSystemText
+	msg
+	showInfoWindow
+public api:
+	getKontaktIcon
+	getKontaktText
+	objectToHTML
+	showGleisInfo
+	showKameraInfo
+	showKontaktInfo
+	showSignalInfo
+	showVirtualConnectionInfo
+	showWeicheInfo
+*/
+(function(api) {
+// public api
+api.getKontaktIcon = getKontaktIcon;
+api.getKontaktText = getKontaktText;
+api.objectToHTML = objectToHTML;
+api.showGleisInfo = showGleisInfo;
+api.showKameraInfo = showKameraInfo;
+api.showKontaktInfo = showKontaktInfo;
+api.showSignalInfo = showSignalInfo;
+api.showVirtualConnectionInfo = showVirtualConnectionInfo;
+api.showWeicheInfo = showWeicheInfo;
+
 function objectToHTML(object) {
 	let s = "";
 
@@ -5380,7 +5593,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 		const Gleisobjekt = global.Gleisobjekte[KollektorID];
 
 		GleisobjektText = "<br>" + _('Gleisobjekt') + ": " + Gleisobjekt.gsbname
-			+ "<br>" + _('Immobilie') + ": " + GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + " " + Gleisobjekt.ImmoIdx
+			+ "<br>" + _('Immobilie') + ": " + GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + " " + Gleisobjekt.ImmoIdx;
 	}
 
 	// Kurzform in msg-Element
@@ -5402,7 +5615,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 		connectionText += "<br>" + _(connection)
 			+": "
 			+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
-			+ " " + ( connections[connection].Flags ? _('virtuell') : "" )
+			+ " " + ( connections[connection].Flags ? _('virtuell') : "" );
 	}
 
 	const _i = "</i>", _a = "</a>";
@@ -5459,7 +5672,7 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 			connectionText += "<br>" + _(connection)
 				+": "
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${connectedGleis.mMid}])">${connectedGleisID}<\/a>`
-				+ " " + ( connections[connection].Flags ? _('virtuell') : "" )
+				+ " " + ( connections[connection].Flags ? _('virtuell') : "" );
 		}
 	}
 
@@ -5532,8 +5745,8 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 			}
 
 			// Default translations
-			if (Text === "Fahrt") 	{ Text = _("Fahrt") };
-			if (Text === "Halt") 	{ Text = _("Halt") };
+			if (Text === "Fahrt") 	{ Text = _("Fahrt"); }
+			if (Text === "Halt") 	{ Text = _("Halt"); }
 
 			return Text;
 		}
@@ -5576,7 +5789,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		5: { name: _('pink'),		color: "rgb(220,0,220)", 	},
 		6: { name: _('hellblau'), 	color: "rgb(0,180,220)", 	},
 		7: { name: _('orange'),		color: "rgb(220,110,0)",	},
-	}
+	};
 	let RoutesText = "";
 	for (const Route of RouteList) {
 		const Target 	= Route.getAttribute("Target");
@@ -5632,7 +5845,7 @@ function getKontaktIcon(GleissystemID, SetType, SetValue) {
 		2048 	: '\u2398', // Animationen				⮔ 2B94 ⎘ \u2398 ↬ \u21AC ↝ \u219D
 		32768	: '\u2042',	// Gruppe					⁂ \u2042 ⭢
 							// 							⌂ \u2302 ⌥ \u2325   → = &rarr; = \u8594;   ⭢ = \u2B62
-	}
+	};
 
 	let Icon = (KontaktIcon[SetType] ? KontaktIcon[SetType] : "");
 
@@ -5674,7 +5887,7 @@ function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
 		1536 	: _('Ausfahrt Depot'),
 		2048 	: _('Animationen'),
 		32768 	: _('Gruppen-Kontaktpunkt'),
-	}
+	};
 
 	let Text 	= (KontaktText[SetType] ? KontaktText[SetType] : _('unbekannt'));
 
@@ -5699,18 +5912,18 @@ function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
 			Byte 2:			Perspektive Start
 			Byte 3:			KameraID Ende
 			Byte 4:			Perspektive Ende
-			*/
-			const Perspektive = {
-				0 : _('keine Perspektive festgelegt'),
-				1 : _('Fahrzeug von links'),
-				2 : _('Fahrzeug von rechts'),
-				3 : _('Fahrzeug von links oben'),
-				4 : _('Fahrzeug von rechts oben'),
-				5 : _('Sicht in Fahrtrichtung'),
-				6 : _('Rückwärtige Sicht'),
-				7 : _('Folgemodus'),
-				8 : _('Sicht in Kabine'),
-			}
+		*/
+		const Perspektive = {
+			0 : _('keine Perspektive festgelegt'),
+			1 : _('Fahrzeug von links'),
+			2 : _('Fahrzeug von rechts'),
+			3 : _('Fahrzeug von links oben'),
+			4 : _('Fahrzeug von rechts oben'),
+			5 : _('Sicht in Fahrtrichtung'),
+			6 : _('Rückwärtige Sicht'),
+			7 : _('Folgemodus'),
+			8 : _('Sicht in Kabine'),
+		};
 
 		// convert 32bit int to array of 4 bytes
 		function convertIntToBytes( x ) {
@@ -5719,7 +5932,7 @@ function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
 			do {
 				bytes[--i] = x & (255);
 				x = x>>8;
-			} while ( i && x > 0 )
+			} while ( i && x > 0 );
 			return bytes;
 		}
 
@@ -5733,7 +5946,7 @@ console.log('Kamera'
 	+ ' StartPerspektive=' + StartPerspektive
 	+ ' EndeKameraID=' + EndeKameraID
 	+ ' EndePerspektive=' + EndePerspektive
-)
+);
 
 			Text = ""		// <Kamera Icon> <Start Kamera> [<Perspektive>] / <Ende Kamera> nach <t> Sek. [<Perspektive>]
 				+ (StartKamera
@@ -5759,7 +5972,7 @@ console.log('Kamera'
 			2 : _('links-rechts'),
 			3 : _('rechts-rechts'),
 			4 : _('rechts-links'),
-		}
+		};
 
 		Text += " " + VolDistText[VolDist];
 
@@ -5799,7 +6012,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 		0 : _('Spitze'),
 		1 : _('Schluss'),
 		[-1] : _('Gruppen-Kontaktpunkt'),
-	}
+	};
 
 	// SignalData
 	/*
@@ -5859,7 +6072,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 				? `<br>${_('Kontaktziel')} ${KontaktZiel}: `
 					+ ( Ziel ?
 							`<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${(Meldung ? Meldung.mPos : (Gleis ? Gleis.mEnd : undefined))}]);">`
-							+ `${Ziel.Typ} ${Ziel.ID} ${_('auf')} ${TrackSystemText[Ziel.GleissystemID]} ${Ziel.GleisID}`
+							+ `${Ziel.Typ} ${Ziel.ID} ${_('auf')} ${TrackSystemText(Ziel.GleissystemID)} ${Ziel.GleisID}`
 							+ `<\/a>`
 						  : _('unbekannt')
 					  )
@@ -5888,7 +6101,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 function showKameraInfo(KameraID) {
 //<Kammera name="..." DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="12.965" FOV="0" TakeSwitch="0">
 	function angle(rad) {
-		return (rad*180/Math.PI).toFixed(1) + "°"
+		return (rad*180/Math.PI).toFixed(1) + "°";
 	}
 
 	const Kamera 		= global.KameraSet[KameraID];
@@ -6010,10 +6223,18 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			+ objectToHTML(Kamera)
 	});
 }
-
+})(this); // end module
 </script>
-<script type="text/javascript"> // toolwindow
+<script type="text/javascript"> // toolwindow: Info Window
 "use strict";
+/* Interface
+required global data:
+	global
+required functions:
+	ToolWindow
+public api:
+	showInfoWindow
+*/
 (function(api) {
 // public api
 api.showInfoWindow = showInfoWindow;
@@ -6077,8 +6298,23 @@ function showInfoWindow(options) {
 
 <aside id="exportPopup"> <!-- Export Window -->
 
-<script type="text/javascript"> // toolwindow
+<script type="text/javascript"> // toolwindow: Export Window
 "use strict";
+/* Interface
+required standard objects:
+	Blob
+	Image
+	URL
+	XMLSerializer
+	console
+	document
+required functions:
+	_
+	ToolWindow
+	msg
+public api:
+	showExportWindow
+*/
 (function(api) {
 // public api
 api.showExportWindow = showExportWindow;
@@ -6279,13 +6515,24 @@ function exportData(dataURL, fileType) {
 	URL.revokeObjectURL(dataURL);
 	return true;
 }
-})(this);
+})(this); // end module
 </script>
 </aside>
 
 <aside id="colorPopup"> <!-- Color Picker Window -->
 <script type="text/javascript"> // colorPicker
 "use strict";
+/* Interface
+required standard objects:
+	document
+	localStorage
+required functions:
+	_
+	ToolWindow
+public api:
+	loadColors
+	showColorPickerWindow
+*/
 (function(api) {
 // public api
 api.loadColors = loadColors;
