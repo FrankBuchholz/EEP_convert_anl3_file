@@ -3750,14 +3750,31 @@ Check for updates(on top of #45):
 <style>
 /* <![CDATA[ */
 @supports (--css: variables) {
+
+/*
+https://brennaobrien.com/blog/2014/05/style-input-type-range-in-every-browser.html
+
+Google Chrome and Edge
+::-webkit-slider-runnable-track
+::-webkit-slider-thumb
+
+Firefox
+::-moz-range-track
+::-moz-range-thumb
+
+*/
 	input[type="range"].multirange {
 		padding: 0;
 		margin: 0;
 		display: inline-block;
 		vertical-align: top;
 	}
+
 		input[type="range"].multirange::-moz-range-thumb {
 			transform: scale(1); /* FF doesn't apply position it seems */
+		}
+		input[type="range"].multirange::-moz-range-track {
+			border-color: transparent; /* needed to switch FF to "styleable" control */
 		}
 
 	input[type="range"].multirange.original {
@@ -3768,19 +3785,15 @@ Check for updates(on top of #45):
 			position: relative;
 			z-index: 2;
 		}
-
 		input[type="range"].multirange.original::-moz-range-thumb {
 			z-index: 2;
-		}
-
-		input[type="range"].multirange::-moz-range-track {
-			border-color: transparent; /* needed to switch FF to "styleable" control */
 		}
 
 	input[type="range"].multirange.middle {
 		position: absolute;
 		-webkit-appearance: none;
 	}
+
 		input[type="range"].multirange.middle:focus {
 			outline: none;
 		}
@@ -3809,22 +3822,21 @@ Check for updates(on top of #45):
 
 	input[type="range"].multirange.ghost {
 		position: relative;
-		background: var(--track-background);
+		--range-color: hsl(190, 80%, 40%);			/* base color of bar hsl(hue, satuation, lightness)*/
 		--track-background: linear-gradient(		/* color of different parts of the bar */
 				to right,							/* direction from left to right */
-				transparent 		var(--low), 	/* no color up to left slider */
+				WhiteSmoke			var(--low), 	/* no color up to left slider (but 'transparent' does not work here) */
 				var(--range-color) 	0,				/* constant color starting with left slider */
 				var(--range-color) 	var(--high), 	/* constant color ending at right slider */
-				transparent 		0				/* no color right of sliders */
-			) no-repeat 0 45% / 100% 20%;			/* "0" "relative vertical position" / "relative width" "relative height=thickness" */
-		--range-color: hsl(190, 80%, 40%);			/* base color of bar hsl(hue, satuation, lightness)*/
+				WhiteSmoke	 		0				/* no color right of sliders ('transparent' would work fine here) */
+			) no-repeat 0 45% / 100% 40%;			/* "0" "relative vertical position" / "relative width" "relative height=thickness" */
+		background: var(--track-background);  /* required for Firefox */
 	}
 
-		input[type="range"].multirange.ghost::-webkit-slider-runnable-track {
+		input[type="range"].multirange.ghost::-webkit-slider-runnable-track { 	/* Google Chrome and Edge */
 			background: var(--track-background);
 		}
-
-		input[type="range"].multirange.ghost::-moz-range-track {
+		input[type="range"].multirange.ghost::-moz-range-track {				/* Firefox */
 			background: var(--track-background);
 		}
 		input[type="range"].multirange.ghost::-webkit-slider-thumb {
@@ -3846,7 +3858,7 @@ Check for updates(on top of #45):
 }
 /* ]]> */
 </style>
-<input id="heightRange" type="range" multiple value="0,100" data-drag-middle /><br>
+<input id="heightRange" type="range" multiple min="0" max="100" value="0,100" data-drag-middle /><br>
 
 <script type="text/javascript"> // multi range slider
 "use strict";
