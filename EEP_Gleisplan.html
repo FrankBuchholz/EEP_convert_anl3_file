@@ -1291,6 +1291,7 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 
 		let CurveType, Laenge, Kruemmung, mMatrix;
 		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
+		let near, far;	//###
 
 		if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 
@@ -1298,12 +1299,8 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 			const Curve 	= Gleis.getElementsByTagName("Curve")[0];
 
 			const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-			const near 		= +Interval.getAttribute("near");
-			const far 		= +Interval.getAttribute("far");
-
-if (near > far) { console.log('near ' + near + ' > far ' + far + ' for '
-	+ TrackSystemText(GleissystemID) + ' ' + GleisID
-);}
+			near 			= +Interval.getAttribute("near");	//###
+			far 			= +Interval.getAttribute("far");	//###
 			const Frame		= Gleis.getElementsByTagName("Frame")[0];
 			const FramePos	= Frame.getElementsByTagName("Position")[0];
 			const FrameDir	= Frame.getElementsByTagName("Vector")[0];
@@ -1317,11 +1314,20 @@ if (near > far) { console.log('near ' + near + ' > far ' + far + ' for '
 			const swap = (   Math.abs(+Frame.getElementsByTagName("Vector")[1].getAttribute("dz")) > 0.99
 						  && Math.abs(+Frame.getElementsByTagName("Vector")[2].getAttribute("dz")) < 0.01
 						  ? true : false);
-			const FrameNor	= Frame.getElementsByTagName("Vector")[(swap ? 2 : 1)];
-			const FrameBin	= Frame.getElementsByTagName("Vector")[(swap ? 1 : 2)];
+/*
+Neue Anlage_Test_288 - repariert
+Swap frame vektor Nor<->Bin for Eisenbahn 215
+
+HSB_Sued
+Swap frame vektor Nor<->Bin for Wasserwege 156
+Swap frame vektor Nor<->Bin for Wasserwege 164
+
+*/
 if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 	+ TrackSystemText(GleissystemID) + ' ' + GleisID
 );}
+			const FrameNor	= Frame.getElementsByTagName("Vector")[(swap ? 2 : 1)];
+			const FrameBin	= Frame.getElementsByTagName("Vector")[(swap ? 1 : 2)];
 
 			Laenge	= Math.abs( far - near );
 
@@ -1343,6 +1349,9 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 			BinZ	= +FrameBin.getAttribute("dz");
 
 			if (DirX === 0 && DirY === 0 && DirZ === 1 && NorX !== 0 && NorY !== 0 && NorZ === 0) { // wrong order Bin - Dir - Nor
+console.log('wrong order Bin - Dir - Nor for '
+	+ TrackSystemText(GleissystemID) + ' ' + GleisID
+);
 				const FrameBin	= Frame.getElementsByTagName("Vector")[0];
 				const FrameDir	= Frame.getElementsByTagName("Vector")[1];
 				const FrameNor	= Frame.getElementsByTagName("Vector")[2];
@@ -1451,6 +1460,9 @@ Makinista_GRAFENBURG 16
 //if (GleissystemID == "4" && GleisID == "4944") debugger;
 //if (GleissystemID == "4" && GleisID == "5817") debugger;
 				if (DirX === 0 && DirY === 0 && DirZ === 1 && NorX !== 0 && NorY !== 0 && NorZ === 0) { // wrong order Bin - Dir - Nor
+console.log('wrong order Frame2 Bin - Dir - Nor for '
+	+ TrackSystemText(GleissystemID) + ' ' + GleisID
+);
 					const Frame2Bin	= Frame2.getElementsByTagName("Vector")[0];
 					const Frame2Dir	= Frame2.getElementsByTagName("Vector")[1];
 					const Frame2Nor	= Frame2.getElementsByTagName("Vector")[2];
@@ -1602,7 +1614,7 @@ return nodeList;
 											PosX2, PosY2, PosZ2, 1,	];
 
 				// Orientation forward/backward
-				const scalar = (far > near ? 1 : -1);
+				const scalar = (far > near ? 1 : -1); //### Not correct yet: position ok, direction wrong
 				// rematrix.scaleY(scalar)
 				const mOrientation =	[	1, 0,      0, 0,
 											0, scalar, 0, 0,
@@ -1695,12 +1707,10 @@ return nodeList;
 												+ (mEnd[posZ]-mPos[posZ]) * (mEnd[posZ]-mPos[posZ])
 												);
 				const dDiff		= Math.abs(d1-d2);
-
-console.log("Helix Vergleich\t" + GleisID
+				if (dDiff > 1) {	// difference is too large, go für Cubic interpolation
+console.log("Helix Vergleich\t" + TrackSystemText(GleissystemID) + " " + GleisID
 	+ "\tDelta:\t" + d1 + "\t" + d2 + "\t" + dDiff
 );
-
-				if (dDiff > 1) {	// difference is too large, go für Cubic interpolation
 					/* Interpolate Helix with Cubic:
 					Analyzed and developed by HStoni54, https://www.eepforum.de/user/6783-hstoni54/
 
@@ -2057,6 +2067,61 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 
 		*/
 
+
+/*
+Modellbahn_Landbrücken
+Arc near 60 > far 0 for Eisenbahn 22
+Arc near 59.21461 > far 0 for Eisenbahn 129
+Arc near 73.93141 > far 0 for Eisenbahn 134
+Arc near 73.93142 > far 0 for Eisenbahn 135
+Arc near 52.93141 > far 0 for Eisenbahn 137
+Arc near 52.93141 > far 0 for Eisenbahn 139
+Line near 59.99967 > far 0 for Eisenbahn 140
+Line near 60 > far 0 for Eisenbahn 144
+Line near 60.00001 > far 0 for Eisenbahn 145
+Arc near 56.8584 > far 0 for Eisenbahn 146
+Arc near 56.85841 > far 0 for Eisenbahn 147
+Arc near 56.85843 > far 0 for Eisenbahn 148
+Arc near 72.93145 > far 0 for Eisenbahn 149
+Arc near 4.77981 > far 0 for Eisenbahn 406
+Line near 7 > far 0 for Straße 25
+Line near 60 > far 0 for Straße 73
+Arc near 43.76994 > far 0 for Straße 97
+Arc near 43.76992 > far 0 for Straße 98
+
+Gleismauerbau2
+Arc near 48.6691 > far 0 for Eisenbahn 294
+Arc near 61.89311 > far 0 for Straße 122
+Arc near 61.89329 > far 0 for Straße 124
+Arc near 48.83204 > far 0 for Straße 144
+Line near 60 > far 0 for Straße 400
+Line near 60 > far 0 for Straße 403
+
+Neue Anlage_Test_288 - repariert
+Cubic near 76.67825 > far 0 for Eisenbahn 222
+Cubic near 77.51543 > far 0 for Eisenbahn 223
+Cubic near 78.34965 > far 0 for Eisenbahn 224
+Rotator near 74.91347 > far 0 for Straße 303
+Rotator near 20.36278 > far 0 for Straße 530
+Rotator near 36.81652 > far 0 for Straße 977
+...
+
+Nouveau projet 18a
+Helix near 67.46526 > far 0 for Eisenbahn 55
+...
+
+HSB_Sued
+
+DKW-Schaltung-mit GBS-Fahrstrasse-Normgleis-V16
+
+*/
+if (near > far) { 
+	console.log(
+		CurveType 
+		+ " near " + near + " > far " + far
+		+ " for " + TrackSystemText(GleissystemID) + " " + GleisID
+);}
+
 		Gleis.CurveType = CurveType;
 		Gleis.Laenge 	= Laenge;
 		Gleis.mPos 		= mMatrix;
@@ -2076,7 +2141,8 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 			+ " " + CurveType
 			+ " " + `stil-${stil}`
 			+ " " + (global.activeTracks[GleissystemID].includes(GleisID) ? "active" : "inactive")
-			+ " " + `height=${Gleis.mPos[posZ].toFixed(2)}`	// Height
+			+ " " + (near > far ? "near-far" : "")	//### Enable highlighing 
+			+ " " + `height=${mMatrix[posZ].toFixed(2)}`	// Height
 			// Ein Kamerafahrweg ist immer unsichtbar
 			+ " " + (stil == 100000 || (unsichtbar.includes(parseInt(stil)) && GleisData != 16) ? "unsichtbar" : "sichtbar");
 		const svgGleisGroup = svgAppend(svgGleissystemGroup, {
@@ -2108,7 +2174,10 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
 				//class				: `stil-${stil}`,
-				d 					: `M ${B1X} ${B1Y} C ${B2X} ${B2Y} ${B3X} ${B3Y} ${B4X} ${B4Y}`,
+				d 					: (near < far  //###
+										? `M ${B1X} ${B1Y} C ${B2X} ${B2Y} ${B3X} ${B3Y} ${B4X} ${B4Y}`	// normal
+										: `M ${B4X} ${B4Y} C ${B3X} ${B3Y} ${B2X} ${B2Y} ${B1X} ${B1Y}`	// reverse
+										),
 				transform 			: matrixToTransform(mMatrix)
 			});
 
@@ -2128,7 +2197,7 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
 				class				: `stil-${stil}`,
-				d 					: svgPath,
+				d 					: svgPath,	 //### Bug: adjustment for near>far required
 				transform 			: matrixToTransform(mMatrix)
 			});
 
@@ -2153,7 +2222,11 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
 				//class				: `stil-${stil}`,
-				d 					: `M 0 0 H ${Laenge}`,
+				d 					: //`M 0 0 H ${Laenge}`,
+									  (near < far //###
+										? `M 0 0 H ${Laenge}`	// normal
+										: `M ${Laenge} 0 L 0 0`	// reverse
+										),
 				transform 			: matrixToTransform(mMatrix)
 			});
 
@@ -2190,13 +2263,16 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 			DeltaY 		= (1 - Math.cos(Winkel)) * Radius;
 			DeltaZ		= 0;
 
-			const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1);
-			const SweepFlag = ( Winkel >= 0 ? 1 : 0);
+			const ArcFlag 	= ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1); 	// small respective large arc of the curve
+			const SweepFlag = ( Winkel >= 0 ? 1 : 0);								// counter clock wise respective clock wise
 
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
 				//class				: `stil-${stil}`,
-				d 					: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`,
+				d 					: (near < far //###
+										? `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`	// normal
+										: `M ${DeltaX} ${DeltaY} A ${Radius} ${Radius} 0 ${ArcFlag} ${1-SweepFlag} 0 0`	// reverse
+										),
 				transform 			: matrixToTransform(mMatrix)
 			});
 
@@ -2212,6 +2288,13 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 		}
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
+		// Swap mPos and mEnd if near > far //### I guess that's incomplete
+		if (near > far) {
+			const tempPos = Gleis.mEnd;
+			Gleis.mEnd = Gleis.mPos;
+			Gleis.mPos = tempPos;
+		}
+
 		if (Key_Id) {
 			// Show text of Weiche at the end of the track
 			let Code = "W";
@@ -2222,11 +2305,13 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 				id				: `W${Key_Id}`,
 				text			: `${Code}${Key_Id}`,
 				dy				: `1em`, 		// Shift text below the track
-				"class"			: `WeicheText`,
-				x				: DeltaX,
-				y				: -DeltaY,
+				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
+				//x				: DeltaX,
+				//y				: -DeltaY,
+				x				: (near > far ? 0 :  DeltaX),	//###
+				y				: (near > far ? 0 : -DeltaY),	//###
 				transform 		: matrixToTransform(mMatrix)
-								  + svgRotate
+								  + (near > far ? "" : svgRotate)	//###
 								  + ` scale(1 -1)`,
 			});
 		}
@@ -4157,6 +4242,9 @@ text.Hoehe {
 }
 
 text.WeicheText {
+}
+
+text.text-anchor-end {
 	text-anchor	: end;
 }
 
@@ -5372,6 +5460,7 @@ function changeStrokeWidth(panZoom) {
 		// Adjust automatic value slightly depending on slider with factor range [0.25 .. 3.25]
 		strokeWidth *= ( 0.25 + sliderValue / 50 );
 
+/*
 console.log( "changeStrokeWidth"
 	+ "\tautoStrokeWidth\t" 	+ autoStrokeWidth
 	+ "\tsliderValue\t" 		+ sliderValue 
@@ -5383,6 +5472,7 @@ console.log( "changeStrokeWidth"
 	+ "\tviewBox.width\t" 		+ sizes.viewBox.width
 	+ "\tviewBox.height\t" 		+ sizes.viewBox.height
 );
+*/
 
 	} else {
 		// manual stroke width
