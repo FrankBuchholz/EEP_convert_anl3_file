@@ -983,11 +983,11 @@ function prepareGleissysteme(sutrackp) {
 
 				// Now we can follow the tracks to find the position of the main signal on the track
 				let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
-				let Laenge;
+				let Laenge, near, far;	//###
 				if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 					const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-					const near		= +Interval.getAttribute("near");
-					const far 		= +Interval.getAttribute("far");
+					near			= +Interval.getAttribute("near");
+					far 			= +Interval.getAttribute("far");
 					Laenge	= Math.abs( far - near );
 				} else {  /* EEP 15 */
 					const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
@@ -995,7 +995,7 @@ function prepareGleissysteme(sutrackp) {
 				}
 
 				// Do we find the main signal on the same track?
-				Position = Position + Distanz * (ParaOderAnti == 1 ? 1 : -1);
+				Position = Position + Distanz * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
 				if (Position >= 0 && Position <= Laenge) {
 					// The main signal is on the same track
 					trackSignals[GleissystemID][currentGleisID].push({
@@ -2006,6 +2006,8 @@ console.log(`Cubic ${TrackSystemText(GleissystemID)} ${GleisID}`
 			const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
 
 			Laenge 		= +Charakteristik.getAttribute("Laenge") / 100;
+			near		= 0;		//###
+			far			= Laenge;	//###
 			Kruemmung	= +Charakteristik.getAttribute("Kruemmung") * 100;
 
 			PosX		= +FramePos.getAttribute("x") / 100;
@@ -2068,7 +2070,7 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 		*/
 
 
-/*
+/* //###
 Modellbahn_Landbrücken
 Arc near 60 > far 0 for Eisenbahn 22
 Arc near 59.21461 > far 0 for Eisenbahn 129
@@ -2101,9 +2103,21 @@ Neue Anlage_Test_288 - repariert
 Cubic near 76.67825 > far 0 for Eisenbahn 222
 Cubic near 77.51543 > far 0 for Eisenbahn 223
 Cubic near 78.34965 > far 0 for Eisenbahn 224
+Line near 60 > far -16.17879 for Eisenbahn 728			<-----
+Line near 60 > far -16.17879 for Straßenbahn 57			<-----
+Arc near 7.569722 > far -21.23326 for Straßenbahn 72	<-----
+Line near 4.997559 > far -32.4624 for Straße 13			<-----
+Line near 80 > far 53.87793 for Straße 130				<-----	
 Rotator near 74.91347 > far 0 for Straße 303
+Arc near 10.00001 > far -0.1558323 for Straße 352		<-----
+Line near 73.99999 > far 49.7773 for Straße 455  		<-----
 Rotator near 20.36278 > far 0 for Straße 530
+Line near 72.39453 > far 7.073486 for Straße 536		<-----
+Line near 40 > far -14.45385 for Straße 830				<-----
+Arc near 61.33142 > far 17.66124 for Straße 921			<-----
 Rotator near 36.81652 > far 0 for Straße 977
+Line near 39.55864 > far -12.09861 for Straße 1070		<-----
+Line near 51.7168 > far 15.13037 for Wasserwege 61		<-----
 ...
 
 Nouveau projet 18a
@@ -2115,7 +2129,7 @@ HSB_Sued
 DKW-Schaltung-mit GBS-Fahrstrasse-Normgleis-V16
 
 */
-if (near > far) { 
+if (near > far) { //###
 	console.log(
 		CurveType 
 		+ " near " + near + " > far " + far
@@ -2174,9 +2188,9 @@ if (near > far) {
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
 				//class				: `stil-${stil}`,
-				d 					: (near < far  //###
-										? `M ${B1X} ${B1Y} C ${B2X} ${B2Y} ${B3X} ${B3Y} ${B4X} ${B4Y}`	// normal
-										: `M ${B4X} ${B4Y} C ${B3X} ${B3Y} ${B2X} ${B2Y} ${B1X} ${B1Y}`	// reverse
+				d 					: (near > far  //###
+										? `M ${B4X} ${B4Y} C ${B3X} ${B3Y} ${B2X} ${B2Y} ${B1X} ${B1Y}`	// reverse
+										: `M ${B1X} ${B1Y} C ${B2X} ${B2Y} ${B3X} ${B3Y} ${B4X} ${B4Y}`	// normal
 										),
 				transform 			: matrixToTransform(mMatrix)
 			});
@@ -2223,11 +2237,16 @@ if (near > far) {
 				svg_tag				: `path`,
 				//class				: `stil-${stil}`,
 				d 					: //`M 0 0 H ${Laenge}`,
-									  (near < far //###
-										? `M 0 0 H ${Laenge}`	// normal
-										: `M ${Laenge} 0 L 0 0`	// reverse
+									  `M ${near} 0 L ${far} 0`,	//### This is the correct placement of the track
+																//    however, all of this should be part mMatrix / mPos / mEnd 
+																//	  to allow correct placement of switches, signals and contacts
+									  /*
+									  (near > far 				//### This works only if far == 0
+										? `M ${Laenge} 0 L 0 0`	// reverse
+										: `M 0 0 H ${Laenge}`	// normal
 										),
-				transform 			: matrixToTransform(mMatrix)
+									  */	
+									  transform 			: matrixToTransform(mMatrix)
 			});
 
 		} else { // Show arc. Kruemmung != 0
@@ -2269,9 +2288,9 @@ if (near > far) {
 			svgAppend(svgGleisGroup, {
 				svg_tag				: `path`,
 				//class				: `stil-${stil}`,
-				d 					: (near < far //###
-										? `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`	// normal
-										: `M ${DeltaX} ${DeltaY} A ${Radius} ${Radius} 0 ${ArcFlag} ${1-SweepFlag} 0 0`	// reverse
+				d 					: (near > far //###
+										? `M ${DeltaX} ${DeltaY} A ${Radius} ${Radius} 0 ${ArcFlag} ${1-SweepFlag} 0 0`	// reverse
+										: `M 0 0 A ${Radius} ${Radius} 0 ${ArcFlag} ${SweepFlag} ${DeltaX} ${DeltaY}`	// normal
 										),
 				transform 			: matrixToTransform(mMatrix)
 			});
@@ -2508,7 +2527,10 @@ if (near > far) {
 			const Meldung		= trackSignalEntry.Meldung;
 			const SignalID		= Meldung.getAttribute("Key_Id");
 			const signalType	= trackSignalEntry.signalType;
-			const Position		= trackSignalEntry.Position;
+			const Position		= (near > far	//###
+									? Laenge - trackSignalEntry.Position	// reverse
+									: trackSignalEntry.Position 			// normal
+									);
 			const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
 			const ParaOderAnti 	= trackSignalEntry.ParaOderAnti; //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 
@@ -2603,7 +2625,10 @@ if (near > far) {
 
 		// Kontakte
 		for (const Kontakt of Gleis.getElementsByTagName("Kontakt")) {
-			const Position		= Kontakt.getAttribute("Position") / 100;
+			const Position		= (near > far 	//###
+									? Laenge - Kontakt.getAttribute("Position") / 100	// reverse
+									: Kontakt.getAttribute("Position") / 100 			// normal
+									);
 			const ParaOderAnti 	= Kontakt.getAttribute("ParaOderAnti"); // Gleisrichtung 1: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 			const fireOnPara  	= Kontakt.getAttribute("fireOnPara"); 	// Kontakt aktiv für Gleisrichtung 1
 			const fireOnAnti  	= Kontakt.getAttribute("fireOnAnti"); 	// Kontakt aktiv für Gleisrichtung 2
