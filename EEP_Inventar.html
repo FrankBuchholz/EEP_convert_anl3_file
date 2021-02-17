@@ -225,17 +225,20 @@ function process_node(sutrackp) {
 
 	// GleisData
 	const GleisDataText = {
-		1	: _('Oberleitung'),
-		2	: _('Weichenlaterne verstecken'),
-		3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),
-		4	: _('Weichenlaterne rechts'),
-		5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),
-		8	: _('Weichenlaterne links'),
-		9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),
-		16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),
-		18	: _('Doppelkreuzungsweiche'),
-		19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),
-		20	: _('Straßen-T-Kreuzung'),
+		1	: _('Oberleitung'),											// 1
+		2	: _('Weichenlaterne verstecken'),							// 2
+		3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),	// 1 + 2 
+		4	: _('Weichenlaterne rechts'),								// 4
+		5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),		// 1 + 4
+		8	: _('Weichenlaterne links'),								// 8
+		9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),		// 1 + 8
+		16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),		// special
+		18	: _('Doppelkreuzungsweiche'),								// special
+		19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 1 + special
+		20	: _('Straßen-T-Kreuzung'),									// special
+//		65	: _('special'),												// 1 +     64 ?
+//		69	: _('special'),												// 1 + 4 + 64 ?
+//		73	: _('special'),												// 1 + 8 + 64 ?
 	};
 
 	// Weichenstellung
