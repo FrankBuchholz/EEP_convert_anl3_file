@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<title>EEP-Web File Server</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<style>
+/* <![CDATA[ */
+body {
+  font-family: helvetica, arial, sans-serif;
+  margin: 2em;
+}
+
+h1 {
+  font-style: italic;
+  color: #373fff;
+}
+
+input[type="number"] {
+	width:55px;
+
+thead tr th {
+	text-align: left;
+}
+	
+.vertical-align-top {
+	vertical-align: top;
+}
+
+/* ]]> */
+</style>	
+
+</head>
+
+<body>
+<h1><img src="./images/favicon.ico" alt="EEP-Web File Server"/>EEP-Web File Server</h1>
+
+<table>
+	<tr>
+		<td>
+			Wähle die EEP-Web-Datei(en) mit einer der Optionen aus:<br> 
+			<button id="openFileButton" 		 disabled type="button">Datei</button>
+			<button id="openMultipleFilesButton" disabled type="button">Dateien</button>
+			<button id="openDirectoryButton" 	 disabled type="button">Verzeichnis</button>
+			<button id="clearButton" 	 		 disabled type="button">Clear</button>
+			<span id="fileSelectorStatus"></span>
+		</td>
+		<td>
+			Timer: 
+			<button id="startButton" 	 		 disabled type="button">Start</button>
+			<button id="stopButton" 	 		 disabled type="button">Stop</button>
+			<input  id="timerInterval" 					  type="number" value="2000" min="0"> millisec
+		</td>
+	</tr>
+	<tr>
+		<td class="vertical-align-top">
+			<span id="jsonFileAttributes"></span><br>
+			<textarea id="jsonFileContents" rows="20" cols="80" readonly></textarea>
+		</td>
+		<td class="vertical-align-top">
+			<span id="logFileAttributes"></span><br>
+			<textarea id="logFileContents" rows="20" cols="80" readonly></textarea>
+		</td>
+	</tr>
+</table>
+<div id="data"></div>
+
+<script type="text/javascript"> // Store/retrieve promise objects in IndexedDB, i.e. file handles
+"use strict";
+(function(api) {
+/*
+Source:
+https://web.dev/file-system-access/#storing-file-handles-or-directory-handles-in-indexeddb
+Example:
+https://filehandle-directoryhandle-indexeddb.glitch.me/
+*/
+// public api
+//export { clear, createStore, del, entries, get, getMany, keys, promisifyRequest, set, setMany, update, values };
+api.getIndexedDB = get;
+api.setIndexedDB = set;
+api.delIndexedDB = del;
+//...
+
+function promisifyRequest(request) {
+    return new Promise((resolve, reject) => {
+        // @ts-ignore - file size hacks
+        request.oncomplete = request.onsuccess = () => resolve(request.result);
+        // @ts-ignore - file size hacks
+        request.onabort = request.onerror = () => reject(request.error);
+    });
+}
+function createStore(dbName, storeName) {
+    const request = indexedDB.open(dbName);
+    request.onupgradeneeded = () => request.result.createObjectStore(storeName);
+    const dbp = promisifyRequest(request);
+    return (txMode, callback) => dbp.then((db) => callback(db.transaction(storeName, txMode).objectStore(storeName)));
+}
+let defaultGetStoreFunc;
+function defaultGetStore() {
+    if (!defaultGetStoreFunc) {
+        defaultGetStoreFunc = createStore('keyval-store', 'keyval');
+    }
+    return defaultGetStoreFunc;
+}
+/*
+ * Get a value by its key.
+ *
+ * @param key
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function get(key, customStore = defaultGetStore()) {
+    return customStore('readonly', (store) => promisifyRequest(store.get(key)));
+}
+/*
+ * Set a value with a key.
+ *
+ * @param key
+ * @param value
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function set(key, value, customStore = defaultGetStore()) {
+    return customStore('readwrite', (store) => {
+        store.put(value, key);
+        return promisifyRequest(store.transaction);
+    });
+}
+/*
+ * Set multiple values at once. This is faster than calling set() multiple times.
+ * It's also atomic – if one of the pairs can't be added, none will be added.
+ *
+ * @param entries Array of entries, where each entry is an array of `[key, value]`.
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function setMany(entries, customStore = defaultGetStore()) {
+    return customStore('readwrite', (store) => {
+        entries.forEach((entry) => store.put(entry[1], entry[0]));
+        return promisifyRequest(store.transaction);
+    });
+}
+/*
+ * Get multiple values by their keys
+ *
+ * @param keys
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function getMany(keys, customStore = defaultGetStore()) {
+    return customStore('readonly', (store) => Promise.all(keys.map((key) => promisifyRequest(store.get(key)))));
+}
+/*
+ * Update a value. This lets you see the old value and update it as an atomic operation.
+ *
+ * @param key
+ * @param updater A callback that takes the old value and returns a new value.
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function update(key, updater, customStore = defaultGetStore()) {
+    return customStore('readwrite', (store) => 
+    // Need to create the promise manually.
+    // If I try to chain promises, the transaction closes in browsers
+    // that use a promise polyfill (IE10/11).
+    new Promise((resolve, reject) => {
+        store.get(key).onsuccess = function () {
+            try {
+                store.put(updater(this.result), key);
+                resolve(promisifyRequest(store.transaction));
+            }
+            catch (err) {
+                reject(err);
+            }
+        };
+    }));
+}
+/*
+ * Delete a particular key from the store.
+ *
+ * @param key
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function del(key, customStore = defaultGetStore()) {
+    return customStore('readwrite', (store) => {
+        store.delete(key);
+        return promisifyRequest(store.transaction);
+    });
+}
+/*
+ * Clear all values in the store.
+ *
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function clear(customStore = defaultGetStore()) {
+    return customStore('readwrite', (store) => {
+        store.clear();
+        return promisifyRequest(store.transaction);
+    });
+}
+function eachCursor(customStore, callback) {
+    return customStore('readonly', (store) => {
+        // This would be store.getAllKeys(), but it isn't supported by Edge or Safari.
+        // And openKeyCursor isn't supported by Safari.
+        store.openCursor().onsuccess = function () {
+            if (!this.result)
+                return;
+            callback(this.result);
+            this.result.continue();
+        };
+        return promisifyRequest(store.transaction);
+    });
+}
+/*
+ * Get all keys in the store.
+ *
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function keys(customStore = defaultGetStore()) {
+    const items = [];
+    return eachCursor(customStore, (cursor) => items.push(cursor.key)).then(() => items);
+}
+/*
+ * Get all values in the store.
+ *
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function values(customStore = defaultGetStore()) {
+    const items = [];
+    return eachCursor(customStore, (cursor) => items.push(cursor.value)).then(() => items);
+}
+/*
+ * Get all entries in the store. Each entry is an array of `[key, value]`.
+ *
+ * @param customStore Method to get a custom store. Use with caution (see the docs).
+ */
+function entries(customStore = defaultGetStore()) {
+    const items = [];
+    return eachCursor(customStore, (cursor) => items.push([cursor.key, cursor.value])).then(() => items);
+}
+
+//export { clear, createStore, del, entries, get, getMany, keys, promisifyRequest, set, setMany, update, values };
+})(this); // End module
+</script>
+
+<script type="text/javascript"> // Main
+"use strict";
+(async function (api) {
+// public api
+// <none>
+
+const debug = false;
+
+// File names used by EEP Web
+const jsonFileName 			= "ak-eep-out.json";
+const logFileName 			= "ak-eep-out.log";
+const isfinishedFileName 	= "ak-eep-out-json.isfinished";
+const commandsFileName 		= "ak-eep-in.commands";
+const versionFileName 		= "ak-eep-version.txt";
+const iswatchingFileName 	= "ak-server.iswatching";
+
+/*********************************************************************/
+
+// Timer
+const startButton				= document.querySelector("#startButton");
+const stopButton				= document.querySelector("#stopButton");
+
+let timerId;
+let timerInterval = 0;
+
+async function processTimer (timerDate) {
+	const timeNow = Date.now();
+	const delay =  timeNow - timerDate - timerInterval;
+	if (debug) {
+		console.log("process:" 
+			+ ( delay > 0 ? "\t" + delay + " millisec delay" : "" )  
+		);
+	}
+
+	processFiles( globalFileHandles );
+
+	// Repeat timer
+	timerInterval = +document.querySelector("#timerInterval").value;
+	timerId = window.setTimeout( processTimer, timerInterval, Date.now() );
+};
+
+// Start button events
+startButton.addEventListener("click", async () => {
+	try {
+		console.log("Start");		
+		
+		// Show stop button
+		startButton.disabled = true;
+		stopButton.disabled  = false;
+
+		// Start timer (run it at once for the first time)
+		timerId = window.setTimeout( processTimer, 0, Date.now() );
+		
+	} catch (err) {
+		if (err.name !== "AbortError") {
+			console.error("startButton: " + err);
+	}
+}
+});
+
+// Stop button events
+stopButton.addEventListener("click", async () => {
+	try {
+		console.log("Stop");	
+		
+		// Show start button again
+		startButton.disabled = false;
+		stopButton.disabled  = true;
+		
+		// Stop timer
+		clearInterval( timerId );
+		
+	} catch (err) {
+		if (err.name !== "AbortError") {
+			console.error("stopButton: " + err);
+		}
+	}
+});
+
+/*********************************************************************/
+
+// File System API 
+// https://wicg.github.io/file-system-access/ 
+// https://web.dev/file-system-access/
+// todo:
+// https://web.dev/file-system-access/#storing-file-handles-or-directory-handles-in-indexeddb
+
+const openFileButton 			= document.querySelector("#openFileButton");
+const openMultipleFilesButton	= document.querySelector("#openMultipleFilesButton");
+const openDirectoryButton		= document.querySelector("#openDirectoryButton");
+const clearButton				= document.querySelector("#clearButton");
+
+// get file handler from store
+let globalFileHandles = await getIndexedDB("globalFileHandles");
+
+// Show status of file handler
+function showFileSelectorStatus() {
+	let status;
+	if (!globalFileHandles) {
+		status = "";
+	} else if (globalFileHandles.kind === "directory") {
+		status = "Ausgewähltes Verzeichnis: " + globalFileHandles.name;
+	} else if (globalFileHandles.length === 1) {
+		status = "Ausgewählte Datei: " + globalFileHandles[0].name;
+	} else if (globalFileHandles.length > 1) {
+		status = globalFileHandles.length + " Dateien ausgewählt";
+	} else {
+		status = "unknown";
+	}
+	
+	document.querySelector("#fileSelectorStatus").textContent = status;
+}
+showFileSelectorStatus();
+
+async function retrieveFileHandles() {
+	if (debug) { console.log("retrieveFileHandles"); }
+
+	globalFileHandles = await getIndexedDB("globalFileHandles");
+
+	if (globalFileHandles) {
+		if ( globalFileHandles.kind === "directory" ) {
+			// Directory
+			if (! await verifyPermission(globalFileHandles) ) {
+				globalFileHandles = undefined;
+				clearFileHandles();
+			}
+		} else {
+			// List of files
+			for (let i = globalFileHandles.length - 1; i >= 0; i-- ) {
+				if (! await verifyPermission(globalFileHandles[i]) ) {
+					globalFileHandles.splice(i, 1); // remove entry
+					storeFileHandles();
+				}
+			}
+		}
+	}
+}
+
+async function storeFileHandles() {
+	if (debug) { console.log("storeFileHandles"); }
+
+	await setIndexedDB("globalFileHandles", globalFileHandles);
+	
+	showFileSelectorStatus();
+}
+
+async function clearFileHandles() {
+	if (debug) { console.log("clearFileHandles"); }
+
+	await delIndexedDB("globalFileHandles");
+	
+	showFileSelectorStatus();
+}
+
+/**
+ * Verify the user has granted permission to read or write to the file, if
+ * permission hasn't been granted, request permission.
+ *
+ * Mandatory: Call this function in a user gesture, e.g. a click event of a button.
+ * This is neccessay to enable requestPermission to show a popup.
+ *
+ * @param {FileSystemFileHandle} fileHandle File handle to check.
+ * @param {boolean} withWrite True if write permission should be checked.
+ * @return {boolean} True if the user has granted read/write permission.
+ */
+// https://github.com/GoogleChromeLabs/text-editor/blob/main/src/inline-scripts/fs-helpers.js
+async function verifyPermission(fileHandle, withWrite) {
+  const opts = { mode: "read" };
+  if (withWrite) {
+    opts.writable = true;
+    // For Chrome 86 and later...
+    opts.mode = 'readwrite';
+  }
+
+  // Check if we already have permission
+  let status;
+  status = await fileHandle.queryPermission(opts);
+  if ( status === 'granted') {
+    return true;
+  }
+
+  // Request permission to the file, if the user grants permission
+  status = await fileHandle.requestPermission(opts);
+  if ( status === 'granted') {
+    return true;
+  }
+  
+  // The user did not grant permission
+  return false;
+}
+
+
+
+
+// Open file button event
+openFileButton.addEventListener("click", async () => {
+	try {
+		await retrieveFileHandles();
+		if (! globalFileHandles) { 
+			globalFileHandles = await window.showOpenFilePicker({
+				types: [
+					{
+						description : "Datei auswählen",
+						// Mime types:
+						// https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+						accept : {	"*/*" : 				[], 				
+									//"text/plain": 		[ ".txt", ".log", ],
+									//"application/json" :	[ ".json", ],
+									//"image/*": 			[ ".png", ".gif", ".jpeg", ".jpg", ".svg", ".tif", ],
+								},
+					},
+				],
+				multiple : false,
+				excludeAcceptAllOption : false,
+			});
+	
+			await storeFileHandles();
+		}
+		
+		// Show start button
+		startButton.disabled = false;
+	} catch (err) {
+		if (err.name !== "AbortError") {
+			console.error("openFileButton: " + err);
+		}
+	}
+});	
+openFileButton.disabled = false;
+
+// Open multiple file button event
+openMultipleFilesButton.addEventListener("click", async () => {
+	try {
+		await retrieveFileHandles();
+		if (! globalFileHandles) { 
+			globalFileHandles = await window.showOpenFilePicker({
+				types: [
+					{
+						description : "Dateien auswählen",
+						// Mime types:
+						// https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+						accept : {	"*/*" : 				[], 				
+									//"text/plain": 		[ ".txt", ".log", ],
+									//"application/json" :	[ ".json", ],
+									//"image/*": 			[ ".png", ".gif", ".jpeg", ".jpg", ".svg", ".tif", ],
+						},
+					},
+				],
+				multiple : true,
+				excludeAcceptAllOption : false,
+			});	
+
+			await storeFileHandles();
+		}
+			
+		// Show start button
+		startButton.disabled = false;
+	} catch (err) {
+		if (err.name !== "AbortError") {
+			console.error("openMultipleFileButton: " + err);
+		}
+	}
+});	
+openMultipleFilesButton.disabled = false;
+
+// Open Directory button events
+openDirectoryButton.addEventListener("click", async () => {
+	try {
+		await retrieveFileHandles();
+		if (! globalFileHandles) { 
+			globalFileHandles = await window.showDirectoryPicker();
+
+			await storeFileHandles();
+		}
+		
+		// Show start button
+		startButton.disabled = false;
+	} catch (err) {
+		if (err.name !== "AbortError") {
+			console.error("openDirectoryButton: " + err);
+		}
+	}
+});
+openDirectoryButton.disabled = false;
+
+// Clear stored file handler
+clearButton.addEventListener("click", async () => {
+	await clearFileHandles();
+	document.querySelector("#fileSelectorStatus").textContent = "";
+
+});
+clearButton.disabled = false;
+
+async function processFiles(fileHandles, path = "") {
+
+	if (fileHandles.kind === "file") {
+		if (debug) {
+			console.log( "processFiles: single file"
+				+ "\t" + path + "\\" + fileHandles.name 
+				+ "\t(" + fileHandles.kind + ")"
+			)
+		}
+		processFile(fileHandles, path);
+		
+	} else //if (fileHandles.kind === "directory") 
+	{
+		if (debug) {
+			console.log( "processFiles: array/object"
+				+ "\t" + path + "\\" + fileHandles.name 
+				+ "\t(" + fileHandles.kind + ")"
+			)
+		}
+		
+		const nestedPath = `${path}\\${fileHandles.name}`;
+		for await (const entry of fileHandles.values()) {
+			
+			if (entry.kind === "directory") {
+				processFiles(entry, nestedPath); // recursion
+				
+			} else if (entry.kind === "file") {
+				processFile(entry, nestedPath);
+				
+			} else {
+				console.log( "processFiles: A"
+					+ "\t" + nestedPath + "\\" + fileHandles.name 
+					+ "\t(" + fileHandles.kind + ")"
+				)
+			}
+		}
+		
+	} /*else {
+		console.log( "processFiles: B"
+			+ "\t" + path + "\\" + fileHandles.name 
+			+ "\t(" + fileHandles.kind + ")"
+		)
+	} */
+}
+
+async function processFile(fileHandle, path = "") {
+	if (debug) {
+		console.log( "processFile:"
+			+ "\t" + path  
+			+ "\\" + fileHandle.name 
+			+ "\t(" + fileHandle.kind + ")"
+		)
+	}
+
+	switch (fileHandle.name) {
+	
+		case jsonFileName:
+			const jsonData = await readFile(fileHandle, "#jsonFileAttributes", "#jsonFileContents");
+			if (jsonData) {
+				try {
+					const data = JSON.parse(jsonData);
+					processData ( data );
+				} catch(err) { // SyntaxError
+					console.log("JSON.parse: ", err);
+				}					
+			}	
+ 			break;
+
+		case logFileName:
+			readFile(fileHandle, "#logFileAttributes", "#logFileContents");
+			
+			// Scroll to the end
+			const textarea = document.querySelector("#logFileContents");
+			textarea.scrollTop = textarea.scrollHeight;
+ 			break;
+			
+		case isfinishedFileName:
+			//...
+			break;
+			
+		case commandsFileName:
+			//...
+			break;
+			
+		case versionFileName:
+			//...
+			break;
+			
+		case iswatchingFileName:
+			//...
+			break;
+			
+		default:
+			//...
+			break;
+	}
+}
+
+
+const filesAttributes = {};
+async function readFile(fileHandle, attributeSelector, contentsSelector) {
+	let file;
+	try {
+		file = await fileHandle.getFile();
+		
+	} catch (err) {
+		console.error("getFile: " + err);
+		return;
+	}
+	
+	if (   ! filesAttributes[file.name] 
+		|| file.lastModified != filesAttributes[file.name].lastModified
+		|| file.size 		 != filesAttributes[file.name].size
+		) {
+		document.querySelector(attributeSelector).innerHTML = 
+		      "File: <b>"		+ file.name + "</b>"
+			+ " size: " 		+ file.size
+			//+ " type: " 		+ file.type
+			+ " lastModified: " + file.lastModifiedDate.toLocaleTimeString()
+			+ "."				+ file.lastModifiedDate.getMilliseconds().toString().padStart(3, "0")
+			;
+			
+		filesAttributes[file.name] = {
+			size 		 : file.size,
+			type 		 : file.type,
+			lastModified : file.lastModified,
+		}
+		
+		let contents;
+		try {
+			contents = await file.text();	// dirty read, the file may be blocked
+			
+		} catch (err) {
+			console.log("read file " + file.name + ": " + err);
+			return;
+		}
+		
+		// Show contents
+		document.querySelector(contentsSelector).value = contents;
+		
+		return contents;
+	}
+}
+
+function processData ( data ) {
+	if (data["rail-trains"]) {
+		// Header 
+		let result = 
+			  '<table width="100%">'
+			+ 	'<thead><tr>'
+			+ 		'<th style="text-align:left;">Farhzeugverband</th>'
+			+ 		'<th style="text-align:left;">Route</th>'
+			+		'<th style="text-align:right;">Geschwindigkeit</th>'
+			+ 		'<th style="text-align:center;">Anzhl Rollmaterialien</th>'
+			//+		'<th>onTrack</th>'
+			//+		'<th>occupiedTacks</th>'
+			+ 	'</tr></thead>'
+			;
+
+		// Entries
+		for (const train of data["rail-trains"]) {
+			result = result
+				+ '<tr>'
+				+ 	'<td>' + train.id 					+ '</td>'
+				+ 	'<td>' + train.route 				+ '</td>'
+				+ 	'<td style="text-align:right;">' 	+ train.speed.toFixed(3) 	+ ' km/h</td>'
+				+ 	'<td style="text-align:center;">' 	+ train.rollingStockCount 	+ '</td>'
+				//+	'<td>' + trainInfo.onTrack 			+ '</td>'
+				//+	'<td>' + trainInfo.occupiedTacks 	+ '</td>'
+				+ '</tr>'
+				;
+		}
+
+		// Footer
+		result += "</table>";
+		document.querySelector("#data").innerHTML = result;
+	}
+}
+
+
+})(this); // End module
+</script>
+
+</body>
+</html>

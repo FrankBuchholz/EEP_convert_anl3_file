@@ -360,13 +360,13 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 <hr>
 
 <p lang="de">
-<small>(c) Frank Buchholz, 2020, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> sowie <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Anlagen), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (französische Übersetzung) und <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Berechnung von Helix-Gleisen)</small></p>
+<small>(c) Frank Buchholz, 2021, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> sowie <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Anlagen), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (französische Übersetzung) und <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Berechnung von Helix-Gleisen)</small></p>
 
 <p lang="en">
-<small>(c) Frank Buchholz, 2020, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> as well as <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 track plans), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (French translation)</small></p>
+<small>(c) Frank Buchholz, 2021, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> as well as <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 track plans), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (French translation)</small> and <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Calculation of helix tracks)</small></p>
 
 <p lang="fr">
-<small>(c) Frank Buchholz, 2020, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> aussi <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Plan des voies), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français)</small></p>
+<small>(c) Frank Buchholz, 2021, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> aussi <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Plan des voies), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français) et <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Calcul de voies d'hélice)</small></small></p>
 </footer>
 
 <style> /* Selection screen */
@@ -382,9 +382,91 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 /* ]]> */
 </style>
 
-<script type="text/javascript" src="node_modules/rematrix/dist/rematrix.js"></script> <!-- https://github.com/jlmakes/rematrix -->
+<!-- https://github.com/jlmakes/rematrix -->
+<!-- <script type="text/javascript" src="node_modules/rematrix/dist/rematrix.js"></script> -->
 <!-- <script type="text/javascript" src="https://unpkg.com/rematrix"></script> --> <!-- latest version -->
 <!-- <script type="text/javascript" src="https://unpkg.com/rematrix@0.4.1/dist/rematrix.min.js"></script> --> <!-- version 0.4.1 -->
+<script type="text/javascript"> // Matrix operations optimized for this program
+"use strict";
+/* Interface
+public api:
+	matrix
+*/
+
+(function (api) {
+// public api
+const matrix = {};
+api.matrix = matrix;
+
+matrix.identity = function () {
+	return	[ 1, 0, 0, 0,
+			  0, 1, 0, 0,
+			  0, 0, 1, 0,
+			  0, 0, 0, 1, ];
+}
+matrix.translate = function (x, y = 0, z = 0) {
+	return	[ 1, 0, 0, 0,
+			  0, 1, 0, 0,
+			  0, 0, 1, 0,
+			  x, y, z, 1, ];
+}
+matrix.scale = function (x, y = 1, z = 1) {
+	return	[ x, 0, 0, 0,
+			  0, y, 0, 0,
+			  0, 0, z, 0,
+			  0, 0, 0, 1, ];
+}
+matrix.rotateZ = function (rad) {	// rotate around Z axix
+    const c = Math.cos(rad);
+    const s = Math.sin(rad);
+
+	return	[ c,  s,  0,  0,
+			 -s,  c,  0,  0,
+			  0,  0,  1,  0,
+			  0,  0,  0,  1, ];
+}
+matrix.rotateX = function (rad) {	// rotate around X axix
+    const c = Math.cos(rad);
+    const s = Math.sin(rad);
+
+	return	[ 1,  0,  0,  0,
+			  0,  c,  s,  0,
+			  0, -s,  c,  0,
+			  0,  0,  0,  1, ];
+}
+matrix.rotateY = function (rad) {	// rotate around Y axix
+    const c = Math.cos(rad);
+    const s = Math.sin(rad);
+
+	return	[ c,  0, -s,  0,
+			  0,  1,  0,  0,
+			  s,  0,  c,  0,
+			  0,  0,  0,  1, ];
+}
+matrix.swapXY = function () {		// swap x/y and mirror at x axis because of upside-down orientation in SVG
+	return 	[ 0,  1,  0,  0,
+			 -1,  0,  0,  0,
+			  0,  0,  1,  0,
+			  0,  0,  0,  1, ];
+}
+matrix.multiply = function (A, B) {	// Matrix multiplication
+    const product = [];
+
+    for (let i = 0; i < 4; i++) {
+		const row = [ A[i], A[i + 4], A[i + 8], A[i + 12] ];
+		for (let j = 0; j < 4; j++) {
+			const k = j * 4;
+			const col = [ B[k], B[k + 1], B[k + 2], B[k + 3] ];
+			const val = row[0] * col[0] + row[1] * col[1] + row[2] * col[2] + row[3] * col[3];
+			product[i + k] = val;
+		}
+	}
+	return product;
+}
+
+})(this); // end module
+</script>
+
 <script type="text/javascript"> // Load and process file
 "use strict";
 /* Interface
@@ -549,6 +631,7 @@ function loadFile(file) {
 }	// loadFile
 })(this); // end module
 </script>
+
 <script type="text/javascript"> // getArcLength of Bezier Curve
 "use strict";
 /* Interface
@@ -697,13 +780,12 @@ function getArcLength(xs, ys, t, n) {
 
 <script type="text/javascript"> // DOM2SVG
 "use strict";
-
 /* Interface
 required standard objects:
 	console
 	document
 required global data:
-	Rematrix
+	matrix
 	global
 required functions:
 	_
@@ -1529,10 +1611,7 @@ if (BinZ == -1 ) {
 }
 */
 
-			//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
-			// Rematrix.format maps short form [DirX, DirY, NorX, NorY, PosX, PosY] to long form:
 			//  	   0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15
-			// 		  [DirX, DirY, 0,    0,    NorX, NorY, 0,    0,    0,    0,    0,    0,    PosX, PosY, 0,    1 ]
 			mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 
 			// Identify CurveType
@@ -1629,7 +1708,7 @@ console.log('wrong order Frame2 Bin - Dir - Nor for '
 					BinZ		= +Frame2Bin.getAttribute("dz");
 				}
 
-				//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
+				//  	   0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15
 				mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 
 			} else if (Line) {
@@ -1681,7 +1760,7 @@ return nodeList;
 				mMatrix = [
 							mMatrix,
 							[DirX2, DirY2, DirZ2, 0, NorX2, NorY2, NorZ2, 0, BinX2, BinY2, BinZ2, 0, PosX2, PosY2, PosZ2, 1 ],  // 321 354 ok
-						  ].reduce(Rematrix.multiply);
+						  ].reduce(matrix.multiply);
 
 
 			} else if (Arc) {
@@ -1701,27 +1780,45 @@ return nodeList;
 
 				// The distance of the center point = curve radius is the length of the second vector
 				const Nor 	= Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Vector")[1];
-				const MidX2 = +Nor.getAttribute("dx");
-				const MidY2 = +Nor.getAttribute("dy");
-				const MidZ2 = +Nor.getAttribute("dz");
+				const CenterX2 = +Nor.getAttribute("dx");
+				const CenterY2 = +Nor.getAttribute("dy");
+				const CenterZ2 = +Nor.getAttribute("dz");
 
-				const angle = ( DirX2 === 1 && DirY2 === 0 ? 0 : Math.atan2(DirY2, DirX2)*180/Math.PI );	// skip 0° Rotation
+				const Radius = Math.sqrt(CenterX2*CenterX2 + CenterY2*CenterY2 + CenterZ2*CenterZ2)	// The curve radius is the length of the second vector
+								 * (DirX2 >= 0 ? 1 : -1) * (CenterY2 >= 0 ? 1 : -1);				// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
+				Kruemmung = 1 / Radius;
+				
+				// Rotate with tangent of circle defined by DirX, DirY
+				const tangentAngle = ( DirX2 === 1 && DirY2 === 0 ? 0 : Math.atan2(DirY2, DirX2) );	// skip 0° Rotation
+
+				// Rotate curve around center with angle defined by near
+				// (Move point to origin, rotate, move point back)
+				const startAngle = Math.min( near, far ) / Radius; 
+
 				mMatrix = [
 						mMatrix,
-						Rematrix.translate3d(PosX2 - MidX2, PosY2 - MidY2, PosZ2 - MidZ2),	// Translate by distance of mid point of circle
-						Rematrix.rotateZ( angle ), 											// Rotate by tangent of circle
-					].reduce(Rematrix.multiply);
+						matrix.translate(PosX2, PosY2, PosZ2),					// Relative position of center point of the Arc
+						matrix.translate(- CenterX2, - CenterY2, - CenterZ2),	// Translate by distance of mid point of circle
+						matrix.rotateZ( tangentAngle ),							// Rotate with tangent of circle
+						mMatrix = [
+								matrix.translate(+ CenterX2, + CenterY2, + CenterZ2),	// Translate center of circle
+								matrix.rotateZ( startAngle ),							// Rotate with angle defined by starting point
+								matrix.translate(- CenterX2, - CenterY2, - CenterZ2),	// Undo translate center point of circle
+							].reduce(matrix.multiply),
+					].reduce(matrix.multiply);
 
-				const Radius = Math.sqrt(MidX2*MidX2 + MidY2*MidY2 + MidZ2*MidZ2)			// The curve radius is the length of the second vector
-								 * (DirX2 >= 0 ? 1 : -1) * (MidY2 >= 0 ? 1 : -1);			// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
-				Kruemmung = 1 / Radius;
+/* Special tracks
+if (GleissystemID == "4" && GleisID == "52") debugger;
+if (GleissystemID == "3" && GleisID == "351") debugger;	// <Interval near="26.99997" far="0"/>
+if (GleissystemID == "3" && GleisID == "358") debugger;	//
+if (GleissystemID == "3" && GleisID == "360") debugger;	// <Interval near="99.66833" far="0"/>
+if (GleissystemID == "4" && GleisID == "156") debugger;	// <Interval near="99.66833" far="0"/>
 
-// Special tracks
-//if (GleissystemID == "4" && GleisID == "52") debugger;
-//if (GleissystemID == "3" && GleisID == "351") debugger;	// <Interval near="26.99997" far="0"/>
-//if (GleissystemID == "3" && GleisID == "358") debugger;	//
-//if (GleissystemID == "3" && GleisID == "360") debugger;	// <Interval near="99.66833" far="0"/>
-//if (GleissystemID == "4" && GleisID == "156") debugger;	// <Interval near="99.66833" far="0"/>
+Anlage "fehlerhaft_TM"
+Eisenbahn 1	Arc	Länge: 47m	Anfang: 3	Ende: 4		Abzweigung: 28		near="70.18061" far="23.53859"
+Eisenbahn 2	Arc	Länge: 46m	Anfang: 5	Ende: 27	Abzweigung: 29		near="68.94401" far="23.07648"
+Eisenbahn 3	Arc	Länge: 70m	Anfang: 1									near="0"        far="70.18061"
+*/
 
 			} else if (Helix) {
 				CurveType 	= 'Helix';
@@ -1763,25 +1860,9 @@ return nodeList;
 											PosX2, PosY2, PosZ2, 1,	];
 
 				// Orientation forward/backward
-				const scalar = (far > near ? 1 : -1); //### Not correct yet: position ok, direction wrong
-				// rematrix.scaleY(scalar)
-				const mOrientation =	[	1, 0,      0, 0,
-											0, scalar, 0, 0,
-											0, 0,      1, 0,
-											0, 0,      0, 1,	];
+				const mOrientation = matrix.scale(1, (far > near ? 1 : -1), 1); //### Not correct yet: position ok, direction wrong 							
 
 				// Helix
-				// rematrix.translateX(a)
-				const mHelix = 	[	1, 0, 0, 0,
-									0, 1, 0, 0,
-									0, 0, 1, 0,
-									a, 0, 0, 1,	];
-
-				// swap x/y and mirror at x axis because of upside-down orientation in SVG
-				const mSwap =	[	0,  1, 0, 0,
-									-1, 0, 0, 0,
-									0,  0, 1, 0,
-									0,  0, 0, 1,	];
 
 				// Rotation of point on helix related to start point (0° at start point = Identity)
 				/*
@@ -1803,37 +1884,27 @@ return nodeList;
 							mFrame,
 							mVectorBundle2,
 							mOrientation,
-							// rematrix.rotateZ(angle) *
-							[	Math.cos(wPos),  Math.sin(wPos),  0,  	  0,
-								-Math.sin(wPos), Math.cos(wPos),  0,  	  0,
-								0,            0,            	  1,  	  0,
-								0,            0,          		  b*wPos, 1,	],
-							mHelix,
-							mSwap,
-						  ].reduce(Rematrix.multiply);
+							matrix.rotateZ(wPos),
+							matrix.translate(a, 0, b*wPos),
+							matrix.swapXY(),		// swap x/y and mirror at x axis because of upside-down orientation in SVG
+						  ].reduce(matrix.multiply);
 				const mPos = mMatrix;
 				const mMid = [
 							mFrame,
 							mVectorBundle2,
 							mOrientation,
-							[	Math.cos(wMid),  Math.sin(wMid),  0,  	  0,
-								-Math.sin(wMid), Math.cos(wMid),  0,  	  0,
-								0,            0,            	  1,  	  0,
-								0,            0,          		  b*wMid, 1,	],
-							mHelix,
-							mSwap,
-						  ].reduce(Rematrix.multiply);
+							matrix.rotateZ(wMid),
+							matrix.translate(a, 0, b*wPos),
+							matrix.swapXY(),		// swap x/y and mirror at x axis because of upside-down orientation in SVG
+						  ].reduce(matrix.multiply);
 				const mEnd = [
 							mFrame,
 							mVectorBundle2,
 							mOrientation,
-							[	Math.cos(wEnd),  Math.sin(wEnd),  0,  	  0,
-								-Math.sin(wEnd), Math.cos(wEnd),  0,  	  0,
-								0,            0,            	  1,  	  0,
-								0,            0,          		  b*wEnd, 1,	],
-							mHelix,
-							mSwap,
-						  ].reduce(Rematrix.multiply);
+							matrix.rotateZ(wEnd),
+							matrix.translate(a, 0, b*wPos),
+							matrix.swapXY(),		// swap x/y and mirror at x axis because of upside-down orientation in SVG
+						  ].reduce(matrix.multiply);
 
 
 //if (GleissystemID == "3" && GleisID == "559"	) debugger;
@@ -1872,12 +1943,12 @@ console.log("Helix Vergleich\t" + TrackSystemText(GleissystemID) + " " + GleisID
 
 					const f = Math.abs(far - near) / 2 / Math.sqrt(a*a + b*b);	// f = Math.abs(wMid);
 					const mB1 = mPos;
-					const mB2 = Rematrix.multiply(mPos, Rematrix.translate3d( a*f, 0,  b*f) );
-					const mB3 = Rematrix.multiply(mEnd, Rematrix.translate3d(-a*f, 0, -b*f) );
+					const mB2 = matrix.multiply(mPos, matrix.translate( a*f, 0,  b*f) );
+					const mB3 = matrix.multiply(mEnd, matrix.translate(-a*f, 0, -b*f) );
 					const mB4 = mEnd;
 
 					// hack to split the result into absolute coordinates for the start point and relative coordinates for the bezier points
-					mMatrix = Rematrix.translate3d(mPos[posX], mPos[posY], mPos[posZ]);
+					mMatrix = matrix.translate(mPos[posX], mPos[posY], mPos[posZ]);
 					Gleis.BezierPoints = []; // We need just one segment
 					Gleis.BezierPoints[0] = [	
 												[mB1[posX] - mPos[posX], mB1[posY] - mPos[posY], mB1[posZ] - mPos[posZ]],
@@ -2137,8 +2208,8 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 )
 						mMatrix = [
 								mMatrix,
-								Rematrix.translate3d(pX, pY, pZ),
-							].reduce(Rematrix.multiply);
+								matrix.translate(pX, pY, pZ),
+							].reduce(matrix.multiply);
 						pX = 0; pY = 0; pZ = 0;	
 					}
 				}
@@ -2266,7 +2337,7 @@ console.log(`Cubic ${TrackSystemText(GleissystemID)} ${GleisID}`
 			BinY		= +FrameBin.getAttribute("y");
 			BinZ		= +FrameBin.getAttribute("z");
 
-			//mMatrix = Rematrix.format([DirX, DirY, NorX, NorY, PosX, PosY]);
+			//  	   0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15
 			mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
 		} /* EEP 15 */
 
@@ -2280,28 +2351,28 @@ console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}
 }
 */
 		/*
-		2D transformation matrix		3D transformation matrix
-		matrix(	a, b, c, d,  x, y) = 	matrix3d( a, b, 0, 0,  c, d, 0, 0,  0, 0, 1, 0,  x, y, 0, 1 ).
+		2D transformation matrix			3D transformation matrix
+		matrix2D( a, b, c, d,  x, y ) = 	matrix3d( a, b, 0, 0,  c, d, 0, 0,  0, 0, 1, 0,  x, y, 0, 1 ).
 
-		Rematrix.format
+		matrix.format
 		[ a, b, 0, 0,
 		  c, d, 0, 0,
 		  0, 0, 1, 0,
 		  x, y, 0, 1  ]
 
-		Rematrix.identity
+		matrix.identity
 		[ 1, 0, 0, 0,
 		  0, 1, 0, 0,
 		  0, 0, 1, 0,
 		  0, 0, 0, 1 ]
 
-		Rematrix.rotateZ
+		matrix.rotateZ
 		[ cos a, 	sin a,	0, 0,
 		  -sin a, 	cos a, 	0, 0,
 		  0, 		0, 		1, 0,
 		  0, 		0, 		0, 1]
 
-		Rematrix.translate3d
+		matrix.translate
 		[ 1,  0,  0,  0,
 		  0,  1,  0,  0,
 		  0,  0,  1,  0,
@@ -2480,8 +2551,8 @@ if (near > far) { //###
 			// Adjust Gleis.mPos
 			Gleis.mPos = [
 					mMatrix,
-					Rematrix.translate3d(points.Pos.x, points.Pos.y, points.Pos.z),
-				].reduce(Rematrix.multiply);
+					matrix.translate(points.Pos.x, points.Pos.y, points.Pos.z),
+				].reduce(matrix.multiply);
 
 		} else if (Kruemmung > -0.0001 && Kruemmung < 0.0001) { // Show line. The svg-arc is not shown if the radius is too big
 			/* SVG: Gerades Gleis
@@ -2564,8 +2635,8 @@ if (near > far) { //###
 		} else {
 			Gleis.mEnd = [
 					mMatrix,
-					Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
-				].reduce(Rematrix.multiply);
+					matrix.translate(DeltaX, DeltaY, DeltaZ),
+				].reduce(matrix.multiply);
 		}
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
@@ -2638,8 +2709,8 @@ if (near > far) { //###
 		} else {
 			Gleis.mMid = [
 					mMatrix,
-					Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
-				].reduce(Rematrix.multiply);
+					matrix.translate(DeltaX, DeltaY, DeltaZ),
+				].reduce(matrix.multiply);
 		}
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
@@ -2837,12 +2908,12 @@ if (near > far) { //###
 
 			Meldung.mPos = [
 					mMatrix,
-					Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
-					Rematrix.rotateZ(
-						  Winkel*180/Math.PI	// Rotate to tangent of track
-						+ ParaOderAnti*180 		// Rotate text to the side of the symbol
+					matrix.translate(DeltaX, DeltaY, DeltaZ),
+					matrix.rotateZ(
+						  Winkel				// Rotate to tangent of track
+						+ ParaOderAnti*Math.PI 	// Rotate text to the side of the symbol
 					),
-				].reduce(Rematrix.multiply);
+				].reduce(matrix.multiply);
 
 			// Group node for Signal
 			const svgSignalGroup = svgAppend(svgGleisGroup, {
@@ -2913,12 +2984,6 @@ if (near > far) { //###
 
 			// Calculate point
 			if (Gleis.BezierPoints) { //CurveType === 'Cubic' / 'Spline'
-				//const t = (Laenge ? Position / Laenge : 0);
-				//const BezierPoints = Gleis.BezierPoints[0]; // // Incomplete: only the first segment is supported yet
-				//[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(BezierPoints, t);
-if (GleissystemID == 3 && GleisID == 359) {
-	debugger;
-}				
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierPoint(Gleis.BezierPoints, Position, near, far) 
 
 			} else if (CurveType === 'Clothoid') {
@@ -2951,12 +3016,12 @@ if (GleissystemID == 3 && GleisID == 359) {
 
 			Kontakt.mPos = [
 					mMatrix,
-					Rematrix.translate3d(DeltaX, DeltaY, DeltaZ),
-					Rematrix.rotateZ(
-						  Winkel*180/Math.PI	// Rotate to tangent of track
-						//+ ParaOderAnti*180 		// Rotate text to the side of the symbol
+					matrix.translate(DeltaX, DeltaY, DeltaZ),
+					matrix.rotateZ(
+						  Winkel					// Rotate to tangent of track
+						//+ ParaOderAnti*Math.PI 	// Rotate text to the side of the symbol
 					),
-				].reduce(Rematrix.multiply);
+				].reduce(matrix.multiply);
 
 			// Group node for Kontakt
 			const svgKontaktGroup = svgAppend(svgGleisGroup, {
