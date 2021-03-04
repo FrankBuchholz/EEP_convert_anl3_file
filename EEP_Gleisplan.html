@@ -1800,11 +1800,11 @@ return nodeList;
 						matrix.translate(PosX2, PosY2, PosZ2),					// Relative position of center point of the Arc
 						matrix.translate(- CenterX2, - CenterY2, - CenterZ2),	// Translate by distance of mid point of circle
 						matrix.rotateZ( tangentAngle ),							// Rotate with tangent of circle
-						mMatrix = [
-								matrix.translate(+ CenterX2, + CenterY2, + CenterZ2),	// Translate center of circle
-								matrix.rotateZ( startAngle ),							// Rotate with angle defined by starting point
-								matrix.translate(- CenterX2, - CenterY2, - CenterZ2),	// Undo translate center point of circle
-							].reduce(matrix.multiply),
+						[
+							matrix.translate(+ CenterX2, + CenterY2, + CenterZ2),	// Translate center of circle
+							matrix.rotateZ( startAngle ),							// Rotate with angle defined by starting point
+							matrix.translate(- CenterX2, - CenterY2, - CenterZ2),	// Undo translate center point of circle
+						].reduce(matrix.multiply),
 					].reduce(matrix.multiply);
 
 /* Special tracks
