@@ -523,6 +523,11 @@ info : {
 		EN : `for train`, 
 		FR : `pour train`, 
 	},
+	'auf Zug' : {
+		DE : `auf Zug`, 
+		EN : `on train`, 
+		FR : `dans train`, 
+	},
 	'Zug-Filter' : {
 		DE : `Zug-Filter`, 
 		EN : `Train filter`, 

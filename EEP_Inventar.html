@@ -1047,6 +1047,13 @@ mit
 	// Anzeige der Kontakte
 	/*
 	<Kontakt Position="712.3505" ParaOderAnti="1" fireOnPara="0" fireOnAnti="1" Teiler="1" ActTeiler="0" TrainSide="1" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="26" LastOfs="742.3113" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="2" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" SignalData="0" SigNeg="0" LockEd="0" KontaktZiel="2" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
+	
+	Beispiel mit TrainID
+	<Kontakt Position="3171.579" ParaOderAnti="1" fireOnPara="0" fireOnAnti="1" Teiler="10" ActTeiler="9" TrainSide="0" Route="0" Route2="0" SetType="512" SetValue="150" Delay="0" ActDelay="0" TrainID="24" TrainID2="0" Light="2" LastTrainID="0" LastOfs="0" ConnectF="1114198" ConnectR="0" VolDist="20" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" TimeFrom="0" TimeTo="0" SignalData="0" SigNeg="0" LockEd="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
+	
+	Beispiel mit TrainID2
+	<Kontakt Position="418.1413" ParaOderAnti="1" fireOnPara="0" fireOnAnti="1" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="5" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="7" Light="2" LastTrainID="7" LastOfs="418.1413" ConnectF="2" ConnectR="2" VolDist="650" zuStellung="0" Wartender="0" AxisPos="53" AxisFilter="Ladegeshirr heben/senken" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" TimeFrom="0" TimeTo="0" SignalData="0" SigNeg="0" LockEd="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>	
+
 	*/
 	div = createTable({
 		id		: 'Kontakt',
@@ -1075,6 +1082,7 @@ mit
 		const TrainSide 	= Kontakt.Kontakt.getAttribute('TrainSide');
 		const RouteID 		= Kontakt.Kontakt.getAttribute('Route');
 		const TrainID 		= Kontakt.Kontakt.getAttribute('TrainID');
+		const TrainID2 		= Kontakt.Kontakt.getAttribute('TrainID2');
 		const NameFilter 	= Kontakt.Kontakt.getAttribute('NameFilter');
 		const TrainNewName 	= Kontakt.Kontakt.getAttribute('TrainNewName');
 		const zuStellung 	= Kontakt.Kontakt.getAttribute('zuStellung');
@@ -1211,7 +1219,8 @@ mit
 		const SignalDataID   	 = SignalData - SignalDataStellung * 65536;
 
 		// Zugverband`
-		const Zugverband = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
+		const Zugverband  = Zugverbaende.get(Number(TrainID)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
+		const Zugverband2 = Zugverbaende.get(Number(TrainID2)); // Zugverbaende.find(function(Zugverband) { return Zugverband.ID == TrainID});
 
 		const TrainSidetext = {
 			0 : _('Spitze'),
@@ -1259,7 +1268,8 @@ mit
 		{ th : _('Zeit abgelaufen'),	td : ActDelay },
 		{ th : _('Zugposition'),		td : (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) },
 		{ th : _('für Route'),			td : (RouteID != 0 ? RouteID + ': ' + Routen[RouteID] : '') },
-		{ th : _('für Zug'),			td : (TrainID != 0 ? TrainID + ': ' + (Zugverband ? Zugverband.Name : 'nicht vorhanden') : '') },
+		{ th : _('für Zug'),			td : (TrainID  != 0 ? TrainID  + ': ' + (Zugverband  ? Zugverband.Name  : 'nicht vorhanden') : '') },
+		{ th : _('auf Zug'),			td : (TrainID2 != 0 ? TrainID2 + ': ' + (Zugverband2 ? Zugverband2.Name : 'nicht vorhanden') : '') },
 		{ th : _('Zug-Filter'),			td : NameFilter },
 		{ th : _('Neuer Zugname'),		td : TrainNewName },
 		{ th : _('zu Stellung'),		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) },
