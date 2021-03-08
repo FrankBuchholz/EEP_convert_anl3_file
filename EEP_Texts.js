@@ -1,5 +1,4 @@
 "use strict";
-// dummy change to republish github pages
 const EEP_Texts = (function () {
 
 const texts = {
