@@ -292,6 +292,9 @@ function process_node(sutrackp) {
 	// Signale und Weichen als Kontaktziele
 	const KontaktZiele		= {};
 
+	// Start-Signale zu Ende-Signalen 
+	const EndRouteSignals	= {};
+
 	// Sortable arrays
 	const
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
@@ -598,6 +601,24 @@ mit
 						}
 					}
 				}
+				
+				// Signale für Fahrstraßen: Suche Start-Signale zu Ende-Signalen 
+				const Routes		= Meldung.getAttribute('Routes');
+				const RouteList	 	= Meldung.getElementsByTagName("Route");
+				let RoutesText = '';
+				for (const Route of RouteList) {
+					const Target 	= Route.getAttribute('Target');
+					const Color 	= Route.getAttribute('Color');
+
+					if (!EndRouteSignals[Target]) {
+						EndRouteSignals[Target] = []
+					}
+					EndRouteSignals[Target].push({
+							StartSignal : SignalID,
+							Color : Color,
+					})
+				}
+				
 			}
 
 			// Kontakte
@@ -934,6 +955,7 @@ mit
 			7: { name: _('orange'),	color: 'rgb(220,110,0)',	},
 		}
 		let RoutesText = '';
+		// Details für Start-Signale
 		for (const Route of RouteList) {
 			const Target 	= Route.getAttribute('Target');
 			const Color 	= Route.getAttribute('Color');
@@ -942,6 +964,16 @@ mit
 				  _('Zielsignal') + ': ' + Target
 				+ ', ' + '<span style="color:' + ColorText[Color%8].color + ';">' + _('Farbe') + ': ' + Color + ' ' + ColorText[Color%8].name + '</span><br>'
 				;
+		}
+		// Details für Ende-Signale
+		const EndRouteSignal = EndRouteSignals[SignalID];
+		if (EndRouteSignal) {
+			for (const Route of EndRouteSignal) {
+				RoutesText +=
+					  _('Startsignal') + ': ' + Route.StartSignal
+					+ ', ' + '<span style="color:' + ColorText[Route.Color%8].color + ';">' + _('Farbe') + ': ' + Route.Color + ' ' + ColorText[Route.Color%8].name + '</span><br>'
+					;
+			}
 		}
 
 		function getSignalName(File) {
