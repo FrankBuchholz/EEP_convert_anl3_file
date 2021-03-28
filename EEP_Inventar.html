@@ -307,6 +307,7 @@ function process_node(sutrackp) {
 		Gleisobjekte = [],	// ID, [{GleissystemID, GleisID}], ImmoIdx, gsbname
 		Routen		= [],
 		Sounds		= [],
+		Depots		= [],	// ID,  [{TTrainId, TRouteId, TSpeed, TTime, TDir}]
 		Kameras		= [];	// KameraID, Name, Kamera
 
 	const KameraNamen = {};	// Verwendung: Name = KameraNamen[index];
@@ -635,6 +636,46 @@ mit
 					Kontakt 		: Kontakt,
 					KontaktID		: Kontakte.length,	 // arbitrary identfication
 				});
+				
+				// Ausfahrt Zug-Depot
+				if (SetType == 1536) {
+					const DepotID	= Kontakt.getAttribute('SetValue');
+					
+					const Trains = [];
+					for (let i = 0; true; i++) {
+						const TTrainId 	= Kontakt.getAttribute('TTrainId_'+i);	// Verweis auf Zugverband
+						if (!TTrainId) {
+							break;
+						}
+						
+						const TRouteId 	= Kontakt.getAttribute('TRouteId_'+i);	// Verweis auf Route
+						const TSpeed 	= Kontakt.getAttribute('TSpeed_'+i);	// in km/h
+						const TTime 	= Kontakt.getAttribute('TTime_'+i);		// individuelle Abfahrtzeit (Sekunden ab Mitternacht)
+						const TDir 		= Kontakt.getAttribute('TDir_'+i);		// 0: Richtung eins, 1: Richtung zwei
+					
+						Trains.push({
+						
+							TTrainId 	: TTrainId,
+							TRouteId	: TRouteId,
+							TSpeed		: TSpeed,
+							TTime		: TTime,
+							TDir		: TDir,
+						})
+					}
+					
+					const Wartender = Kontakt.getAttribute('Wartender');	// Auslass-Auto-Zeit
+					const SignalData = Kontakt.getAttribute('SignalData');	// bzw. Auslass-SignalId
+					
+					Depots.push({ 
+						ID				: DepotID,
+						Wartender		: Wartender,
+						SignalData		: SignalData,
+						GleissystemID 	: GleissystemID,
+						GleisID			: GleisID,
+
+						Trains			: Trains,
+					});
+				}
 			}
 
 			// Gleisstile
@@ -1374,6 +1415,7 @@ mit
 		const Geschwindigkeit = Zugverband.Zugverband.getAttribute('Geschwindigkeit') * 3600 / 1000;
 		const sollgeschwindigkeit = Zugverband.Zugverband.getAttribute('sollgeschwindigkeit') * 3600 / 1000;
 		const autopilot 	= Zugverband.Zugverband.getAttribute('autopilot');
+		const Hide 			= Zugverband.Zugverband.getAttribute('Hide');
 
 		fillTable(thead, tbody, [
 
@@ -1392,8 +1434,206 @@ mit
 		{ th : _('Geschwindigkeit') + ' km/h',		td : (Geschwindigkeit != 0 ? Geschwindigkeit.toFixed(0) : (LastDir == 1 ? '+0' : '-0')) },
 		{ th : _('Sollgeschwindigkeit') + ' km/h',	td : sollgeschwindigkeit.toFixed(0) },
 		{ th : _('Automatik'),				td : autopilot },
+		{ th : _('Depot'),					td : Hide },
 
 		]) })
+
+		return Zugverbaende.size;
+		}
+	})
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+/*
+
+Zeit (Wartender = 0)
+
+<Kontakt Position="4290" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" 
+SetType="1536" SetValue="1" 
+Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="0" LastOfs="0" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="0" 
+Wartender="0" 
+AxisPos="-1" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" 
+SignalData="0" 
+SigNeg="0" LockEd="0" 
+clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Zeit" TipBGCR="1" TipBGCG="1" TipBGCB="1" TipFGCR="7.843138E-03" TipFGCG="7.843138E-03" TipFGCB="7.843138E-03" TipShow="1"/>
+
+Auto-Zeit 260 (Wartender > 0, SignalData = 0)
+
+<Kontakt Position="3990" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" 
+SetType="1536" SetValue="2" 
+Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="0" LastOfs="0" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="0" 
+Wartender="260" 
+AxisPos="-1" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" 
+SignalData="0" 
+SigNeg="0" LockEd="0" 
+clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Auto-Zeit 260" TipBGCR="1" TipBGCG="1" TipBGCB="1" TipFGCR="7.843138E-03" TipFGCG="7.843138E-03" TipFGCB="7.843138E-03" TipShow="1"/>
+
+Auto-Zeit 330 mit Zufall (Wartender < 0, SignalData = 0)
+
+<Kontakt Position="3990" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" 
+SetType="1536" SetValue="3" 
+Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="0" LastOfs="0" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="0" 
+Wartender="-330" 
+AxisPos="-1" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" 
+SignalData="0" 
+SigNeg="0" LockEd="0" 
+clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Auto-Zeit 330 mit Zufall" TipBGCR="1" TipBGCG="1" TipBGCB="1" TipFGCR="7.843138E-03" TipFGCG="7.843138E-03" TipFGCB="7.843138E-03" TipShow="1"/>
+
+Signal 22 (Wartender > 0, SignalData > 0)
+
+<Kontakt Position="3690" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="1" TrainSide="0" Route="0" Route2="0" 
+SetType="1536" SetValue="4" 
+Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="0" LastOfs="0" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="0" 
+Wartender="3" 
+AxisPos="-1" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" 
+SignalData="3" 
+SigNeg="0" LockEd="0" 
+clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 3" TipBGCR="1" TipBGCG="1" TipBGCB="1" TipFGCR="7.843138E-03" TipFGCG="7.843138E-03" TipFGCB="7.843138E-03" TipShow="1"/>
+
+
+Signal 33 zufällig (Wartender > 0, SignalData > 0)
+
+<Kontakt Position="3690" ParaOderAnti="1" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="1" TrainSide="0" Route="0" Route2="0" 
+SetType="1536" SetValue="5" 
+Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="0" LastOfs="0" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="0" 
+Wartender="-3" 
+AxisPos="-1" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" 
+SignalData="3" 
+SigNeg="0" LockEd="0" 
+clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGCR="1" TipBGCG="1" TipBGCB="1" TipFGCR="7.843138E-03" TipFGCG="7.843138E-03" TipFGCB="7.843138E-03" TipShow="1"/>
+
+*/
+	// Anzeige der Depots
+	div = createTable({
+		id		: 'Depot',
+		title 	: `${_('Depots')} (${Depots.length})`,
+		caption	: _('Depots'),
+		content	: function(thead, tbody) {
+
+		//Depots.forEach(Depot => { 
+		Depots.sort(orderByID).forEach(Depot => {
+
+		const GleissystemID = Depot.GleissystemID;
+		const GleisID 		= Depot.GleisID;
+		
+		let AutoAuslass = '';
+		if ( Depot.Wartender == 0 ) {
+			// individuelle Abfahrtzeiten der Zugverbände (Sekunden ab Mitternacht)
+			AutoAuslass = _('individuelle Abfahrtzeiten');
+			
+		} else if ( Depot.Wartender != 0 & Depot.SignalData == 0 ) {
+			// Auto-Zeit in Sekunden nach der jeweils der nächste Zugverband ausfährt
+			AutoAuslass = _('Auto-Zeit nach') + ' ' + Math.abs(Depot.Wartender) + ' ' + _('Sekunden');
+			
+		} else if ( Depot.Wartender != 0 & Depot.SignalData != 0 ) {
+			// Ausfahrt wird durch Signal gesteuert
+			AutoAuslass = _('Signalgesteuert') + ' ' + _('Signal') + ' ' + Depot.SignalData;
+		}
+		if ( Depot.Wartender < 0 ) {
+			AutoAuslass += ', ' + _('Zufall');
+		}
+		
+			fillTable(thead, tbody, [
+
+			{ th : _('Depot'),					td : Depot.ID },
+			{ th : _('Gleis'),	td :
+					  `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">`
+					+ TrackSystemText(GleissystemID) + ' ' + GleisID
+					+ `<\/a>`, html : true, },
+
+			{ th : _('Auto-Auslass'), 			td : AutoAuslass },
+
+			{ th : _('Anzahl Zugverbände'),		td : Depot.Trains.length },
+			
+			])
+
+		})
+
+		return Depots.length;
+		}
+	})
+
+	// Anzeige der Zugverbände in Depots
+	div = createTable({
+		id		: 'DepotZugverbaende',
+		title 	: `${_('Zugverbände in Depots')}`, // (${Depots.length})`,
+		caption	: _('Zugverbände in Depots'),
+		content	: function(thead, tbody) {
+
+		Depots.forEach(Depot => { 
+		//Depots.sort(orderByID).forEach(Depot => {
+		
+		let AutoAuslass = '';
+		let TTime = 0;
+		if ( Depot.Wartender == 0 ) {
+			// individuelle Abfahrtzeiten der Zugverbände (Sekunden ab Mitternacht)
+			AutoAuslass = _('individuelle Abfahrtzeit');
+			
+		} else if ( Depot.Wartender != 0 & Depot.SignalData == 0 ) {
+			// Auto-Zeit in Sekunden nach der jeweils der nächste Zugverband ausfährt
+			AutoAuslass = _('Auto-Zeit nach') + ' ' + Math.abs(Depot.Wartender) + ' ' + _('Sekunden');
+			
+		} else if ( Depot.Wartender != 0 & Depot.SignalData != 0 ) {
+			// Ausfahrt wird durch Signal gesteuert
+			AutoAuslass = _('Signalgesteuert') + ' ' + _('Signal') + ' ' + Depot.SignalData;
+		}
+		if ( Depot.Wartender < 0 ) {
+			AutoAuslass += ', ' + _('Zufall');
+		}
+		
+		Depot.Trains.forEach(Train => { // Depot.Trains.sort(orderByID).forEach(Train => {
+
+			const Zugverband = Zugverbaende.get(Number(Train.TTrainId));
+			const Status = ( Zugverband ? ( Zugverband.Zugverband.getAttribute('Hide') == 0 ? _('In Fahrt') : _('Warten') ) : '' );
+
+			let TTimeVal;
+			if ( Depot.Wartender == 0 ) {
+				// individuelle Abfahrtzeiten der Zugverbände (Sekunden ab Mitternacht)
+				TTimeVal = new Date(1000 * Math.abs(Train.TTime)).toISOString().substr(11, 8)	// seconds -> hh:mm:ss
+				
+			} else if ( Depot.Wartender != 0 & Depot.SignalData == 0 ) {
+				// Auto-Zeit in Sekunden nach der jeweils der nächste Zugverband ausfährt
+				TTime += Math.abs(Depot.Wartender);
+				TTimeVal = new Date(1000 * Math.abs(TTime)).toISOString().substr(11, 8)	// seconds -> hh:mm:ss
+				
+			} else if ( Depot.Wartender != 0 & Depot.SignalData != 0 ) {
+				// Ausfahrt wird durch Signal gesteuert
+				TTimeVal = '';
+			}		
+
+			fillTable(thead, tbody, [
+
+			{ th : _('Depot'),					td : Depot.ID },
+			
+			{ th : _('Status'),					td : Status },
+			{ th : _('Abfahrtzeit'), 			td : TTimeVal },
+			{ th : _('Auto-Auslass'), 			td : AutoAuslass },
+			//{ th : _('Zugverband'),			td : Train.TTrainId },
+			{ th : _('Zugverband'),				td : ( Zugverband ? Zugverband.Name : "" ) },
+			{ th : _('Route'),					td : Routen[Train.TRouteId] },
+			{ th : _('Richtung'),				td : ( Train.TDir == 0 ? _('eins') : _('zwei') )},
+			{ th : _('Geschwindigkeit') + ' km/h',	td : Train.TSpeed },
+
+			])
+		}) 
+
+		// No trains in Depot
+		if (Depot.Trains.length == 0) {
+			fillTable(thead, tbody, [
+
+			{ th : _('Depot'),					td : Depot.ID },
+			{ th : _('Auto-Auslass'), 			td : AutoAuslass },
+			
+			{ th : _('Status'),					td : '' },
+			{ th : _('Abfahrtzeiten'), 			td : '' },
+			//{ th : _('Zugverband'),			td : '' },
+			{ th : _('Zugverband'),				td : '' },
+			{ th : _('Route'),					td : '' },
+			{ th : _('Richtung'),				td : '' },
+			{ th : _('Geschwindigkeit') + ' km/h',	td : '' },
+			])
+		}
+
+		})
 
 		return Zugverbaende.size;
 		}
@@ -2037,6 +2277,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)"><a href='#divKontakt'><span lang="de">Kontakte</span><span lang="en">Contacts</span><span lang="fr">Contacts</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='virtualConnections' 	checked autocomplete='off' onchange="toggleElements('.virtualConnections', this.checked)"><a href='#divvirtualConnections'><span lang="de">virtuelle Verbindungen</span><span lang="en">Virtual connections</span><span lang="fr">Connexions virtuelles</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)"><a href='#divZugverband'><span lang="de">Zugverband</span><span lang="en">Train set</span><span lang="fr">Convoi ferroviaire</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Depot' 	checked autocomplete='off' onchange="toggleElements('.Depot', this.checked)"><a href='#divDepot'><span lang="de">Depot</span><span lang="en">Depot</span><span lang="fr">Dépôt</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Rollmaterial'	checked autocomplete='off' onchange="toggleElements('.Rollmaterial', this.checked)"><a href='#divRollmaterial'><span lang="de">Rollmaterialien</span><span lang="en">Rolling stock</span><span lang="fr">Matériel roulant</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'><span lang="de">Gleisstile</span><span lang="en">Track styles</span><span lang="fr">Styles de voie</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisobjekt'	checked autocomplete='off' onchange="toggleElements('.Gleisobjekt', this.checked)"><a href='#divGleisobjekt'><span lang="de">Gleisobjekte</span><span lang="en">Track objects</span><span lang="fr">Objets de voie</span></a></label></div>
