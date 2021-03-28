@@ -746,6 +746,31 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		EN : `DSS/SSS`, 
 		FR : `TJD/TJS`, 
 	},
+	'Depot' : {
+		DE : `Depot`, 
+		EN : `Depot`, 
+		FR : `Dépôt`, 
+	},
+	'Depots' : {
+		DE : `Depots`, 
+		EN : `Depots`, 
+		FR : `Dépôts`, 
+	},
+	'Zugverbände in Depots' : {
+		DE : `Zugverbände in Depots`, 
+		EN : `Train sets in depots`, 
+		FR : `Convoi ferroviaires dans les dépôts`, 
+	},
+	'Status' : {
+		DE : `Status`, 
+		EN : `Status`, 
+		FR : `Statut`, 
+	},
+	'Anzahl Zugverbände' : {
+		DE : `Anzahl Zugverbände`, 
+		EN : `Number of train sets`, 
+		FR : `Nombre de convoi ferroviaire`, 
+	},
 	'Einfahrt Depot' : {
 		DE : `Einfahrt Depot`, 
 		EN : `Entrance depot`, 
@@ -755,6 +780,61 @@ Uniquement les images de ce type peuvent être téléchargées dans le <a $3>for
 		DE : `Ausfahrt Depot`, 
 		EN : `Exit depot`, 
 		FR : `Sortie dépôt`, 
+	},
+	'Auto-Auslass' : {
+		DE : `Auto-Auslass`, 
+		EN : `Auto outlet`, 
+		FR : `Prise automatique`, 
+	},
+	'Auto-Zeit nach' : {
+		DE : `Auto-Zeit nach`, 
+		EN : `Auto time after`, 
+		FR : `Temps automatique après`, 
+	},
+	'Zufall' : {
+		DE : `Zufall`, 
+		EN : `Chance`, 
+		FR : `Coïncidence`, 
+	},
+	'Abfahrtzeit' : {
+		DE : `Abfahrtzeit`, 
+		EN : `Departure time`, 
+		FR : `Heure de départ`, 
+	},
+	'individuelle Abfahrtzeit' : {
+		DE : `Individuelle Abfahrtzeit`, 
+		EN : `Individual departure time`, 
+		FR : `Heure de départ individuelle`, 
+	},
+	'Signalgesteuert' : {
+		DE : `Signalgesteuert`, 
+		EN : `Signal controlled`, 
+		FR : `Signal contrôlé`, 
+	},
+	'Warten' : {
+		DE : `Warten`, 
+		EN : `Waiting`, 
+		FR : `En attendant`, 
+	},
+	'In Fahrt' : {
+		DE : `In Fahrt`, 
+		EN : `In motion`, 
+		FR : `En mouvement`, 
+	},
+	'Richtung' : {
+		DE : `Richtung`, 
+		EN : `Direction`, 
+		FR : `Direction`, 
+	},
+	'eins' : {
+		DE : `eins`, 
+		EN : `one`, 
+		FR : `une`, 
+	},
+	'zwei' : {
+		DE : `zwei`, 
+		EN : `two`, 
+		FR : `deux`, 
 	},
 	Animationen : {
 		DE : `Animationen`, 
