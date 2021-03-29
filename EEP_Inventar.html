@@ -1503,6 +1503,8 @@ clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGC
 
 */
 	// Anzeige der Depots
+	if (Depots.length > 0) {
+
 	div = createTable({
 		id		: 'Depot',
 		title 	: `${_('Depots')} (${Depots.length})`,
@@ -1639,6 +1641,7 @@ clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGC
 		}
 	})
 
+	} // Depots.length > 0
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 	// Anzeige der Rollmaterialien
