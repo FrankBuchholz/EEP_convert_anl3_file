@@ -1408,6 +1408,7 @@ mit
 		const GleissystemID	= Zugverband.Gleisort.getAttribute('gleissystemID');
 		const GleisID 		= Zugverband.Gleisort.getAttribute('gleisID');
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
+		const Gleisdatei	= Gleis.getAttribute('gsbname');
 		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
 		const ausrichtung 	= Zugverband.Gleisort.getAttribute('ausrichtung');
 		const RouteID 		= Zugverband.Zugverband.getAttribute('Route');
@@ -1427,6 +1428,7 @@ mit
 		{ th : `x (m)`,						td : Gleis.PosX.toFixed(0) },
 		{ th : `y (m)`,						td : Gleis.PosY.toFixed(0) },
 		{ th : _('Position') + ' (m)',		td : Position.toFixed(0) },
+		{ th : _('Stil'),					td : Gleisdatei },
 		{ th : _('Ausrichtung'),			td : (ausrichtung == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung')) },
 		{ th : _('Name'),					td : Name },
 		{ th : _('Anzahl Rollmaterialien'),	td : Anzahl },
@@ -1503,7 +1505,7 @@ clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGC
 
 */
 	// Anzeige der Depots
-	if (Depots.length > 0) {
+	if (Depots.length > 0) {	// Hide empty table
 
 	div = createTable({
 		id		: 'Depot',
