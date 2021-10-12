@@ -2219,7 +2219,9 @@ Arc 	215	x	1467.390	y	-1822.741	z	12.384
 				let pY			= +PositionA.getAttribute("y");
 				let pZ			= +PositionA.getAttribute("z");
 				
-				if (Index == 0 && PosX == 0 && PosY == 0 && PosZ == 0) {
+				if (Index == 0 
+					//&& PosX == 0 && PosY == 0 && PosZ == 0 // some Cubic show non-zero values
+				) {
 					if (pX != 0 || pY != 0 || pZ != 0) {
 console.log( TrackSystemText(GleissystemID) + "-" + GleisID 
 	+ "\tCubic Pos=0"
