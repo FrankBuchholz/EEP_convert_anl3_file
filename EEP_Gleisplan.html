@@ -5310,6 +5310,7 @@ EEPchannel.onmessage = function(ev) {
 	const ID			= ev.data.ID;				// Signal oder Weiche
 	const KontaktID		= ev.data.KontaktID;		// Kontakt
 	const KameraID		= ev.data.KameraID;			// Kamera
+	const GBSID			= ev.data.GBSID;			// GBS
 	global.shiftDown 	= ev.data.shiftDown;		// Status of keys
 	global.strgDown 	= ev.data.strgDown;
 	global.altDown 		= ev.data.altDown;
@@ -5361,6 +5362,10 @@ EEPchannel.onmessage = function(ev) {
 
 		showKameraInfo(KameraID);
 		return true;
+
+	} else if (GBSID) {	// GBS
+
+		//...
 
 	} else if (GleissystemID && GleisID) {	// Gleis
 

@@ -308,7 +308,8 @@ function process_node(sutrackp) {
 		Routen		= [],
 		Sounds		= [],
 		Depots		= [],	// ID,  [{TTrainId, TRouteId, TSpeed, TTime, TDir}]
-		Kameras		= [];	// KameraID, Name, Kamera
+		Kameras		= [],	// KameraID, Name, Kamera
+		GBS_table  	= [];   // Gleisbildstellpulte
 
 	const KameraNamen = {};	// Verwendung: Name = KameraNamen[index];
 
@@ -729,6 +730,108 @@ mit
 	usedArea.min.y = Math.max( usedArea.min.y, Area.min.y );
 	usedArea.max.x = Math.min( usedArea.max.x, Area.min.x + Area.width  );
 	usedArea.max.y = Math.min( usedArea.max.y, Area.min.y + Area.height );
+
+	// Extract data from GBS
+	for (const Gebaeudesammlung of sutrackp.getElementsByTagName('Gebaeudesammlung')) {
+		const GebaudesammlungID = Gebaeudesammlung.getAttribute('GebaudesammlungID');
+		if ( GebaudesammlungID != 4 ) { continue; }
+
+		for (const Immobile of Gebaeudesammlung.getElementsByTagName('Immobile')) {
+			const GBSObjects = Immobile.getElementsByTagName('GBSObject');
+			if ( GBSObjects.length == 0 ) { continue; } 
+
+			const gsbname			= Immobile.getAttribute('gsbname');
+			const ImmoIdx			= Immobile.getAttribute('ImmoIdx');
+
+			const Dreibein			= Immobile.getElementsByTagName('Dreibein')[0];
+			const Vektor			= Dreibein.getElementsByTagName('Vektor')[0];
+			const PosX				= +Vektor.getAttribute('x') / 100;
+			const PosY				= +Vektor.getAttribute('y') / 100;
+			const PosZ				= +Vektor.getAttribute('z') / 100;
+
+			const GBSObject 		= GBSObjects[0]; 
+			
+			const ID     			= GBSObject.getAttribute('id');
+			const Name     			= GBSObject.getAttribute('Name');
+			
+			const GleissystemID  	= GBSObject.getAttribute('GleissystemID');
+			const Width     		= GBSObject.getAttribute('Width');				// Breite des GBS
+			const Height     		= GBSObject.getAttribute('Height');				// Höhe des GBS
+			
+			const Tiles = [];
+			for (const GBSElement of GBSObject.getElementsByTagName('GBSElement')) {
+				const Tile = {};
+			
+				Tile.x     			= GBSElement.getAttribute('x');					// Position des GBS-Elements
+				Tile.y    			= GBSElement.getAttribute('y');					// Position des GBS-Elements
+				
+				Tile.ID				= ( Tile.y - 1 ) * Width + Tile.x;				// ID to sort by position
+
+				Tile.Kammera		= GBSElement.getAttribute('Kammera'); 			// Gleissymbol 36 = Kammera
+
+				// Get track symbols
+				const Modell 		= GBSElement.getElementsByTagName('Modell')[0];
+				const Table 		= Modell.getElementsByTagName('Table')[0];
+				const Count 		= Table.getAttribute('Count');
+				Tile.TrackSymbol	= Table.getAttribute('e0');						// Codenummer des Gleissymbols
+				Tile.Signal_left 	= Table.getAttribute('e1');						// Codenummer für Signalsymbol Links
+				Tile.Signal_mid 	= Table.getAttribute('e2');						// Codenummer für Signalsymbol Mitte
+				Tile.Signal_right 	= Table.getAttribute('e3');						// Codenummer für Signalsymbol Rechts
+
+				// Get switch ID
+				for (const TakeSwitch of GBSElement.getElementsByTagName('TakeSwitch')) { 	// one optional entry
+					const Table 	= TakeSwitch.getElementsByTagName('Table')[0];
+					const Count 	= Table.getAttribute('Count');
+					Tile.SwichID 	= Table.getAttribute('e0');						// Switch ID
+				}				
+
+				// Get signal ID
+				for (const Signal of GBSElement.getElementsByTagName('Signal')) { 	// one optional entry
+					const Table 	= Signal.getElementsByTagName('Table')[0];
+					const Count 	= Table.getAttribute('Count');
+					Tile.SignalID_left 	= Table.getAttribute('e0');					// Signal-ID Links
+					Tile.SignalID_mid 	= Table.getAttribute('e1');					// Signal-ID Mitte
+					Tile.SignalID_right = Table.getAttribute('e2');					// Signal-ID Rechts
+				}
+
+				// Get tracks
+				Tile.Tracks = [];
+				for (let i = 1; i <= 4; i++) {
+					const Tracks = GBSElement.getElementsByTagName('Tracks' + i);	// Tracks1 - Tracks4
+					if ( Tracks.length == 0 ) { 
+						Tile.Tracks.push( 0 );
+						continue;
+					}
+					
+					const Table 	=  Tracks[0].getElementsByTagName('Table')[0];
+					const Count = Table.getAttribute('Count');
+					const GleisID	= Table.getAttribute('e0');						// GleisID für die Besetztmeldung
+					Tile.Tracks.push( GleisID );
+				}
+				
+				// Store GBSElement
+				Tiles.push( Tile );
+			}
+			
+			// Store GBSObject
+			GBS_table.push( {
+				ID 				: ID,
+				Name			: ( Name ? Name : "GBS_" + ID ),
+				
+				gsbname			: gsbname,
+				ImmoIdx			: ImmoIdx,
+				
+				PosX			: PosX,
+				PosY			: PosY,
+				PosZ			: PosZ,
+				
+				GleissystemID 	: GleissystemID,
+				Width 			: Width,
+				Height 			: Height,
+				Tiles 			: Tiles,
+			});		
+		}
+	}
 
 	// Extract data from Fuhrpark
 	const Fuhrpark = sutrackp.getElementsByTagName('Fuhrpark')[0];
@@ -1890,8 +1993,179 @@ x	RollIdx="3"
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+	// Anzeige der GBS
+	div = createTable({
+		id		: 'GBS',
+		title 	: `${_('Stellpulte')} (${GBS_table.length})`,
+		caption	: _('Stellpulte'),
+		content	: function(thead, tbody) {
+
+		//GBS_table.forEach(GBS => {
+		GBS_table.sort(orderByID).forEach(GBS => {
+
+		fillTable(thead, tbody, [
+
+		{ th : _('Stellpult'),		td :
+			`<a id="GBS_${GBS.ID}" href="javascript:void(0);" onclick="javascript:postGBSMessage(${GBS.ID});">${GBS.ID}<\/a>`
+			, html : true },
+		{ th : `Name`,				td :
+			`<a  href="javascript:void(0);" onclick="javascript:postGBSMessage(${GBS.ID});">${GBS.Name}<\/a>`
+			, html : true },
+
+		{ th : _('Gleissystem'),	td : TrackSystemText(GBS.GleissystemID) },
+		{ th : _('Breite'),			td : GBS.Width			 		},
+		{ th : _('Höhe'),			td : GBS.Height 				},
+
+		{ th : _('ImmoIdx'),		td : GBS.ImmoIdx			 	},
+		{ th : `x (m)`,				td : GBS.PosX.toFixed(0) 		},
+		{ th : `y (m)`,				td : GBS.PosY.toFixed(0) 		},
+		{ th : `z (m)`,				td : GBS.PosZ.toFixed(0) 		},
+		{ th : _('Datei'),			td : GBS.gsbname			 	},
+
+		]) })
+
+		return GBS_table.length;
+		}
+	})
+
+	showGBS( GBS_table, div );
+	
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
 	// Allow to sort all tables by clicking on the header
 	prepareSort();
+	
+
+// Show graphic for GBS
+// requires TrackSystemText
+function showGBS( GBS_table, div ) {
+
+	//const svgGBS 		= document.getElementById('svgGBS');
+	const svgNS 	= 'http://www.w3.org/2000/svg';
+	const xlinkNS 	= 'http://www.w3.org/1999/xlink';
+	const scale = 100;
+
+	GBS_table.sort(orderByID).forEach(GBS => {
+
+		const title = e(div, 'p');
+		e(title, 'b',
+			`${_('Stellpult')} ${GBS.ID} '${GBS.Name}' ${_('auf')} ${TrackSystemText(GBS.GleissystemID)} (${GBS.Width} x ${GBS.Height})`
+		);
+
+		// Create svg for the GBS
+		const svg = document.createElementNS(svgNS, 'svg');
+		div.appendChild(svg);
+		svg.setAttributeNS(svgNS, 'viewBox', '0 0 ' + scale * GBS.Width + ' ' + scale * GBS.Height );
+		svg.setAttribute('width',  scale * GBS.Width );
+		svg.setAttribute('height', scale * GBS.Height );
+		
+		// Add empty tiles
+		for (let x = 1; x <= GBS.Width; x++) {
+			for (let y = 1; y <= GBS.Height; y++) {
+				// Add tile to svg
+				t(svg, 0, x, y);
+			}
+		}
+		
+		GBS.Tiles.sort(orderByID).forEach(Tile => {
+
+			// Add track to svg
+			if (Tile.TrackSymbol > 0) {
+
+				// Check switch ID
+				let Gleissystem, Gleis;
+				Gleissystem = GleisMap.get(GBS.GleissystemID);
+				if (Gleissystem) {
+					Gleis = Gleissystem.get(Tile.Tracks[0]);
+				}
+				if (Gleis) {
+					const Key_Id = Gleis.getAttribute('Key_Id');
+					if (Tile.SwichID != Key_Id) {
+						console.log( 'Tile.SwichID != Key_Id',
+							"(", Tile.x, Tile.y, ")",
+							Tile.SwichID, "!=", Key_Id
+						);
+					}
+				}
+			
+				// Construct tipp text
+				let titleText;
+				if (Tile.TrackSymbol == 36) {
+					titleText = 
+					  (Tile.Kammera       ? _('Kamera') + " " + Tile.Kammera : "");
+				} else {
+					titleText = 
+					  (Tile.SwichID       ? _('Weiche') + " " + Tile.SwichID + " ": "")  		
+					+ _('Gleise')  		
+					+ (Tile.Tracks[0] > 0 ? " "  + Tile.Tracks[0] : "")
+					+ (Tile.Tracks[1] > 0 ? ", " + Tile.Tracks[1] : "")
+					+ (Tile.Tracks[2] > 0 ? ", " + Tile.Tracks[2] : "")
+					+ (Tile.Tracks[3] > 0 ? ", " + Tile.Tracks[3] : "");
+				}
+			
+				t(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText,);
+			}	
+			
+			// Add signal to svg
+			if (Tile.Signal_left  > 0) {
+				t(svg, Tile.Signal_left,  Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_left  > 0 ? Tile.SignalID_left  : null), 'left');
+			}
+			if (Tile.Signal_mid   > 0) {
+				t(svg, Tile.Signal_mid,   Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_mid   > 0 ? Tile.SignalID_mid   : null));
+			}
+			if (Tile.Signal_right > 0) {
+				t(svg, Tile.Signal_right, Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_right > 0 ? Tile.SignalID_right : null), 'right');
+			}
+			
+		
+if (1 == 0 ){		
+	// Show text describing the tile
+	e(div, 'p',
+		  `(${Tile.x} ${Tile.y}) ` 
+		+ `${Tile.TrackSymbol} : ` 
+		+ `${(Tile.Tracks[0] > 0 ? Tile.Tracks[0] : "-")} `
+		+ `${(Tile.Tracks[1] > 0 ? Tile.Tracks[1] : "-")} `
+		+ `${(Tile.Tracks[2] > 0 ? Tile.Tracks[2] : "-")} `
+		+ `${(Tile.Tracks[3] > 0 ? Tile.Tracks[3] : "-")} `
+		+ `[ ${(Tile.Signal_left  > 0 ? Tile.Signal_left  + " " + Tile.SignalID_left  : "-")} | ` 
+		+   `${(Tile.Signal_mid   > 0 ? Tile.Signal_mid   + " " + Tile.SignalID_mid   : "-")} | ` 
+		+   `${(Tile.Signal_right > 0 ? Tile.Signal_right + " " + Tile.SignalID_right : "-")} ]`
+		, true
+	);
+}
+		
+		})
+
+	})
+	
+			
+	function t(svg, TrackSymbol, x, y, titleText = null, pos = null) {
+		let d = 0;
+		if ( TrackSymbol >= 26 && TrackSymbol <= 31) { // Shift postion in case of signals
+			if        ( pos === 'left' ) {
+				d = - scale / 3;
+			} else if ( pos === 'right' ) {
+				d = scale / 3;
+			}
+		}
+	
+		const use = document.createElementNS(svgNS, 'use');
+		svg.appendChild(use);
+		use.setAttributeNS(xlinkNS, 'xlink:href', '#Tile_' + TrackSymbol );
+		if (titleText) {
+			const title = document.createElementNS(svgNS, 'title');
+			const text = document.createTextNode(titleText);
+			title.appendChild(text);
+			use.appendChild(title);
+		}
+		use.setAttribute('width',  scale );
+		use.setAttribute('height', scale );
+		use.setAttribute('x', scale * ( x - 1) + d );
+		use.setAttribute('y', scale * ( y - 1) );
+	}	
+} 
+	
+	
 }
 
 function orderByID(a,b) {
@@ -2287,6 +2561,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'><span lang="de">Gleisstile</span><span lang="en">Track styles</span><span lang="fr">Styles de voie</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisobjekt'	checked autocomplete='off' onchange="toggleElements('.Gleisobjekt', this.checked)"><a href='#divGleisobjekt'><span lang="de">Gleisobjekte</span><span lang="en">Track objects</span><span lang="fr">Objets de voie</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Kamera'	checked autocomplete='off' onchange="toggleElements('.Kamera', this.checked)"><a href='#divKamera'><span lang="de">Kameras</span><span lang="en">Cameras</span><span lang="fr">Caméras</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='GBS'	checked autocomplete='off' onchange="toggleElements('.GBS', this.checked)"><a href='#divGBS'><span lang="de">GBS</span><span lang="en">GBS</span><span lang="fr">GBS</span></a></label></div>
 	|
 	<!-- Hide filter row and filter related icons to make copy&paste to Excel easier -->
 	<div class="item"><label><input type='checkbox' name='Filter'		checked autocomplete='off' onchange="toggleElements('.fltrow,.rdiv', this.checked)"><span lang="de">Filter</span><span lang="en">Filter</span><span lang="fr">Filtre</span></label></div>
@@ -2294,6 +2569,582 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 </div>
 
 </section> <!-- container -->
+
+<!-- GBS --> 
+<svg id="GBSsymbols" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" > 
+<!-- viewBox="0 0 1000 500" width="1000" height="500"> -->
+<defs>
+<style>/* <![CDATA[ */
+    .tile {
+      fill: rgb(216, 216, 216);
+    }
+
+    .line {
+      stroke: rgb(0, 0, 0); 
+	  stroke-width: 10px; 
+	  stroke-linecap: round; 
+	  stroke-linejoin: round;
+    }
+
+    .Track_End {
+      stroke: rgb(0, 0, 0); 
+	  stroke-width: 7px; 
+    }
+	
+    .block1 { /* block 1 of a track */
+      /* stroke: rgb(200, 0, 0); 		/* red */
+      stroke: rgb(150, 150, 150); 
+	  stroke-width: 4px; 
+    }
+	
+    .block2 { /* block 2 of a track */
+      /* stroke: rgb(230, 230, 0); 		/* yellow */
+      stroke: rgb(160, 160, 160); 
+	  stroke-width: 4px; 
+    }
+	
+    .block3 { /* block 3 of a track */
+      /* stroke: rgb(0, 200, 0); 		/* green */
+      stroke: rgb(170, 170, 170); 
+	  stroke-width: 4px; 
+    }
+	
+    .block4 { /* block 4 of a track */
+      /* stroke: rgb(0, 230, 230); 		/* blue */
+      stroke: rgb(180, 180, 180); 
+	  stroke-width: 4px; 
+    }
+
+	.red {
+		fill: rgb(249, 0, 0);			/* red */
+	}
+
+	.green {
+		fill: rgb(71, 249, 0);			/* green */ 
+	}
+
+	.grey {
+		fill: rgb(180, 180, 180);		/* green */ 
+	}
+
+  /* ]]> */</style>
+
+	<!-- leer -->
+	<symbol id="Tile_0" viewBox="0 0 100 100">
+			<rect class="tile" x="1" y="1" width="98" height="98" rx="5" ry="5"/>
+	</symbol>
+
+	<defs> <!-- Fahrwege -->
+		<line id="Track_O"  class="line" x1="0"  y1="0" x2="42" y2="0"/>  <!-- gerade -->
+		<line id="Track_SO" class="line" x1="0"  y1="0" x2="42" y2="42"/> <!-- schräg -->
+		<use  id="Track_S"  href="#Track_O"  transform="rotate(90)"/>
+		<use  id="Track_SW" href="#Track_SO" transform="rotate(90)"/>
+		<use  id="Track_W"  href="#Track_O"  transform="rotate(180)"/>
+		<use  id="Track_NW" href="#Track_SO" transform="rotate(180)"/>
+		<use  id="Track_N"  href="#Track_O"  transform="rotate(270)"/>
+		<use  id="Track_NO" href="#Track_SO" transform="rotate(270)"/>
+
+		<g id="Track_End">	<!-- Endebalken -->
+			<line class="line" x1="0" y1="0" x2="-22" y2="0"/>  <!-- gerade -->
+			<line class="Track_End" x1="-25" y1="-20" x2="-25" y2="20"/>          <!-- Endebalken -->
+		</g>
+		</defs>
+
+	<defs> <!-- Block-LEDs -->
+		<line id="LED"      x1="-10" y1="0" x2="10" y2="0"/>
+		<use  id="LED_O"    href="#LED"   transform="rotate(0)   translate(30 0)"/>
+		<use  id="LED_SO"   href="#LED"   transform="rotate(45)  translate(48 0)"/>
+		<use  id="LED_S"    href="#LED"   transform="rotate(90)  translate(30 0)"/>
+		<use  id="LED_SW"   href="#LED"   transform="rotate(135) translate(48 0)"/>
+		<use  id="LED_W"    href="#LED"   transform="rotate(180) translate(30 0)"/>
+		<use  id="LED_NW"   href="#LED"   transform="rotate(225) translate(48 0)"/>
+		<use  id="LED_N"    href="#LED"   transform="rotate(270) translate(30 0)"/>
+		<use  id="LED_NO"   href="#LED"   transform="rotate(315) translate(48 0)"/>
+
+		<line id="LED_End"  x1="-20" y1="0" x2="0" y2="0"/> <!-- Led bei Endebalken --> 
+	</defs>
+
+	<!-- gerade Gleise -->
+	<symbol id="Tile_1" viewBox="-50 -50 100 100">
+			<title>Tile 1</title>
+			<use href="#Track_W"/>
+			<use href="#Track_O"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_O"      class="block2"/>
+	</symbol>
+	<symbol id="Tile_3" viewBox="-50 -50 100 100">
+			<title>Tile 3</title>
+			<use href="#Track_SW"/>
+			<use href="#Track_NO"/>
+			<use href="#LED_SW"     class="block1"/>
+			<use href="#LED"        class="block2" transform="rotate(-45)"/>
+			<use href="#LED_NO"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_4" viewBox="-50 -50 100 100">
+			<title>Tile 4</title>
+			<use href="#Track_NW"/>
+			<use href="#Track_SO"/>
+			<use href="#LED_NW"     class="block1"/>
+			<use href="#LED"        class="block2" transform="rotate(45)"/>
+			<use href="#LED_SO"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_45" viewBox="-50 -50 100 100">
+			<title>Tile 45</title>
+			<use href="#Track_S"/>
+			<use href="#Track_N"/>
+			<use href="#LED_S"      class="block1"/>
+			<use href="#LED_N"      class="block2"/>
+	</symbol>
+	
+	<!-- gebogene Gleise -->
+	<symbol id="Tile_6" viewBox="-50 -50 100 100">
+			<title>Tile 6</title>
+			<use href="#Track_SW"/>
+			<use href="#Track_O"/>
+			<use href="#LED_SW"      class="block1"/>
+			<use href="#LED_O"      class="block2"/>
+	</symbol>
+	<symbol id="Tile_9" viewBox="-50 -50 100 100">
+			<title>Tile 9</title>
+			<use href="#Track_W"/>
+			<use href="#Track_SO"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_SO"      class="block2"/>
+	</symbol>
+	<symbol id="Tile_8" viewBox="-50 -50 100 100">
+			<title>Tile 8</title>
+			<use href="#Track_O"/>
+			<use href="#Track_NW"/>
+			<use href="#LED_O"      class="block1"/>
+			<use href="#LED_NW"      class="block2"/>
+	</symbol>
+	<symbol id="Tile_7" viewBox="-50 -50 100 100">
+			<title>Tile 7</title>
+			<use href="#Track_W"/>
+			<use href="#Track_NO"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_NO"      class="block2"/>
+	</symbol>
+	
+	<symbol id="Tile_47" viewBox="-50 -50 100 100">
+			<title>Tile 47</title>
+			<use href="#Track_S"/>
+			<use href="#Track_NO"/>
+			<use href="#LED_S"      class="block1"/>
+			<use href="#LED_NO"      class="block2"/>
+	</symbol>
+	<symbol id="Tile_46" viewBox="-50 -50 100 100">
+			<title>Tile 46</title>
+			<use href="#Track_S"/>
+			<use href="#Track_NW"/>
+			<use href="#LED_S"      class="block1"/>
+			<use href="#LED_NW"      class="block2"/>
+	</symbol>
+	<symbol id="Tile_49" viewBox="-50 -50 100 100">
+			<title>Tile 49</title>
+			<use href="#Track_SO"/>
+			<use href="#Track_N"/>
+			<use href="#LED_SO"      class="block1"/>
+			<use href="#LED_N"      class="block2"/>
+	</symbol>
+	<symbol id="Tile_48" viewBox="-50 -50 100 100">
+			<title>Tile 48</title>
+			<use href="#Track_SW"/>
+			<use href="#Track_N"/>
+			<use href="#LED_SW"      class="block1"/>
+			<use href="#LED_N"      class="block2"/>
+	</symbol>
+	
+	<!-- Endgleise -->
+	<symbol id="Tile_10" viewBox="-50 -50 100 100">
+			<title>Tile 10</title>
+			<use href="#Track_O"/>
+			<use href="#Track_End"                transform="rotate(0)"/>
+			<use href="#LED_O"     class="block1"/>
+			<use href="#LED_End"   class="block2" transform="rotate(0)"/>
+	</symbol>
+	<symbol id="Tile_11" viewBox="-50 -50 100 100">
+			<title>Tile 11</title>
+			<use href="#Track_W"/>
+			<use href="#Track_End"                transform="rotate(180)"/>
+			<use href="#LED_W"     class="block1"/>
+			<use href="#LED_End"   class="block2" transform="rotate(180)"/>
+	</symbol>
+	<symbol id="Tile_50" viewBox="-50 -50 100 100">
+			<title>Tile 50</title>
+			<use href="#Track_N"/>
+			<use href="#Track_End"                transform="rotate(270)"/>
+			<use href="#LED_N"     class="block1"/>
+			<use href="#LED_End"   class="block2" transform="rotate(270)"/>
+	</symbol>
+	<symbol id="Tile_51" viewBox="-50 -50 100 100">
+			<title>Tile 51</title>
+			<use href="#Track_S"/>
+			<use href="#Track_End"                transform="rotate(90)"/>
+			<use href="#LED_S"     class="block1"/>
+			<use href="#LED_End"   class="block2" transform="rotate(90)"/>
+	</symbol>
+	
+	<symbol id="Tile_32" viewBox="-50 -50 100 100">
+			<title>Tile 32</title>
+			<use href="#Track_SW"/>
+			<use href="#Track_End"                transform="rotate(135)"/>
+			<use href="#LED_SW"    class="block1"/>
+			<use href="#LED_End"   class="block2" transform="rotate(135)"/>
+	</symbol>
+	<symbol id="Tile_33" viewBox="-50 -50 100 100">
+			<title>Tile 33</title>
+			<use href="#Track_SO"/>
+			<use href="#Track_End"                transform="rotate(45)"/>
+			<use href="#LED_SO"    class="block1"/>
+			<use href="#LED_End"   class="block2" transform="rotate(45)"/>
+	</symbol>
+	<symbol id="Tile_34" viewBox="-50 -50 100 100">
+			<title>Tile 34</title>
+			<use href="#Track_NO"/>
+			<use href="#Track_End"                transform="rotate(315)"/>
+			<use href="#LED_NO"    class="block1"/>
+			<use href="#LED_End"   class="block2" transform="rotate(315)"/>
+	</symbol>
+	<symbol id="Tile_35" viewBox="-50 -50 100 100">
+			<title>Tile 35</title>
+			<use href="#Track_NW"/>
+			<use href="#Track_End"                transform="rotate(225)"/>
+			<use href="#LED_NW"    class="block1"/>
+			<use href="#LED_End"   class="block2" transform="rotate(225)"/>
+	</symbol>
+	
+	<!-- Bahnsteig -->
+	<symbol id="Tile_2" viewBox="-50 -50 100 100">
+			<title>Tile 2 - Bahnsteig</title>
+			<use href="#Track_W"/>
+			<use href="#Track_O"/>
+			<rect class="tile" x="-45" y="-30" width="90" height="20" style="fill: rgb(161, 158, 158);"/>
+			<rect class="tile" x="-45" y="10"  width="90" height="20" style="fill: rgb(161, 158, 158);"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_O"      class="block2"/>
+	</symbol>
+	
+	<!-- Kreuzung -->
+	<symbol id="Tile_5" viewBox="-50 -50 100 100">
+			<title>Tile 5 - Kreuzung</title>
+			<use href="#Track_NW"/>
+			<use href="#Track_SW"/>
+			<use href="#Track_SO"/>
+			<use href="#Track_NO"/>
+			<use href="#LED_SW"      class="block1"/>
+			<use href="#LED_NW"      class="block2"/>
+			<use href="#LED_NO"      class="block3"/>
+			<use href="#LED_SO"      class="block4"/>
+	</symbol>
+	
+	<!-- Weichen -->
+	<symbol id="Tile_13" viewBox="-50 -50 100 100">
+			<title>Tile 13</title>
+			<use href="#Track_W"/>
+			<use href="#Track_O"/>
+			<use href="#Track_NO"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_O"      class="block2"/>
+			<use href="#LED_NO"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_14" viewBox="-50 -50 100 100">
+			<title>Tile 14</title>
+			<use href="#Track_O"/>
+			<use href="#Track_W"/>
+			<use href="#Track_NW"/>
+			<use href="#LED_O"      class="block1"/>
+			<use href="#LED_W"      class="block2"/>
+			<use href="#LED_NW"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_15" viewBox="-50 -50 100 100">
+			<title>Tile 15</title>
+			<use href="#Track_W"/>
+			<use href="#Track_O"/>
+			<use href="#Track_SO"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_O"      class="block2"/>
+			<use href="#LED_SO"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_12" viewBox="-50 -50 100 100">
+			<title>Tile 12</title>
+			<use href="#Track_O"/>
+			<use href="#Track_W"/>
+			<use href="#Track_SW"/>
+			<use href="#LED_O"      class="block1"/>
+			<use href="#LED_W"      class="block2"/>
+			<use href="#LED_SW"     class="block3"/>
+	</symbol>
+	
+	<symbol id="Tile_19" viewBox="-50 -50 100 100">
+			<title>Tile 19</title>
+			<use href="#Track_SW"/>
+			<use href="#Track_NO"/>
+			<use href="#Track_O"/>
+			<use href="#LED_SW"     class="block1"/>
+			<use href="#LED_NO"     class="block2"/>
+			<use href="#LED_O"      class="block3"/>
+	</symbol>
+	<symbol id="Tile_17" viewBox="-50 -50 100 100">
+			<title>Tile 17</title>
+			<use href="#Track_SO"/>
+			<use href="#Track_NW"/>
+			<use href="#Track_W"/>
+			<use href="#LED_SO"     class="block1"/>
+			<use href="#LED_NW"     class="block2"/>
+			<use href="#LED_W"      class="block3"/>
+	</symbol>
+	<symbol id="Tile_18" viewBox="-50 -50 100 100">
+			<title>Tile 18</title>
+			<use href="#Track_NO"/>
+			<use href="#Track_SW"/>
+			<use href="#Track_W"/>
+			<use href="#LED_NO"     class="block1"/>
+			<use href="#LED_SW"     class="block2"/>
+			<use href="#LED_W"      class="block3"/>
+	</symbol>
+	<symbol id="Tile_16" viewBox="-50 -50 100 100">
+			<title>Tile 16</title>
+			<use href="#Track_NW"/>
+			<use href="#Track_SO"/>
+			<use href="#Track_O"/>
+			<use href="#LED_NW"     class="block1"/>
+			<use href="#LED_SO"     class="block2"/>
+			<use href="#LED_O"      class="block3"/>
+	</symbol>
+	
+	<symbol id="Tile_40" viewBox="-50 -50 100 100">
+			<title>Tile 40</title>
+			<use href="#Track_NO"/>
+			<use href="#Track_SW"/>
+			<use href="#Track_S"/>
+			<use href="#LED_NO"     class="block1"/>
+			<use href="#LED_SW"     class="block2"/>
+			<use href="#LED_S"      class="block3"/>
+	</symbol>
+	<symbol id="Tile_43" viewBox="-50 -50 100 100">
+			<title>Tile 43</title>
+			<use href="#Track_NW"/>
+			<use href="#Track_SO"/>
+			<use href="#Track_S"/>
+			<use href="#LED_NW"     class="block1"/>
+			<use href="#LED_SO"     class="block2"/>
+			<use href="#LED_S"      class="block3"/>
+	</symbol>
+	<symbol id="Tile_41" viewBox="-50 -50 100 100">
+			<title>Tile 41</title>
+			<use href="#Track_SW"/>
+			<use href="#Track_NO"/>
+			<use href="#Track_N"/>
+			<use href="#LED_SW"     class="block1"/>
+			<use href="#LED_NO"     class="block2"/>
+			<use href="#LED_N"      class="block3"/>
+	</symbol>
+	<symbol id="Tile_42" viewBox="-50 -50 100 100">
+			<title>Tile 42</title>
+			<use href="#Track_SO"/>
+			<use href="#Track_NW"/>
+			<use href="#Track_N"/>
+			<use href="#LED_SO"     class="block1"/>
+			<use href="#LED_NW"     class="block2"/>
+			<use href="#LED_N"      class="block3"/>
+	</symbol>
+	
+	<symbol id="Tile_52" viewBox="-50 -50 100 100">
+			<title>Tile 52</title>
+			<use href="#Track_N"/>
+			<use href="#Track_S"/>
+			<use href="#Track_SW"/>
+			<use href="#LED_N"      class="block1"/>
+			<use href="#LED_S"      class="block2"/>
+			<use href="#LED_SW"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_53" viewBox="-50 -50 100 100">
+			<title>Tile 53</title>
+			<use href="#Track_N"/>
+			<use href="#Track_S"/>
+			<use href="#Track_SO"/>
+			<use href="#LED_N"      class="block1"/>
+			<use href="#LED_S"      class="block2"/>
+			<use href="#LED_SO"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_54" viewBox="-50 -50 100 100">
+			<title>Tile 54</title>
+			<use href="#Track_S"/>
+			<use href="#Track_N"/>
+			<use href="#Track_NW"/>
+			<use href="#LED_S"      class="block1"/>
+			<use href="#LED_N"      class="block2"/>
+			<use href="#LED_NW"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_55" viewBox="-50 -50 100 100">
+			<title>Tile 55</title>
+			<use href="#Track_S"/>
+			<use href="#Track_N"/>
+			<use href="#Track_NO"/>
+			<use href="#LED_S"      class="block1"/>
+			<use href="#LED_N"      class="block2"/>
+			<use href="#LED_NO"     class="block3"/>
+	</symbol>
+	
+	<symbol id="Tile_21" viewBox="-50 -50 100 100">
+			<title>Tile 21</title>
+			<use href="#Track_W"/>
+			<use href="#Track_NO"/>
+			<use href="#Track_SO"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_NO"     class="block2"/>
+			<use href="#LED_SO"     class="block3"/>
+	</symbol>
+	<symbol id="Tile_20" viewBox="-50 -50 100 100">
+			<title>Tile 20</title>
+			<use href="#Track_O"/>
+			<use href="#Track_NW"/>
+			<use href="#Track_SW"/>
+			<use href="#LED_O"      class="block1"/>
+			<use href="#LED_NW"     class="block""/>
+			<use href="#LED_SW"     class="block§"/>
+	</symbol>
+	
+	<symbol id="Tile_22" viewBox="-50 -50 100 100">
+			<title>Tile 22</title>
+			<use href="#Track_W"/>
+			<use href="#Track_O"/>
+			<use href="#Track_NO"/>
+			<use href="#Track_SO"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_O"      class="block2"/>
+			<use href="#LED_NO"     class="block3"/>
+			<use href="#LED_SO"     class="block4"/>
+	</symbol>
+	<symbol id="Tile_23" viewBox="-50 -50 100 100">
+			<title>Tile 23</title>
+			<use href="#Track_O"/>
+			<use href="#Track_W"/>
+			<use href="#Track_NW"/>
+			<use href="#Track_SW"/>
+			<use href="#LED_O"      class="block1"/>
+			<use href="#LED_W"      class="block2"/>
+			<use href="#LED_NW"     class="block3"/>
+			<use href="#LED_SW"     class="block4"/>
+	</symbol>
+	
+	<symbol id="Tile_24" viewBox="-50 -50 100 100">
+			<title>Tile 24</title>
+			<use href="#Track_SW"/>
+			<use href="#Track_W"/>
+			<use href="#Track_NO"/>
+			<use href="#Track_O"/>
+			<use href="#LED_SW"     class="block1"/>
+			<use href="#LED_W"      class="block2"/>
+			<use href="#LED_NO"     class="block3"/>
+			<use href="#LED_O"      class="block4"/>
+	</symbol>
+	<symbol id="Tile_25" viewBox="-50 -50 100 100">
+			<title>Tile 25</title>
+			<use href="#Track_W"/>
+			<use href="#Track_NW"/>
+			<use href="#Track_O"/>
+			<use href="#Track_SO"/>
+			<use href="#LED_W"      class="block1"/>
+			<use href="#LED_NW"     class="block2"/>
+			<use href="#LED_O"      class="block3"/>
+			<use href="#LED_SO"     class="block4"/>
+	</symbol>
+	<symbol id="Tile_56" viewBox="-50 -50 100 100">
+			<title>Tile 56</title>
+			<use href="#Track_NW"/>
+			<use href="#Track_N"/>
+			<use href="#Track_SO"/>
+			<use href="#Track_S"/>
+			<use href="#LED_NW"     class="block1"/>
+			<use href="#LED_N"      class="block2"/>
+			<use href="#LED_SO"     class="block3"/>
+			<use href="#LED_S"      class="block4"/>
+	</symbol>
+	<symbol id="Tile_57" viewBox="-50 -50 100 100">
+			<title>Tile 57</title>
+			<use href="#Track_N"/>
+			<use href="#Track_NO"/>
+			<use href="#Track_S"/>
+			<use href="#Track_SW"/>
+			<use href="#LED_N"      class="block1"/>
+			<use href="#LED_NO"     class="block2"/>
+			<use href="#LED_S"      class="block3"/>
+			<use href="#LED_SW"     class="block4"/>
+	</symbol>
+	
+	<!-- Signale - Overlay zu Gleis oder Weiche, Postion Links, Mitte, Rechts -->
+	<symbol id="Signal_Light" viewBox="-10 -20 20 40">
+			<rect x="-10" y="-20" width="20" height="40" style="fill: rgb(133, 130, 130);"/>
+			<circle class="red"   cx="0" cy="-10" r="7"/>	<!-- red -->
+			<circle class="green" cx="0" cy="10"  r="7">	<!-- green --> 
+	</symbol> 
+	<symbol id="Tile_26" viewBox="0 0 100 100">
+			<title>Signal 26</title>
+			<use href="#Signal_Light" x="41" y="3" width="18" height="36"/>
+	</symbol>
+	<symbol id="Tile_27" viewBox="0 0 100 100">
+			<title>Signal 27</title>
+			<use href="#Signal_Light" x="41" y="61" width="18" height="36"/>
+ 	</symbol>
+	<symbol id="Tile_28" viewBox="0 0 100 100">
+			<title>Signal 28</title>
+			<rect class="tile" x="41" y="3" width="18" height="36" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="30" style="white-space: pre; text-anchor: middle; fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 25px;">S</text>
+	</symbol>
+	<symbol id="Tile_29" viewBox="0 0 100 100">
+			<title>Signal 29</title>
+			<rect class="tile" x="41" y="61" width="18" height="36" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="88" style="white-space: pre; text-anchor: middle; fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 25px;">S</text>
+	</symbol>
+	<symbol id="Tile_30" viewBox="0 0 100 100">
+			<title>Signal 30</title>
+			<rect class="tile" x="41" y="3" width="18" height="36" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="30" style="white-space: pre; text-anchor: middle; fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 25px;">Z</text>
+	</symbol>
+	<symbol id="Tile_31" viewBox="0 0 100 100">
+			<title>Signal 31</title>
+			<rect class="tile" x="41" y="61" width="18" height="36" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="88" style="white-space: pre; text-anchor: middle; fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 25px;">Z</text>
+	</symbol>
+	
+	<!-- Sonstiges -->
+	<symbol id="Tile_36" viewBox="0 0 100 100">
+			<title>Tile 36 - Camera</title>
+			<rect x="10" y="30" height="50" width="80" rx="5" ry="5" style="fill: rgb(0, 0, 0);"/> <!-- body -->
+			<rect x="30" y="15" height="20" width="40" rx="5" ry="5" style="fill: rgb(0, 0, 0);"/> <!-- top -->
+			<circle cx="50" cy="50" r="18" fill="#ffffff"/>  <!-- lens -->
+			<circle cx="50" cy="50" r="13" fill="#000000"/>  <!-- lens -->
+			<circle cx="80" cy="40" r="5" fill="#ffffff"/>   <!-- flash -->
+	</symbol>
+	<symbol id="Tile_37" viewBox="0 0 100 100">
+			<title>Tile 37 - Main switch </title>
+			<rect x="5" y="45" width="90" height="10" style="fill: rgb(133, 130, 130);"/>
+			<rect x="15" y="5" width="70" height="40" style="fill: rgb(232, 230, 230);"/>
+			<text x="50" y="35" style="white-space: pre; text-anchor: middle; fill: rgb(0, 154, 40); font-family: Arial, sans-serif; font-size: 32px;">Ein</text>
+			<rect x="15" y="55" width="70" height="40" style="fill: rgb(232, 230, 230);"/>
+			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 0, 0); font-family: Arial, sans-serif; font-size: 32px;">Aus</text>
+	</symbol>
+	<symbol id="Tile_38" viewBox="0 0 100 100">
+			<title>Tile 38 - Reset</title>
+			<rect x="5" y="45" width="90" height="10" style="fill: rgb(133, 130, 130);"/>
+			<rect x="5" y="55" width="90" height="40" style="fill: rgb(232, 230, 230);"/>
+			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 0, 0); font-family: Arial, sans-serif; font-size: 32px;">Reset</text>
+	</symbol>
+	<symbol id="Tile_39" viewBox="0 0 100 100">
+			<title>Tile 39 - Status</title>
+			<rect x="5" y="45" width="90" height="10" style="fill: rgb(133, 130, 130);"/>
+			<rect x="5" y="55" width="90" height="40" style="fill: rgb(232, 230, 230);"/>
+			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 154, 154); font-family: Arial, sans-serif; font-size: 32px;">Status</text>
+	</symbol>
+	<symbol id="Tile_44" viewBox="0 0 100 100">
+			<title>Tile 44 - Info</title>
+			<rect x="15" y="15" width="30" height="70" style="fill: rgb(232, 230, 230);" rx="5" ry="5"/>
+			<rect x="55" y="15" width="30" height="70" style="fill: rgb(232, 230, 230);" rx="5" ry="5"/>
+	</symbol>
+</defs>
+</svg>
 
 <script type="text/javascript"> // Broadcast Channel
 "use strict";
@@ -2343,6 +3194,15 @@ function postKontaktMessage(KontaktID, GleissystemID, GleisID) {	// Kontakt
 function postKameraMessage(KameraID) {	// Kamera
 	EEPchannel.postMessage({
 		KameraID: 		KameraID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
+	});
+}
+
+function postGBSMessage(KameraID) {	// GBS
+	EEPchannel.postMessage({
+		GBSID: 			GBSID,
 		shiftDown:		global.shiftDown,
 		strgDown:		global.strgDown,
 		altDown:		global.altDown,
