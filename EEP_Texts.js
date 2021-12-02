@@ -146,7 +146,17 @@ info : {
 	GBS : {
 		DE : `Gleisbildstellpult`, 
 		EN : `Track-control-desk`, 
-		FR : `Tableau de commande optique`, 
+		FR : `Pupitre de commande`, 
+	},
+	Stellpulte : {
+		DE : `Stellpulte`, 
+		EN : `Control-desks`, 
+		FR : `Pupitres de commande`, 
+	},
+	Stellpult : {
+		DE : `Stellpult`, 
+		EN : `Control-desk`, 
+		FR : `Pupitre de commande`, 
 	},
 	Kamera : {
 		DE : `Kamera`, 
