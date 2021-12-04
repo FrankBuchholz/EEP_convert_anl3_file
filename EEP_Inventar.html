@@ -755,15 +755,15 @@ mit
 			const Name     			= GBSObject.getAttribute('Name');
 			
 			const GleissystemID  	= GBSObject.getAttribute('GleissystemID');
-			const Width     		= GBSObject.getAttribute('Width');				// Breite des GBS
-			const Height     		= GBSObject.getAttribute('Height');				// Höhe des GBS
+			const Width     		= +GBSObject.getAttribute('Width');				// Breite des GBS
+			const Height     		= +GBSObject.getAttribute('Height');				// Höhe des GBS
 			
 			const Tiles = [];
 			for (const GBSElement of GBSObject.getElementsByTagName('GBSElement')) {
 				const Tile = {};
 			
-				Tile.x     			= GBSElement.getAttribute('x');					// Position des GBS-Elements
-				Tile.y    			= GBSElement.getAttribute('y');					// Position des GBS-Elements
+				Tile.x     			= +GBSElement.getAttribute('x');					// Position des GBS-Elements
+				Tile.y    			= +GBSElement.getAttribute('y');					// Position des GBS-Elements
 				
 				Tile.ID				= ( Tile.y - 1 ) * Width + Tile.x;				// ID to sort by position
 
@@ -772,26 +772,26 @@ mit
 				// Get track symbols
 				const Modell 		= GBSElement.getElementsByTagName('Modell')[0];
 				const Table 		= Modell.getElementsByTagName('Table')[0];
-				const Count 		= Table.getAttribute('Count');
-				Tile.TrackSymbol	= Table.getAttribute('e0');						// Codenummer des Gleissymbols
-				Tile.Signal_left 	= Table.getAttribute('e1');						// Codenummer für Signalsymbol Links
-				Tile.Signal_mid 	= Table.getAttribute('e2');						// Codenummer für Signalsymbol Mitte
-				Tile.Signal_right 	= Table.getAttribute('e3');						// Codenummer für Signalsymbol Rechts
+				const Count 		= +Table.getAttribute('Count');
+				Tile.TrackSymbol	= +Table.getAttribute('e0');						// Codenummer des Gleissymbols
+				Tile.Signal_left 	= +Table.getAttribute('e1');						// Codenummer für Signalsymbol Links
+				Tile.Signal_mid 	= +Table.getAttribute('e2');						// Codenummer für Signalsymbol Mitte
+				Tile.Signal_right 	= +Table.getAttribute('e3');						// Codenummer für Signalsymbol Rechts
 
 				// Get switch ID
 				for (const TakeSwitch of GBSElement.getElementsByTagName('TakeSwitch')) { 	// one optional entry
 					const Table 	= TakeSwitch.getElementsByTagName('Table')[0];
-					const Count 	= Table.getAttribute('Count');
-					Tile.SwichID 	= Table.getAttribute('e0');						// Switch ID
+					const Count 	= +Table.getAttribute('Count');
+					Tile.SwitchID 	= +Table.getAttribute('e0');						// Switch ID
 				}				
 
 				// Get signal ID
 				for (const Signal of GBSElement.getElementsByTagName('Signal')) { 	// one optional entry
-					const Table 	= Signal.getElementsByTagName('Table')[0];
-					const Count 	= Table.getAttribute('Count');
-					Tile.SignalID_left 	= Table.getAttribute('e0');					// Signal-ID Links
-					Tile.SignalID_mid 	= Table.getAttribute('e1');					// Signal-ID Mitte
-					Tile.SignalID_right = Table.getAttribute('e2');					// Signal-ID Rechts
+					const Table 		= Signal.getElementsByTagName('Table')[0];
+					const Count 		= +Table.getAttribute('Count');
+					Tile.SignalID_left 	= +Table.getAttribute('e0');					// Signal-ID Links
+					Tile.SignalID_mid 	= +Table.getAttribute('e1');					// Signal-ID Mitte
+					Tile.SignalID_right = +Table.getAttribute('e2');					// Signal-ID Rechts
 				}
 
 				// Get tracks
@@ -803,9 +803,9 @@ mit
 						continue;
 					}
 					
-					const Table 	=  Tracks[0].getElementsByTagName('Table')[0];
-					const Count = Table.getAttribute('Count');
-					const GleisID	= Table.getAttribute('e0');						// GleisID für die Besetztmeldung
+					const Table 	= Tracks[0].getElementsByTagName('Table')[0];
+					const Count 	= +Table.getAttribute('Count');
+					const GleisID	= +Table.getAttribute('e0');						// GleisID für die Besetztmeldung
 					Tile.Tracks.push( GleisID );
 				}
 				
@@ -2063,7 +2063,7 @@ function showGBS( GBS_table, div ) {
 		for (let x = 1; x <= GBS.Width; x++) {
 			for (let y = 1; y <= GBS.Height; y++) {
 				// Add tile to svg
-				t(svg, 0, x, y);
+				createTile(svg, 0, x, y);
 			}
 		}
 		
@@ -2080,10 +2080,10 @@ function showGBS( GBS_table, div ) {
 				}
 				if (Gleis) {
 					const Key_Id = Gleis.getAttribute('Key_Id');
-					if (Tile.SwichID != Key_Id) {
-						console.log( 'Tile.SwichID != Key_Id',
+					if (Tile.SwitchID != Key_Id) {
+						console.log( 'Tile.SwitchID != Key_Id',
 							"(", Tile.x, Tile.y, ")",
-							Tile.SwichID, "!=", Key_Id
+							Tile.SwitchID, "!=", Key_Id
 						);
 					}
 				}
@@ -2095,7 +2095,7 @@ function showGBS( GBS_table, div ) {
 					  (Tile.Kammera       ? _('Kamera') + " " + Tile.Kammera : "");
 				} else {
 					titleText = 
-					  (Tile.SwichID       ? _('Weiche') + " " + Tile.SwichID + " ": "")  		
+					  (Tile.SwitchID       ? _('Weiche') + " " + Tile.SwitchID + " ": "")  		
 					+ _('Gleise')  		
 					+ (Tile.Tracks[0] > 0 ? " "  + Tile.Tracks[0] : "")
 					+ (Tile.Tracks[1] > 0 ? ", " + Tile.Tracks[1] : "")
@@ -2103,18 +2103,22 @@ function showGBS( GBS_table, div ) {
 					+ (Tile.Tracks[3] > 0 ? ", " + Tile.Tracks[3] : "");
 				}
 			
-				t(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText,);
+				createTile(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText, null);
+				
+				if (Tile.SwitchID) {
+					createSwitchText(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText, Tile.SwitchID)
+				}
 			}	
 			
 			// Add signal to svg
 			if (Tile.Signal_left  > 0) {
-				t(svg, Tile.Signal_left,  Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_left  > 0 ? Tile.SignalID_left  : null), 'left');
+				createTile(svg, Tile.Signal_left,  Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_left  > 0 ? Tile.SignalID_left  : null), 'left');
 			}
 			if (Tile.Signal_mid   > 0) {
-				t(svg, Tile.Signal_mid,   Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_mid   > 0 ? Tile.SignalID_mid   : null));
+				createTile(svg, Tile.Signal_mid,   Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_mid   > 0 ? Tile.SignalID_mid   : null));
 			}
 			if (Tile.Signal_right > 0) {
-				t(svg, Tile.Signal_right, Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_right > 0 ? Tile.SignalID_right : null), 'right');
+				createTile(svg, Tile.Signal_right, Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_right > 0 ? Tile.SignalID_right : null), 'right');
 			}
 			
 		
@@ -2138,8 +2142,7 @@ if (1 == 0 ){
 
 	})
 	
-			
-	function t(svg, TrackSymbol, x, y, titleText = null, pos = null) {
+	function createTile(svg, TrackSymbol, x, y, titleText = null, pos = null) {
 		let d = 0;
 		if ( TrackSymbol >= 26 && TrackSymbol <= 31) { // Shift postion in case of signals
 			if        ( pos === 'left' ) {
@@ -2162,6 +2165,39 @@ if (1 == 0 ){
 		use.setAttribute('height', scale );
 		use.setAttribute('x', scale * ( x - 1) + d );
 		use.setAttribute('y', scale * ( y - 1) );
+	}	
+	
+	function createSwitchText(svg, TrackSymbol, x, y, titleText, SwitchID) {
+
+		// Position group
+		const g = document.createElementNS(svgNS, 'g');
+		g.setAttribute('transform',  'translate(' + (scale * ( x - 1 + 0.5) ) + ' ' + (scale * ( y - 1 + 0.5) ) + ')' );
+
+		// Show tipp text 
+		const title = document.createElementNS(svgNS, 'title');
+		const titleTextNode = document.createTextNode(titleText);
+		title.appendChild(titleTextNode);
+
+		// Show text
+		const text = document.createElementNS(svgNS, 'text');
+		text.setAttribute('class', 'switchText'); 
+		// Rotate text dedending on TrackSymbol
+		if ([19, 18, 40, 41, 57].includes(TrackSymbol)) {
+			text.setAttribute('transform',  'rotate(-45)' );
+		}
+		if ([17, 16, 43, 42, 56].includes(TrackSymbol)) {
+			text.setAttribute('transform',  'rotate(45)' );
+		}
+		if ([52, 53, 54, 55].includes(TrackSymbol)) {
+			text.setAttribute('transform',  'rotate(-90)' );
+		}
+		const textTextNode = document.createTextNode(SwitchID);
+		text.appendChild(textTextNode);
+
+		g.appendChild(title);
+		//g.appendChild(rect);
+		g.appendChild(text);
+		svg.appendChild(g);
 	}	
 } 
 	
@@ -2581,7 +2617,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 
     .line {
       stroke: rgb(0, 0, 0); 
-	  stroke-width: 10px; 
+	  stroke-width: 12px; 
 	  stroke-linecap: round; 
 	  stroke-linejoin: round;
     }
@@ -2594,25 +2630,25 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
     .block1 { /* block 1 of a track */
       /* stroke: rgb(200, 0, 0); 		/* red */
       stroke: rgb(150, 150, 150); 
-	  stroke-width: 4px; 
+	  stroke-width: 5px; 
     }
 	
     .block2 { /* block 2 of a track */
       /* stroke: rgb(230, 230, 0); 		/* yellow */
       stroke: rgb(160, 160, 160); 
-	  stroke-width: 4px; 
+	  stroke-width: 5px; 
     }
 	
     .block3 { /* block 3 of a track */
       /* stroke: rgb(0, 200, 0); 		/* green */
       stroke: rgb(170, 170, 170); 
-	  stroke-width: 4px; 
+	  stroke-width: 5px; 
     }
 	
     .block4 { /* block 4 of a track */
       /* stroke: rgb(0, 230, 230); 		/* blue */
       stroke: rgb(180, 180, 180); 
-	  stroke-width: 4px; 
+	  stroke-width: 5px; 
     }
 
 	.red {
@@ -2625,6 +2661,13 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 
 	.grey {
 		fill: rgb(180, 180, 180);		/* green */ 
+	}
+	
+	.switchText {
+		fill: white; 
+		font-size: small;
+		text-anchor: middle;
+		alignment-baseline: central;
 	}
 
   /* ]]> */</style>
@@ -2653,13 +2696,13 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	<defs> <!-- Block-LEDs -->
 		<line id="LED"      x1="-10" y1="0" x2="10" y2="0"/>
 		<use  id="LED_O"    href="#LED"   transform="rotate(0)   translate(30 0)"/>
-		<use  id="LED_SO"   href="#LED"   transform="rotate(45)  translate(48 0)"/>
+		<use  id="LED_SO"   href="#LED"   transform="rotate(45)  translate(45 0)"/>
 		<use  id="LED_S"    href="#LED"   transform="rotate(90)  translate(30 0)"/>
-		<use  id="LED_SW"   href="#LED"   transform="rotate(135) translate(48 0)"/>
+		<use  id="LED_SW"   href="#LED"   transform="rotate(135) translate(45 0)"/>
 		<use  id="LED_W"    href="#LED"   transform="rotate(180) translate(30 0)"/>
-		<use  id="LED_NW"   href="#LED"   transform="rotate(225) translate(48 0)"/>
+		<use  id="LED_NW"   href="#LED"   transform="rotate(225) translate(45 0)"/>
 		<use  id="LED_N"    href="#LED"   transform="rotate(270) translate(30 0)"/>
-		<use  id="LED_NO"   href="#LED"   transform="rotate(315) translate(48 0)"/>
+		<use  id="LED_NO"   href="#LED"   transform="rotate(315) translate(45 0)"/>
 
 		<line id="LED_End"  x1="-20" y1="0" x2="0" y2="0"/> <!-- Led bei Endebalken --> 
 	</defs>
