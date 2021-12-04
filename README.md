@@ -83,7 +83,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 ### Aufruf
 [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html")
 
-Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, Zugverbände und verwendeter Gleisstile ausgegeben. Das Programm kann leicht für andere Daten erweitert werden werden. 
+Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, Zugverbände und verwendeter Gleisstile ausgegeben. Außerdem werden die Gleisbildstellpulte gezeigt. Das Programm kann leicht für andere Daten erweitert werden werden. 
 
 ### Interaktive Funktionen
 Man kann die Tabellen (bei Firefox auch mit Strg+A) mit Copy & Paste in ein Tabellenverarbeitungsprogramm übertragen. Dazu schaltet man am Besten zuvor die Anzeige der Filter-Zeile aus.
@@ -125,4 +125,4 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 ---
 
 # Impressum
-(c) Frank Buchholz, 2020
+(c) Frank Buchholz, 2021
