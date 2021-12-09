@@ -2088,39 +2088,38 @@ function showGBS( GBS_table, div ) {
 					}
 				}
 			
-				// Construct tipp text
-				let titleText;
+				// Construct tipp text and tile
 				if (Tile.TrackSymbol == 36) {
-					titleText = 
-					  (Tile.Kammera       ? _('Kamera') + " " + Tile.Kammera : "");
+					const titleText = (Tile.Kammera       ? _('Kamera') + " " + Tile.Kammera : "");
+					createTile(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText, Tile.Kammera);
+
 				} else {
-					titleText = 
+					const titleText = 
 					  (Tile.SwitchID       ? _('Weiche') + " " + Tile.SwitchID + " ": "")  		
 					+ _('Gleise')  		
 					+ (Tile.Tracks[0] > 0 ? " "  + Tile.Tracks[0] : "")
 					+ (Tile.Tracks[1] > 0 ? ", " + Tile.Tracks[1] : "")
 					+ (Tile.Tracks[2] > 0 ? ", " + Tile.Tracks[2] : "")
 					+ (Tile.Tracks[3] > 0 ? ", " + Tile.Tracks[3] : "");
+
+					createTile(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText, Tile.SwitchID);
 				}
 			
-				createTile(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText, null);
-				
-				if (Tile.SwitchID) {
-					createSwitchText(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText, Tile.SwitchID)
-				}
 			}	
 			
-			// Add signal to svg
+			// Add signal overlay to svg
 			if (Tile.Signal_left  > 0) {
-				createTile(svg, Tile.Signal_left,  Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_left  > 0 ? Tile.SignalID_left  : null), 'left');
+				const titleText = _('Signal') + " " + (Tile.SignalID_left  > 0 ? Tile.SignalID_left  : null);
+				createTile(svg, Tile.Signal_left, Tile.x, Tile.y, titleText, Tile.SignalID_left,   'left');
 			}
 			if (Tile.Signal_mid   > 0) {
-				createTile(svg, Tile.Signal_mid,   Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_mid   > 0 ? Tile.SignalID_mid   : null));
+				const titleText = _('Signal') + " " + (Tile.SignalID_mid   > 0 ? Tile.SignalID_mid   : null);
+				createTile(svg, Tile.Signal_mid,   Tile.x, Tile.y, titleText, Tile.SignalID_mid,   'mid');
 			}
 			if (Tile.Signal_right > 0) {
-				createTile(svg, Tile.Signal_right, Tile.x, Tile.y, _('Signal') + " " + (Tile.SignalID_right > 0 ? Tile.SignalID_right : null), 'right');
+				const titleText = _('Signal') + " " + (Tile.SignalID_right > 0 ? Tile.SignalID_right : null);
+				createTile(svg, Tile.Signal_right, Tile.x, Tile.y, titleText, Tile.SignalID_right, 'right');
 			}
-			
 		
 if (1 == 0 ){		
 	// Show text describing the tile
@@ -2142,62 +2141,88 @@ if (1 == 0 ){
 
 	})
 	
-	function createTile(svg, TrackSymbol, x, y, titleText = null, pos = null) {
-		let d = 0;
+	function createTile(svg, TrackSymbol, x, y, titleText = null, ID = null, pos = null) {
+
+		// Create group for the tile
+		const g = document.createElementNS(svgNS, 'g');
+		svg.appendChild(g);
+
+		// Calculate position
+		// Adjustment for signals
+		let hpos = 0;
 		if ( TrackSymbol >= 26 && TrackSymbol <= 31) { // Shift postion in case of signals
 			if        ( pos === 'left' ) {
-				d = - scale / 3;
+				hpos = - scale / 3;
 			} else if ( pos === 'right' ) {
-				d = scale / 3;
+				hpos = + scale / 3;
 			}
 		}
-	
+		// Set position 
+		g.setAttribute('transform', 
+			'translate('
+			+ ( scale * ( x - 1) + hpos )
+			+ ' '
+			+ ( scale * ( y - 1) )
+			+ ')'
+			);
+
+		// Create tile
 		const use = document.createElementNS(svgNS, 'use');
-		svg.appendChild(use);
 		use.setAttributeNS(xlinkNS, 'xlink:href', '#Tile_' + TrackSymbol );
+		use.setAttribute('width',  scale );
+		use.setAttribute('height', scale );
+		g.appendChild(use);
+
+		// Create title for tile
 		if (titleText) {
 			const title = document.createElementNS(svgNS, 'title');
 			const text = document.createTextNode(titleText);
 			title.appendChild(text);
 			use.appendChild(title);
 		}
-		use.setAttribute('width',  scale );
-		use.setAttribute('height', scale );
-		use.setAttribute('x', scale * ( x - 1) + d );
-		use.setAttribute('y', scale * ( y - 1) );
-	}	
-	
-	function createSwitchText(svg, TrackSymbol, x, y, titleText, SwitchID) {
 
-		// Position group
-		const g = document.createElementNS(svgNS, 'g');
-		g.setAttribute('transform',  'translate(' + (scale * ( x - 1 + 0.5) ) + ' ' + (scale * ( y - 1 + 0.5) ) + ')' );
+		// Create text for switch or signal
+		if (ID) {
 
-		// Show tipp text 
-		const title = document.createElementNS(svgNS, 'title');
-		const titleTextNode = document.createTextNode(titleText);
-		title.appendChild(titleTextNode);
+			// Create text
+			const text = document.createElementNS(svgNS, 'text');
+			text.setAttribute('class', 'IDtext'); 
+			const textTextNode = document.createTextNode(ID);
+			text.appendChild(textTextNode);
+			g.appendChild(text);
 
-		// Show text
-		const text = document.createElementNS(svgNS, 'text');
-		text.setAttribute('class', 'switchText'); 
-		// Rotate text dedending on TrackSymbol
-		if ([19, 18, 40, 41, 57].includes(TrackSymbol)) {
-			text.setAttribute('transform',  'rotate(-45)' );
+			// Calculate middle position
+			let dx = scale / 2;
+			let dy = scale / 2;
+
+			// Move text of signals
+			if ([26, 28, 30].includes(TrackSymbol)) {
+				dy -= 17;
+			} 
+			if ([27, 29, 31].includes(TrackSymbol)) {
+				dy += 41;
+			} 
+			
+			// Move text of camera
+			if ([36].includes(TrackSymbol)) {
+				dy += 41;
+			} 
+			
+			let transform = 'translate(' + ( dx ) + ' ' + ( dy ) + ')';
+			
+			// Rotate text depending on TrackSymbol of a switch
+			if ([19, 18, 40, 41, 57].includes(TrackSymbol)) {
+				transform += ' ' + 'rotate(-45)';
+			}
+			if ([17, 16, 43, 42, 56].includes(TrackSymbol)) {
+				transform += ' ' + 'rotate(45)';
+			}
+			if ([52, 53, 54, 55].includes(TrackSymbol)) {
+				transform += ' ' + 'rotate(-90)';
+			}
+			
+			text.setAttribute('transform',  transform );
 		}
-		if ([17, 16, 43, 42, 56].includes(TrackSymbol)) {
-			text.setAttribute('transform',  'rotate(45)' );
-		}
-		if ([52, 53, 54, 55].includes(TrackSymbol)) {
-			text.setAttribute('transform',  'rotate(-90)' );
-		}
-		const textTextNode = document.createTextNode(SwitchID);
-		text.appendChild(textTextNode);
-
-		g.appendChild(title);
-		//g.appendChild(rect);
-		g.appendChild(text);
-		svg.appendChild(g);
 	}	
 } 
 	
@@ -2627,6 +2652,14 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	  stroke-width: 7px; 
     }
 	
+	.signalCode {
+		white-space: pre; 
+		text-anchor: middle; 
+		fill: rgb(51, 51, 51); 
+		font-family: Arial, sans-serif; 
+		font-size: 25px;
+	}
+	
     .block1 { /* block 1 of a track */
       /* stroke: rgb(200, 0, 0); 		/* red */
       stroke: rgb(150, 150, 150); 
@@ -2663,7 +2696,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 		fill: rgb(180, 180, 180);		/* green */ 
 	}
 	
-	.switchText {
+	.IDtext {
 		fill: white; 
 		font-size: small;
 		text-anchor: middle;
@@ -3118,38 +3151,38 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	</symbol>
 	
 	<!-- Signale - Overlay zu Gleis oder Weiche, Postion Links, Mitte, Rechts -->
-	<symbol id="Signal_Light" viewBox="-10 -20 20 40">
-			<rect x="-10" y="-20" width="20" height="40" style="fill: rgb(133, 130, 130);"/>
-			<circle class="red"   cx="0" cy="-10" r="7"/>	<!-- red -->
-			<circle class="green" cx="0" cy="10"  r="7">	<!-- green --> 
+	<symbol id="Signal_Light" viewBox="-15 -20 30 40">
+			<rect x="-15" y="-20" width="30" height="40" style="fill: rgb(133, 130, 130);"/>
+			<circle class="red"   cx="0" cy="-12" r="6"/>	<!-- red -->
+			<circle class="green" cx="0" cy="2"  r="6">	<!-- green --> 
 	</symbol> 
 	<symbol id="Tile_26" viewBox="0 0 100 100">
 			<title>Signal 26</title>
-			<use href="#Signal_Light" x="41" y="3" width="18" height="36"/>
+			<use href="#Signal_Light" x="38" y="3" width="24" height="36"/>
 	</symbol>
 	<symbol id="Tile_27" viewBox="0 0 100 100">
 			<title>Signal 27</title>
-			<use href="#Signal_Light" x="41" y="61" width="18" height="36"/>
+			<use href="#Signal_Light" x="38" y="61" width="24" height="36"/>
  	</symbol>
 	<symbol id="Tile_28" viewBox="0 0 100 100">
 			<title>Signal 28</title>
-			<rect class="tile" x="41" y="3" width="18" height="36" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="30" style="white-space: pre; text-anchor: middle; fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 25px;">S</text>
+			<rect class="tile" x="38" y="3" width="24" height="36" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="28" class="signalCode">S</text>
 	</symbol>
 	<symbol id="Tile_29" viewBox="0 0 100 100">
 			<title>Signal 29</title>
-			<rect class="tile" x="41" y="61" width="18" height="36" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="88" style="white-space: pre; text-anchor: middle; fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 25px;">S</text>
+			<rect class="tile" x="38" y="61" width="24" height="36" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="86" class="signalCode">S</text>
 	</symbol>
 	<symbol id="Tile_30" viewBox="0 0 100 100">
 			<title>Signal 30</title>
-			<rect class="tile" x="41" y="3" width="18" height="36" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="30" style="white-space: pre; text-anchor: middle; fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 25px;">Z</text>
+			<rect class="tile" x="38" y="3" width="24" height="36" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="28" class="signalCode">Z</text>
 	</symbol>
 	<symbol id="Tile_31" viewBox="0 0 100 100">
 			<title>Signal 31</title>
-			<rect class="tile" x="41" y="61" width="18" height="36" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="88" style="white-space: pre; text-anchor: middle; fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 25px;">Z</text>
+			<rect class="tile" x="38" y="61" width="24" height="36" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="86" class="signalCode">Z</text>
 	</symbol>
 	
 	<!-- Sonstiges -->
@@ -3163,22 +3196,22 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	</symbol>
 	<symbol id="Tile_37" viewBox="0 0 100 100">
 			<title>Tile 37 - Main switch </title>
-			<rect x="5" y="45" width="90" height="10" style="fill: rgb(133, 130, 130);"/>
-			<rect x="15" y="5" width="70" height="40" style="fill: rgb(232, 230, 230);"/>
+			<rect x="5" y="44" width="90" height="12" style="fill: rgb(133, 130, 130);"/>
+			<rect x="15" y="5" width="70" height="38" style="fill: rgb(232, 230, 230);"/>
 			<text x="50" y="35" style="white-space: pre; text-anchor: middle; fill: rgb(0, 154, 40); font-family: Arial, sans-serif; font-size: 32px;">Ein</text>
-			<rect x="15" y="55" width="70" height="40" style="fill: rgb(232, 230, 230);"/>
+			<rect x="15" y="57" width="70" height="38" style="fill: rgb(232, 230, 230);"/>
 			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 0, 0); font-family: Arial, sans-serif; font-size: 32px;">Aus</text>
 	</symbol>
 	<symbol id="Tile_38" viewBox="0 0 100 100">
 			<title>Tile 38 - Reset</title>
-			<rect x="5" y="45" width="90" height="10" style="fill: rgb(133, 130, 130);"/>
-			<rect x="5" y="55" width="90" height="40" style="fill: rgb(232, 230, 230);"/>
+			<rect x="5" y="44" width="90" height="12" style="fill: rgb(133, 130, 130);"/>
+			<rect x="5" y="57" width="90" height="38" style="fill: rgb(232, 230, 230);"/>
 			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 0, 0); font-family: Arial, sans-serif; font-size: 32px;">Reset</text>
 	</symbol>
 	<symbol id="Tile_39" viewBox="0 0 100 100">
 			<title>Tile 39 - Status</title>
-			<rect x="5" y="45" width="90" height="10" style="fill: rgb(133, 130, 130);"/>
-			<rect x="5" y="55" width="90" height="40" style="fill: rgb(232, 230, 230);"/>
+			<rect x="5" y="44" width="90" height="12" style="fill: rgb(133, 130, 130);"/>
+			<rect x="5" y="57" width="90" height="38" style="fill: rgb(232, 230, 230);"/>
 			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 154, 154); font-family: Arial, sans-serif; font-size: 32px;">Status</text>
 	</symbol>
 	<symbol id="Tile_44" viewBox="0 0 100 100">
