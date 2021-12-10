@@ -2121,31 +2121,15 @@ function showGBS( GBS_table, div ) {
 				createTile(svg, Tile.Signal_right, Tile.x, Tile.y, titleText, Tile.SignalID_right, 'right');
 			}
 		
-if (1 == 0 ){		
-	// Show text describing the tile
-	e(div, 'p',
-		  `(${Tile.x} ${Tile.y}) ` 
-		+ `${Tile.TrackSymbol} : ` 
-		+ `${(Tile.Tracks[0] > 0 ? Tile.Tracks[0] : "-")} `
-		+ `${(Tile.Tracks[1] > 0 ? Tile.Tracks[1] : "-")} `
-		+ `${(Tile.Tracks[2] > 0 ? Tile.Tracks[2] : "-")} `
-		+ `${(Tile.Tracks[3] > 0 ? Tile.Tracks[3] : "-")} `
-		+ `[ ${(Tile.Signal_left  > 0 ? Tile.Signal_left  + " " + Tile.SignalID_left  : "-")} | ` 
-		+   `${(Tile.Signal_mid   > 0 ? Tile.Signal_mid   + " " + Tile.SignalID_mid   : "-")} | ` 
-		+   `${(Tile.Signal_right > 0 ? Tile.Signal_right + " " + Tile.SignalID_right : "-")} ]`
-		, true
-	);
-}
-		
 		})
 
 	})
 	
-	function createTile(svg, TrackSymbol, x, y, titleText = null, ID = null, pos = null) {
+	function createTile(svg_tag, TrackSymbol, x, y, titleText = null, ID = null, pos = null) {
 
 		// Create group for the tile
-		const g = document.createElementNS(svgNS, 'g');
-		svg.appendChild(g);
+		const g_tag = document.createElementNS(svgNS, 'g');
+		svg_tag.appendChild(g_tag);
 
 		// Calculate position
 		// Adjustment for signals
@@ -2158,7 +2142,7 @@ if (1 == 0 ){
 			}
 		}
 		// Set position 
-		g.setAttribute('transform', 
+		g_tag.setAttribute('transform', 
 			'translate('
 			+ ( scale * ( x - 1) + hpos )
 			+ ' '
@@ -2167,29 +2151,83 @@ if (1 == 0 ){
 			);
 
 		// Create tile
-		const use = document.createElementNS(svgNS, 'use');
-		use.setAttributeNS(xlinkNS, 'xlink:href', '#Tile_' + TrackSymbol );
-		use.setAttribute('width',  scale );
-		use.setAttribute('height', scale );
-		g.appendChild(use);
+		const use_tag = document.createElementNS(svgNS, 'use');
+		use_tag.setAttributeNS(xlinkNS, 'xlink:href', '#Tile_' + TrackSymbol );
+		use_tag.setAttribute('width',  scale );
+		use_tag.setAttribute('height', scale );
+		g_tag.appendChild(use_tag);
 
 		// Create title for tile
 		if (titleText) {
-			const title = document.createElementNS(svgNS, 'title');
-			const text = document.createTextNode(titleText);
-			title.appendChild(text);
-			use.appendChild(title);
+			const title_tag = document.createElementNS(svgNS, 'title');
+			const titleNode = document.createTextNode(titleText);
+			title_tag.appendChild(titleNode);
+			use_tag.appendChild(title_tag);
 		}
 
 		// Create text for switch or signal
 		if (ID) {
 
 			// Create text
-			const text = document.createElementNS(svgNS, 'text');
-			text.setAttribute('class', 'IDtext'); 
-			const textTextNode = document.createTextNode(ID);
-			text.appendChild(textTextNode);
-			g.appendChild(text);
+			const textNode = document.createTextNode(ID);
+			const text_tag = document.createElementNS(svgNS, 'text');
+			text_tag.setAttribute('class', 'IDtext'); 
+			text_tag.appendChild(textNode);
+
+			// Create link for Gleisplan program
+			const a_tag = document.createElementNS(svgNS, 'a');
+			a_tag.setAttribute('href', 'javascript:void(0);');
+			a_tag.appendChild(text_tag);
+			g_tag.appendChild(a_tag);
+			
+			if ([36].includes(TrackSymbol)) {	// Camera
+				// Identify KameraID
+				let KameraID;
+				for (const Kamera of Kameras) {
+					if (ID == Kamera.Name) {
+						KameraID = Kamera.ID;
+						break;
+					}; 
+				}; 
+			
+				//Construct link
+				// `<a href="javascript:void(0);" onclick="javascript:postKameraMessage(${KameraID});">${ID}<\/a>`
+				a_tag.setAttribute('onclick', 
+					'javascript:postKameraMessage(' + KameraID + ');'
+				);
+
+			} else {	// Signal or switch 
+
+				// Get GleisID
+				let GleissystemID, GleisID;
+
+				if ([26, 27, 28, 29, 30, 31].includes(TrackSymbol)) {	// Signals
+					for (const Signal of Signale) {
+						if (ID == Signal.ID) {
+							GleissystemID = Signal.GleissystemID;
+							GleisID = Signal.GleisID;
+							break;
+						}; 
+					}; 
+					
+				} else { // Switches
+					for (const Weiche of Weichen) {
+						if (ID == Weiche.ID) {
+							GleissystemID = Weiche.GleissystemID;
+							GleisID = Weiche.GleisID;
+							break;
+						}; 
+					}; 
+				}
+					
+				//Construct link
+				// `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${ID},${GleissystemID},${GleisID});">${ID}<\/a>`
+				a_tag.setAttribute('onclick', 
+					'javascript:postIDMessage(' + ID + ',' + GleissystemID + ',' + GleisID + ');'
+				);
+			}
+			// else // Track
+			// `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">${ID}<\/a>`
 
 			// Calculate middle position
 			let dx = scale / 2;
@@ -2197,7 +2235,7 @@ if (1 == 0 ){
 
 			// Move text of signals
 			if ([26, 28, 30].includes(TrackSymbol)) {
-				dy -= 17;
+				dy -= 15;
 			} 
 			if ([27, 29, 31].includes(TrackSymbol)) {
 				dy += 41;
@@ -2205,7 +2243,7 @@ if (1 == 0 ){
 			
 			// Move text of camera
 			if ([36].includes(TrackSymbol)) {
-				dy += 41;
+				dy += 39;
 			} 
 			
 			let transform = 'translate(' + ( dx ) + ' ' + ( dy ) + ')';
@@ -2221,7 +2259,7 @@ if (1 == 0 ){
 				transform += ' ' + 'rotate(-90)';
 			}
 			
-			text.setAttribute('transform',  transform );
+			text_tag.setAttribute('transform',  transform );
 		}
 	}	
 } 
@@ -3151,45 +3189,46 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	</symbol>
 	
 	<!-- Signale - Overlay zu Gleis oder Weiche, Postion Links, Mitte, Rechts -->
-	<symbol id="Signal_Light" viewBox="-15 -20 30 40">
-			<rect x="-15" y="-20" width="30" height="40" style="fill: rgb(133, 130, 130);"/>
+	<symbol id="Signal_Light" viewBox="-12 -19 24 38">
+			<rect x="-12" y="-19" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
 			<circle class="red"   cx="0" cy="-12" r="6"/>	<!-- red -->
 			<circle class="green" cx="0" cy="2"  r="6">	<!-- green --> 
 	</symbol> 
 	<symbol id="Tile_26" viewBox="0 0 100 100">
 			<title>Signal 26</title>
-			<use href="#Signal_Light" x="38" y="3" width="24" height="36"/>
+			<use href="#Signal_Light" x="38" y="3" width="24" height="38"/>
 	</symbol>
 	<symbol id="Tile_27" viewBox="0 0 100 100">
 			<title>Signal 27</title>
-			<use href="#Signal_Light" x="38" y="61" width="24" height="36"/>
+			<use href="#Signal_Light" x="38" y="59" width="24" height="38"/>
  	</symbol>
 	<symbol id="Tile_28" viewBox="0 0 100 100">
 			<title>Signal 28</title>
-			<rect class="tile" x="38" y="3" width="24" height="36" style="fill: rgb(133, 130, 130);"/>
+			<rect class="tile" x="38" y="3" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
 			<text x="50" y="28" class="signalCode">S</text>
 	</symbol>
 	<symbol id="Tile_29" viewBox="0 0 100 100">
 			<title>Signal 29</title>
-			<rect class="tile" x="38" y="61" width="24" height="36" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="86" class="signalCode">S</text>
+			<rect class="tile" x="38" y="59" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="84" class="signalCode">S</text>
 	</symbol>
 	<symbol id="Tile_30" viewBox="0 0 100 100">
 			<title>Signal 30</title>
-			<rect class="tile" x="38" y="3" width="24" height="36" style="fill: rgb(133, 130, 130);"/>
+			<rect class="tile" x="38" y="3" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
 			<text x="50" y="28" class="signalCode">Z</text>
 	</symbol>
 	<symbol id="Tile_31" viewBox="0 0 100 100">
 			<title>Signal 31</title>
-			<rect class="tile" x="38" y="61" width="24" height="36" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="86" class="signalCode">Z</text>
+			<rect class="tile" x="38" y="59" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
+			<text x="50" y="84" class="signalCode">Z</text>
 	</symbol>
 	
 	<!-- Sonstiges -->
 	<symbol id="Tile_36" viewBox="0 0 100 100">
 			<title>Tile 36 - Camera</title>
-			<rect x="10" y="30" height="50" width="80" rx="5" ry="5" style="fill: rgb(0, 0, 0);"/> <!-- body -->
 			<rect x="30" y="15" height="20" width="40" rx="5" ry="5" style="fill: rgb(0, 0, 0);"/> <!-- top -->
+			<rect x="10" y="30" height="50" width="80" rx="5" ry="5" style="fill: rgb(0, 0, 0);"/> <!-- body -->
+			<rect x="5" y="83"  width="90" height="15" style="fill: rgb(161, 158, 158);"/> <!-- base -->
 			<circle cx="50" cy="50" r="18" fill="#ffffff"/>  <!-- lens -->
 			<circle cx="50" cy="50" r="13" fill="#000000"/>  <!-- lens -->
 			<circle cx="80" cy="40" r="5" fill="#ffffff"/>   <!-- flash -->
