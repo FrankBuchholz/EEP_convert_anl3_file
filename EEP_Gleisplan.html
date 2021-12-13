@@ -6920,23 +6920,40 @@ function exportGraphic(fileType) {
 
 	// Read svg
 	const svg 		= document.getElementById("svg");
-	const svgSize 	= svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
-	svg.setAttribute("width", svgSize.width);
-	svg.setAttribute("height", svgSize.height);
-	let svgString	= new XMLSerializer().serializeToString(svg);
-	svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again
-	svg.removeAttribute("height");
 
+	// serialize svg
+	let svgString;
 	if (fileType === "svg") {
-		// reduce precission (not required anymore because already done in svgAppend)
-		// svgString = svgString.replace(/(\.\d{0,5})\d*/g, "$1");
-	}
+		// Remove hidden elements and not visible parts 
+		
+		// Step 1: copy svg element
+		const svgClone = svg.cloneNode(true);
 
-	// Convert svg to png/jpg and export it
-	const svgType = "image/svg+xml;charset=utf-8";
-	const svgBlob = new Blob([svgString], {type: svgType});
+		const svgSize = svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
+		svgClone.setAttribute("width", svgSize.width);
+		svgClone.setAttribute("height", svgSize.height);
+
+		// Step 2: remove hidden elements according to class "hidden"
+		for (const element of svgClone.getElementsByClassName("hidden")) {
+			element.remove();
+		}
+
+		// Step 3: remove invisible groups according to bounding box of the group
+		
+		// Step 4: serialize svg
+		svgString	= new XMLSerializer().serializeToString(svgClone);
+
+		// Step 5: reduce precission (not required anymore because already done in svgAppend)
+		// svgString = svgString.replace(/(\.\d{0,5})\d*/g, "$1");
+		
+	} else {
+		// serialize svg
+		svgString	= new XMLSerializer().serializeToString(svg);
+	} 	
 
 	// Create object url
+	const svgType = "image/svg+xml;charset=utf-8";
+	const svgBlob = new Blob([svgString], {type: svgType});
 	const url = URL.createObjectURL(svgBlob);
 
 	if (fileType === "svg") {
@@ -6944,6 +6961,8 @@ function exportGraphic(fileType) {
 		exportData(url, fileType);
 		return;
 	}
+
+	// Convert svg to png/jpg and export it
 
 	// Create canvas
 	const canvas = document.createElement("canvas");
