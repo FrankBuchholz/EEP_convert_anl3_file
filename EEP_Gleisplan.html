@@ -6930,8 +6930,8 @@ function exportGraphic(fileType) {
 		const svgClone = svg.cloneNode(true);
 
 		const svgSize = svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
-		svgClone.setAttribute("width", 	(""+svgSize.width).replace(/(\.\d{0,5})\d*/g, "$1"));
-		svgClone.setAttribute("height", (""+svgSize.height).replace(/(\.\d{0,5})\d*/g, "$1"));
+		svgClone.setAttribute("width", svgSize.width);
+		svgClone.setAttribute("height", svgSize.height);
 
 		// Step 2: remove hidden elements according to class "hidden"
 		//for (const element of svgClone.getElementsByClassName("hidden")) {	// this finds exact matches only
@@ -6944,8 +6944,8 @@ function exportGraphic(fileType) {
 		// Step 4: serialize svg
 		svgString	= new XMLSerializer().serializeToString(svgClone);
 
-		// Step 5: reduce precission (not required anymore because already done in svgAppend)
-		// svgString = svgString.replace(/(\.\d{0,5})\d*/g, "$1");
+		// Step 5: reduce precission (only partly required because mostly done in svgAppend)
+		svgString = svgString.replace(/(\.\d{0,5})\d*/g, "$1");
 		
 	} else {
 		// serialize svg
