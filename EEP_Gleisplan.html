@@ -6930,11 +6930,12 @@ function exportGraphic(fileType) {
 		const svgClone = svg.cloneNode(true);
 
 		const svgSize = svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
-		svgClone.setAttribute("width", svgSize.width);
-		svgClone.setAttribute("height", svgSize.height);
+		svgClone.setAttribute("width", 	(""+svgSize.width).replace(/(\.\d{0,5})\d*/g, "$1"));
+		svgClone.setAttribute("height", (""+svgSize.height).replace(/(\.\d{0,5})\d*/g, "$1"));
 
 		// Step 2: remove hidden elements according to class "hidden"
-		for (const element of svgClone.getElementsByClassName("hidden")) {
+		//for (const element of svgClone.getElementsByClassName("hidden")) {	// this finds exact matches only
+		for (const element of svgClone.querySelectorAll(".hidden, .hiddenZ")) {	// this finds all matches
 			element.remove();
 		}
 
