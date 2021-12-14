@@ -6934,7 +6934,8 @@ function exportGraphic(fileType) {
 		svgClone.setAttribute("height", svgSize.height);
 
 		// Step 2: remove hidden elements according to class "hidden"
-		for (const element of svgClone.getElementsByClassName("hidden")) {
+		//for (const element of svgClone.getElementsByClassName("hidden")) {	// this finds exact matches only
+		for (const element of svgClone.querySelectorAll(".hidden, .hiddenZ")) {	// this finds all matches
 			element.remove();
 		}
 
@@ -6943,8 +6944,8 @@ function exportGraphic(fileType) {
 		// Step 4: serialize svg
 		svgString	= new XMLSerializer().serializeToString(svgClone);
 
-		// Step 5: reduce precission (not required anymore because already done in svgAppend)
-		// svgString = svgString.replace(/(\.\d{0,5})\d*/g, "$1");
+		// Step 5: reduce precission (only partly required because mostly done in svgAppend)
+		svgString = svgString.replace(/(\.\d{0,5})\d*/g, "$1");
 		
 	} else {
 		// serialize svg
