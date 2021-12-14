@@ -6925,21 +6925,49 @@ function exportGraphic(fileType) {
 	let svgString;
 	if (fileType === "svg") {
 		// Remove hidden elements and not visible parts 
-		
-		// Step 1: copy svg element
-		const svgClone = svg.cloneNode(true);
 
-		const svgSize = svg.getBoundingClientRect();	// Firefox requires explicit sizes for XMLSerializer ..
+		// Step 1: identify groups outside of current view
+		// This has to be done for the original svg, it's not possible for the clone.
+		const svgSize = svg.getBoundingClientRect();	
+console.log("\tid\tinBox\tx\ty\twidth\theigth\ttop\tbottom\tleft\tright");
+console.log("svgSize\t\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
+	svgSize.x.toFixed(2),   svgSize.y.toFixed(2),      svgSize.width.toFixed(2), svgSize.height.toFixed(2), 
+	svgSize.top.toFixed(2), svgSize.bottom.toFixed(2), svgSize.left.toFixed(2),  svgSize.right.toFixed(2)
+);
+		for (const element of svg.querySelectorAll("g")) {
+			const boundingRect = element.getBoundingClientRect();
+			const inBox = 
+					boundingRect.top	<= svgSize.bottom
+				&&	boundingRect.bottom	>= svgSize.top
+				&& 	boundingRect.left	<= svgSize.right
+				&&	boundingRect.right	>= svgSize.left
+				;
+			if (inBox) {
+				element.classList.remove("hiddenSVG");
+			} else {
+				element.classList.add("hiddenSVG");
+			}
+			
+console.log("group\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
+	element.id,
+	inBox,
+	boundingRect.x.toFixed(2),   boundingRect.y.toFixed(2),      boundingRect.width.toFixed(2), boundingRect.height.toFixed(2), 
+	boundingRect.top.toFixed(2), boundingRect.bottom.toFixed(2), boundingRect.left.toFixed(2),  boundingRect.right.toFixed(2)
+);
+		}
+		
+		// Step 2: copy svg element
+		const svgClone = svg.cloneNode(true);
+		
+		// Firefox requires explicit sizes for XMLSerializer
 		svgClone.setAttribute("width", svgSize.width);
 		svgClone.setAttribute("height", svgSize.height);
 
-		// Step 2: remove hidden elements according to class "hidden"
+		// Step 3: remove hidden elements according to class "hidden"
 		//for (const element of svgClone.getElementsByClassName("hidden")) {	// this finds exact matches only
-		for (const element of svgClone.querySelectorAll(".hidden, .hiddenZ")) {	// this finds all matches
+		for (const element of svgClone.querySelectorAll(".hidden, .hiddenZ, .hiddenSVG")) {	// this finds all matches
 			element.remove();
 		}
-
-		// Step 3: remove invisible groups according to bounding box of the group
 		
 		// Step 4: serialize svg
 		svgString	= new XMLSerializer().serializeToString(svgClone);
