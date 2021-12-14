@@ -590,7 +590,7 @@ Qualität (%): $2<br><br>
 Nur Bilder in diesem Format können direkt in das <a $3>EEP-Forum<\/a> hochgeladen werden: <i>Die Bilder dürfen die Dateiendungen jpg, jpeg besitzen und sie dürfen maximal 2 MB groß sein. Die minimale Bildgröße beträgt 800×500 Pixel und die maximale Größe beträgt 1920×1080 Pixel.<\/i> Daher wird die Größe der exportieren Graphik nach Möglichkeit auf diese Werte begrenzt.<\/dd>
 <dt>SVG<\/dt>
 <dd>Beliebig zoombare, verlustfreie Vektor-Graphik; ideal zur Weiterverarbeitung in anderen Programmen<br>
-Beim Export wird die gesamte Graphik exportiert auch wenn dann nur der gewählte Ausschnitt gezeigt wird.<\/dd>
+Es wird nur der gewählte Ausschnitt exportiert.<\/dd>
 <\/dl>
 `, 
 		EN : `
@@ -604,7 +604,7 @@ Quality (%): $2<br><br>
 Only pictures of this format may be directly uploaded to the <a $3>EEP-Forum<\/a>: <i>The file must have the extension .jpg or .jpeg and their size must remain under 2 MB. The minimal picture size is 800×500 Pixel up to 1920×1080 pixels.<\/i> The size of the exported graphics will be reduced to fulfil these limitations.<\/dd>
 <dt>SVG<\/dt>
 <dd>Freely zoomable, loss-free vector-graphic; ideal for further processing by other programs<br>
-During export the whole graphic is exported, even if only a small selected part of the graphic is visible.<\/dd>
+Only the selected section is exported.<\/dd>
 <\/dl>`, 
 		FR : `
 <p>Sélectionnez la dimension $1 et le format désirés:<\/p>
@@ -617,7 +617,7 @@ Qualité (%): $2<br><br>
 Uniquement les images de ce type peuvent être téléchargées dans le <a $3>forum EEP<\/a>: <i>Les images doivent être du type jpg ou jpeg et ne doivent pas dépasser 2 MB.La dimension minimale est de 800×500 pixels et de 1920×1080 pixels maximum.<\/i> Adapter le fichier à exporter à ces limitations.<\/dd>
 <dt>SVG<\/dt>
 <dd>Format de fichier graphique vectoriel sans perte de qualité, zoomable à volonté; Idéal pour un traitement ultérieur dans d'autres programmes.<br>
-À l'exportation le graphique complet est exporté, même  si on ne voit que la partie sélectionnée.<\/dd>
+Seule la section sélectionnée est exportée.<\/dd>
 <\/dl>
 `, 
 	},

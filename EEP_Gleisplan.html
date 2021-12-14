@@ -6870,7 +6870,7 @@ Qualität (%): <input type="number" name="jpgQuality" id="jpgQuality" value="92"
 Nur Bilder in diesem Format können direkt in das <a href="https:\/\/www.eepforum.de\/gallery\/" target="_blank">EEP-Forum<\/a> hochgeladen werden: <i>Die Bilder dürfen die Dateiendungen jpg, jpeg besitzen und sie dürfen maximal 2 MB groß sein. Die minimale Bildgröße beträgt 800×500 Pixel und die maximale Größe beträgt 1920×1080 Pixel.<\/i> Daher wird die Größe der exportieren Graphik nach Möglichkeit auf diese Werte begrenzt.<\/dd>
 <dt>SVG<\/dt>
 <dd>Beliebig zoombare, verlustfreie Vektor-Graphik; ideal zur Weiterverarbeitung in anderen Programmen<br>
-Beim Export wird die gesamte Graphik exportiert auch wenn dann nur der gewählte Ausschnitt gezeigt wird.<\/dd>
+Es wird nur der gewählte Ausschnitt exportiert.<\/dd>
 <\/dl>`;
 */
 
@@ -6928,12 +6928,14 @@ function exportGraphic(fileType) {
 
 		// Step 1: identify groups outside of current view
 		// This has to be done for the original svg, it's not possible for the clone.
-		const svgSize = svg.getBoundingClientRect();	
+		const svgSize = svg.getBoundingClientRect();
+/*		
 console.log("\tid\tinBox\tx\ty\twidth\theigth\ttop\tbottom\tleft\tright");
 console.log("svgSize\t\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
 	svgSize.x.toFixed(2),   svgSize.y.toFixed(2),      svgSize.width.toFixed(2), svgSize.height.toFixed(2), 
 	svgSize.top.toFixed(2), svgSize.bottom.toFixed(2), svgSize.left.toFixed(2),  svgSize.right.toFixed(2)
 );
+*/
 		for (const element of svg.querySelectorAll("g")) {
 			const boundingRect = element.getBoundingClientRect();
 			const inBox = 
@@ -6947,16 +6949,17 @@ console.log("svgSize\t\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
 			} else {
 				element.classList.add("hiddenSVG");
 			}
-			
+/*			
 console.log("group\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
 	element.id,
 	inBox,
 	boundingRect.x.toFixed(2),   boundingRect.y.toFixed(2),      boundingRect.width.toFixed(2), boundingRect.height.toFixed(2), 
 	boundingRect.top.toFixed(2), boundingRect.bottom.toFixed(2), boundingRect.left.toFixed(2),  boundingRect.right.toFixed(2)
 );
+*/
 		}
 		
-		// Step 2: copy svg element
+		// Step 2: clone svg element
 		const svgClone = svg.cloneNode(true);
 		
 		// Firefox requires explicit sizes for XMLSerializer
