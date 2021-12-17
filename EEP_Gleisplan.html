@@ -337,21 +337,21 @@ Aperçu des <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_S
 <small><strong>Technische Beschreibung</strong><br>
 Dieses Programm nutzt die Javascript-Funktion <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> um eine <i>.anl3</i>-Datei von EEP, die aus <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> aufgebaut ist, zu interpretieren und in das <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a> umzuwandeln.<br>
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
-Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br>
+Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken <a href="https://github.com/bumbu/svg-pan-zoom" target="_blank">svg-pan-zoom</a> zum Verschieben und Zoomen und <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> zur Anzeige von Popups verwendet.<br>
 Das Programm läuft in aktuellen Versionen von Google Chrome, Firefox oder MS Edge, nicht jedoch im Internet Explorer.</small></p>
 
 <p lang="en">
 <small><strong>Technical description</strong><br>
 This program uses the Javascript function <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> to analyse an <i>.anl3</i> file of EEP,  which contains <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a> structured data, and to transform it into the <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
 Then it dynamically creates the graphic of the track plan using Javascript using <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a> commands. The formatting of the graphical elements using the SVG variant of <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a> is separated from the definition of the graphic.<br>
-The Browser shows such SVG graphics directly. The programs uses the libraries <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> for pan  and zoom and <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> to show popup windows.<br>
+The Browser shows such SVG graphics directly. The programs uses the libraries <a href="https://github.com/bumbu/svg-pan-zoom" target="_blank">svg-pan-zoom</a> for pan  and zoom and <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> to show popup windows.<br>
 The program runs with current versions of Google Chrome, Firefox or MS Edge, but not with Internet Explorer.</small></p>
 
 <p lang="fr">
 <small><strong>Description technique</strong><br>
 Ce programme utilise la fonction javascript <a href="https://www.w3schools.com/xml/xml_parser.asp" target="_blank">DOMParser</a> pour interpréter un fichier <i>.anl3</i> de EEP conçu en <a href="https://www.w3schools.com/xml/xml_tree.asp" target="_blank">XML</a>, pour le transformer au format <a href="https://www.w3schools.com/xml/xml_dom.asp" target="_blank">Document Object Model (DOM)</a>.<br>
 Ensuite le graphique du plan de voies est reconstitué dynamiquement en javascript avec des instructions <a href="https://www.w3schools.com/html/html5_svg.asp" target="_blank">SVG</a>. Le formatage des éléments graphiques s‘effectue séparément de la définition du graphique avec la variante SVG de <a href="https://www.w3schools.com/html/html_css.asp" target="_blank">CSS</a>.<br>
-Le navigateur est capable d‘afficher directement les graphiques SVG. En plus celui-ci utilise les bibliothèques <a href="https://github.com/ariutta/svg-pan-zoom" target="_blank">svg-pan-zoom</a> pour les déplacements et le zooming, ainsi que <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> pour visualiser les pop-ups.<br>
+Le navigateur est capable d‘afficher directement les graphiques SVG. En plus celui-ci utilise les bibliothèques <a href="https://github.com/bumbu/svg-pan-zoom" target="_blank">svg-pan-zoom</a> pour les déplacements et le zooming, ainsi que <a href="https://github.com/fluffynuts/toolwindow" target="_blank">toolwindow</a> pour visualiser les pop-ups.<br>
 Le programme fonctionne correctement avec les versions actuelles de Google Chrome, Firefox et MS Edge. Internet Explorer n‘est plus supporté.</small></p>
 
 </article>
@@ -570,7 +570,9 @@ function loadFile(file) {
 			document.getElementById("main").classList.remove("hidden");
 
 			// Show file name
-			document.getElementById("filename").textContent = file.name.substring(0, file.name.length -1 -1 -3);
+			const filename = file.name.substring(0, file.name.length -1 -1 -3);
+			document.getElementById("filename").textContent = filename;
+			document.getElementById("svgTitle").textContent = filename;
 
 			// Read settings from localStorage
 			const strokeWidth = localStorage.getItem("strokeWidth") || document.getElementById("strokeWidth").value;
@@ -1489,6 +1491,7 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 	// Append groups to the root node; append other elements to these group nodes
 	const svgGleissystemGroup = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
+		id		: `${TrackSystemCode[global.TrackSystem[GleissystemID]]}`, // optional
 		"class"	: `${TrackSystemCode[global.TrackSystem[GleissystemID]]}`,
 	});
 
@@ -3256,6 +3259,7 @@ function createSVGforGleisobjekte(SVGfragment) {
 			// Create svg group node
 			svgGleisobjekteGroup = svgAppend(SVGfragment, {
 				svg_tag	: `g`,
+				id		: `Gleisobjekt`, // optional
 				"class"	: `Gleisobjekt`,
 			});
 		}
@@ -3439,15 +3443,15 @@ function createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera) {
 	if (!svgKamerasGroup) { // First Kamera
 		// Create svg group node
 		svgKamerasGroup = svgAppend(SVGfragment, {
-			svg_tag: `g`,
-			id: `Kamera`,
-			"class": `Kamera`,
+			svg_tag	: `g`,
+			id		: `Kamera`,
+			"class"	: `Kamera`,
 		});
 	}
 
 	const svgKameraGroup = svgAppend(svgKamerasGroup, {
-		svg_tag: `g`,
-		id: Kamera.KameraID,
+		svg_tag	: `g`,
+		id		: Kamera.KameraID,
 	});
 
 	// Show circle at Point
@@ -3525,7 +3529,8 @@ function createSVGforRahmen(SVGfragment) {
 	// Group for additional general elements
 	let svg_general_group = svgAppend(SVGfragment, {
 		svg_tag	: `g`,
-		"class": `general`,
+		id		: `general`, // optional
+		"class"	: `general`,
 	});
 
 	// Box zur Anzeige der Groesse der Anlage
@@ -3780,7 +3785,7 @@ function svgAppend(svg_node, obj) {
 	//const xlinkNS	= "http://www.w3.org/1999/xlink";
 
 	// The lightweight library for manipulating and animating SVG: https://github.com/svgdotjs/svg.js
-	// http://svgjs.com/
+	// https://svgjs.dev/docs/3.0/
 
 	// planned: optimize sequence of transform operations based on https://github.com/svg/svgo
 	/*
@@ -4559,14 +4564,14 @@ if (typeof module === "undefined") {
 <section id="container"> <!-- The container takes the remaining part of the screen to show the graphic -->
 <!--
 svg editor: https://github.com/SVG-Edit/svgedit
-https://svg-edit.github.io/svgedit/releases/latest/editor/svg-editor.html
+https://svgedit.netlify.app/editor/index.html
 -->
 
 <svg id="svg" xmlns="http://www.w3.org/2000/svg" version="1.1">
 
-<title>EEP Gleisplan</title>
-<desc>EEP Gleisplan</desc>
-<defs> <!-- style -->
+<title id="svgTitle">EEP Gleisplan</title>
+<desc id="svgDesc">EEP Gleisplan</desc>
+<defs id="style"> <!-- style -->
 	<style type="text/css" id="css-track-colors"> /* dynamic update via Javascript to adjust color per track type */
 	/* <![CDATA[ */
 svg {
@@ -4870,7 +4875,7 @@ text.text-anchor-end {
 	</style>
 </defs>
 
-<defs> <!-- Filters, Symbols and Markers -->
+<defs id="symbols"> <!-- Filters, Symbols and Markers -->
 	<!-- Dilate and blur Gleisobjekte -->
 	<filter id="dilate">
 		<feMorphology operator="dilate" radius="3" />
@@ -4969,8 +4974,8 @@ text.text-anchor-end {
 <script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <!-- Not possible: "Cross-Origin Read Blocking (CORB) blocked cross-origin response with MIME type text/plain."
 See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
-<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/ariutta/svg-pan-zoom/master/dist/svg-pan-zoom.js"></script>		-->
-<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/ariutta/svg-pan-zoom/master/dist/svg-pan-zoom.min.js"></script>	-->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/bumbu/svg-pan-zoom/master/dist/svg-pan-zoom.js"></script>		-->
+<!-- <script type="text/javascript" src="https://raw.githubusercontent.com/bumbu/svg-pan-zoom/master/dist/svg-pan-zoom.min.js"></script>	-->
 <!-- not tested yet: Load specific version of the library -->
 <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.0/dist/svg-pan-zoom.min.js"></script>	-->
 
@@ -5009,7 +5014,7 @@ api.SvgPanZoom = SvgPanZoom;
 api.centerItem = centerItem;
 api.centerPosition = centerPosition;
 
-function SvgPanZoom() { // <!-- github.com/ariutta/svg-pan-zoom -->
+function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
 		msg();
@@ -6965,6 +6970,9 @@ console.log("group\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
 		// Firefox requires explicit sizes for XMLSerializer
 		svgClone.setAttribute("width", svgSize.width);
 		svgClone.setAttribute("height", svgSize.height);
+
+		// EEPweb likes to get a viewBox as well
+		svgClone.setAttribute("viewBox", '0' + ' ' + '0' + ' ' + svgSize.width + ' ' + svgSize.height);
 
 		// Step 3: remove hidden elements according to class "hidden"
 		//for (const element of svgClone.getElementsByClassName("hidden")) {	// this finds exact matches only
