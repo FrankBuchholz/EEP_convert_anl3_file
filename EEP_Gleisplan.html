@@ -6924,7 +6924,8 @@ function exportGraphic(fileType) {
 	const jpgQuality = Number(document.getElementById("jpgQuality").value) / 100;
 
 	// Read svg
-	const svg 		= document.getElementById("svg");
+	const svg		= document.getElementById("svg");
+	const svgSize	= svg.getBoundingClientRect();
 
 	// serialize svg
 	let svgString;
@@ -6933,7 +6934,6 @@ function exportGraphic(fileType) {
 
 		// Step 1: identify groups outside of current view
 		// This has to be done for the original svg, it's not possible for the clone.
-		const svgSize = svg.getBoundingClientRect();
 /*		
 console.log("\tid\tinBox\tx\ty\twidth\theigth\ttop\tbottom\tleft\tright");
 console.log("svgSize\t\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", 
@@ -6988,7 +6988,11 @@ console.log("group\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
 		
 	} else {
 		// serialize svg
+		svg.setAttribute("width", svgSize.width);		// Firefox requires explicit sizes for XMLSerializer ..
+		svg.setAttribute("height", svgSize.height);
 		svgString	= new XMLSerializer().serializeToString(svg);
+		svg.removeAttribute("width");					// .. but SvgPanZoom manages the size by itself, therefore we have to remove the size again
+		svg.removeAttribute("height");
 	} 	
 
 	// Create object url
@@ -7008,32 +7012,35 @@ console.log("group\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
 	const canvas = document.createElement("canvas");
 
 	// Set size of canvas
-	const svgSize = svg.getBoundingClientRect();
 	const ratio = svgSize.width / svgSize.height;
 
 	if (ratio > 1) {
 		if (fileType === "jpg") {
+			// Das EEP Forum erfordert Bilder mit Breite zwischen 800 und 1920 
 			exportSize 	= Math.max(800, Math.min(1920, exportSize));
+			// Das EEP Forum erfordert Bilder mit Höhe zwischen 500 und 1080 
 			if (exportSize / ratio < 500) {
-				exportSize = 500 * ratio
+				exportSize = 500 * ratio;
 			}
 			if (exportSize / ratio > 1080) {
-				exportSize = 1080 * ratio
+				exportSize = 1080 * ratio;
 			}
 		}
 		canvas.width 	= exportSize;
 		canvas.height 	= exportSize / ratio;
-	} else {
+	} else { // ratio < 1
 		if (fileType === "jpg") {
+			// Das EEP Forum erfordert Bilder mit Höhe zwischen 500 und 1080 
 			exportSize 	= Math.max(500, Math.min(1080, exportSize));
-			if (exportSize / ratio < 800) {
-				exportSize = 800 * ratio
+			// Das EEP Forum erfordert Bilder mit Breite zwischen 800 und 1920 
+			if (exportSize * ratio < 800) {
+				exportSize = 800 / ratio
 			}
-			if (exportSize / ratio > 1920) {
-				exportSize = 1920 * ratio
+			if (exportSize * ratio > 1920) {
+				exportSize = 1920 / ratio
 			}
 		}
-		canvas.width 	= exportSize / ratio;
+		canvas.width 	= exportSize * ratio;
 		canvas.height 	= exportSize;
 	}
 
