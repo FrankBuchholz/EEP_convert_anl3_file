@@ -39,7 +39,8 @@ Farben der Gleissysteme anpassen
 
 ### Tipp zum Export als svg
 
-Die Export-Funktion im Programm exportiert die gesamte svg-Graphik. Alternativ kann man auch das Entwickler-Tool des Browsers verwenden. 
+Die Export-Funktion im Programm exportiert den gezeigten Ausschnitt der svg-Graphik. 
+Alternativ kann man auch das Entwickler-Tool des Browsers verwenden, um die gesamte svg-Graphik zu exportieren: 
 
 - Google Chrome:
   - Rechts-Klick in der Graphik &rarr; Inspect <kbd>Ctrl+Shift+I</kbd> &rarr; Das svg-Element wird im neuen Fenster (DevTools) blau hinterlegt angezeigt &rarr; Rechts-Klick auf diesem Element &rarr; Copy &rarr; Copy Element
