@@ -7008,6 +7008,7 @@ console.log("group\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
 	const canvas = document.createElement("canvas");
 
 	// Set size of canvas
+	const svgSize = svg.getBoundingClientRect();
 	const ratio = svgSize.width / svgSize.height;
 
 	if (ratio > 1) {
