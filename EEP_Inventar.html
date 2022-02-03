@@ -1267,6 +1267,8 @@ mit
 		const ConnectR 		= Kontakt.Kontakt.getAttribute('ConnectR');
 		const VolDist 		= Kontakt.Kontakt.getAttribute('VolDist');
 		const SignalData 	= Kontakt.Kontakt.getAttribute('SignalData');
+		const AxisPos 		= Kontakt.Kontakt.getAttribute('AxisPos'); 
+		const AxisFilter 	= Kontakt.Kontakt.getAttribute('AxisFilter');
 		const LuaFn		 	= Kontakt.Kontakt.getAttribute('LuaFn');
 		const TipTxt	 	= Kontakt.Kontakt.getAttribute('TipTxt');
 
@@ -1450,6 +1452,15 @@ mit
 		{ th : _('Neuer Zugname'),		td : TrainNewName },
 		{ th : _('zu Stellung'),		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) },
 		{ th : _('SignalData'),			td : (SignalData != 0 ? `ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') },
+		{ th : _('AxisPos'),			td : (AxisPos && AxisPos != 0
+												? (SetType == 1 // Fahrzeug 
+													? _("Achsengruppe") + " " + (-AxisPos)
+													: AxisPos 
+												  ) 
+												: ''
+											  ) 
+											},
+//		{ th : _('Achsenfilter'),		td : (AxisFilter ? AxisFilter : '') },
 		{ th : _('LuaFn'),				td : (LuaFn ? LuaFn : '') },
 		{ th : _('TipTxt'),				td : (TipTxt ? TipTxt : '') },
 

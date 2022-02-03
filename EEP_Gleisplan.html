@@ -6543,6 +6543,8 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const ConnectR 		= Kontakt.getAttribute("ConnectR");
 	const VolDist 		= Kontakt.getAttribute("VolDist");
 	const SignalData 	= Kontakt.getAttribute("SignalData");
+	const AxisPos 		= Kontakt.getAttribute('AxisPos'); 
+	const AxisFilter 	= Kontakt.getAttribute('AxisFilter');
 	const LuaFn 		= Kontakt.getAttribute("LuaFn");
 
 	const TrainSidetext = {
@@ -6630,6 +6632,11 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 			+ (TrainNewName !== ""	? `<br>${_('Neuer Zugname')}: `	 + TrainNewName : "")
 			+ (zuStellung > 0 && Wechseln == 0 ? `<br>${_('zu Stellung')}: ` + zuStellung : (Wechseln == 1 ? _('Umschalter') : ""))
 			+ (SignalData != 0 		? `<br>${_('SignalData')}: ID=${SignalDataID} ${_('Signalstellung')}=${SignalDataStellung}` : "")
+			+ (AxisPos && AxisPos != 0 ? `<br>` + (SetType == 1 // Fahrzeug 
+													? _("Achsengruppe") + ": " + (-AxisPos)
+													: _("AxisPos")      + ": " + AxisPos 
+												  ) 
+										: '')
 			+ (LuaFn && LuaFn !== "" ? `<br>${_('LuaFn')}: <kbd>${LuaFn}<\/kbd>` : "")
 			+ objectToHTML(Kontakt)
 	});

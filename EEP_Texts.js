@@ -558,6 +558,21 @@ info : {
 		EN : `at position`, 
 		FR : `à la position`, 
 	},
+	AxisPos : {
+		DE : `Achsen - Position/Gruppe`, 
+		EN : `Moveable elements - position/group`,
+		FR : `Eléments mobiles - position/groupe`,
+	},
+	Achsengruppe : {
+		DE : `Achsengruppe`, 
+		EN : `Moveable elements group`,
+		FR : `Groupe d'éléments mobiles `,
+	},
+	Achsenfilter : {
+		DE : `Achsenfilter`,
+		EN : `Moveable element filter`, 
+		FR : `Filtre d'éléments mobiles `, 
+	},	
 	Blickrichtung : {
 		DE : `Blickrichtung`, 
 		EN : `Direction of sight`, 
