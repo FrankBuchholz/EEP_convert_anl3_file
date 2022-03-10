@@ -1082,6 +1082,7 @@ mit
 		const Distanz		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
+		const TipTxt	 	= Signal.Meldung.getAttribute('TipTxt');
 
 		// Fahrstraßen
 		const Routes		= Signal.Meldung.getAttribute('Routes');
@@ -1207,6 +1208,7 @@ mit
 		{ th : _('Fahrstraßen'),		td : RoutesText, html : true, },
 		{ th : _('Datei'),				td : File, },
 		{ th : _('Name'),				td : getSignalName(File), },
+		{ th : _('TipTxt'),				td : (TipTxt ? TipTxt : '') },
 
 		]) })
 
@@ -1267,6 +1269,8 @@ mit
 		const ConnectR 		= Kontakt.Kontakt.getAttribute('ConnectR');
 		const VolDist 		= Kontakt.Kontakt.getAttribute('VolDist');
 		const SignalData 	= Kontakt.Kontakt.getAttribute('SignalData');
+		const AxisPos 		= Kontakt.Kontakt.getAttribute('AxisPos'); 
+		const AxisFilter 	= Kontakt.Kontakt.getAttribute('AxisFilter');
 		const LuaFn		 	= Kontakt.Kontakt.getAttribute('LuaFn');
 		const TipTxt	 	= Kontakt.Kontakt.getAttribute('TipTxt');
 
@@ -1450,6 +1454,15 @@ mit
 		{ th : _('Neuer Zugname'),		td : TrainNewName },
 		{ th : _('zu Stellung'),		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) },
 		{ th : _('SignalData'),			td : (SignalData != 0 ? `ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') },
+		{ th : _('AxisPos'),			td : (AxisPos && AxisPos != 0
+												? (SetType == 1 // Fahrzeug 
+													? _("Achsengruppe") + " " + (-AxisPos)
+													: AxisPos 
+												  ) 
+												: ''
+											  ) 
+											},
+//		{ th : _('Achsenfilter'),		td : (AxisFilter ? AxisFilter : '') },
 		{ th : _('LuaFn'),				td : (LuaFn ? LuaFn : '') },
 		{ th : _('TipTxt'),				td : (TipTxt ? TipTxt : '') },
 
