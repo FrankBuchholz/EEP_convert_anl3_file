@@ -6229,13 +6229,13 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const File 			= Meldung.getAttribute("name");		// Dateiname
 	const Position		= Meldung.getAttribute("Position") / 100;
 	const ParaOderAnti 	= Meldung.getAttribute("ParaOderAnti");
+	const TipTxt	 	= Meldung.getAttribute('TipTxt');
 
 	const KontaktZiel 	= Meldung.getElementsByTagName("KontaktZiel")[0].textContent;
 
 	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
 	const SignalData	= Meldung.getElementsByTagName("Signal")[0].getAttribute("SignalData");
  	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
-	const TipTxt	 	= Meldung.getElementsByTagName("Signal")[0].getAttribute('TipTxt');
 
 	// Fahrstraßen
 	const Routes		= Meldung.getAttribute("Routes");
