@@ -2998,6 +2998,7 @@ if (near > far) { //###
 			const SetType 		= Number(Kontakt.getAttribute("SetType"));
 			const SetValue 		= Number(Kontakt.getAttribute("SetValue"));
 			const KontaktZiel 	= Number(Kontakt.getAttribute("KontaktZiel"));
+			const LuaFn 		= Kontakt.getAttribute("LuaFn");
 
 			if (!global.Kontakte.Anzahl) {
 				global.Kontakte.Anzahl = 0;				// initialization
@@ -3087,6 +3088,9 @@ if (near > far) { //###
 
 			// Show text of Kontakt
 			let KontaktTypText = getKontaktIcon(GleissystemID, SetType, SetValue);
+			if (LuaFn && LuaFn !== "") {
+				KontaktTypText += "Lua"
+			}
 			if (KontaktZiel > 0 ) {
 				const Ziel = global.KontaktZiele[KontaktZiel];
 				KontaktTypText += (Ziel ? `${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `?${KontaktZiel}`);
@@ -6231,6 +6235,7 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
 	const SignalData	= Meldung.getElementsByTagName("Signal")[0].getAttribute("SignalData");
  	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
+	const TipTxt	 	= Meldung.getElementsByTagName("Signal")[0].getAttribute('TipTxt');
 
 	// Fahrstraßen
 	const Routes		= Meldung.getAttribute("Routes");
@@ -6355,6 +6360,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
 			+ (Routes ? `<br>${_('Fahrstraßen')}: ${Routes}` : "")
 			+ (RoutesText !== "" ? RoutesText : "")
+			+ (TipTxt && TipTxt !== "" ? `<br>${_('TipTxt')}: ${TipTxt}` : "")
 			+ objectToHTML(Meldung)
 		});
 }
@@ -6546,6 +6552,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const AxisPos 		= Kontakt.getAttribute('AxisPos'); 
 	const AxisFilter 	= Kontakt.getAttribute('AxisFilter');
 	const LuaFn 		= Kontakt.getAttribute("LuaFn");
+	const TipTxt	 	= Kontakt.getAttribute('TipTxt');
 
 	const TrainSidetext = {
 		0 : _('Spitze'),
@@ -6638,6 +6645,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 												  ) 
 										: '')
 			+ (LuaFn && LuaFn !== "" ? `<br>${_('LuaFn')}: <kbd>${LuaFn}<\/kbd>` : "")
+			+ (TipTxt && TipTxt !== "" ? `<br>${_('TipTxt')}: ${TipTxt}` : "")
 			+ objectToHTML(Kontakt)
 	});
 }
