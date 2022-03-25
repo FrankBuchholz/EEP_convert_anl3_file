@@ -363,10 +363,10 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 <small>(c) Frank Buchholz, 2021, mit Unterstützung von <a href="https://github.com/campersau" target="_blank">campersau</a> und <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> sowie <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Anlagen), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (französische Übersetzung) und <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Berechnung von Helix-Gleisen)</small></p>
 
 <p lang="en">
-<small>(c) Frank Buchholz, 2021, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> as well as <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 track plans), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (French translation)</small> and <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Calculation of helix tracks)</small></p>
+<small>(c) Frank Buchholz, 2021, with support by <a href="https://github.com/campersau" target="_blank">campersau</a> and <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> as well as <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 track plans), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (French translation) and <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Calculation of helix tracks)</small></p>
 
 <p lang="fr">
-<small>(c) Frank Buchholz, 2021, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> aussi <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Plan des voies), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français) et <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Calcul de voies d'hélice)</small></small></p>
+<small>(c) Frank Buchholz, 2021, avec le soutien de <a href="https://github.com/campersau" target="_blank">campersau</a> et <a href="https://github.com/EEP-Benny" target="_blank">Benny</a> aussi <a href="https://www.eepforum.de/user/6-michael89/" target="_blank">Michael89</a> (EEP 16 Plan des voies), <a href="https://www.eepforum.de/user/3932-messina/" target="_blank">Messina</a> (traduction en français) et <a href="https://www.eepforum.de/user/6783-hstoni54/" target="_blank">HStoni54</a> (Calcul de voies d'hélice)</small></p>
 </footer>
 
 <style> /* Selection screen */
@@ -5328,7 +5328,7 @@ EEPchannel.onmessage = function(ev) {
 
 		const Meldung = global.Meldungen[Number(ID)];
 		if (Meldung) {
-			// Signal gefunden
+			// Signal gefunden (Vorsignal oder Hauptsignal)
 			centerPosition(Meldung.mPos);
 			//msg(`Das Signal ${ID} befindet sich auf ${TrackSystemText(Meldung.GleissystemID)} ${Meldung.GleisID}`);
 			msg('SignalLocation', ID, TrackSystemText(Meldung.GleissystemID), Meldung.GleisID);
@@ -5457,7 +5457,7 @@ function centerItem() {
 
 		const Meldung = global.Meldungen[Number(ID)];
 		if (Meldung) {
-			// Signal gefunden
+			// Signal gefunden (Vorsignal oder Hauptsignal)
 			centerPosition(Meldung.mPos);
 			//msg(`Das Signal ${ID} befindet sich auf ${TrackSystemText(Meldung.GleissystemID)} ${Meldung.GleisID}`);
 			msg('SignalLocation', ID, TrackSystemText(Meldung.GleissystemID), Meldung.GleisID);
@@ -5653,7 +5653,7 @@ event.target.parentElement.id								V4
 event.target.id												V4-1
 */
 
-	if (event.target.parentElement.classList.contains("Signal")) {			// Signal
+	if (event.target.parentElement.classList.contains("Signal")) {			// Signal (Vorsignal oder Hauptsignal)
 		const SignalCode 		= event.target.parentElement.id;
 		const SignalID 			= Number(SignalCode.substring(1));
 
@@ -6237,6 +6237,18 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const SignalData	= Meldung.getElementsByTagName("Signal")[0].getAttribute("SignalData");
  	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
 
+	// Vor- / Hauptsignal
+	let signalType      = "";
+	const trackSignalEntries = global.trackSignals[GleissystemID][GleisID];
+	if (trackSignalEntries) {
+		for (const trackSignalEntry of trackSignalEntries) {
+			const Meldung		= trackSignalEntry.Meldung;
+			if (SignalID == Meldung.getAttribute("Key_Id")) {
+				signalType	= trackSignalEntry.signalType;
+			}
+		}
+	}
+
 	// Fahrstraßen
 	const Routes		= Meldung.getAttribute("Routes");
 	const RouteList	 	= Meldung.getElementsByTagName("Route");
@@ -6285,7 +6297,11 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	} else if (File === "system\\Route_SignalZ.3ds") {
 		SignalTypeText = _('Fahrstraße') + " " + _('Endesignal');
 	} else {
-		SignalTypeText = _('Signal');
+		if (signalType == "pre") {
+			SignalTypeText = _('Vorsignal');
+		} else {
+			SignalTypeText = _('Signal');
+		}
 		if (Signalstellung[File]) {
 			// 1st try: Get texts (case sensitive file name)
 			SignalstellungText = getSignalPositionText(File, Stellung);
@@ -6345,16 +6361,17 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 		}
 	}
 	showInfoWindow({
-		code: "Signal " + SignalID,
+		code: "Signal " + SignalID + signalType,
 		title: `${SignalTypeText} ${SignalID}`,
 		content:
 			`<i>${_('Position')}: `
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${TrackSystemText(GleissystemID)} ${GleisID}`
 				+ ` +${Position.toFixed(1)}m<\/a><\/i>`
+			//+ `<br>${(signalType ? signalType : "")}`
 			+ `<br>${_('Name')}: ${File}`
 			+ (Signalstellung[File] && File !== getSignalName(File) ? `<br>${getSignalName(File)}` : "")
 			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
-			+ (Distanz !=0 ? `<br>${_('Distanz zum Hauptsignal')}: ${Distanz.toFixed(0)}m` : "")
+			+ (Distanz !=0 ? `<br>${(signalType == "pre" ? _('Distanz zum Hauptsignal') :  _('Distanz zum Vorsignal'))}: ${Distanz.toFixed(0)}m` : "")
 			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
 			+ (SignalData != null ? `<br>${_('SignalData')}: ${SignalData}` : "")
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
