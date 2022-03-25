@@ -333,6 +333,16 @@ info : {
 		EN : `Signal`, 
 		FR : `Signal`, 
 	},
+	'Hauptsignal' : {
+		DE : `Hauptsignal`, 
+		EN : `Main signal`, 
+		FR : `Signal principal`, 
+	},
+	'Vorsignal' : {
+		DE : `Vorsignal`, 
+		EN : `Approach signal`, 
+		FR : `Signal d'approche`,
+	},
 	Signale : {
 		DE : `Signale`, 
 		EN : `Signals`, 
@@ -362,6 +372,11 @@ info : {
 		DE : `Distanz zum Hauptsignal`, 
 		EN : `Distance to the main signal`, 
 		FR : `Distance du signal principal`, 
+	},
+	'Distanz zum Vorsignal' : {
+		DE : `Distanz zum Vorsignal`, 
+		EN : `Distance to the approach signal`, 
+		FR : `Distance du signal d'approche`,
 	},
 	Gleisrichtung : {
 		DE : `Gleisrichtung`, 
