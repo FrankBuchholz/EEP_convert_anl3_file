@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<META http-equiv="Content-Script-Type" content="text/javascript">
+<title>Lua module blockControl</title>
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,blockControl" />
+<meta name="language" content="de" />
+<!-- <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon"> -->
+<link rel="icon" href="images/favicon.ico" type="image/x-icon">
+
+</head>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<body>
+<h3>EEP blockControl</h3>
+<p>Create data for Lua module "blockControl".</p>
+<ol>
+<li>Open the EEP layout in the Gleisplan program in another windor or tab of the same browser.</li>
+<li>Generate the data.</li>
+</ol>
+
+<form id="form">
+	<table>
+		<tr><label><td>Track system:</td><td><input type="text" id="GleissystemID" value="1"></td></label></tr>
+		<tr><label><td>Max. count of turnouts:</td><td><input type="number" id="maxLength" value="5"></td></label></tr>
+		<tr><label><td>Extended data:</td><td><input type="checkbox" id="extended"></td></label></tr>
+	</table>
+	<br>
+	<button type="submit">Generate</button>
+</form>
+<pre id="data"></pre>
+
+<script type="text/javascript"> // Create data for Lua module "blockControl"
+"use strict";
+// Initialization: Connection to a broadcast channel
+// https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
+const blockControlChannel = new BroadcastChannel("blockControl");
+
+function TrackSystemText(GleissystemID) {
+	const TrackSystemTexts = {
+		1 : 'Eisenbahn',
+		2 : 'Strassenbahn',
+		3 : 'Strasse',
+		4 : 'Wasserwege',
+		5 : 'Steuerstrecken',		// nicht in EEP 9
+		6 : 'GBS',					// nicht in EEP 9
+	};
+	return TrackSystemTexts[GleissystemID];
+}
+
+function calculate(event) {
+	event.preventDefault();
+ 
+	data.textContent = `Request Submitted! Time stamp: ${event.timeStamp}`;
+	
+	const GleissystemID = document.getElementById('GleissystemID').value;
+	const maxLength 	= document.getElementById('maxLength').value;
+
+	// Send request to calculate data
+	blockControlChannel.postMessage({
+		command			: "calculate",
+		GleissystemID	: GleissystemID,
+		maxLength		: maxLength,
+	});  
+}
+
+const form = document.getElementById('form');
+form.addEventListener('submit', calculate);
+
+function varName ( s ) {
+	s = s.replace(/\s/g, '_');
+	return s
+}
+
+// Initialization: Connection to a broadcast channel
+const EEPchannel = new BroadcastChannel('EEP');
+
+function postIDMessage(ID, GleissystemID, GleisID) { // Signal oder Weiche
+	EEPchannel.postMessage({
+		command:		"showID",
+		ID: 			ID,
+		/*
+		GleissystemID: 	GleissystemID,
+		GleisID: 		GleisID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
+		*/
+	});
+}
+
+function _id (ID) {
+	return `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${ID});">`
+				+ ID
+				+ `<\/a>`
+}
+
+// Event handler to receive data
+blockControlChannel.onmessage = function(event) {
+	console.log(event);
+	const command = event.data.command;
+	
+	if (command == "data") {
+		const filename 		= event.data.filename;
+		const blockSignals 	= event.data.blockSignals;
+		const twoWayBlocks 	= event.data.twoWayBlocks;
+		const routes 		= event.data.routes;
+		const trains 		= event.data.trains;
+
+		const extended 		= document.getElementById('extended').checked;
+		
+		const data = document.getElementById('data');
+		data.textContent = `Received! Time stamp: ${event.timeStamp}`;
+		
+		let text = []; 
+		
+		// Output header
+		const GleissystemID = document.getElementById('GleissystemID').value;
+		text.push(`-- EEP file '${filename}'`); 
+		text.push(`-- Data structures for module 'blockControl.lua' for track type '${TrackSystemText(GleissystemID)}'`);
+
+		// Output block signals
+		if (!extended) {
+			let t = "\nlocal blockSignals = {";
+			for (const entry of blockSignals) {
+				t += ` ${_id(entry.SignalID)}, `;
+			};
+			t += "}";
+			text.push(t);
+
+		} else {
+			text.push("\nlocal blockSignals = {");
+			for (const entry of blockSignals) {
+				text.push(`  ${_id(entry.SignalID)}, -- ${TrackSystemText(entry.GleissystemID)}-${entry.GleisID}`);
+			};
+			text.push("}");
+			
+		}
+
+		// Output two way blocks
+		if (!extended) {
+			let t = "\nlocal twoWayBlocks = {";
+			for (const entry of twoWayBlocks) {
+				t += ` { ${_id(entry[0])}, ${_id(entry[1])} }, `;
+			};
+			t += "}";
+			text.push(t);
+			
+		} else {
+			text.push("\nlocal twoWayBlocks = {");
+			for (const entry of twoWayBlocks) {
+				text.push(` { ${_id(entry[0])}, ${_id(entry[1])} }, `);
+			};
+			text.push("}");
+			
+		}
+		
+		// Output EEProutes
+		text.push("\n-- Allowed blocks with wait time");
+		let maxTrainLength = 0;
+		let maxEEProuteLength = 0;
+		const EEProutes = {};
+		let foundEEProute = false;
+		for (const train of trains) {
+			// Calculate max length of train names
+			if (maxTrainLength < train.name.length) { maxTrainLength = train.name.length; }
+
+			// Prepare table of EEP routes
+			if (train.routeName && train.routeName != "") {
+				if (!EEProutes[train.routeName]) {
+					foundEEProute = true;
+					const varName = train.routeName 
+									.replace(/\s/g, '_')
+									.replace(/\./g, '_')
+									.replace(/,/g,  '_')
+									.replace(/\(/g, '_')
+									.replace(/\)/g, '_')
+									.replace(/ä/g, "ae")
+									.replace(/ö/g, "oe")
+									.replace(/ü/g, "ue")
+									.replace(/Ä/g, "Ae")
+									.replace(/Ö/g, "Oe")
+									.replace(/Ü/g, "Ue")
+									.replace(/ß/g, "ss");
+					EEProutes[train.routeName] = varName;
+
+					// Calculate max length of train names
+					if (maxEEProuteLength < varName.length) { maxEEProuteLength = varName.length; }
+				}
+			}
+		}
+		if (!foundEEProute) {
+			EEProutes["all"] = "all";
+			if (maxEEProuteLength < 3) { maxEEProuteLength = 3; }
+		}
+		for (const routeName in EEProutes) {
+			let t = `local ${EEProutes[routeName]}${" ".repeat(1+maxEEProuteLength - EEProutes[routeName].length)}= {`;
+			for (const entry of blockSignals) {
+				t += ` [${_id(entry.SignalID)}]=1,`;
+			};
+			t += ` }`;
+			text.push(t);
+		}
+
+		// Output trains
+		text.push("\nlocal trains = {");
+		for (const train of trains) {
+			const varName = EEProutes[train.routeName] || "all";
+			text.push(` { name="${train.name}",${" ".repeat(1+maxTrainLength - train.name.length)}signal=0, allowed=${varName} ${" ".repeat(maxEEProuteLength - varName.length)}},`);
+		}
+		text.push("}");
+		
+		// Output routes
+		text.push("\nlocal routes = {");
+		for (const entry of routes) {
+			let line = "";
+			// Header
+			if (!extended) {
+				line +=  `  { ${_id(entry.startSignalID)}, ${_id(entry.SignalID)}, turn={`;
+				
+			} else {
+				line += `\n  { ${_id(entry.startSignalID)}, turn={ -- Track`;
+			}
+			// Entries
+			for (const turn of entry.turns) {
+			
+				if (turn.WeicheID) {
+					const position = { "Ende" : 1, "EndeAbzweig" : 2, "EndeKoAbzweig" : 3 }[turn.Anschluss];
+					if (!extended) {
+						line += ` ${_id(turn.WeicheID)},${position},`;
+					
+					} else {
+						line += `\n        ${_id(turn.WeicheID)},${position},`
+							 +  ` -- Track`
+							;
+					}
+		
+				} else if (turn.GleisID) {
+					if (!extended) {
+						//line += "";
+						
+					} else {
+						line += ` `
+	//						 +  `${(turn.Anschluss === "Anfang" ? "+" : "-")}`
+							 +	`${turn.GleisID}`
+							;
+					}
+				}
+			}
+			// Footer
+			if (!extended) {
+				line +=   ` }},`;
+				
+			} else {
+				line += `\n        },`
+					 +  `\n    ${_id(entry.SignalID)} },`;
+			}
+			text.push(line);
+		}
+		text.push("}");
+
+		// Output
+//		data.textContent = text.join("\n");
+		data.innerHTML = text.join("\n");
+	}
+}
+</script>
+
+</body>
+</html>

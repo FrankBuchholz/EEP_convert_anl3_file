@@ -3289,6 +3289,7 @@ EEPchannel.onmessage = function(ev) {
 
 function postGleisMessage(GleissystemID, GleisID) {					// Gleis
 	EEPchannel.postMessage({
+		command:		"showTrack",
 		GleissystemID: 	GleissystemID,
 		GleisID: 		GleisID,
 		shiftDown:		global.shiftDown,
@@ -3299,6 +3300,7 @@ function postGleisMessage(GleissystemID, GleisID) {					// Gleis
 
 function postIDMessage(ID, GleissystemID, GleisID) {				// Signal oder Weiche
 	EEPchannel.postMessage({
+		command:		"showID",
 		ID: 			ID,
 		GleissystemID: 	GleissystemID,
 		GleisID: 		GleisID,
@@ -3310,6 +3312,7 @@ function postIDMessage(ID, GleissystemID, GleisID) {				// Signal oder Weiche
 
 function postKontaktMessage(KontaktID, GleissystemID, GleisID) {	// Kontakt
 	EEPchannel.postMessage({
+		command:		"showContact",
 		KontaktID: 		KontaktID,
 		GleissystemID: 	GleissystemID,
 		GleisID: 		GleisID,
@@ -3321,6 +3324,7 @@ function postKontaktMessage(KontaktID, GleissystemID, GleisID) {	// Kontakt
 
 function postKameraMessage(KameraID) {	// Kamera
 	EEPchannel.postMessage({
+		command:		"showCamera",
 		KameraID: 		KameraID,
 		shiftDown:		global.shiftDown,
 		strgDown:		global.strgDown,
@@ -3328,8 +3332,9 @@ function postKameraMessage(KameraID) {	// Kamera
 	});
 }
 
-function postGBSMessage(KameraID) {	// GBS
+function postGBSMessage(GBSID) {	// GBS
 	EEPchannel.postMessage({
+		command:		"showGBS",
 		GBSID: 			GBSID,
 		shiftDown:		global.shiftDown,
 		strgDown:		global.strgDown,
