@@ -71,6 +71,11 @@ msg : {
 		EN : `Positioning on $1 $2`, 
 		FR : `Positionnement sur $1 $2`, 
 	},
+	wrongCommand : {
+		DE : `Unbekanntes/unvollständiges Kommando $1`, 
+		EN : `Unknown/incomplete command $1`, 
+		FR : `Commande inconnue/incomplète $1`, 
+	},
 	'Dateityp nicht unterstützt' : {
 		DE : `Der Dateityp "$1" wird nicht unterstützt`, 
 		EN : `The type of file "$1" is not supported`, 
