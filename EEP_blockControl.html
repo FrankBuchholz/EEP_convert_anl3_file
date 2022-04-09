@@ -10,6 +10,9 @@
 <!-- <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon"> -->
 <link rel="icon" href="images/favicon.ico" type="image/x-icon">
 
+<script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
+<script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+
 </head>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -145,6 +148,47 @@ function _id (ID) {
 				+ `<\/a>`
 }
 
+function getSignalPositionText (File, Position) {
+	let Text = '';
+	if (!Signalstellung[File]) {
+		// no text
+	} else if (typeof(Signalstellung[File].Pos[Position]) === "string") {
+		Text = Signalstellung[File].Pos[Position];
+	} else if (typeof(Signalstellung[File].Pos[Position]) === "object") {
+		Text = Signalstellung[File].Pos[Position][EEP_Texts.getLanguage()]
+			|| Signalstellung[File].Pos[Position].DE	// primary language
+			|| Signalstellung[File].Pos[Position].EN	// secondary language
+			;
+	} else {
+		// no text
+	}
+	
+	// Default translations
+	if (Text === "Fahrt") 	{ Text = _("Fahrt") };
+	if (Text === "Halt") 	{ Text = _("Halt") };
+	
+	return Text;
+}
+
+function getSignalstellungenText (File) {
+	let SignalstellungenText = '';
+	if (Signalstellung[File]) {
+		// 1st try: Get texts (case sensitive file name)
+		for (const StellungPos in Signalstellung[File].Pos) {
+			SignalstellungenText += StellungPos + ' : ' + getSignalPositionText(File, StellungPos) + ', ';
+		}
+	} else {
+		// 2nd try: Get texts (case insensitive file name)
+		for (const SignalFile in Signalstellung) {
+			if (SignalFile.toLowerCase() == File.toLowerCase()) {
+				for (const StellungPos in Signalstellung[SignalFile].Pos) {
+					SignalstellungenText += StellungPos + ': ' + getSignalPositionText(SignalFile, StellungPos) + ', ';
+				}
+			}
+		}
+	}
+	return SignalstellungenText;
+}
 
 // Event handler to receive data
 blockControlChannel.onmessage = function(event) {
@@ -184,7 +228,7 @@ blockControlChannel.onmessage = function(event) {
 		} else {
 			text.push("\nlocal block_signals = {");
 			for (const entry of blockSignals) {
-				text.push(`  ${_id(entry.SignalID)}, -- ${TrackSystemText(entry.GleissystemID)}-${entry.GleisID}`);
+				text.push(`  ${_id(entry.SignalID)}, -- ${getSignalstellungenText(entry.name)} '${entry.name}' on ${TrackSystemText(entry.GleissystemID)}-${entry.GleisID}`);
 			};
 			text.push("}");
 			
