@@ -3,41 +3,95 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <META http-equiv="Content-Script-Type" content="text/javascript">
-<title>Lua module blockControl</title>
+<title>Lua Module blockControl</title>
+<meta name="description" content="Dieses Programm generiert die erforderlichen Daten für das Lua Modul 'blockControl'">
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,blockControl" />
 <meta name="language" content="de" />
-<!-- <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon"> -->
-<link rel="icon" href="images/favicon.ico" type="image/x-icon">
+<link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
 
 <script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
+<style> /* html page */
+/* switch language https://codepen.io/mynimi/pen/eEAwc */
+.hiddenRadio { /* Checkbox Hack: Do not show the radio button but show the label only */
+	display: none;
+}
+
+/* Toggle translations (I do not know why the selectors for section and main are neccessary or why a star would not work) */
+#german:checked~section  [lang="en"],
+#german:checked~section  [lang="fr"],
+#german:checked~main 	 [lang="en"],
+#german:checked~main 	 [lang="fr"],
+#english:checked~section [lang="de"],
+#english:checked~section [lang="fr"],
+#english:checked~main    [lang="de"],
+#english:checked~main    [lang="fr"],
+#french:checked~section  [lang="de"],
+#french:checked~section  [lang="en"],
+#french:checked~main     [lang="de"],
+#french:checked~main     [lang="en"]	{
+	display: none;
+}
+
+/* Experiment to translate options, however, this works only partially: it it possible to hide the options in other languages: the default value still shows the first text
+*/
+#german:checked~#selectObject options[lang="en"],
+#german:checked~#selectObject options[lang="fr"],
+#english:checked~#selectObject options[lang="de"],
+#english:checked~#selectObject options[lang="fr"],
+#french:checked~#selectObject options[lang="de"],
+#french:checked~#selectObject options[lang="en"]	{
+	display: none;
+}
+</style>
+
 <script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 
 </head>
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <body>
-<h3>EEP blockControl</h3>
-<p>Create data for Lua module "blockControl".</p>
+
+<!-- The hidden radio buttons need to stay on top level -->
+<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" autocomplete="off" >
+<input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage(`EN`)" autocomplete="off" >
+<input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage(`FR`)" autocomplete="off" >
+<script type="text/javascript">
+"use strict";
+switch (EEP_Texts.getLanguage()) {	// do it as early as possible
+	case "DE" : document.getElementById("german").checked = true; break;
+	case "EN" : document.getElementById("english").checked = true; break;
+	case "FR" : document.getElementById("french").checked = true; break;
+}
+</script>
+
+<main>
+<header>
+<h3><span lang="de">EEP-Modul 'blockControl'</span><span lang="en">EEP module 'blockControl'</span><span lang="fr">EEP module 'blockControl'</span></h3>
+</header>
+
+<article>
+<p><span lang="de">Daten für das Lua-Modul "blockControl" erstellen.</span><span lang="en">Create data for Lua module "blockControl".</span><span lang="fr">Créez des données pour le module Lua "blockControl".</span></p>
 <ol>
-<li>Open the EEP layout in the Gleisplan program in another windor or tab of the same browser.</li>
-<li>Generate the data.</li>
+<li><span lang="de">Öffnen Sie das EEP-Layout im 'Gleisplan'-Programm in einem anderen Fenster oder Tab desselben Browsers.</span><span lang="en">Open the EEP layout in the 'Gleisplan' program in another windor or tab of the same browser.</span><span lang="fr">Ouvrez la mise en page EEP dans le programme 'Gleisplan' dans un autre volet ou onglet du même navigateur.</span></li>
+<li><span lang="de">Generieren Sie die Daten.</span><span lang="en">Generate the data.</span><span lang="fr">Générez les données.</span></li>
 </ol>
 
 <form id="form">
 	<table>
-		<tr><label><td>Track system:</td><td><input type="text" id="GleissystemID" value="1"></td></label></tr>
-		<tr><label><td>Max. count of turnouts:</td><td><input type="number" id="maxLength" value="15"></td></label></tr>
-		<tr><label><td>Extended data:</td><td><input type="checkbox" id="extended"></td></label></tr>
+		<tr><label><td><span lang="de">Gleissystem</span><span lang="en">Track system</span><span lang="fr">Système de voies</span>:</td><td><input type="text" id="GleissystemID" value="1"></td></label></tr>
+		<tr><label><td><span lang="de">Max. Anzahl der Weichen</span><span lang="en">Max. count of turnouts</span><span lang="fr">Max. nombre de aiguillages</span>:</td><td><input type="number" id="maxLength" value="15"></td></label></tr>
+		<tr><label><td><span lang="de">Erweiterte Daten</span><span lang="en">Extended data</span><span lang="fr">Données étendues</span>:</td><td><input type="checkbox" id="extended"></td></label></tr>
 	</table>
 	<br>
-	<button type="submit">Generate</button>
+	<button type="submit"><span lang="de">Generieren</span><span lang="en">Generate</span><span lang="fr">Générer</span></button>
 </form>
+</article>
+<section>
 <pre id="data"></pre>
+</section>
 
 <script type="text/javascript"> // Create data for Lua module "blockControl"
 "use strict";
-
 
 // Remaining part of main script in EEP
 const LuaCode = `
@@ -175,7 +229,7 @@ function getSignalstellungenText (File) {
 	if (Signalstellung[File]) {
 		// 1st try: Get texts (case sensitive file name)
 		for (const StellungPos in Signalstellung[File].Pos) {
-			SignalstellungenText += StellungPos + ' : ' + getSignalPositionText(File, StellungPos) + ', ';
+			SignalstellungenText += StellungPos + ': ' + getSignalPositionText(File, StellungPos) + ', ';
 		}
 	} else {
 		// 2nd try: Get texts (case insensitive file name)
@@ -364,6 +418,8 @@ blockControlChannel.onmessage = function(event) {
 	}
 }
 </script>
+
+</main>
 
 </body>
 </html>
