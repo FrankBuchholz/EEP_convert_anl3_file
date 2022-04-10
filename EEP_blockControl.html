@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <META http-equiv="Content-Script-Type" content="text/javascript">
-<title>Lua Module blockControl</title>
+<title>Lua Modul blockControl</title>
 <meta name="description" content="Dieses Programm generiert die erforderlichen Daten für das Lua Modul 'blockControl'">
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,blockControl" />
@@ -104,7 +104,7 @@ clearlog()
 local blockControl = require("blockControl")   -- Load the module
 
 blockControl.init({                 -- Initialize the module
-  logLevel        = 1,           	-- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
+  logLevel        = 1,              -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
 
   trains          = trains,         -- (Optional) Unknown trains get detected automatically, however, such trains do not have a train signal and can go everywhere.
   
@@ -125,10 +125,10 @@ blockControl.init({                 -- Initialize the module
 
 --[[ Optional: Set one or more runtime parameters at any time 
 blockControl.set({
-  logLevel        = 1,           -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
-  showTippText    = true,        -- (Optional) Show tipp texts true / false (Later you can toggle the visibility of the tipp texts using the main switch.)
-  start           = false,       -- (Optional) Activate/deactivate main signal. Useful to start automatic block control after finding all known train.
-  startAllTrains  = true,        -- (Optional) Activate/deactivate all train signals
+  logLevel        = 1,              -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
+  showTippText    = true,           -- (Optional) Show tipp texts true / false (Later you can toggle the visibility of the tipp texts using the main switch.)
+  start           = false,          -- (Optional) Activate/deactivate main signal. Useful to start automatic block control after finding all known train.
+  startAllTrains  = true,           -- (Optional) Activate/deactivate all train signals
 })
 --]]
 
@@ -145,12 +145,12 @@ const blockControlChannel = new BroadcastChannel("blockControl");
 
 function TrackSystemText(GleissystemID) {
 	const TrackSystemTexts = {
-		1 : 'Eisenbahn',
-		2 : 'Strassenbahn',
-		3 : 'Strasse',
-		4 : 'Wasserwege',
-		5 : 'Steuerstrecken',		// nicht in EEP 9
-		6 : 'GBS',					// nicht in EEP 9
+		1 : _('Eisenbahn'),
+		2 : _('Strassenbahn'),
+		3 : _('Strasse'),
+		4 : _('Wasserwege'),
+		5 : _('Steuerstrecken'),			// nicht in EEP 9
+		6 : _('GBS'),						// nicht in EEP 9
 	};
 	return TrackSystemTexts[GleissystemID];
 }
@@ -265,16 +265,16 @@ blockControlChannel.onmessage = function(event) {
 		
 		// Output header
 		const GleissystemID = document.getElementById('GleissystemID').value;
-		text.push(`-- EEP file '${filename}'`); 
-		text.push(`-- Data structures for module 'blockControl.lua' for track type '${TrackSystemText(GleissystemID)}'`);
+		text.push(`-- EEP ${_("Datei")} '${filename}'`); 
+		text.push(`-- ` + EEP_Texts.getText("msg", 'LuaProgramBlockControl', TrackSystemText(GleissystemID)));
 
 		text.push("\nlocal main_signal = 0");
 
 		// Output block signals
 		if (!extended) {
-			let t = "\nlocal block_signals = {";
+			let t = "\nlocal block_signals = { ";
 			for (const entry of blockSignals) {
-				t += ` ${_id(entry.SignalID)}, `;
+				t += `${_id(entry.SignalID)}, `;
 			};
 			t += "}";
 			text.push(t);
@@ -282,7 +282,7 @@ blockControlChannel.onmessage = function(event) {
 		} else {
 			text.push("\nlocal block_signals = {");
 			for (const entry of blockSignals) {
-				text.push(`  ${_id(entry.SignalID)}, -- ${getSignalstellungenText(entry.name)} '${entry.name}' on ${TrackSystemText(entry.GleissystemID)}-${entry.GleisID}`);
+				text.push(`  ${_id(entry.SignalID)}, -- ${getSignalstellungenText(entry.name)}'${entry.name}' ${_("auf")} ${TrackSystemText(entry.GleissystemID)}-${entry.GleisID}`);
 			};
 			text.push("}");
 			
@@ -290,9 +290,9 @@ blockControlChannel.onmessage = function(event) {
 
 		// Output two way blocks
 		if (!extended) {
-			let t = "\nlocal two_way_blocks = {";
+			let t = "\nlocal two_way_blocks = { ";
 			for (const entry of twoWayBlocks) {
-				t += ` { ${_id(entry[0])}, ${_id(entry[1])} }, `;
+				t += `{ ${_id(entry[0])}, ${_id(entry[1])} }, `;
 			};
 			t += "}";
 			text.push(t);
@@ -307,7 +307,7 @@ blockControlChannel.onmessage = function(event) {
 		}
 		
 		// Output EEProutes
-		text.push("\n-- Allowed blocks with wait time");
+		text.push("\n-- " + _("allowedBlocks"));
 		let maxTrainLength = 0;
 		let maxEEProuteLength = 0;
 		const EEProutes = {};
