@@ -101,6 +101,11 @@ msg : {
 		EN : `Manual line width`, 
 		FR : `Largeur de ligne manuelle`, 
 	},
+	LuaProgramBlockControl : {
+		DE : `Lua-Programm für Modul 'blockControl.lua' für Gleisart '$1'`, 
+		EN : `Lua program for module 'blockControl.lua' for track system '$1'`, 
+		FR : `Programme Lua pour le module 'blockControl.lua' pour le système de voies '$1'`, 
+	},
 	X : {
 		DE : ``, 
 		EN : ``, 
@@ -1356,7 +1361,12 @@ Seule la section sélectionnée est exportée.<\/dd>
 		FR: ``,
 	},
 // end of not used signal positions
-
+	allowedBlocks : {
+		DE : `Erlaubte Blöcke mit Wartezeit`, 
+		EN : `Allowed blocks with wait time`, 
+		FR : `Blocages autorisés avec temps d'attente`, 
+	},
+	
 	X : {
 		DE : ``, 
 		EN : ``, 
