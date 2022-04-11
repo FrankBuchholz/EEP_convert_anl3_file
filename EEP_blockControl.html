@@ -10,10 +10,10 @@
 <meta name="language" content="de" />
 <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
 
-<script type="text/javascript" src="js\EEP_Texts.js"></script> <!-- Load texts and translations -->
-<link rel="stylesheet" href="css\EEP_Texts.css">
+<script type="text/javascript" src="js/EEP_Texts.js"></script> <!-- Load texts and translations -->
+<link rel="stylesheet" href="css/EEP_Texts.css">
 
-<script type="text/javascript" src="js\EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+<script type="text/javascript" src="js/EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 
 </head>
 
@@ -35,7 +35,7 @@
 <form id="form">
 	<table>
 		<tr><label><td><span lang="de">Gleissystem</span><span lang="en">Track system</span><span lang="fr">Système de voies</span>:</td><td><input type="text" id="GleissystemID" value="1"></td></label></tr>
-		<tr><label><td><span lang="de">Max. Anzahl der Weichen</span><span lang="en">Max. count of turnouts</span><span lang="fr">Max. nombre de aiguillages</span>:</td><td><input type="number" id="maxLength" value="15"></td></label></tr>
+		<tr><label><td><span lang="de">Max. Anzahl der Weichen</span><span lang="en">Max. count of turnouts</span><span lang="fr">Max. nombre de aiguillages</span>:</td><td><input type="number" id="maxTurnouts" value="15"></td></label></tr>
 		<tr><label><td><span lang="de">Erweiterte Daten</span><span lang="en">Extended data</span><span lang="fr">Données étendues</span>:</td><td><input type="checkbox" id="extended"></td></label></tr>
 	</table>
 	<br>
@@ -43,6 +43,7 @@
 </form>
 </article>
 <section>
+<p id="msg"></p>
 <pre id="data"></pre>
 </section>
 
@@ -114,26 +115,25 @@ function TrackSystemText(GleissystemID) {
 function calculate(event) {
 	event.preventDefault();
  
+	const msg = document.getElementById('msg');
+	msg.textContent = "";
+	const data = document.getElementById('data');
 	data.textContent = `Request Submitted! Time stamp: ${event.timeStamp}`;
 	
 	const GleissystemID = document.getElementById('GleissystemID').value;
-	const maxLength 	= document.getElementById('maxLength').value;
+	const maxTurnouts 	= +document.getElementById('maxTurnouts').value;
 
 	// Send request to calculate data
 	blockControlChannel.postMessage({
 		command			: "calculate",
 		GleissystemID	: GleissystemID,
-		maxLength		: maxLength,
+		maxTurnouts		: maxTurnouts,
+		maxTracks		: 1000,
 	});  
 }
 
 const form = document.getElementById('form');
 form.addEventListener('submit', calculate);
-
-function varName ( s ) {
-	s = s.replace(/\s/g, '_');
-	return s
-}
 
 // Initialization: Connection to a broadcast channel
 const EEPchannel = new BroadcastChannel('EEP');
@@ -202,7 +202,6 @@ function getSignalstellungenText (File) {
 
 // Event handler to receive data
 blockControlChannel.onmessage = function(event) {
-	console.log(event);
 	const command = event.data.command;
 	
 	if (command == "data") {
@@ -211,9 +210,13 @@ blockControlChannel.onmessage = function(event) {
 		const twoWayBlocks 	= event.data.twoWayBlocks;
 		const routes 		= event.data.routes;
 		const trains 		= event.data.trains;
+		const message 		= event.data.message;
 
 		const extended 		= document.getElementById('extended').checked;
 		
+		const msg = document.getElementById('msg');
+		msg.textContent = message || "";
+
 		const data = document.getElementById('data');
 		data.textContent = `Received! Time stamp: ${event.timeStamp}`;
 		
@@ -267,7 +270,6 @@ blockControlChannel.onmessage = function(event) {
 		let maxTrainLength = 0;
 		let maxEEProuteLength = 0;
 		const EEProutes = {};
-		let foundEEProute = false;
 		for (const train of trains) {
 			// Calculate max length of train names
 			if (maxTrainLength < train.name.length) { maxTrainLength = train.name.length; }
@@ -275,30 +277,24 @@ blockControlChannel.onmessage = function(event) {
 			// Prepare table of EEP routes
 			if (train.routeName && train.routeName != "") {
 				if (!EEProutes[train.routeName]) {
-					foundEEProute = true;
 					const varName = train.routeName 
-									.replace(/\s/g, '_')
-									.replace(/\./g, '_')
-									.replace(/,/g,  '_')
-									.replace(/\(/g, '_')
-									.replace(/\)/g, '_')
 									.replace(/ä/g, "ae")
 									.replace(/ö/g, "oe")
 									.replace(/ü/g, "ue")
 									.replace(/Ä/g, "Ae")
 									.replace(/Ö/g, "Oe")
 									.replace(/Ü/g, "Ue")
-									.replace(/ß/g, "ss");
+									.replace(/ß/g, "ss")
+									.replace(/\W/g, '_');
 					EEProutes[train.routeName] = varName;
 
 					// Calculate max length of train names
 					if (maxEEProuteLength < varName.length) { maxEEProuteLength = varName.length; }
 				}
+			} else {
+				EEProutes["all"] = "all";
+				if (maxEEProuteLength < 3) { maxEEProuteLength = 3; }
 			}
-		}
-		if (!foundEEProute) {
-			EEProutes["all"] = "all";
-			if (maxEEProuteLength < 3) { maxEEProuteLength = 3; }
 		}
 		for (const routeName in EEProutes) {
 			let t = `local ${EEProutes[routeName]}${" ".repeat(1+maxEEProuteLength - EEProutes[routeName].length)}= {`;
