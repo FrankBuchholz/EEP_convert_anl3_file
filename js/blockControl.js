@@ -65,15 +65,19 @@ followPath(track)
 const forward 	= 1; 	
 const backward 	= 0;
 
-let maxLength = 10;
+let maxTurnouts = 10; 	// Max count of turnouts between blocks
+let maxTracks = 100;	// Max count of tracks between block signals
+let message = "";		// Message will be send to the caller
 
 // Two way blocks
 // Start routes from every signal and follow the tracks backwards to the next signal on the other side of the track.
 // Stop routes at turnouts.
 function followTwoWayBlocks(twoWayBlocks, startSignalID, GleissystemID, GleisID, Anschluss) {
-
-	let followTracks = true;
-	while (followTracks) {
+	for (let i = maxTracks; i>=0; i--) { // Simplified cycle prevention
+		if (i == 0) {
+			message = "Incomplete result: Max. count of tracks between potential two way block signals reached";
+			console.log("followTwoWayBlocks: cycle prevention on max count of tracks");
+		}
 
 		const nextAnschluss = (Anschluss == "Anfang" ? "Ende" : "Anfang");
 		const connection = global.trackConnections[GleissystemID][GleisID][nextAnschluss];
@@ -82,7 +86,7 @@ function followTwoWayBlocks(twoWayBlocks, startSignalID, GleissystemID, GleisID,
 		GleisID = connection.GleisID;
 		Anschluss = connection.Anschluss;
 
-			// Get turnout
+		// Get turnout
 		const WeicheID = global.Gleissysteme[GleissystemID][GleisID].WeicheID;
 
 		if (WeicheID && Anschluss != "Anfang") { return; } // direction backward: stop at turnout
@@ -95,11 +99,11 @@ function followTwoWayBlocks(twoWayBlocks, startSignalID, GleissystemID, GleisID,
 				const ParaOderAnti 	= +entry.ParaOderAnti; 	// Track direction: forward = 1 = Anfang -> Ende, backward = 0 = Ende -> Anfang
 
 				if (signalType !== "main") { continue; } // wrong signal type
-
-				if (Anschluss == "Anfang" && ParaOderAnti != forward) { continue; } // wrong side of the signal
-				if (Anschluss != "Anfang" && ParaOderAnti == forward) { continue; } // wrong side of the signal
 				
 				if (SignalID === startSignalID) { return; } // stop at loop
+
+				if (Anschluss == "Anfang" && ParaOderAnti != forward) { return; } // wrong side of the signal
+				if (Anschluss != "Anfang" && ParaOderAnti == forward) { return; } // wrong side of the signal
 				
 				// omit duplicates
 				for (const entry of twoWayBlocks) {
@@ -136,13 +140,21 @@ function followRoute(
 	turns,				// array of tracks turns of current route
 	stopAtTurnout		// signal on other side found: stop searching at next turnout
 ) {
-	// Simplified cycle check
-	if (length > maxLength) {
-//		console.log("followRoute cycle check");
-//		console.log(turns);
+	
+	do { // unrestricted loop following tracks
+	
+	// Simplified cycle  prevention
+	if (length > maxTurnouts) {	// Check count of turnouts between blocks
+		message = "Incomplete result: Max. count of turnouts reached";
+		console.log("followRoute: cycle prevention on max count of turnouts");
 		return;
 	}
-
+	if (turns.length > maxTurnouts + maxTracks) {	// Check max count of tracks between block signals 
+		message = "Incomplete result: Max. count of tracks between block signals reached";
+		console.log("followRoute: cycle prevention on max count of tracks");
+		return;
+	}
+	
 	// Get turnout
 	const WeicheID = global.Gleissysteme[GleissystemID][GleisID].WeicheID;
 	
@@ -150,8 +162,7 @@ function followRoute(
 	if (WeicheID) {
 		for (const turn of turns) {
 			if (turn.WeicheID && turn.WeicheID == WeicheID) {
-//				console.log("followRoute cycle check: turnout " + WeicheID);
-//				console.log(turns);
+				console.log("followRoute: cycle check for turnout " + WeicheID);
 				return;
 			}
 		}
@@ -210,8 +221,8 @@ function followRoute(
 		if (WeicheID && stopAtTurnout) {
 			return;
 		}
-
 		const connections = global.trackConnections[GleissystemID][GleisID] || {};
+		/* // This native approach of spawning could lead to resource depletion 
 		for (const nextAnschluss in connections) { // Anfang, Ende, EndeAbzweig, EndeKoAbzweig
 			if (nextAnschluss != "Anfang") {
 				const connection = connections[nextAnschluss];
@@ -232,6 +243,91 @@ function followRoute(
 				followRoute(routes, startSignalID, GleissystemID, connection.GleisID, connection.Anschluss, length+(WeicheID ? 1 : 0), newRoute, stopAtTurnout);
 			}
 		}
+		*/		
+		// Spawn for "EndeAbzweig" and "EndeKoAbzweig", but follow "Ende"
+		{ 
+			const nextAnschluss = "EndeAbzweig";
+			const connection = connections[nextAnschluss];
+			if (connection) {
+//console.log("Signal=",startSignalID," GleisID=",GleisID," WeicheID=",WeicheID," nextAnschluss=",nextAnschluss," length=",length)				
+				connectionFound = true;
+
+				// Copy turns before spawning
+				//const newRoute = turns.map(a => ({...a}));
+				const newRoute = turns.slice();
+
+				// add turnout settings (always)
+				if (WeicheID) {
+					newRoute.push({
+						WeicheID 	: WeicheID,
+						Anschluss 	: nextAnschluss,
+					});
+				}					
+								
+				followRoute(routes, startSignalID, GleissystemID, connection.GleisID, connection.Anschluss, length+(WeicheID ? 1 : 0), newRoute, stopAtTurnout);
+			}
+		}
+		{ 
+			const nextAnschluss = "EndeKoAbzweig";
+			const connection = connections[nextAnschluss];
+			if (connection) {
+//console.log("Signal=",startSignalID," GleisID=",GleisID," WeicheID=",WeicheID," nextAnschluss=",nextAnschluss," length=",length)				
+				connectionFound = true;
+
+				// Copy turns before spawning
+				//const newRoute = turns.map(a => ({...a}));
+				const newRoute = turns.slice();
+
+				// add turnout settings (always)
+				if (WeicheID) {
+					newRoute.push({
+						WeicheID 	: WeicheID,
+						Anschluss 	: nextAnschluss,
+					});
+				}					
+								
+				followRoute(routes, startSignalID, GleissystemID, connection.GleisID, connection.Anschluss, length+(WeicheID ? 1 : 0), newRoute, stopAtTurnout);
+			}
+		}
+		{ 
+			const nextAnschluss = "Ende";
+			const connection = connections[nextAnschluss];
+			if (connection) {
+//console.log("Signal=",startSignalID," GleisID=",GleisID," WeicheID=",WeicheID," nextAnschluss=",nextAnschluss," length=",length)				
+				connectionFound = true;
+
+				// Copy turns before spawning
+				//const newRoute = turns.map(a => ({...a}));
+//				const newRoute = turns.slice();
+
+				// add turnout settings
+				if (WeicheID) {
+//					newRoute.push({
+					turns.push({
+						WeicheID 	: WeicheID,
+						Anschluss 	: nextAnschluss,
+					});
+				}					
+								
+				//followRoute(routes, startSignalID, GleissystemID, connection.GleisID, connection.Anschluss, length+(WeicheID ? 1 : 0), newRoute, stopAtTurnout);
+				// Update parameter for next loop iteration
+				GleisID		= connection.GleisID;
+				Anschluss 	= connection.Anschluss;
+				length 		= length+(WeicheID ? 1 : 0);
+//				turns 		= newRoute;
+				/*
+					routes, 			// Result (array of all routes)
+					startSignalID, 		// start signal of current route
+					GleissystemID,
+					GleisID, 			// current track
+					Anschluss, 			// Anschluss on which track was entered
+					length,				// count of turnouts in current route
+					turns,				// array of tracks turns of current route
+					stopAtTurnout		// signal on other side found: stop searching at next turnout
+				*/
+				continue;
+			}
+		}
 
 	}
 	
@@ -241,15 +337,45 @@ function followRoute(
 		const connection = global.trackConnections[GleissystemID][GleisID][nextAnschluss];
 		if (connection) { // next track found
 			connectionFound = true;
-			followRoute(routes, startSignalID, GleissystemID, connection.GleisID, connection.Anschluss, length, turns, stopAtTurnout);
+			//followRoute(routes, startSignalID, GleissystemID, connection.GleisID, connection.Anschluss, length, turns, stopAtTurnout);
+			// Update parameter for next loop iteration
+			GleisID		= connection.GleisID;
+			Anschluss 	= connection.Anschluss;
+			/*
+				routes, 			// Result (array of all routes)
+				startSignalID, 		// start signal of current route
+				GleissystemID,
+				GleisID, 			// current track
+				Anschluss, 			// Anschluss on which track was entered
+				length,				// count of turnouts in current route
+				turns,				// array of tracks turns of current route
+				stopAtTurnout		// signal on other side found: stop searching at next turnout
+			*/
+			continue;
 		}
 	}
 	
 	// Reverse direction at dead end
 	if (!connectionFound) {
 		const nextAnschluss = (Anschluss != "Anfang" ? "Anfang" : "other");
-		followRoute(routes, startSignalID, GleissystemID, GleisID, nextAnschluss, length, turns, stopAtTurnout);
+		//followRoute(routes, startSignalID, GleissystemID, GleisID, nextAnschluss, length, turns, stopAtTurnout);
+		// Set parameter for next loop iteration
+		Anschluss 	= nextAnschluss;
+		/*
+			routes, 			// Result (array of all routes)
+			startSignalID, 		// start signal of current route
+			GleissystemID,
+			GleisID, 			// current track
+			Anschluss, 			// Anschluss on which track was entered
+			length,				// count of turnouts in current route
+			turns,				// array of tracks turns of current route
+			stopAtTurnout		// signal on other side found: stop searching at next turnout
+		*/
+		continue;
 	}
+
+	break; // end loop, no more tracks to follow
+	} while (true);
 
 }
 
@@ -283,7 +409,6 @@ Limitations:
 	The exact position of signals on a track is not used, therefore you cannot have multiple signals on one track.
 	The cycle check limits the count of collected turnouts.
 */
-	console.log("Module blockControl.calculate");
 	
 	// Initialization
 	const blockSignals = [];  						// Array of block signals
@@ -379,8 +504,11 @@ blockControlChannel.onmessage = function(ev) {
 	if (command == "calculate") {
 		// receive parameter
 		const GleissystemID = ev.data.GleissystemID;
-		if (ev.data.maxLength) {
-			maxLength 	= ev.data.maxLength;
+		if (ev.data.maxTurnouts) {
+			maxTurnouts 	= +ev.data.maxTurnouts;
+		}
+		if (ev.data.maxTracks) {
+			maxTracks 		= +ev.data.maxTracks;
 		}
 
 		if(!global.trackSignals || !global.trackSignals[GleissystemID]) {
@@ -403,6 +531,7 @@ blockControlChannel.onmessage = function(ev) {
 			twoWayBlocks	: twoWayBlocks,
 			routes			: routes,
 			trains			: trains,
+			message			: message,
 		});
 	}
 }
