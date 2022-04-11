@@ -1,0 +1,104 @@
+/* Two handled slider for min/max height
+
+https://brennaobrien.com/blog/2014/05/style-input-type-range-in-every-browser.html
+
+Google Chrome and Edge
+::-webkit-slider-runnable-track
+::-webkit-slider-thumb
+
+Firefox
+::-moz-range-track
+::-moz-range-thumb
+
+*/
+
+@supports (--css: variables) {
+
+	input[type="range"].multirange {
+		padding: 0;
+		margin: 0;
+		display: inline-block;
+		vertical-align: top;
+	}
+
+		input[type="range"].multirange::-moz-range-thumb {
+			transform: scale(1); /* FF doesn't apply position it seems */
+		}
+		input[type="range"].multirange::-moz-range-track {
+			border-color: transparent; /* needed to switch FF to "styleable" control */
+		}
+
+
+	input[type="range"].multirange.original {
+		position: absolute;
+	}
+
+		input[type="range"].multirange.original::-webkit-slider-thumb {
+			position: relative;
+			z-index: 2;
+		}
+		input[type="range"].multirange.original::-moz-range-thumb {
+			z-index: 2;
+		}
+
+
+	input[type="range"].multirange.middle {
+		position: absolute;
+		-webkit-appearance: none;
+	}
+
+		input[type="range"].multirange.middle:focus {
+			outline: none;
+		}
+		input[type="range"].multirange.middle::-moz-range-thumb {
+			position: relative;
+			z-index: 1;
+			height: 9px;
+			width: var(--size);
+			margin-top: 6px;
+			margin-bottom: 6px;
+			background: transparent;
+			cursor: pointer;
+			border: 0;
+		}
+		input[type="range"].multirange.middle::-webkit-slider-thumb {
+			position: relative;
+			z-index: 1;
+			height: 9px;
+			width: var(--size);
+			margin-top: 6px;
+			margin-bottom: 6px;
+			background: transparent;
+			-webkit-appearance: none;
+			cursor: pointer;
+		}
+
+
+	input[type="range"].multirange.ghost {
+		position: relative;
+		--range-color: hsl(190, 80%, 40%);			/* base color of bar hsl(hue, satuation, lightness)*/
+		--track-background: linear-gradient(		/* color of different parts of the bar */
+				to right,							/* direction from left to right */
+				WhiteSmoke			var(--low), 	/* no color up to left slider (but 'transparent' does not work here) */
+				var(--range-color) 	0,				/* constant color starting with left slider */
+				var(--range-color) 	var(--high), 	/* constant color ending at right slider */
+				WhiteSmoke	 		0				/* no color right of sliders ('transparent' would work fine here) */
+			) no-repeat 0 45% / 100% 40%;			/* "0" "relative vertical position" / "relative width" "relative height=thickness" */
+		background: var(--track-background);  /* required for Firefox */
+	}
+
+		input[type="range"].multirange.ghost::-webkit-slider-runnable-track { 	/* Google Chrome and Edge */
+			background: var(--track-background);
+		}
+		input[type="range"].multirange.ghost::-moz-range-track {				/* Firefox */
+			background: var(--track-background);
+		}
+		input[type="range"].multirange.ghost::-webkit-slider-thumb {
+			position: relative;
+			z-index: 2;
+		}
+		input[type="range"].multirange.ghost::-moz-range-thumb {
+			z-index: 2;
+		}
+
+}

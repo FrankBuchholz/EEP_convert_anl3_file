@@ -21,7 +21,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Build
-      run: zip -u ./dist/EEP_convert_anl3_file.zip -i EEP_Gleisplan.html EEP_Inventar.html EEP_Signale.html EEP_Texts.js EEP_Signale_Daten.js
+      run: zip -u ./dist/EEP_convert_anl3_file.zip -i EEP_Gleisplan.html EEP_Inventar.html EEP_Signale.html js/*.js css/*.css
 
     - name: Upload artifact # The artifact shows up at the action log
       if: ${{ success() }}

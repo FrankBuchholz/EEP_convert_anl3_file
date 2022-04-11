@@ -1535,3 +1535,17 @@ Additional texts in EEP_Gleisplan.html and EEP_Inventar.html
 function _(...args) {	// define shortcut
 	return EEP_Texts.getText('info', ...args);
 }
+
+// Add hidden radio buttons to the beginning of the body of the document.
+// The checked status of these radio buttons is used by css to hide elements in other languages than the current one.
+// Such elements have to be part of a <section> or of <main>. 
+document.write(`
+<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage('DE')" autocomplete="off" >
+<input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage('EN')" autocomplete="off" >
+<input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage('FR')" autocomplete="off" >
+`);
+switch (EEP_Texts.getLanguage()) {	// do it as early as possible
+	case "DE" : document.getElementById("german").checked = true; break;
+	case "EN" : document.getElementById("english").checked = true; break;
+	case "FR" : document.getElementById("french").checked = true; break;
+}
