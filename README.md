@@ -79,7 +79,7 @@ Die interaktive Einstellung der Linien- und Textbreite wird über dynamische Anp
 Der doppelte Schieberegler für den Höhenfilter basiert auf [multirange](https://leaverou.github.io/multirange/).  
 Der Filter wird über dynamische Anpassung der CSS-Klassen von SVG-Gruppenelemente realisiert.
 
-Die Interaktion mit dem Gleisplan-Programm erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
+Die Interaktion mit dem Inventar-Programm erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
 
 ### Abhängigkeiten
 
@@ -143,4 +143,4 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 
 # Impressum
 
-(c) Frank Buchholz, 2021
+(c) Frank Buchholz, 2022

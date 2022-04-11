@@ -10,61 +10,17 @@
 <meta name="language" content="de" />
 <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
 
-<script type="text/javascript" src="EEP_Texts.js"></script> <!-- Load texts and translations -->
-<style> /* html page */
-/* switch language https://codepen.io/mynimi/pen/eEAwc */
-.hiddenRadio { /* Checkbox Hack: Do not show the radio button but show the label only */
-	display: none;
-}
+<script type="text/javascript" src="js\EEP_Texts.js"></script> <!-- Load texts and translations -->
+<link rel="stylesheet" href="css\EEP_Texts.css">
 
-/* Toggle translations (I do not know why the selectors for section and main are neccessary or why a star would not work) */
-#german:checked~section  [lang="en"],
-#german:checked~section  [lang="fr"],
-#german:checked~main 	 [lang="en"],
-#german:checked~main 	 [lang="fr"],
-#english:checked~section [lang="de"],
-#english:checked~section [lang="fr"],
-#english:checked~main    [lang="de"],
-#english:checked~main    [lang="fr"],
-#french:checked~section  [lang="de"],
-#french:checked~section  [lang="en"],
-#french:checked~main     [lang="de"],
-#french:checked~main     [lang="en"]	{
-	display: none;
-}
-
-/* Experiment to translate options, however, this works only partially: it it possible to hide the options in other languages: the default value still shows the first text
-*/
-#german:checked~#selectObject options[lang="en"],
-#german:checked~#selectObject options[lang="fr"],
-#english:checked~#selectObject options[lang="de"],
-#english:checked~#selectObject options[lang="fr"],
-#french:checked~#selectObject options[lang="de"],
-#french:checked~#selectObject options[lang="en"]	{
-	display: none;
-}
-</style>
-
-<script src="EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+<script type="text/javascript" src="js\EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
 
 </head>
 
 <body>
 
-<!-- The hidden radio buttons need to stay on top level -->
-<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage(`DE`)" autocomplete="off" >
-<input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage(`EN`)" autocomplete="off" >
-<input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage(`FR`)" autocomplete="off" >
-<script type="text/javascript">
-"use strict";
-switch (EEP_Texts.getLanguage()) {	// do it as early as possible
-	case "DE" : document.getElementById("german").checked = true; break;
-	case "EN" : document.getElementById("english").checked = true; break;
-	case "FR" : document.getElementById("french").checked = true; break;
-}
-</script>
-
 <main>
+
 <header>
 <h3><span lang="de">EEP-Modul 'blockControl'</span><span lang="en">EEP module 'blockControl'</span><span lang="fr">EEP module 'blockControl'</span></h3>
 </header>
