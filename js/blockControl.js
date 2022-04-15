@@ -65,6 +65,9 @@ followPath(track)
 const forward 	= 1; 	
 const backward 	= 0;
 
+let includeSignals;
+let excludeSignals;
+
 let maxTurnouts = 10; 	// Max count of turnouts between blocks
 let maxTracks = 100;	// Max count of tracks between block signals
 let message = "";		// Message will be send to the caller
@@ -99,7 +102,10 @@ function followTwoWayBlocks(twoWayBlocks, startSignalID, GleissystemID, GleisID,
 				const ParaOderAnti 	= +entry.ParaOderAnti; 	// Track direction: forward = 1 = Anfang -> Ende, backward = 0 = Ende -> Anfang
 
 				if (signalType !== "main") { continue; } // wrong signal type
-				
+			
+				if (includeSignals && ! includeSignals.includes(SignalID)) { continue; } 	// Ignore if not in list of included Signals
+				if (excludeSignals &&   excludeSignals.includes(SignalID)) { continue; } 	// Ignore if in list of excluded Signals
+			
 				if (SignalID === startSignalID) { return; } // stop at loop
 
 				if (Anschluss == "Anfang" && ParaOderAnti != forward) { return; } // wrong side of the signal
@@ -193,9 +199,12 @@ function followRoute(
 
 			if (signalType !== "main") { continue; } // wrong signal type
 			
-			if (length === 0 && SignalID === startSignalID) { continue; } // ignore start signal once
+			if (length === 0 && SignalID === startSignalID) { continue; } 	// Ignore start signal once
+			
+			if (includeSignals && ! includeSignals.includes(SignalID)) { continue; } 	// Ignore if not in list of included Signals
+			if (excludeSignals &&   excludeSignals.includes(SignalID)) { continue; } 	// Ignore if in list of excluded Signals
 
-			if (   (Anschluss == "Anfang" && ParaOderAnti != forward)	 // wrong side of the signal
+			if (   (Anschluss == "Anfang" && ParaOderAnti != forward)	 	// wrong side of the signal
 				|| (Anschluss != "Anfang" && ParaOderAnti == forward) ) { 
 				
 				// Change mode: stop searching at netxt turnout
@@ -412,6 +421,7 @@ Limitations:
 	
 	// Initialization
 	const blockSignals = [];  						// Array of block signals
+	const ignoredSignals = [];  					// Array of ignored signals
 	const twoWayBlocks = [];						// Array of two way blocks
 	const routes = []; 								// Array of routes
 	const trains = [];								// Array of trains
@@ -428,7 +438,21 @@ Limitations:
 				const Anschluss 	= (ParaOderAnti === forward ? "Anfang" : "other"); // Simulate entering the start track
 				
 				if (signalType !== "main") { continue; }
+				
+				if (   (includeSignals && ! includeSignals.includes(SignalID))  	// Ignore signal if not in list of included signals
+					|| (excludeSignals &&   excludeSignals.includes(SignalID)) ) { 	// Ignore signal if in list of excluded signals
 
+					if (!ignoredSignals[SignalID]) { 
+						ignoredSignals.push({
+							GleissystemID 	: GleissystemID,
+							GleisID 		: GleisID,
+							SignalID 		: SignalID,
+							name			: entry.Meldung.getAttribute("name"),
+						}); 
+					}
+					continue; 
+				}
+				
 				// Block signals
 				// Simply dump the list of signals plus some additional information
 				blockSignals.push({
@@ -471,6 +495,9 @@ Limitations:
 	blockSignals.sort(function(a, b) {
 		return a.SignalID - b.SignalID;					// sort by signal
 	});
+	ignoredSignals.sort(function(a, b) {
+		return a.SignalID - b.SignalID;					// sort by signal
+	});
 	twoWayBlocks.sort(function(a, b) {
 		return a[0] - b[0];								// sort by first signal
 	});
@@ -488,6 +515,7 @@ Limitations:
 
 	return {
 		blockSignals	: blockSignals,
+		ignoredSignals	: ignoredSignals,
 		twoWayBlocks	: twoWayBlocks,
 		routes			: routes,
 		trains			: trains,
@@ -504,6 +532,19 @@ blockControlChannel.onmessage = function(ev) {
 	if (command == "calculate") {
 		// receive parameter
 		const GleissystemID = ev.data.GleissystemID;
+	
+		if (ev.data.blockSignals) {
+			includeSignals 	= ev.data.blockSignals;
+		} else {
+			includeSignals	= null;
+		}
+	
+		if (ev.data.otherSignals) {
+			excludeSignals 	= ev.data.otherSignals;
+		} else {
+			excludeSignals	= null;
+		}
+		
 		if (ev.data.maxTurnouts) {
 			maxTurnouts 	= +ev.data.maxTurnouts;
 		}
@@ -517,7 +558,7 @@ blockControlChannel.onmessage = function(ev) {
 		}
 	
 		// calculate
-		const { blockSignals, twoWayBlocks, routes, trains }
+		const { blockSignals, ignoredSignals, twoWayBlocks, routes, trains }
 			= blockControl.calculate(GleissystemID);
 
 		// Get file name without extension
@@ -528,6 +569,7 @@ blockControlChannel.onmessage = function(ev) {
 			command			: "data",
 			filename		: filename,
 			blockSignals	: blockSignals,
+			ignoredSignals	: ignoredSignals,
 			twoWayBlocks	: twoWayBlocks,
 			routes			: routes,
 			trains			: trains,

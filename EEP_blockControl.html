@@ -34,9 +34,29 @@
 
 <form id="form">
 	<table>
-		<tr><label><td><span lang="de">Gleissystem</span><span lang="en">Track system</span><span lang="fr">Système de voies</span>:</td><td><input type="text" id="GleissystemID" value="1"></td></label></tr>
-		<tr><label><td><span lang="de">Max. Anzahl der Weichen</span><span lang="en">Max. count of turnouts</span><span lang="fr">Max. nombre de aiguillages</span>:</td><td><input type="number" id="maxTurnouts" value="15"></td></label></tr>
-		<tr><label><td><span lang="de">Erweiterte Daten</span><span lang="en">Extended data</span><span lang="fr">Données étendues</span>:</td><td><input type="checkbox" id="extended"></td></label></tr>
+		<tr><td><span lang="de">Gleissystem</span><span lang="en">Track system</span><span lang="fr">Système de voies</span>:</td>
+			<td><label><input type="radio" name="GleissystemID" value="1" checked><span lang="de">Eisenbahn</span><span lang="en">Railroad</span><span lang="fr">Ferroviaire</span></label>
+				<label><input type="radio" name="GleissystemID" value="2"><span lang="de">Straßenbahn</span><span lang="en">Tram</span><span lang="fr">Tram</span></label>
+				<label><input type="radio" name="GleissystemID" value="3"><span lang="de">Straße</span><span lang="en">Road</span><span lang="fr">Routière</span></label>
+				<label><input type="radio" name="GleissystemID" value="4"><span lang="de">Wasserwege</span><span lang="en">Waterways</span><span lang="fr">Navigable</span></label>
+				<label><input type="radio" name="GleissystemID" value="5"><span lang="de">Steuerstrecken</span><span lang="en">Control routes</span><span lang="fr">Itinéraires de contrôle</span></label>
+				<!-- <label><input type="radio" name="GleissystemID" value="6"><span lang="de">GBS</span><span lang="en">GBS</span><span lang="fr">GBS</span></label> -->
+			</td></tr>
+		<tr><td><label><span lang="de">Block-Signale (optional)</span><span lang="en">Block signals (optional)</span><span lang="fr">Block-Signale (optional)</span>:</td>
+		<td><input id="blockSignalsString" type="text" size="70">
+		<span lang="de">Nur diese Signale werden als Block-Signale verwendet (leer: alle)</span><span lang="en">Only these signals are used as block signals (blank: all)</span><span lang="fr">Seuls ces signaux sont utilisés comme signaux de bloc (vide : tous)</span>
+		</td></label></tr>
+		
+		<tr><label><td><span lang="de">Andere Signale (optional)</span><span lang="en">Other signals (optional)</span><span lang="fr">Block-Signale (optional)</span>:</td>
+		<td><input id="otherSignalsString" type="text" size="70">
+		<span lang="de">Diese Signale werden nicht als Block-Signale verwendet (leer: keine)</span><span lang="en">These signals are not used as block signals (blank: none)</span><span lang="fr">Ces signaux ne sont pas utilisés comme signaux de bloc (vide : aucun)</span>
+		</td></label></tr>
+		
+		<tr><label><td><span lang="de">Max. Anzahl der Weichen</span><span lang="en">Max. count of turnouts</span><span lang="fr">Max. nombre de aiguillages</span>:</td>
+		<td><input id="maxTurnouts" type="number" value="15"></td></label></tr>
+		
+		<tr><label><td><span lang="de">Erweiterte Daten</span><span lang="en">Extended data</span><span lang="fr">Données étendues</span>:</td>
+		<td><input id="extended" type="checkbox"></td></label></tr>
 	</table>
 	<br>
 	<button type="submit"><span lang="de">Generieren</span><span lang="en">Generate</span><span lang="fr">Générer</span></button>
@@ -120,13 +140,22 @@ function calculate(event) {
 	const data = document.getElementById('data');
 	data.textContent = `Request Submitted! Time stamp: ${event.timeStamp}`;
 	
-	const GleissystemID = document.getElementById('GleissystemID').value;
-	const maxTurnouts 	= +document.getElementById('maxTurnouts').value;
+	const GleissystemID 		= form.querySelector('input[name="GleissystemID"]:checked').value;
+
+	const blockSignalsStrings 	= document.getElementById('blockSignalsString').value.match(/\d+/g);
+	const blockSignals 			= (blockSignalsStrings ? blockSignalsStrings.map(Number) : null);
+	
+	const otherSignalsStrings 	= document.getElementById('otherSignalsString').value.match(/\d+/g);
+	const otherSignals 			= (otherSignalsStrings ? otherSignalsStrings.map(Number) : null);
+	
+	const maxTurnouts 			= +document.getElementById('maxTurnouts').value;
 
 	// Send request to calculate data
 	blockControlChannel.postMessage({
 		command			: "calculate",
 		GleissystemID	: GleissystemID,
+		blockSignals	: blockSignals,
+		otherSignals	: otherSignals,
 		maxTurnouts		: maxTurnouts,
 		maxTracks		: 1000,
 	});  
@@ -207,6 +236,7 @@ blockControlChannel.onmessage = function(event) {
 	if (command == "data") {
 		const filename 		= event.data.filename;
 		const blockSignals 	= event.data.blockSignals;
+		const ignoredSignals = event.data.ignoredSignals;
 		const twoWayBlocks 	= event.data.twoWayBlocks;
 		const routes 		= event.data.routes;
 		const trains 		= event.data.trains;
@@ -223,9 +253,19 @@ blockControlChannel.onmessage = function(event) {
 		let text = []; 
 		
 		// Output header
-		const GleissystemID = document.getElementById('GleissystemID').value;
+		const GleissystemID = form.querySelector('input[name="GleissystemID"]:checked').value;
 		text.push(`-- EEP ${_("Datei")} '${filename}'`); 
 		text.push(`-- ` + EEP_Texts.getText("msg", 'LuaProgramBlockControl', TrackSystemText(GleissystemID)));
+		
+		// Output ignored signals
+		if (ignoredSignals.length > 0) {
+			let t = "-- Ignored signals: ";
+			for (const entry of ignoredSignals) {
+				t += `${_id(entry.SignalID)}, `;
+			};
+			text.push(t);
+		}
+
 
 		text.push("\nlocal main_signal = 0");
 
