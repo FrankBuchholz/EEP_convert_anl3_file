@@ -55,6 +55,9 @@
 		<tr><label><td><span lang="de">Max. Anzahl der Weichen</span><span lang="en">Max. count of turnouts</span><span lang="fr">Max. nombre de aiguillages</span>:</td>
 		<td><input id="maxTurnouts" type="number" value="15"></td></label></tr>
 		
+		<tr><label><td><span lang="de">Gleisdaten der Blocks</span><span lang="en">Track data of blocks</span><span lang="fr">Données ferroviaires des cantons</span>:</td>
+		<td><input id="trackdata" type="checkbox"></td></label></tr>
+		
 		<tr><label><td><span lang="de">Erweiterte Daten</span><span lang="en">Extended data</span><span lang="fr">Données étendues</span>:</td>
 		<td><input id="extended" type="checkbox"></td></label></tr>
 	</table>
@@ -71,7 +74,7 @@
 "use strict";
 
 // Remaining part of main script in EEP
-const LuaCode = `
+const LuaCode_1 = `
 -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 -- Remaining part of main script in EEP
 -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -88,8 +91,11 @@ blockControl.init({                 -- Initialize the module
   blockSignals    = block_signals,  -- Block signals
   twoWayBlocks    = two_way_blocks, -- Two way twin blocks (array or set of related blocks)
   routes          = routes,         -- Routes via turnouts from one block to the next block
-  paths           = anti_deadlock_paths, -- Critical paths on which trains have to go to avoid lockdown situations
-
+  paths           = anti_deadlock_paths, -- Critical paths on which trains have to go to avoid lockdown situations`;
+const LuaCode_2 = `
+  trackSystem     = track_system,	-- Track system (required to define block tracks) 
+  blockTracks     = block_tracks,	-- Previous, first, last and nexts tracks of blocks`;
+const LuaCode_3 = `
   MAINSW          = main_signal,    -- ID of the main switch (optional)
 
   MAINON          = 1,              -- ON    state of main switch
@@ -242,6 +248,9 @@ blockControlChannel.onmessage = function(event) {
 		const trains 		= event.data.trains;
 		const message 		= event.data.message;
 
+		const trackdata 	= document.getElementById('trackdata').checked;
+		const blockTracks 	= {};
+
 		const extended 		= document.getElementById('extended').checked;
 		
 		const msg = document.getElementById('msg');
@@ -249,6 +258,92 @@ blockControlChannel.onmessage = function(event) {
 
 		const data = document.getElementById('data');
 		data.textContent = `Received! Time stamp: ${event.timeStamp}`;
+
+		if (trackdata) {	// Does the uses requests generating track data?
+			/*
+			Use the routes data to calculate the tracks of a block: 
+			  previous tracks of a block = tracks before last turnout of a route
+			  first track of a block = track after last turnout of a route
+			  last track of a block = track with block signal
+			  next tracks of a block = tracks after the track with the block signal
+			Dead ends require a different result:
+			  last track = first track
+			  next tracks = previous tracks
+			*/
+			for (const route of routes) {
+				const turns = route.turns;
+				
+				// Find trans at the beginning of a block
+				if (!blockTracks[route.SignalID]) {					// Do we know this target signal already?
+					blockTracks[route.SignalID] = {					// If not, create it.
+						SignalID	: route.SignalID,
+						prev		: new Set(),					// Use set instead of array to omit duplicate entries 
+						first		: null, 
+						last 		: null, 
+						next		: new Set(),
+					}
+				}
+				let blockTrack = blockTracks[route.SignalID];
+				// Tracks of a block: previous tracks (before turnout), first track (after turnout)
+				for (let i = turns.length - 1; i > 0; i--) {
+					if (turns[i].GleisID === turns[i-1].GleisID) {	// Detect reversing direction at dead end before reaching the block signal
+						blockTrack.reverseDirection = true;
+					}
+					
+					if (turns[i].WeicheID) {						// If there is a turnout, then take the track before and after this turnout
+						blockTrack.prev.add( turns[i-1].GleisID );
+						blockTrack.first = turns[i+1].GleisID;
+						break;
+					}
+				}
+				if (!blockTrack.first) {							// If there is no turnout, then take the first two tracks 
+					blockTrack.prev.add( turns[0].GleisID );
+					blockTrack.first = turns[1].GleisID;
+				}
+				
+				// Find tracks at the end of a block
+				if (!blockTracks[route.startSignalID]) {			// Do we know this start signal already?
+					blockTracks[route.startSignalID] = {			// If not, create it.
+						SignalID	: route.startSignalID,
+						prev		: new Set(), 
+						first		: null, 
+						last 		: null, 
+						next		: new Set(),
+					}
+				}
+				blockTrack = blockTracks[route.startSignalID];
+				// Tracks of a block: last track (with signal), next tracks  (after signal)
+				for (let i = 1; i < turns.length - 1; i++) {
+					if (turns[i].GleisID === turns[i-1].GleisID) {	// Detect reversing direction at dead end after reaching the block signal
+						blockTrack.reverseDirection = true;
+						break;
+					}
+					if (turns[i].WeicheID) {						// Stop if there is a turnout
+						break;
+					}				}				
+				
+				blockTrack.last = turns[0].GleisID;
+				if (turns[1].WeicheID) {
+					blockTrack.next.add( turns[2].GleisID );		// If there is a turnout, then take the track before and after this turnout
+				} else {
+					blockTrack.next.add( turns[1].GleisID );		// If there is no turnout, then take the first two tracks 
+				}
+			}
+			
+			/*
+			  Dead ends require a different result:
+			  last track = first track
+			  next tracks = previous tracks
+			*/
+			for (const b in blockTracks) {
+				const blockTrack = blockTracks[b];
+				if (blockTrack.reverseDirection) {
+					blockTrack.last = blockTrack.first;
+					blockTrack.next = blockTrack.prev;
+				}
+			}
+		}
+
 		
 		let text = []; 
 		
@@ -265,7 +360,6 @@ blockControlChannel.onmessage = function(event) {
 			};
 			text.push(t);
 		}
-
 
 		text.push("\nlocal main_signal = 0");
 
@@ -303,6 +397,36 @@ blockControlChannel.onmessage = function(event) {
 			};
 			text.push("}");
 			
+		}
+
+		if (trackdata) {
+			// Output block tracks
+			if (!extended) {
+				text.push(`\nlocal track_system = ${GleissystemID}`);
+			} else {
+				text.push(`\nlocal track_system = ${GleissystemID} -- ${TrackSystemText(GleissystemID)}`);
+			}
+			text.push("local block_tracks = {");
+			if (!extended) {
+				for (const SignalID in blockTracks) {
+					const blockTrack = blockTracks[SignalID];
+					let t = `  [${_id(SignalID)}] = {`;
+					t +=    ` ${(blockTrack.prev.size === 1) ? "" : "{ "}${Array.from(blockTrack.prev).join(', ')}${(blockTrack.prev.size === 1) ? "" : " }"},`;
+					t +=    ` ${blockTrack.first}, ${blockTrack.last},`;
+					t +=    ` ${(blockTrack.next.size === 1) ? "" : "{ "}${Array.from(blockTrack.next).join(', ')}${(blockTrack.next.size === 1) ? "" : " }"} },`;
+					text.push(t);
+				}
+			} else {
+				for (const SignalID in blockTracks) {
+					const blockTrack = blockTracks[SignalID];
+					let t = `  [${_id(SignalID)}] = {`;
+					t +=    ` prev = { ${Array.from(blockTrack.prev).join(', ')} },`;
+					t +=    ` first = ${blockTrack.first}, last = ${blockTrack.last},`;
+					t +=    ` next = { ${Array.from(blockTrack.next).join(', ')} } },`;
+					text.push(t);
+				}
+			}
+			text.push("}");
 		}
 		
 		// Output EEProutes
@@ -402,7 +526,11 @@ blockControlChannel.onmessage = function(event) {
 		}
 		text.push("}");
 		
-		text.push(LuaCode);
+		text.push(LuaCode_1);
+		if (trackdata) {
+			text.push(LuaCode_2);
+		}	
+		text.push(LuaCode_3);
 
 		// Output
 //		data.textContent = text.join("\n");
