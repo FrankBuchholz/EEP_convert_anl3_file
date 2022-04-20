@@ -16,15 +16,17 @@ api.blockControl = blockControl;
 Route example short form:
   { 8, turn={2,1}, 10 },
 Extended form:
-  { 8, turn={
-    -- Gleis 1 forward
-	-- Gleis 12 forward
-    -- Gleis 7 forward	
-    2,1,
-	-- Gleis 10 forward
-	-- Gleis 9 forward
-	-- Gleis 8 forward
-  }, 10 },
+  { 8, 
+	turn={
+		-- Gleis 1 forward
+		-- Gleis 12 forward
+		-- Gleis 7 forward	
+		2,1,
+		-- Gleis 10 forward
+		-- Gleis 9 forward
+		-- Gleis 8 forward
+	}, 
+	10 },
 
 Pseudo code:
 
