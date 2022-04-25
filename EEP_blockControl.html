@@ -188,9 +188,13 @@ function postIDMessage(ID, GleissystemID, GleisID) { // Signal oder Weiche
 }
 
 function _id (ID) {
-	return `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${ID});">`
-				+ ID
-				+ `<\/a>`
+	if (ID > 0) {
+		return `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${ID});">`
+					+ ID
+					+ `<\/a>`;
+	} else {
+		return ID;
+	}
 }
 
 function getSignalPositionText (File, Position) {
@@ -246,6 +250,7 @@ blockControlChannel.onmessage = function(event) {
 		const twoWayBlocks 	= event.data.twoWayBlocks;
 		const routes 		= event.data.routes;
 		const trains 		= event.data.trains;
+		const startSignals	= event.data.startSignals;
 		const message 		= event.data.message;
 
 		const trackdata 	= document.getElementById('trackdata').checked;
@@ -361,7 +366,9 @@ blockControlChannel.onmessage = function(event) {
 			text.push(t);
 		}
 
-		text.push("\nlocal main_signal = 0");
+		// Output start signal
+		const startSignal = (startSignals && startSignals[0] ? startSignals[0].SignalID : 0);
+		text.push(`\nlocal main_signal = ${_id(startSignal)}`);	// Show lowest signal id of one of following signals: "Switch_standing", "Switch_lying", "StartSwitch_usertex"
 
 		// Output block signals
 		if (!extended) {
