@@ -427,6 +427,7 @@ Limitations:
 	const twoWayBlocks = [];						// Array of two way blocks
 	const routes = []; 								// Array of routes
 	const trains = [];								// Array of trains
+	const startSignals = [];						// Array of start signals
 
 	// Process signals on active tracks
 //	for (const GleissystemID in global.trackSignals) {
@@ -492,6 +493,20 @@ Limitations:
 		}
 //	}
 	
+	// Process start signals
+	for (const i in global.Meldungen) {
+		const Meldung = global.Meldungen[i];
+		const name = Meldung.getAttribute("name");
+		const SignalID = Meldung.getAttribute("Key_Id");
+		
+		if (name == "Switch_standing" || name == "Switch_lying" || name == "StartSwitch_usertex") {
+			startSignals.push({
+				SignalID 	: SignalID,
+				name		: name,
+			})
+		}
+	}
+	
 	// Finalization
 	// Sort
 	blockSignals.sort(function(a, b) {
@@ -514,6 +529,9 @@ Limitations:
 		if (nameA > nameB) { return  1; } 
 		return 0;	
 	});
+	startSignals.sort(function(a, b) {
+		return a.SignalID - b.SignalID;					// sort by signal
+	});
 
 	return {
 		blockSignals	: blockSignals,
@@ -521,6 +539,7 @@ Limitations:
 		twoWayBlocks	: twoWayBlocks,
 		routes			: routes,
 		trains			: trains,
+		startSignals	: startSignals,
 	}
 }
 
@@ -560,7 +579,7 @@ blockControlChannel.onmessage = function(ev) {
 		}
 	
 		// calculate
-		const { blockSignals, ignoredSignals, twoWayBlocks, routes, trains }
+		const { blockSignals, ignoredSignals, twoWayBlocks, routes, trains, startSignals }
 			= blockControl.calculate(GleissystemID);
 
 		// Get file name without extension
@@ -575,6 +594,7 @@ blockControlChannel.onmessage = function(ev) {
 			twoWayBlocks	: twoWayBlocks,
 			routes			: routes,
 			trains			: trains,
+			startSignals	: startSignals,
 			message			: message,
 		});
 	}
