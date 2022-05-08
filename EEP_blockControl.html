@@ -73,55 +73,6 @@
 <script type="text/javascript"> // Create data for Lua module "blockControl"
 "use strict";
 
-// Remaining part of main script in EEP
-const LuaCode_1 = `
--- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
--- Remaining part of main script in EEP
--- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-clearlog()
-
-local blockControl = require("blockControl")   -- Load the module
-
-blockControl.init({                 -- Initialize the module
-  logLevel        = 1,              -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
-
-  trains          = trains,         -- (Optional) Unknown trains get detected automatically, however, such trains do not have a train signal and can go everywhere.
-  
-  blockSignals    = block_signals,  -- Block signals
-  twoWayBlocks    = two_way_blocks, -- Two way twin blocks (array or set of related blocks)
-  routes          = routes,         -- Routes via turnouts from one block to the next block
-  paths           = anti_deadlock_paths, -- Critical paths on which trains have to go to avoid lockdown situations`;
-const LuaCode_2 = `
-  trackSystem     = track_system,	-- Track system (required to define block tracks) 
-  blockTracks     = block_tracks,	-- Previous, first, last and nexts tracks of blocks`;
-const LuaCode_3 = `
-  MAINSW          = main_signal,    -- ID of the main switch (optional)
-
-  MAINON          = 1,              -- ON    state of main switch
-  MAINOFF         = 2,              -- OFF   state of main switch
-  BLKSIGRED       = 1,              -- RED   state of block signals
-  BLKSIGGRN       = 2,              -- GREEN state of block signals
-  TRAINSIGRED     = 1,              -- RED   state of train signals
-  TRAINSIGGRN     = 2,              -- GREEN state of train signals
-})
-
---[[ Optional: Set one or more runtime parameters at any time 
-blockControl.set({
-  logLevel        = 1,              -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
-  showTippText    = true,           -- (Optional) Show tipp texts true / false (Later you can toggle the visibility of the tipp texts using the main switch.)
-  start           = false,          -- (Optional) Activate/deactivate main signal. Useful to start automatic block control after finding all known train.
-  startAllTrains  = true,           -- (Optional) Activate/deactivate all train signals
-})
---]]
-
-function EEPMain()
-  blockControl.run()
-  return 1
-end		
-`;
-
-
 // Initialization: Connection to a broadcast channel
 // https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
 const blockControlChannel = new BroadcastChannel("blockControl");
@@ -219,23 +170,33 @@ function getSignalPositionText (File, Position) {
 	return Text;
 }
 
-function getSignalstellungenText (File) {
-	let SignalstellungenText = '';
-	if (Signalstellung[File]) {
-		// 1st try: Get texts (case sensitive file name)
-		for (const StellungPos in Signalstellung[File].Pos) {
-			SignalstellungenText += StellungPos + ': ' + getSignalPositionText(File, StellungPos) + ', ';
-		}
+function getSignalstellungenText (File, countSignalPositions) {
+	let SignalFile = File;
+	if (Signalstellung[SignalFile]) {
+		// 1st try: Get texts using case sensitive file name
 	} else {
-		// 2nd try: Get texts (case insensitive file name)
-		for (const SignalFile in Signalstellung) {
+		// 2nd try: Get texts using case insensitive file name
+		for (SignalFile in Signalstellung) {
 			if (SignalFile.toLowerCase() == File.toLowerCase()) {
-				for (const StellungPos in Signalstellung[SignalFile].Pos) {
-					SignalstellungenText += StellungPos + ': ' + getSignalPositionText(SignalFile, StellungPos) + ', ';
-				}
+				break;
 			}
 		}
 	}
+
+	let SignalstellungenText = '';
+	for (const StellungPos in Signalstellung[SignalFile].Pos) {
+		SignalstellungenText += StellungPos + ': ' + getSignalPositionText(SignalFile, StellungPos) + ', ';
+	}
+
+	// Inspect German texts of first two positions to identify signal positions
+	const Pos1 = Signalstellung[SignalFile].Pos[1]["DE"];
+	const Pos2 = Signalstellung[SignalFile].Pos[2]["DE"];
+	if 		  (Pos1.substr(0, 4) === "Halt" && Pos2.substr(0, 5) === "Fahrt") {
+		countSignalPositions.RED_GRN += 1;
+	} else if (Pos1.substr(0, 5) === "Fahrt" && Pos2.substr(0, 4) === "Halt") {
+		countSignalPositions.GRN_RED += 1;
+	}
+					
 	return SignalstellungenText;
 }
 
@@ -357,6 +318,54 @@ blockControlChannel.onmessage = function(event) {
 		text.push(`-- EEP ${_("Datei")} '${filename}'`); 
 		text.push(`-- ` + EEP_Texts.getText("msg", 'LuaProgramBlockControl', TrackSystemText(GleissystemID)));
 		
+		// Output EEProutes
+		text.push("\n-- " + _("allowedBlocks"));
+		let maxTrainLength = 0;
+		let maxEEProuteLength = 0;
+		const EEProutes = {};
+		for (const train of trains) {
+			// Calculate max length of train names
+			if (maxTrainLength < train.name.length) { maxTrainLength = train.name.length; }
+
+			// Prepare table of EEP routes
+			if (train.routeName && train.routeName != "") {
+				if (!EEProutes[train.routeName]) {
+					const varName = train.routeName 
+									.replace(/ä/g, "ae")
+									.replace(/ö/g, "oe")
+									.replace(/ü/g, "ue")
+									.replace(/Ä/g, "Ae")
+									.replace(/Ö/g, "Oe")
+									.replace(/Ü/g, "Ue")
+									.replace(/ß/g, "ss")
+									.replace(/\W/g, '_');
+					EEProutes[train.routeName] = varName;
+
+					// Calculate max length of train names
+					if (maxEEProuteLength < varName.length) { maxEEProuteLength = varName.length; }
+				}
+			} else {
+				EEProutes["all"] = "all";
+				if (maxEEProuteLength < 3) { maxEEProuteLength = 3; }
+			}
+		}
+		for (const routeName in EEProutes) {
+			let t = `local ${EEProutes[routeName]}${" ".repeat(1+maxEEProuteLength - EEProutes[routeName].length)}= {`;
+			for (const entry of blockSignals) {
+				t += ` [${_id(entry.SignalID)}]=1,`;
+			};
+			t += ` }`;
+			text.push(t);
+		}
+
+		// Output trains
+		text.push("\nlocal trains = {");
+		for (const train of trains) {
+			const varName = EEProutes[train.routeName] || "all";
+			text.push(` { name="${train.name}",${" ".repeat(1+maxTrainLength - train.name.length)}signal=0, allowed=${varName} ${" ".repeat(maxEEProuteLength - varName.length)}},`);
+		}
+		text.push("}");
+		
 		// Output ignored signals
 		if (ignoredSignals.length > 0) {
 			let t = "-- Ignored signals: ";
@@ -371,9 +380,14 @@ blockControlChannel.onmessage = function(event) {
 		text.push(`\nlocal main_signal = ${_id(startSignal)}`);	// Show lowest signal id of one of following signals: "Switch_standing", "Switch_lying", "StartSwitch_usertex"
 
 		// Output block signals
+		const countBlockSignalPositions = { 
+			RED_GRN : 0, 	// Count of signals with RED = 1, GREEN = 2
+			GRN_RED : 0, 	// Count of signals with RED = 2, GREEN = 1
+		}
 		if (!extended) {
 			let t = "\nlocal block_signals = { ";
 			for (const entry of blockSignals) {
+				const SignalstellungenText = getSignalstellungenText(entry.name, countBlockSignalPositions); // The function counts RED/GREEN positions, too.
 				t += `${_id(entry.SignalID)}, `;
 			};
 			t += "}";
@@ -382,10 +396,26 @@ blockControlChannel.onmessage = function(event) {
 		} else {
 			text.push("\nlocal block_signals = {");
 			for (const entry of blockSignals) {
-				text.push(`  ${_id(entry.SignalID)}, -- ${getSignalstellungenText(entry.name)}'${entry.name}' ${_("auf")} ${TrackSystemText(entry.GleissystemID)}-${entry.GleisID}`);
+				const SignalstellungenText = getSignalstellungenText(entry.name, countBlockSignalPositions);
+				text.push(`  ${_id(entry.SignalID)}, -- ${SignalstellungenText}'${entry.name}' ${_("auf")} ${TrackSystemText(entry.GleissystemID)}-${entry.GleisID}`);
 			};
 			text.push("}");
 			
+		}
+		if (countBlockSignalPositions.RED_GRN > 0 && countBlockSignalPositions.GRN_RED > 0) {
+			text.push(`-- Caution:`);
+		}
+		if (countBlockSignalPositions.RED_GRN > 0) {
+			text.push(`-- ${countBlockSignalPositions.RED_GRN} signals use BLKSIGRED = 1, BLKSIGGRN = 2`);
+		}
+		if  (countBlockSignalPositions.GRN_RED > 0) {
+			text.push(`-- ${countBlockSignalPositions.GRN_RED} signals use BLKSIGRED = 2, BLKSIGGRN = 1`);
+		}
+		let BLKSIGRED = 1;
+		let BLKSIGGRN = 2;
+		if (countBlockSignalPositions.RED_GRN < countBlockSignalPositions.GRN_RED) {
+			BLKSIGRED = 2;
+			BLKSIGGRN = 1;
 		}
 
 		// Output two way blocks
@@ -436,54 +466,6 @@ blockControlChannel.onmessage = function(event) {
 			text.push("}");
 		}
 		
-		// Output EEProutes
-		text.push("\n-- " + _("allowedBlocks"));
-		let maxTrainLength = 0;
-		let maxEEProuteLength = 0;
-		const EEProutes = {};
-		for (const train of trains) {
-			// Calculate max length of train names
-			if (maxTrainLength < train.name.length) { maxTrainLength = train.name.length; }
-
-			// Prepare table of EEP routes
-			if (train.routeName && train.routeName != "") {
-				if (!EEProutes[train.routeName]) {
-					const varName = train.routeName 
-									.replace(/ä/g, "ae")
-									.replace(/ö/g, "oe")
-									.replace(/ü/g, "ue")
-									.replace(/Ä/g, "Ae")
-									.replace(/Ö/g, "Oe")
-									.replace(/Ü/g, "Ue")
-									.replace(/ß/g, "ss")
-									.replace(/\W/g, '_');
-					EEProutes[train.routeName] = varName;
-
-					// Calculate max length of train names
-					if (maxEEProuteLength < varName.length) { maxEEProuteLength = varName.length; }
-				}
-			} else {
-				EEProutes["all"] = "all";
-				if (maxEEProuteLength < 3) { maxEEProuteLength = 3; }
-			}
-		}
-		for (const routeName in EEProutes) {
-			let t = `local ${EEProutes[routeName]}${" ".repeat(1+maxEEProuteLength - EEProutes[routeName].length)}= {`;
-			for (const entry of blockSignals) {
-				t += ` [${_id(entry.SignalID)}]=1,`;
-			};
-			t += ` }`;
-			text.push(t);
-		}
-
-		// Output trains
-		text.push("\nlocal trains = {");
-		for (const train of trains) {
-			const varName = EEProutes[train.routeName] || "all";
-			text.push(` { name="${train.name}",${" ".repeat(1+maxTrainLength - train.name.length)}signal=0, allowed=${varName} ${" ".repeat(maxEEProuteLength - varName.length)}},`);
-		}
-		text.push("}");
-		
 		// Output routes
 		text.push("\nlocal routes = {");
 		for (const entry of routes) {
@@ -532,6 +514,54 @@ blockControlChannel.onmessage = function(event) {
 			text.push(line);
 		}
 		text.push("}");
+
+// Remaining part of main script in EEP
+const LuaCode_1 = `
+-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+-- Remaining part of main script in EEP
+-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+clearlog()
+
+local blockControl = require("blockControl")   -- Load the module
+
+blockControl.init({                 -- Initialize the module
+  logLevel        = 1,              -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
+
+  trains          = trains,         -- (Optional) Unknown trains get detected automatically, however, such trains do not have a train signal and can go everywhere.
+  
+  blockSignals    = block_signals,  -- Block signals
+  twoWayBlocks    = two_way_blocks, -- Two way twin blocks (array or set of related blocks)
+  routes          = routes,         -- Routes via turnouts from one block to the next block
+  paths           = anti_deadlock_paths, -- Critical paths on which trains have to go to avoid lockdown situations`;
+const LuaCode_2 = `
+  trackSystem     = track_system,	-- Track system (required to define block tracks) 
+  blockTracks     = block_tracks,	-- Previous, first, last and nexts tracks of blocks`;
+const LuaCode_3 = `
+  MAINSW          = main_signal,    -- ID of the main switch (optional)
+
+  MAINON          = 1,              -- ON    state of main switch
+  MAINOFF         = 2,              -- OFF   state of main switch
+  BLKSIGRED       = ${BLKSIGRED},              -- RED   state of block signals
+  BLKSIGGRN       = ${BLKSIGGRN},              -- GREEN state of block signals
+  TRAINSIGRED     = 1,              -- RED   state of train signals
+  TRAINSIGGRN     = 2,              -- GREEN state of train signals
+})
+
+--[[ Optional: Set one or more runtime parameters at any time 
+blockControl.set({
+  logLevel        = 1,              -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
+  showTippText    = true,           -- (Optional) Show tipp texts true / false (Later you can toggle the visibility of the tipp texts using the main switch.)
+  start           = false,          -- (Optional) Activate/deactivate main signal. Useful to start automatic block control after finding all known train.
+  startAllTrains  = true,           -- (Optional) Activate/deactivate all train signals
+})
+--]]
+
+function EEPMain()
+  blockControl.run()
+  return 1
+end		
+`;
 		
 		text.push(LuaCode_1);
 		if (trackdata) {
