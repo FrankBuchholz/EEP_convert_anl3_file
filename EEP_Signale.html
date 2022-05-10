@@ -24,6 +24,9 @@ fieldset {
 	padding-block-end: 0;
 }
 </style>
+
+<script type="text/javascript" src="js/EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+
 <script type="text/javascript">
 
 <!-- - - - - - - -->
@@ -134,13 +137,14 @@ function parseIniString(data){
 }
 
 function showSignalIniFiles(iniFiles, Signalstellungen) {
-	const target = document.getElementById('container');
+	const unknownOnly 	= document.getElementById('checkboxUnknownOnly').checked;
+	const target 		= document.getElementById('container');
 	let div, p;
 
 	div = document.createElement('div');
 	target.appendChild(div);
 
-	if ( document.querySelector('input[name="outputFormat"]:checked').id === "list") {	// list, code
+	if ( document.querySelector('input[name="outputFormat"]:checked').id === "list" ) {	// list, code
 
 		// Show list grouped by Stellungskombination
 		for (const Stellungskombination in Signalstellungen) {
@@ -184,9 +188,11 @@ function showSignalIniFiles(iniFiles, Signalstellungen) {
 		div.appendChild(p);
 		p.innerHTML = 'const Signalstellung = {';
 		for (const iniFile of iniFiles) {
-			if (Object.keys(iniFile.Signalstellung).length > 0) {
+			const filename = iniFile.file.name.substr(0, iniFile.file.name.length - 4);
+			if ( !unknownOnly || !Signalstellung[filename] ) {
+			if ( Object.keys(iniFile.Signalstellung).length > 0 ) {
 
-				p.innerHTML += `<br>&nbsp;&nbsp;"${iniFile.file.name.substr(0, iniFile.file.name.length - 4)}" : {`;
+				p.innerHTML += `<br>&nbsp;&nbsp;"${filename}" : `+'{';
 
 				if (iniFile.section.FileInfo) {
 					p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Name : {'
@@ -203,7 +209,7 @@ function showSignalIniFiles(iniFiles, Signalstellungen) {
 				//p = document.createElement('p');
 				//div.appendChild(p);
 				for (const Signalstellung in iniFile.Signalstellung) {
-					p.innerHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${Signalstellung} : {`
+					p.innerHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${Signalstellung} : `+'{'
 						+ (iniFile.Signalstellung[Signalstellung].DE ? `DE : "${iniFile.Signalstellung[Signalstellung].DE}", ` : '')
 						+ (iniFile.Signalstellung[Signalstellung].EN ? `EN : "${iniFile.Signalstellung[Signalstellung].EN}", ` : '')
 						+ (iniFile.Signalstellung[Signalstellung].FR ? `FR : "${iniFile.Signalstellung[Signalstellung].FR}", ` : '')
@@ -211,6 +217,7 @@ function showSignalIniFiles(iniFiles, Signalstellungen) {
 					;
 				}
 				p.innerHTML += '<br>&nbsp;&nbsp;}},';
+			}
 			}
 		}
 		p.innerHTML += '<br>}';
@@ -238,6 +245,7 @@ function showSignalIniFiles(iniFiles, Signalstellungen) {
 		Format der Ausgabe:
 		<input type="radio" name="outputFormat" id="list" checked /><label for="list">Liste</label>
 		<input type="radio" name="outputFormat" id="code" /><label for="code">Code</label>
+		<input id="checkboxUnknownOnly" type="checkbox"><label for="checkboxUnknownOnly">Nur unbekannte Signale anzeigen</label
 	</fieldset>
 </form>
 
