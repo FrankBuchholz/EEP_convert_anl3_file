@@ -1828,5 +1828,315 @@ const Signalstellung = {
       1 : {DE : "Ziel", },
       2 : {DE : "eingestellt", },
       3 : {DE : "Störung", },
-  }},  
+  }}, 
+
+// DH1
+
+  "Ampel_gBl_DH1" : {
+    Name : {DE : "Ampel einzeln gelb blinkend DH1", EN : "Single traffic light flashing yellow DH1", FR : "Feu de signalisation simple clignotant jaune DH1", },
+    Pos : {
+      1 : {DE : "Achtung", EN : "Caution", FR : "Mise en garde", },
+      2 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel_gBlfh_DH1" : {
+    Name : {DE : "Ampel einzeln gelb blinkend mit Zugbeeinflussung DH1", EN : "Traffic light flashing yellow with train control DH1", FR : "Feu de signalisation jaune clignotant avec commande de train DH1", },
+    Pos : {
+      1 : {DE : "Halt Achtung", EN : "Stop attention", FR : "Arrêtez l'attention", },
+      2 : {DE : "Fahrt Achtung", EN : "Drive attention", FR : "Attirez l'attention", },
+      3 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel2_gBl_DH1" : {
+    Name : {DE : "Ampel 2 einzeln gelb blinkend DH1", EN : "Traffic light 2 individually flashing yellow DH1", FR : "Feu de signalisation 2 jaune clignotant individuellement DH1", },
+    Pos : {
+      1 : {DE : "Achtung", EN : "Caution", FR : "Mise en garde", },
+      2 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "AmpVV_gBl_DH1" : {
+    Name : {DE : "Ampel blink Vorfahrt achten DH1", EN : "Traffic light blink right of way DH1", FR : "Feu rouge clignotant droit de passage DH1", },
+    Pos : {
+      1 : {DE : "Achtung", EN : "Caution", FR : "Mise en garde", },
+      2 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "AmpVV_gBlfh_DH1" : {
+    Name : {DE : "Ampel blink Vorfahrt achten mit Zugbeeinflussung DH1", EN : "Traffic light blink right of way with train control DH1", FR : "Les feux de circulation clignotent en priorité avec la commande de train DH1", },
+    Pos : {
+      1 : {DE : "Halt Achtung", EN : "Stop attention", FR : "Arrêtez l'attention", },
+      2 : {DE : "Fahrt Achtung", EN : "Drive attention", FR : "Attirez l'attention", },
+      3 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Baustellenampel_DH1" : {
+    Name : {DE : "Baustellenampel_DH1", EN : "Baustellenampel_DH1", FR : "Baustellenampel_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "Fahrt erwarten", EN : "Ride expect", FR : "Ride attendre", },
+      3 : {DE : "Fahrt", EN : "drive off", FR : "chasser", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "BHSt_S_TexTex_DH1" : {
+    Name : {DE : "Schild Bushaltest. alt beschriftb Signal DH1", EN : "Bus stop sign. old labeled signal DH1", FR : "Panneau d'arrêt de bus. ancien signal étiqueté DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "Fahrt", EN : "journey", FR : "périple", },
+  }},
+  "Bue1d_DB_DH1" : {
+    Name : {DE : "Bue Signal digital DB DH1", EN : "Bue signal digital DB DH1", FR : "Signal de repère numérique DB DH1", },
+    Pos : {
+      1 : {DE : "Bahnübergang gesichert", EN : "Level crossing secured", FR : "Passage à niveau sécurisé", },
+      2 : {DE : "Bahnübergang nicht gesichert", EN : "Level crossing not secured", FR : "Passage à niveau non sécurisé", },
+  }},
+  "Bue1dkl_DB_DH1" : {
+    Name : {DE : "Bue Signal digital Knickmast li DB DH1", EN : "Bue signal digital articulated mast left DB DH1", FR : "Bue signal mât articulé numérique gauche DB DH1", },
+    Pos : {
+      1 : {DE : "Bahnübergang gesichert", EN : "Level crossing secured", FR : "Passage à niveau sécurisé", },
+      2 : {DE : "Bahnübergang nicht gesichert", EN : "Level crossing not secured", FR : "Passage à niveau non sécurisé", },
+  }},
+  "Bue1dkr_DB_DH1" : {
+    Name : {DE : "Bue Signal digital Knickmast re DB DH1", EN : "Bue signal digital articulated mast right DB DH1", FR : "Bue signal mât articulé numérique droite DB DH1", },
+    Pos : {
+      1 : {DE : "Bahnübergang gesichert", EN : "Level crossing secured", FR : "Passage à niveau sécurisé", },
+      2 : {DE : "Bahnübergang nicht gesichert", EN : "Level crossing not secured", FR : "Passage à niveau non sécurisé", },
+  }},
+  "Sig_Tast_TexT_DH1" : {
+    Name : {DE : "Signaltaster aufschriftbar DH1", EN : "Signal button inscribable DH1", FR : "Bouton de signal inscriptible DH1", },
+    Pos : {
+      1 : {DE : "Ein", EN : "One", FR : "Un", },
+      2 : {DE : "Aus", EN : "Out", FR : "En dehors", },
+  }},
+
+// GK3
+
+  "HlSigDecksigBetno_GK3" : {
+    Name : {DE : "Hl Signal Deckungssig Beton normal (GK3)", EN : "Hl signal cover signal concrete normal (GK3)", FR : "Hl couverture de signal signal béton normal (GK3)", },
+    Pos : {
+      1 : {DE : "Halt ", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "Kennlicht ", EN : "Kennlicht", FR : "Kennlicht", },
+      3 : {DE : "Rangierfahrt ", EN : "Shunting", FR : "Shunting", },
+      4 : {DE : "Ersatzsignal ", EN : "Substitute signal", FR : "Signal de remplacement", },
+      5 : {DE : "Ersatzrot ", EN : "Substitute red", FR : "Rouge de remplacement", },
+      6 : {DE : "Signal aus ", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "HlSigDecksigBetnolaS_GK3" : {
+    Name : {DE : "Hl Signal Deckungssig Beton normal langeSchuten (GK3)", EN : "Hl Signal Covering Concrete normal long barges (GK3)", FR : "Hl Signal Covering Concrete normal long barges (GK3)", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Stop", },
+      2 : {DE : "Kennlicht", EN : "Beacon", FR : "Balise", },
+      3 : {DE : "Rangierfahrt", EN : "Shunting movement", FR : "Mouvement de triage", },
+      4 : {DE : "Ersatzsignal", EN : "Substitute signal", FR : "Signal de substitution", },
+      5 : {DE : "Ersatzrot", EN : "Replacement red", FR : "Remplacement rouge", },
+      6 : {DE : "Signal aus", EN : "Signal off", FR : "Signal off", },
+  }},
+  "HlSigDeckStano_GK3" : {
+    Name : {DE : "Hl Signal Deckungssig Stahl normal (GK3)l", EN : "Hl signal cover signal steel normal (GK3) l", FR : "Hl cache de signal signal acier normal (GK3) l", },
+    Pos : {
+      1 : {DE : "Halt ", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "Kennlicht ", EN : "Kennlicht", FR : "Kennlicht", },
+      3 : {DE : "Rangierfahrt ", EN : "Shunting", FR : "Shunting", },
+      4 : {DE : "Ersatzsignal ", EN : "Substitute signal", FR : "Signal de remplacement", },
+      5 : {DE : "Ersatzrot ", EN : "Substitute red", FR : "Rouge de remplacement", },
+      6 : {DE : "Signal aus ", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "HlSigDeckStanolaS_GK3" : {
+    Name : {DE : "Hl Signal Deckungssig Stahl normal lange Schute (GK3)", EN : "Hl Signal Cover Steel normal length barges (GK3)", FR : "Hl Signal Cover Barges en acier de longueur normale (GK3)", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Stop", },
+      2 : {DE : "Kennlicht", EN : "Beacon", FR : "Balise", },
+      3 : {DE : "Rangierfahrt", EN : "Shunting movement", FR : "Mouvement de triage", },
+      4 : {DE : "Ersatzsignal", EN : "Substitute signal", FR : "Signal de substitution", },
+      5 : {DE : "Ersatzrot", EN : "Replacement red", FR : "Remplacement rouge", },
+      6 : {DE : "Signal aus", EN : "Signal off", FR : "Signal off ", },
+  }},
+  "HlSigVSigStano_GK3" : {
+    Name : {DE : "Hl Signal VSig Stahl normal (GK3)", EN : "Hi signal VSig steel normal (GK3)", FR : "Hi signal VSig acier normal (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten ", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt mit 40 erwarten ", EN : "Expect ride at 40", FR : "Attendez-vous à 40 ans", },
+      3 : {DE : "Fahrt erwarten ", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      4 : {DE : "Fahrt mit 100 erwarten ", EN : "Expect ride at 100", FR : "Attendez-vous à 100", },
+      5 : {DE : "Signal aus ", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "HlSigVSigStanolaS_GK3" : {
+    Name : {DE : "Hl_Signal_VSig_Stahl_normal_lange Schute (GK3)", EN : "Hl_Signal_VSig_Steel_normal_long barges (GK3)", FR : "Hl_Signal_VSig_Steel_normal_long barges (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : " Expect stop ", FR : "Attendre l'arrêt", },
+      2 : {DE : "Fahrt mit 40 erwarten", EN : " Expect movement at 40 ", FR : "Attendez-vous à un mouvement à 40 ans", },
+      3 : {DE : "Fahrt erwarten", EN : " Expect trip ", FR : "Attendez vous à un voyage", },
+      4 : {DE : "Fahrt mit 100 erwarten", EN : " Expect movement with 100 ", FR : "Attendez-vous à un mouvement avec 100", },
+      5 : {DE : "Signal aus", EN : " Signal off ", FR : "Signal off ", },
+  }},
+  "HlSigVSigV40Stano_GK3" : {
+    Name : {DE : "Hl Signal VSig V40 Stahl normal (GK3)", EN : "Hl signal VSig V40 steel normal (GK3)", FR : "Signal Hl VSig V40 acier normal (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten ", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt mit 40 erwarten ", EN : "Expect ride at 40", FR : "Attendez-vous à 40 ans", },
+      3 : {DE : "Signal aus ", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "HlSigVSigV40StanolaS_GK3" : {
+    Name : {DE : "Hl_Signal_VSig_V40_Stahl_normal_lange Schute (GK3)", EN : "Hl_Signal_VSig_V40_Steel_normal_long barge (GK3)", FR : "Hl_Signal_VSig_V40_Barge_acier_normale_longue (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendre l'arrêt", },
+      2 : {DE : "Fahrt mit 40 erwarten", EN : "Expect movement at 40", FR : "Attendez-vous à un mouvement à 40 ans", },
+      3 : {DE : "Signal aus", EN : "Signal off", FR : "Signal off ", },
+  }},
+  "KsSigVSig_GK3" : {
+    Name : {DE : "Ks_Sig_VSig (GK3)", EN : "Ks_Sig_VSig (GK3)", FR : "Ks_Sig_VSig (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      4 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigKA_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_KA (GK3)", EN : "Ks_Sig_VSig_KA (GK3)", FR : "Ks_Sig_VSig_KA (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      4 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigKAli_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_KA_li (GK3)", EN : "Ks_Sig_VSig_KA_li (GK3)", FR : "Ks_Sig_VSig_KA_li (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      4 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigLA_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_LA (GK3)", EN : "Ks_Sig_VSig_LA (GK3)", FR : "Ks_Sig_VSig_LA (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      4 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigLAli_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_LA_li (GK3)", EN : "Ks_Sig_VSig_LA_li (GK3)", FR : "Ks_Sig_VSig_LA_li (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      4 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigverk_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_verkuerzt (GK3)", EN : "Ks_Sig_VSig_verkuerzt (GK3)", FR : "Ks_Sig_VSig_verkuerzt (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten verkuerzt", EN : "Expect stop shortened", FR : "Attendez-vous à un arrêt raccourci", },
+      2 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      3 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      4 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      5 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      6 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      7 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigverkKA_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_verkuerzt_KA (GK3)", EN : "Ks_Sig_VSig_verkuerzt_KA (GK3)", FR : "Ks_Sig_VSig_verkuerzt_KA (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten verkuerzt", EN : "Expect stop shortened", FR : "Attendez-vous à un arrêt raccourci", },
+      2 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      3 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      4 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      5 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      6 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      7 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigverkKAli_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_verkuerzt_KA_li (GK3)", EN : "Ks_Sig_VSig_verkuerzt_KA_li (GK3)", FR : "Ks_Sig_VSig_verkuerzt_KA_li (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten verkuerzt", EN : "Expect stop shortened", FR : "Attendez-vous à un arrêt raccourci", },
+      2 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      3 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      4 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      5 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      6 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      7 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigverkLA_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_verkuerzt_LA (GK3)", EN : "Ks_Sig_VSig_verkuerzt_LA (GK3)", FR : "Ks_Sig_VSig_verkuerzt_LA (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten verkuerzt", EN : "Expect stop shortened", FR : "Attendez-vous à un arrêt raccourci", },
+      2 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      3 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      4 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      5 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      6 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      7 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigverkLAli_GK3" : {
+    Name : {DE : "Ks_Sig_VSig_verkuerzt_LA_li (GK3)", EN : "Ks_Sig_VSig_verkuerzt_LA_li (GK3)", FR : "Ks_Sig_VSig_verkuerzt_LA_li (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten verkuerzt", EN : "Expect stop shortened", FR : "Attendez-vous à un arrêt raccourci", },
+      2 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      3 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      4 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      5 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      6 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      7 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigWdh_GK3" : {
+    Name : {DE : "Ks_Sig_VSigWdh (GK3)", EN : "Ks_Sig_VSigWdh (GK3)", FR : "Ks_Sig_VSigWdh (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      4 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      5 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      6 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigWdhKA_GK3" : {
+    Name : {DE : "Ks_Sig_VSigWdh_KA (GK3)", EN : "Ks_Sig_VSigWdh_KA (GK3)", FR : "Ks_Sig_VSigWdh_KA (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      4 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      5 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      6 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigWdhKAli_GK3" : {
+    Name : {DE : "Ks_Sig_VSigWdh_KA_li (GK3)", EN : "Ks_Sig_VSigWdh_KA_li (GK3)", FR : "Ks_Sig_VSigWdh_KA_li (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      4 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      5 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      6 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigWdhLA_GK3" : {
+    Name : {DE : "Ks_Sig_VSigWdh_LA (GK3)", EN : "Ks_Sig_VSigWdh_LA (GK3)", FR : "Ks_Sig_VSigWdh_LA (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      4 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      5 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      6 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+  "KsSigVSigWdhLAli_GK3" : {
+    Name : {DE : "Ks_Sig_VSigWdh_LA_li (GK3)", EN : "Ks_Sig_VSigWdh_LA_li (GK3)", FR : "Ks_Sig_VSigWdh_LA_li (GK3)", },
+    Pos : {
+      1 : {DE : "Halt erwarten", EN : "Expect stop", FR : "Attendez-vous à un arrêt", },
+      2 : {DE : "Fahrt erwarten", EN : "Expect ride", FR : "Attendez-vous à une balade", },
+      3 : {DE : "Langsamfahrt erwarten verkuerzt", EN : "Expect slow travel shortened", FR : "Attendez-vous à un voyage lent raccourci ", },
+      4 : {DE : "Langsamfahrt erwarten ", EN : "Expect slow travel ", FR : "Attendez-vous à un voyage lent ", },
+      5 : {DE : "Kennlicht", EN : "Identification light", FR : "Voyant d'identification", },
+      6 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
+  }},
+
+// HK1
+
+  "Wartesignal_DR_alt_HK1" : {
+    Name : {DE : "Wartesignal_DR_alt_HK1", EN : "Wartesignal_DR_alt_HK1", FR : "Wartesignal_DR_alt_HK1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêter", },
+      2 : {DE : "Rangierfahrt", EN : "Shunting", FR : "Manœuvrer", },
+  }},
+  "Wartesignal_DR_neu_HK1" : {
+    Name : {DE : "Wartesignal_DR_neu_HK1", EN : "Wartesignal_DR_neu_HK1", FR : "Wartesignal_DR_neu_HK1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêter", },
+      2 : {DE : "Rangierfahrt", EN : "Shunting", FR : "Manœuvrer", },
+  }},
+
 }
