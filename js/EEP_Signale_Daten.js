@@ -2518,6 +2518,39 @@ const Signalstellung = {
   
 // Konstrukteur RI1
 
+  "BUE_Ampel_oK_RI1" : {
+    Name : {DE : "BUE Ampel ohne Kreuz", EN : "BUE traffic light without cross", FR : "Feu de signalisation BUE sans croix", },
+    Pos : {
+      1 : {DE : "Aus Fahren!", EN : "From driving!", FR : "De la conduite!", },
+      2 : {DE : "Gelb Bahnuebergang raeumen!", EN : "Clear the yellow railway crossing!", FR : "Dégagez le passage à niveau jaune!", },
+      3 : {DE : "Rot Halt!", EN : "Red stop!", FR : "Arrêt rouge!", },
+  }},
+  "BUE_Ampel_OL_RI1" : {
+    Name : {DE : "BUE Ampel mit Oberleitung", EN : "BUE traffic light with overhead line", FR : "Feu de circulation BUE avec ligne aérienne", },
+    Pos : {
+      1 : {DE : "Aus Fahren!", EN : "From driving!", FR : "De la conduite!", },
+      2 : {DE : "Gelb Bahnuebergang raeumen!", EN : "Clear the yellow railway crossing!", FR : "Dégagez le passage à niveau jaune!", },
+      3 : {DE : "Rot Halt!", EN : "Red stop!", FR : "Arrêt rouge!", },
+  }},
+  "BUE_Ampel_RI1" : {
+    Name : {DE : "BUE Ampel ohne Oberleitung", EN : "BUE traffic light without overhead line", FR : "Feu de signalisation BUE sans ligne aérienne", },
+    Pos : {
+      1 : {DE : "Aus Fahren!", EN : "From driving!", FR : "De la conduite!", },
+      2 : {DE : "Gelb Bahnuebergang raeumen!", EN : "Clear the yellow railway crossing!", FR : "Dégagez le passage à niveau jaune!", },
+      3 : {DE : "Rot Halt!", EN : "Red stop!", FR : "Arrêt rouge!", },
+  }},
+  "BUE_Andreaskreuz_OL_RI1" : {
+    Name : {DE : "BUE Andreaskreuz mit Oberleitung", EN : "BUE Andreaskreuz with overhead line", FR : "BUE Andreaskreuz avec ligne aérienne", },
+    Pos : {
+      1 : {DE : "Aus Fahren!", EN : "From driving!", FR : "De la conduite!", },
+      2 : {DE : "Rot Halt!", EN : "Red stop!", FR : "Arrêt rouge!", },
+  }},
+  "BUE_Andreaskreuz_RI1" : {
+    Name : {DE : "BUE Andreaskreuz", EN : "BUE Andreaskreuz", FR : "BUE Andreaskreuz", },
+    Pos : {
+      1 : {DE : "Aus Fahren!", EN : "From driving!", FR : "De la conduite!", },
+      2 : {DE : "Rot Halt!", EN : "Red stop!", FR : "Arrêt rouge!", },
+  }},
   "BUE_Gehwegschranke_li2_RI1" : {
     Name : {DE : "BUE Gehwegschranke links grau", EN : "BUE sidewalk barrier left gray", FR : "BUE barrière de trottoir gauche gris", },
     Pos : {
