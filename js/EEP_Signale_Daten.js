@@ -1903,7 +1903,199 @@ const Signalstellung = {
       1 : {DE : "Ein", EN : "One", FR : "Un", },
       2 : {DE : "Aus", EN : "Out", FR : "En dehors", },
   }},
-
+  "Ampel_FR_2fach_DH1" : {
+    Name : {DE : "Ampel_FR_2fach_DH1", EN : "Ampel_FR_2fach_DH1", FR : "Ampel_FR_2fach_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "go", FR : "aller", },
+      2 : {DE : "Halt", EN : "stop", FR : "Arretez", },
+  }},
+  "Ampel_FR_2fach_oM_DH1" : {
+    Name : {DE : "Ampel_FR_2fach_oM_DH1", EN : "Ampel_FR_2fach_oM_DH1", FR : "Ampel_FR_2fach_oM_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "go", FR : "aller", },
+      2 : {DE : "Halt", EN : "stop", FR : "Arretez", },
+  }},
+  "Ampel_FR_3f_rgg_DH1" : {
+    Name : {DE : "Ampel_FR_3f_rgg_DH1", EN : "Ampel_FR_3f_rgg_DH1", FR : "Ampel_FR_3f_rgg_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "gruen erwarten", EN : "green expect", FR : "vert attendre", },
+      3 : {DE : "Fahrt", EN : "go", FR : "aller", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel_FR_3f_rgg_oM_DH1" : {
+    Name : {DE : "Ampel_FR_3f_rgg_oM_DH1", EN : "Ampel_FR_3f_rgg_oM_DH1", FR : "Ampel_FR_3f_rgg_oM_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "gruen erwarten", EN : "green expect", FR : "vert attendre", },
+      3 : {DE : "Fahrt", EN : "go", FR : "aller", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel_FR_3fach_DH1" : {
+    Name : {DE : "Ampel_FR_3fach_DH1", EN : "Ampel_FR_3fach_DH1", FR : "Ampel_FR_3fach_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "walk", FR : "aller", },
+      2 : {DE : "Halt", EN : "Stop", FR : "arretez", },
+  }},
+  "Ampel_FR_3fach_oM_DH1" : {
+    Name : {DE : "Ampel_FR_3fach_oM_DH1", EN : "Ampel_FR_3fach_oM_DH1", FR : "Ampel_FR_3fach_oM_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "walk", FR : "aller", },
+      2 : {DE : "Halt", EN : "Stop", FR : "arretez", },
+  }},
+  "Ampel_R_2fach_DH1" : {
+    Name : {DE : "Ampel_R_2fach_DH1", EN : "Ampel_R_2fach_DH1", FR : "Ampel_R_2fach_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "go", FR : "aller", },
+      2 : {DE : "Halt", EN : "stop", FR : "Arretez", },
+  }},
+  "Ampel_R_2fach_oM_DH1" : {
+    Name : {DE : "Ampel_R_2fach_oM_DH1", EN : "Ampel_R_2fach_oM_DH1", FR : "Ampel_R_2fach_oM_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "go", FR : "aller", },
+      2 : {DE : "Halt", EN : "stop", FR : "Arretez", },
+  }},
+  "Ampel_R_3f_rgg_DH1" : {
+    Name : {DE : "Ampel_R_3f_rgg_DH1", EN : "Ampel_R_3f_rgg_DH1", FR : "Ampel_R_3f_rgg_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "gruen erwarten", EN : "green expect", FR : "vert attendre", },
+      3 : {DE : "Fahrt", EN : "go", FR : "aller", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel_R_3f_rgg_oM_DH1" : {
+    Name : {DE : "Ampel_R_3f_rgg_oM_DH1", EN : "Ampel_R_3f_rgg_oM_DH1", FR : "Ampel_R_3f_rgg_oM_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "gruen erwarten", EN : "green expect", FR : "vert attendre", },
+      3 : {DE : "Fahrt", EN : "go", FR : "aller", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel_R_3fach_DH1" : {
+    Name : {DE : "Ampel_R_3fach_DH1", EN : "Ampel_R_3fach_DH1", FR : "Ampel_R_3fach_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "walk", FR : "aller", },
+      2 : {DE : "Halt", EN : "Stop", FR : "arretez", },
+  }},
+  "Ampel_R_3fach_oM_DH1" : {
+    Name : {DE : "Ampel_R_3fach_oM_DH1", EN : "Ampel_R_3fach_oM_DH1", FR : "Ampel_R_3fach_oM_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "walk", FR : "aller", },
+      2 : {DE : "Halt", EN : "Stop", FR : "arretez", },
+  }},
+  "Ampel2_FR_2fach_DH1" : {
+    Name : {DE : "Ampel2_FR_2fach_DH1", EN : "Ampel2_FR_2fach_DH1", FR : "Ampel2_FR_2fach_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "go", FR : "aller", },
+      2 : {DE : "Halt", EN : "stop", FR : "Arretez", },
+  }},
+  "Ampel2_FR_2fach_oM_DH1" : {
+    Name : {DE : "Ampel2_FR_2fach_oM_DH1", EN : "Ampel2_FR_2fach_oM_DH1", FR : "Ampel2_FR_2fach_oM_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "go", FR : "aller", },
+      2 : {DE : "Halt", EN : "stop", FR : "Arretez", },
+  }},
+  "Ampel2_FR_3f_rgg_DH1" : {
+    Name : {DE : "Ampel2_FR_3f_rgg_DH1", EN : "Ampel2_FR_3f_rgg_DH1", FR : "Ampel2_FR_3f_rgg_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "gruen erwarten", EN : "green expect", FR : "vert attendre", },
+      3 : {DE : "Fahrt", EN : "go", FR : "aller", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel2_FR_3f_rgg_oM_DH1" : {
+    Name : {DE : "Ampel2_FR_3f_rgg_oM_DH1", EN : "Ampel2_FR_3f_rgg_oM_DH1", FR : "Ampel2_FR_3f_rgg_oM_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "gruen erwarten", EN : "green expect", FR : "vert attendre", },
+      3 : {DE : "Fahrt", EN : "go", FR : "aller", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel2_FR_3fach_DH1" : {
+    Name : {DE : "Ampel2_FR_3fach_DH1", EN : "Ampel2_FR_3fach_DH1", FR : "Ampel2_FR_3fach_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "walk", FR : "aller", },
+      2 : {DE : "Halt", EN : "Stop", FR : "arretez", },
+  }},
+  "Ampel2_FR_3fach_oM_DH1" : {
+    Name : {DE : "Ampel2_FR_3fach_oM_DH1", EN : "Ampel2_FR_3fach_oM_DH1", FR : "Ampel2_FR_3fach_oM_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "walk", FR : "aller", },
+      2 : {DE : "Halt", EN : "Stop", FR : "arretez", },
+  }},
+  "Ampel2_R_2fach_DH1" : {
+    Name : {DE : "Ampel2_R_2fach_DH1", EN : "Ampel2_R_2fach_DH1", FR : "Ampel2_R_2fach_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "go", FR : "aller", },
+      2 : {DE : "Halt", EN : "stop", FR : "Arretez", },
+  }},
+  "Ampel2_R_2fach_oM_DH1" : {
+    Name : {DE : "Ampel2_R_2fach_oM_DH1", EN : "Ampel2_R_2fach_oM_DH1", FR : "Ampel2_R_2fach_oM_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "go", FR : "aller", },
+      2 : {DE : "Halt", EN : "stop", FR : "Arretez", },
+  }},
+  "Ampel2_R_3f_rgg_DH1" : {
+    Name : {DE : "Ampel2_R_3f_rgg_DH1", EN : "Ampel2_R_3f_rgg_DH1", FR : "Ampel2_R_3f_rgg_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "gruen erwarten", EN : "green expect", FR : "vert attendre", },
+      3 : {DE : "Fahrt", EN : "go", FR : "aller", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel2_R_3f_rgg_oM_DH1" : {
+    Name : {DE : "Ampel2_R_3f_rgg_oM_DH1", EN : "Ampel2_R_3f_rgg_oM_DH1", FR : "Ampel2_R_3f_rgg_oM_DH1", },
+    Pos : {
+      1 : {DE : "Halt", EN : "Stop", FR : "Arrêtez", },
+      2 : {DE : "gruen erwarten", EN : "green expect", FR : "vert attendre", },
+      3 : {DE : "Fahrt", EN : "go", FR : "aller", },
+      4 : {DE : "Halt erwarten", EN : "Stop expect", FR : "Arrêtez attendre", },
+      5 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "Ampel2_R_3fach_DH1" : {
+    Name : {DE : "Ampel2_R_3fach_DH1", EN : "Ampel2_R_3fach_DH1", FR : "Ampel2_R_3fach_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "walk", FR : "aller", },
+      2 : {DE : "Halt", EN : "Stop", FR : "arretez", },
+  }},
+  "Ampel2_R_3fach_oM_DH1" : {
+    Name : {DE : "Ampel2_R_3fach_oM_DH1", EN : "Ampel2_R_3fach_oM_DH1", FR : "Ampel2_R_3fach_oM_DH1", },
+    Pos : {
+      1 : {DE : "gehen", EN : "walk", FR : "aller", },
+      2 : {DE : "Halt", EN : "Stop", FR : "arretez", },
+  }},
+  "AmpST_DH1" : {
+    Name : {DE : "Stoppschild als Signal DH1", EN : "Stop sign as signal DH1", FR : "Panneau stop comme signal DH1", },
+    Pos : {
+      1 : {DE : "Achtung", EN : "Attention", FR : "Mise en garde", },
+      2 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "AmpVV_DH1" : {
+    Name : {DE : "Vorfahrt achten Schild als Signal DH1", EN : "Give way sign as signal DH1", FR : "Cédez le passage au signal DH1", },
+    Pos : {
+      1 : {DE : "Achtung", EN : "Attention", FR : "Mise en garde", },
+      2 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  "BUE_Gehwegschranke_li_RI1" : {
+    Name : {DE : "BUE Gehwegschranke links", EN : "BUE sidewalk barrier on the left", FR : "Barrière de trottoir BUE à gauche", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "Sig_350_Zebrastr_DH1_DH1" : {
+    Name : {DE : "Zebrastreifenschild als Signal DH1", EN : "Crosswalk sign as signal DH1", FR : "Panneau de passage pour piétons comme signal DH1", },
+    Pos : {
+      1 : {DE : "Achtung", EN : "Attention", FR : "Mise en garde", },
+      2 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
+  }},
+  
 // GK3
 
   "HlSigDecksigBetno_GK3" : {
@@ -2137,6 +2329,75 @@ const Signalstellung = {
     Pos : {
       1 : {DE : "Halt", EN : "Stop", FR : "Arrêter", },
       2 : {DE : "Rangierfahrt", EN : "Shunting", FR : "Manœuvrer", },
+  }},
+
+// RI1
+
+  "BUE_Gehwegschranke_li2_RI1" : {
+    Name : {DE : "BUE Gehwegschranke links grau", EN : "BUE sidewalk barrier left gray", FR : "BUE barrière de trottoir gauche gris", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Gehwegschranke_re_RI1" : {
+    Name : {DE : "BUE Gehwegschranke rechts", EN : "BUE sidewalk barrier on the right", FR : "Barrière de trottoir BUE à droite", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Gehwegschranke_re2_RI1" : {
+    Name : {DE : "BUE Gehwegschranke rechts grau", EN : "BUE sidewalk barrier right gray", FR : "Barrière de trottoir BUE droite gris", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Halbschranke_li_RI1" : {
+    Name : {DE : "BUE Halbschranke links", EN : "BUE half barrier on the left", FR : "BUE demi-barrière à gauche", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Halbschranke_li2_RI1" : {
+    Name : {DE : "BUE Halbschranke links grau", EN : "BUE half barrier left gray", FR : "BUE demi barrière gauche gris", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Halbschranke_re_RI1" : {
+    Name : {DE : "BUE Halbschranke rechts", EN : "BUE half barrier on the right", FR : "BUE demi-barrière à droite", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Halbschranke_re2_RI1" : {
+    Name : {DE : "BUE Halbschranke rechts grau", EN : "BUE half barrier right gray", FR : "BUE demi barrière droite gris", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Vollschranke_li_RI1" : {
+    Name : {DE : "BUE Vollschranke links", EN : "BUE full barrier on the left", FR : "BUE pleine barrière à gauche", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Vollschranke_li2_RI1" : {
+    Name : {DE : "BUE Vollschranke links grau", EN : "BUE full barrier left gray", FR : "BUE pleine barrière gauche gris", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Vollschranke_re_RI1" : {
+    Name : {DE : "BUE Vollschranke rechts", EN : "BUE full barrier on the right", FR : "BUE pleine barrière à droite", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "BUE_Vollschranke_re2_RI1" : {
+    Name : {DE : "BUE Vollschranke rechts grau", EN : "BUE full barrier right gray", FR : "BUE barrière complète droite gris", },
+    Pos : {
+      1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
+      2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
   }},
 
 }
