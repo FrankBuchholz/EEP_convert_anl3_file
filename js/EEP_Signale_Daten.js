@@ -2,13 +2,12 @@ const Signalstellung = {
 
 // Added manually
 	
-  'system\\Route_SignalS.3ds' : { 
+  "system\\Route_SignalS.3ds" : { 
 	Name : {DE : `Start Fahrstraße`, EN : `Start predefined line`, FR : `Parcour prédéfini de démarrage`, }, 
 	Pos : { }},
-  'system\\Route_SignalZ.3ds' : { 
+  "system\\Route_SignalZ.3ds" : { 
 	Name : {DE : `Ende Fahrstraße`, EN : `End predefined line`, FR : `Parcour prédéfini de fin`, }, 
 	Pos : { }},
-  'Schranke2_SM2' : { Name : 'Eisenbahnschranke 2', Pos : { 1 : 'Fahrt', 2 : 'Halt', }},
 	
 // Created with EEP_Signale.html
 
@@ -1830,7 +1829,7 @@ const Signalstellung = {
       3 : {DE : "Störung", },
   }}, 
 
-// DH1
+// Konstrukteur DH1
 
   "Ampel_gBl_DH1" : {
     Name : {DE : "Ampel einzeln gelb blinkend DH1", EN : "Single traffic light flashing yellow DH1", FR : "Feu de signalisation simple clignotant jaune DH1", },
@@ -2096,7 +2095,7 @@ const Signalstellung = {
       2 : {DE : "ausgeschaltet", EN : "switched off", FR : "éteint", },
   }},
   
-// GK3
+// Konstrukteur GK3
 
   "HlSigDecksigBetno_GK3" : {
     Name : {DE : "Hl Signal Deckungssig Beton normal (GK3)", EN : "Hl signal cover signal concrete normal (GK3)", FR : "Hl couverture de signal signal béton normal (GK3)", },
@@ -2316,7 +2315,7 @@ const Signalstellung = {
       6 : {DE : "Signal aus", EN : "Signal off", FR : "Signal désactivé", },
   }},
 
-// HK1
+// Konstrukteur HK1
 
   "Wartesignal_DR_alt_HK1" : {
     Name : {DE : "Wartesignal_DR_alt_HK1", EN : "Wartesignal_DR_alt_HK1", FR : "Wartesignal_DR_alt_HK1", },
@@ -2331,7 +2330,193 @@ const Signalstellung = {
       2 : {DE : "Rangierfahrt", EN : "Shunting", FR : "Manœuvrer", },
   }},
 
-// RI1
+// Konstrukteutr MA1
+
+  "StraBahnSignal_01_MA1" : {
+    Name : {DE : "Strabahn Sig 01 Halt - gerade V8 MA1", EN : "Tram Signal 01 halt - staight V8 MA1", FR : "Tram Signal 01 arrêtez - tout V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+  }},
+  "StraBahnSignal_02_MA1" : {
+    Name : {DE : "Strabahn Sig 02 Halt - gerade - rechts V8 MA1", EN : "Tram Signal 02 halt - staight - right V8 MA1", FR : "Tram Signal 02 arrêtez - tout - droit V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+      3 : {DE : "Fahrt rechts", },
+  }},
+  "StraBahnSignal_03_MA1" : {
+    Name : {DE : "Strabahn Sig 03 Halt - gerade - links V8 MA1", EN : "Tram Signal 03 halt - staight - left V8 MA1", FR : "Tram Signal arrêtez 03 - tout - gauche V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+      3 : {DE : "Fahrt links", },
+  }},
+  "StraBahnSignal_04_MA1" : {
+    Name : {DE : "Strabahn Sig 04 Halt - rechts - links V8 MA1", EN : "Tram Signal 04 halt - right - left V8 MA1", FR : "Tram Signal arrêtez 04 - droit - gauche V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt rechts", },
+      3 : {DE : "Fahrt links", },
+  }},
+  "StraBahnSignal_05_MA1" : {
+    Name : {DE : "Strabahn Sig 05 Halt - anhalten - gerade V8 MA1", EN : "Tram Signal 05 halt - stop - staight V8 MA1", FR : "Tram Signal 05 arrêtez - arrêter - tout V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+      3 : {DE : "Halt erwarten", },
+  }},
+  "StraBahnSignal_06_MA1" : {
+    Name : {DE : "Strabahn Sig 06 Halt - anhalten - rechts V8 MA1", EN : "Tram Signal 06 halt - stop - right V8 MA1", FR : "Tram Signal 06 arrêtez - arrêter - droit V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt rechts", },
+      3 : {DE : "Halt erwarten", },
+  }},
+  "StraBahnSignal_07_MA1" : {
+    Name : {DE : "Strabahn Sig 07 Halt - anhalten - links V8 MA1", EN : "Tram Signal 07 halt - stop - left V8 MA1", FR : "Tram Signal 07 arrêtez - arrêter - gauche V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt links", },
+      3 : {DE : "Halt erwarten", },
+  }},
+  "StraBahnSignal_08_MA1" : {
+    Name : {DE : "Strabahn Sig 08 Halt - anhalten - gerade - rechts V8 MA1", EN : "Tram Signal 08 halt - stop - staight - right V8 MA1", FR : "Tram Signal 08 arrêtez - arrêter - tout - droit V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+      3 : {DE : "Fahrt rechts", },
+      4 : {DE : "Halt erwarten", },
+  }},
+  "StraBahnSignal_09_MA1" : {
+    Name : {DE : "Strabahn Sig 09 Halt - anhalten - gerade - links V8 MA1", EN : "Tram Signal 09 halt - stop - staight - left V8 MA1", FR : "Tram Signal 09 arrêtez - arrêter - tout - gauche V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+      3 : {DE : "Fahrt links", },
+      4 : {DE : "Halt erwarten", },
+  }},
+  "StraBahnSignal_10_MA1" : {
+    Name : {DE : "Strabahn Sig 10 Halt - anhalten - rechts - links V8 MA1", EN : "Tram Signal 10 halt - stop - right - left V8 MA1", FR : "Tram Signal 10 arrêtez - arrêter - droit - gauche V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt rechts", },
+      3 : {DE : "Fahrt links", },
+      4 : {DE : "Halt erwarten", },
+  }},
+  "StraBahnSignal_11_MA1" : {
+    Name : {DE : "Strabahn Sig 11 Halt - gerade - Vorfahrt V8 MA1", EN : "Tram Signal 11 halt - staight - note right of way V8 MA1", FR : "Tram Signal 11 arrêtez - tout - pensez à noter V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+      3 : {DE : "Fahrt Vorfahrt beachten", },
+  }},
+  "StraBahnSignal_12_MA1" : {
+    Name : {DE : "Strabahn Sig 12 Halt - links - Vorfahrt V8 MA1", EN : "Tram Signal 12 halt - left - note right of way V8 MA1", FR : "Tram Signal 12 arrêtez - gauche - pensez à noter V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt links", },
+      3 : {DE : "Fahrt Vorfahrt beachten", },
+  }},
+  "StraBahnSignal_13_MA1" : {
+    Name : {DE : "Strabahn Sig 13 Halt - rechts - Vorfahrt V8 MA1", EN : "Tram Signal 13 halt - right - note right of way V8 MA1", FR : "Tram Signal 13 arrêtez - droit - pensez à noter V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt rechts", },
+      3 : {DE : "Fahrt Vorfahrt beachten", },
+  }},
+  "StraBahnSignal_14_MA1" : {
+    Name : {DE : "Strabahn Sig 14 Halt - links - geradeaus - Vorfahrt V8 MA1", EN : "Tram Signal 14 halt - staight - left - note right of way V8 MA1", FR : "Tram Signal 14 arrêtez - arrêter - gauche - pensez à noter V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+      3 : {DE : "Fahrt links", },
+      4 : {DE : "Fahrt Vorfahrt beachten", },
+  }},
+  "StraBahnSignal_15_MA1" : {
+    Name : {DE : "Strabahn Sig 15 Halt - gerade - rechts - Vorfahrt V8 MA1", EN : "Tram Signal 15 halt - staight - right - note right of way V8 MA1", FR : "Tram Signal 15 arrêtez - arrêter - droit - pensez à noter V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt geradeaus", },
+      3 : {DE : "Fahrt rechts", },
+      4 : {DE : "Fahrt Vorfahrt beachten", },
+  }},
+  "StraBahnSignal_16_MA1" : {
+    Name : {DE : "Strabahn Sig 16 Halt - links - rechts - Vorfahrt V8 MA1", EN : "Tram Signal 16 halt - left - right - note right of way V8 MA1", FR : "Tram Signal 16 arrêtez - gauche - droit - pensez à noter V8 MA1", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "Fahrt links", },
+      3 : {DE : "Fahrt rechts", },
+      4 : {DE : "Fahrt Vorfahrt beachten", },
+  }},
+  "StraBahnTAbf_MA1" : {
+    Name : {DE : "Straßenbahn Signal Türen - Abfahrt", EN : "Tram Signal Doors - Depart", FR : "Tram Signal Portes - Départ", },
+    Pos : {
+      1 : {DE : "Halt - keine Anzeige", },
+      2 : {DE : "Halt - Tueren schliessen", },
+      3 : {DE : "Fahrt - Abfahrt", },
+      4 : {DE : "Fahrt - keine Anzeige", },
+  }},
+  "StraBahnWSig_01_MA1" : {
+    Name : {DE : "Straba Weiche X - gerade - links", EN : "Tram Switch X - straight - left", FR : "Tram commutateur X - droite - à gauche", },
+    Pos : {
+      1 : {DE : "Weiche gesperrt", },
+      2 : {DE : "Weiche steht geradeaus", },
+      3 : {DE : "Weiche steht links", },
+  }},
+  "StraBahnWSig_02_MA1" : {
+    Name : {DE : "Straba Weiche X - gerade - rechts", EN : "Tram Switch X - straight - right", FR : "Tram commutateur X - droite - à droit", },
+    Pos : {
+      1 : {DE : "Weiche gesperrt", },
+      2 : {DE : "Weiche steht geradeaus", },
+      3 : {DE : "Weiche steht rechts", },
+  }},
+  "StraBahnWSig_03_MA1" : {
+    Name : {DE : "Straba Weiche X - links - rechts", EN : "Tram Switch X - left - right", FR : "Tram commutateur X - à gauche - a droit", },
+    Pos : {
+      1 : {DE : "Weiche gesperrt", },
+      2 : {DE : "Weiche steht links", },
+      3 : {DE : "Weiche steht rechts", },
+  }},
+  "StraBahnWSig_04_MA1" : {
+    Name : {DE : "Straba Weiche X - gerade - links - rechts", EN : "Tram Switch X - straight - left - right", FR : "Tram commutateur X - droite - à gauche - a droit", },
+    Pos : {
+      1 : {DE : "Weiche gesperrt", },
+      2 : {DE : "Weiche steht geradeaus", },
+      3 : {DE : "Weiche steht links", },
+      4 : {DE : "Weiche steht rechts", },
+  }},
+  "StraBahnWSig_05_MA1" : {
+    Name : {DE : "Straba Weiche X - gerade - links 15", EN : "Tram Switch X - straight - left 15", FR : "Tram commutateur X - droite - à gauche 15", },
+    Pos : {
+      1 : {DE : "Weiche gesperrt", },
+      2 : {DE : "Weiche steht geradeaus", },
+      3 : {DE : "Weiche steht links max 15", },
+  }},
+  "StraBahnWSig_06_MA1" : {
+    Name : {DE : "Straba Weiche X - gerade - rechts 15", EN : "Tram Switch X - straight - right 15", FR : "Tram commutateur X - droite - à droit 15", },
+    Pos : {
+      1 : {DE : "Weiche gesperrt", },
+      2 : {DE : "Weiche steht geradeaus", },
+      3 : {DE : "Weiche steht rechts max 15", },
+  }},
+  "StraBahnWSig_07_MA1" : {
+    Name : {DE : "Straba Weiche X - links 15 - rechts 15", EN : "Tram Switch X - left 15 - right 15", FR : "Tram commutateur X - à gauche 15 - a droit 15", },
+    Pos : {
+      1 : {DE : "Weiche gesperrt", },
+      2 : {DE : "Weiche steht links max 15", },
+      3 : {DE : "Weiche steht rechts max 15", },
+  }},
+  "StraBahnWSig_08_MA1" : {
+    Name : {DE : "Straba Weiche X - gerade - links 15 - rechts 15", EN : "Tram Switch X - straight - left 15 - right 15", FR : "Tram commutateur X - droite - à gauche 15 - a droit 15", },
+    Pos : {
+      1 : {DE : "Weiche gesperrt", },
+      2 : {DE : "Weiche steht geradeaus", },
+      3 : {DE : "Weiche steht links max 15", },
+      4 : {DE : "Weiche steht rechts max 15", },
+  }},
+  
+// Konstrukteur RI1
 
   "BUE_Gehwegschranke_li2_RI1" : {
     Name : {DE : "BUE Gehwegschranke links grau", EN : "BUE sidewalk barrier left gray", FR : "BUE barrière de trottoir gauche gris", },
@@ -2398,6 +2583,1935 @@ const Signalstellung = {
     Pos : {
       1 : {DE : "Schranke offen", EN : "Barrier open", FR : "Barrière ouverte", },
       2 : {DE : "Schranke geschlossen", EN : "Barrier closed", FR : "Barrière fermée", },
+  }},
+  "SperrSig_DS100_haeng_k_RI1" : {
+    Name : {DE : "SperrSig DS100 haengend rechts kurz", EN : "Bulky DS100 hanging right short", FR : "Suspension volumineuse DS100 droite court", },
+    Pos : {
+      1 : {DE : "Hp0 Halt!", EN : "Hp0 stop!", FR : "Arretez Hp0!", },
+      2 : {DE : "Kennlicht betrieblich ausgeschaltet", EN : "Beacon switched off operationally", FR : "Balise desactive operationnellement", },
+      3 : {DE : "Sh1 Rangierverbot aufgehoben!", EN : "Sh1 maneuvering ban lifted!", FR : "Interdiction de manouvre de Sh1 leve!", },
+      4 : {DE : "Sh1 Rangierverbot aufgehoben! - Zugfahrt", EN : "Sh1 maneuvering ban lifted! - Train ride", FR : "Interdiction de manouvre de Sh1 leve! - Voyage en train", },
+  }},
+  "SperrSig_DS100_haeng2_k_RI1" : {
+    Name : {DE : "SperrSig DS100 haengend links kurz", EN : "Bulky DS100 hanging left short", FR : "Suspension volumineuse DS100 gauche court", },
+    Pos : {
+      1 : {DE : "Hp0 Halt!", EN : "Hp0 stop!", FR : "Arretez Hp0!", },
+      2 : {DE : "Kennlicht betrieblich ausgeschaltet", EN : "Beacon switched off operationally", FR : "Balise desactive operationnellement", },
+      3 : {DE : "Sh1 Rangierverbot aufgehoben!", EN : "Sh1 maneuvering ban lifted!", FR : "Interdiction de manouvre de Sh1 leve!", },
+      4 : {DE : "Sh1 Rangierverbot aufgehoben! - Zugfahrt", EN : "Sh1 maneuvering ban lifted! - Train ride", FR : "Interdiction de manouvre de Sh1 leve! - Voyage en train", },
+  }},
+  "Zs3_Mast_Bhstg_RI1" : {
+    Name : {DE : "Zs3_Mast_Bhstg", EN : "Zs3_Mast_Bhstg", FR : "Zs3_Mast_Bhstg", },
+    Pos : {
+      1 : {DE : "Ausgeschaltet", },
+      2 : {DE : "Fahrt mit 30km/h", },
+      3 : {DE : "Fahrt mit 40km/h", },
+      4 : {DE : "Fahrt mit 50km/h", },
+      5 : {DE : "Fahrt mit 60km/h", },
+      6 : {DE : "Fahrt mit 70km/h", },
+      7 : {DE : "Fahrt mit 80km/h", },
+      8 : {DE : "Fahrt mit 90km/h", },
+      9 : {DE : "Fahrt mit 100km/h", },
+  }},
+  "Zs3_Mast_RI1" : {
+    Name : {DE : "Zs3_Mast", EN : "Zs3_Mast", FR : "Zs3_Mast", },
+    Pos : {
+      1 : {DE : "Ausgeschaltet", },
+      2 : {DE : "Fahrt mit 30km/h", },
+      3 : {DE : "Fahrt mit 40km/h", },
+      4 : {DE : "Fahrt mit 50km/h", },
+      5 : {DE : "Fahrt mit 60km/h", },
+      6 : {DE : "Fahrt mit 70km/h", },
+      7 : {DE : "Fahrt mit 80km/h", },
+      8 : {DE : "Fahrt mit 90km/h", },
+      9 : {DE : "Fahrt mit 100km/h", },
+  }},
+
+// Konstrukteur RL2
+
+  "Bue0_Bue1_DB_EpIII_RL2" : {
+    Name : {DE : "Bue0_Bue1_DB_EpIII_RL2", EN : "Bue0_Bue1_DB_EpIII_RL2", FR : "Bue0_Bue1_DB_EpIII_RL2", },
+    Pos : {
+      1 : {DE : "Fahrt mit 15 km/h", },
+      2 : {DE : "Fahrt", },
+  }},
+  "Schaltschrank_Sig_RL2" : {
+    Name : {DE : "Schaltschrank_Signal_01", EN : "Schaltschrank_Signal_01", FR : "Schaltschrank_Signal_01", },
+    Pos : {
+      1 : {DE : "Halt", },
+      2 : {DE : "bis 30 kmh", },
+      3 : {DE : "min 50 kmh", },
+  }},
+  "SpDrS60_Sig_Merk_N_RL2" : {
+    Name : {DE : "SpDrS60_Sig_Merk_N", EN : "SpDrS60_Sig_Merk_N", FR : "SpDrS60_Sig_Merk_N", },
+    Pos : {
+      1 : {DE : "Off", },
+      2 : {DE : "On", },
+      3 : {DE : "Blink", },
+  }},
+  
+// Konstrukteur SM2
+  
+  "Schranke2_SM2" : { 
+	Name : {DE : "Eisenbahnschranke 2", }, 
+	Pos : { 
+		1 : {DE : "Fahrt", }, 
+		2 : {DE : "Halt", }, 
+	}},
+  
+// Konstrukteur SW1
+
+  "Bremsprobesignal1_SW1" : {
+    Name : {DE : "Bremsprobe(Bogen-rechts)_SW1", EN : "Bremsprobe(Bogen-rechts)_SW1", FR : "Bremsprobe(Bogen-rechts)_SW1", },
+    Pos : {
+      1 : {DE : "aus", },
+      2 : {DE : "Bremse anlegen (ZP6)", },
+      3 : {DE : "Bremse lösen (ZP7)", },
+      4 : {DE : "Bremse OK (ZP8)", },
+  }},
+  "Bremsprobesignal2_SW1" : {
+    Name : {DE : "Bremsprobe(Stange nach rechts)_SW1", EN : "Bremsprobe(Stange nach rechts)_SW1", FR : "Bremsprobe(Stange nach rechts)_SW1", },
+    Pos : {
+      1 : {DE : "aus", },
+      2 : {DE : "Bremse anlegen (ZP6)", },
+      3 : {DE : "Bremse lösen (ZP7)", },
+      4 : {DE : "Bremse OK (ZP8)", },
+  }},
+  "Bremsprobesignal3_SW1" : {
+    Name : {DE : "Bremsprobe(Stange nach oben rechts)_SW1", EN : "Bremsprobe(Stange nach oben rechts)_SW1", FR : "Bremsprobe(Stange nach oben rechts)_SW1", },
+    Pos : {
+      1 : {DE : "aus", },
+      2 : {DE : "Bremse anlegen (ZP6)", },
+      3 : {DE : "Bremse lösen (ZP7)", },
+      4 : {DE : "Bremse OK (ZP8)", },
+  }},
+  "Bremsprobesignal4_SW1" : {
+    Name : {DE : "Bremsprobe(Bogen-links)_SW1", EN : "Bremsprobe(Bogen-links)_SW1", FR : "Bremsprobe(Bogen-links)_SW1", },
+    Pos : {
+      1 : {DE : "aus", },
+      2 : {DE : "Bremse anlegen (ZP6)", },
+      3 : {DE : "Bremse lösen (ZP7)", },
+      4 : {DE : "Bremse OK (ZP8)", },
+  }},
+  "Bremsprobesignal5_SW1" : {
+    Name : {DE : "Bremsprobe(Stange nach links)_SW1", EN : "Bremsprobe(Stange nach links)_SW1", FR : "Bremsprobe(Stange nach links)_SW1", },
+    Pos : {
+      1 : {DE : "aus", },
+      2 : {DE : "Bremse anlegen (ZP6)", },
+      3 : {DE : "Bremse lösen (ZP7)", },
+      4 : {DE : "Bremse OK (ZP8)", },
+  }},
+  "Bremsprobesignal6_SW1" : {
+    Name : {DE : "Bremsprobe(Stange nach oben links)_SW1", EN : "Bremsprobe(Stange nach oben links)_SW1", FR : "Bremsprobe(Stange nach oben links)_SW1", },
+    Pos : {
+      1 : {DE : "aus", },
+      2 : {DE : "Bremse anlegen (ZP6)", },
+      3 : {DE : "Bremse lösen (ZP7)", },
+      4 : {DE : "Bremse OK (ZP8)", },
+  }},
+  "Laeutwerk_SW1" : {
+    Name : {DE : "Läutwerk_SW1", EN : "Läutwerk_SW1", FR : "Läutwerk_SW1", },
+    Pos : {
+      2 : {DE : "Läuten", EN : "Läuten", FR : "Läuten", },
+      3 : {DE : "Schranke mit Behang", EN : "Schranke mit Behang", FR : "Schranke mit Behang", },
+      4 : {DE : "Schranke ohne Behang", EN : "Schranke ohne Behang", FR : "Schranke ohne Behang", },
+  }},
+  "Laeutwerk2_SW1" : {
+    Name : {DE : "Läutwerk2_SW1", EN : "Läutwerk2_SW1", FR : "Läutwerk2_SW1", },
+    Pos : {
+      2 : {DE : "Läuten", EN : "Läuten", FR : "Läuten", },
+      3 : {DE : "Schranke mit Behang", EN : "Schranke mit Behang", FR : "Schranke mit Behang", },
+      4 : {DE : "Schranke ohne Behang", EN : "Schranke ohne Behang", FR : "Schranke ohne Behang", },
+  }},
+  "LeuchtendeKante_SW1" : {
+    Name : {DE : "Leuchtende Bahnsteigkante (SW1)", EN : "Glowing platform edge (SW1)", FR : "Bord de plate-forme brillant (SW1)", },
+    Pos : {
+      1 : {DE : "aus", EN : "off", FR : "en dehors", },
+      2 : {DE : "geringe Auslastung", EN : "low occupancy", FR : "faible occupation", },
+      3 : {DE : "mittlere Auslastung", EN : "medium occupancy", FR : "occupation moyenne", },
+      4 : {DE : "hohe Auslastung", EN : "high occupancy", FR : "utilisation élevée", },
+      5 : {DE : "Tür", EN : "door", FR : "porte", },
+      6 : {DE : "Zugende links", EN : "End of train on the left", FR : "Fin du train à gauche", },
+      7 : {DE : "Zugende rechts", EN : "End of train on the right", FR : "Fin du train à droite", },
+  }},
+  "SH-Signal_01_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_01_SW1", EN : "Sh-Signal(Bogen-rechts)_01_SW1", FR : "Sh-Signal(Bogen-rechts)_01_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_02_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_02_SW1", EN : "Sh-Signal(Bogen-rechts)_02_SW1", FR : "Sh-Signal(Bogen-rechts)_02_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_03_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_03_SW1", EN : "Sh-Signal(Bogen-rechts)_03_SW1", FR : "Sh-Signal(Bogen-rechts)_03_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_04_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_04_SW1", EN : "Sh-Signal(Bogen-rechts)_04_SW1", FR : "Sh-Signal(Bogen-rechts)_04_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_05_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_05_SW1", EN : "Sh-Signal(Bogen-rechts)_05_SW1", FR : "Sh-Signal(Bogen-rechts)_05_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_06_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_06_SW1", EN : "Sh-Signal(Bogen-rechts)_06_SW1", FR : "Sh-Signal(Bogen-rechts)_06_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_07_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_07_SW1", EN : "Sh-Signal(Bogen-rechts)_07_SW1", FR : "Sh-Signal(Bogen-rechts)_07_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_08_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_08_SW1", EN : "Sh-Signal(Bogen-rechts)_08_SW1", FR : "Sh-Signal(Bogen-rechts)_08_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_09_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_09_SW1", EN : "Sh-Signal(Bogen-rechts)_09_SW1", FR : "Sh-Signal(Bogen-rechts)_09_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_10_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_10_SW1", EN : "Sh-Signal(Bogen-rechts)_10_SW1", FR : "Sh-Signal(Bogen-rechts)_10_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_11_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_11_SW1", EN : "Sh-Signal(Bogen-rechts)_11_SW1", FR : "Sh-Signal(Bogen-rechts)_11_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_12_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_12_SW1", EN : "Sh-Signal(Bogen-rechts)_12_SW1", FR : "Sh-Signal(Bogen-rechts)_12_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_13_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_13_SW1", EN : "Sh-Signal(Bogen-rechts)_13_SW1", FR : "Sh-Signal(Bogen-rechts)_13_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_14_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_14_SW1", EN : "Sh-Signal(Bogen-rechts)_14_SW1", FR : "Sh-Signal(Bogen-rechts)_14_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_15_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_15_SW1", EN : "Sh-Signal(Bogen-rechts)_15_SW1", FR : "Sh-Signal(Bogen-rechts)_15_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_16_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_16_SW1", EN : "Sh-Signal(Bogen-rechts)_16_SW1", FR : "Sh-Signal(Bogen-rechts)_16_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_17_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_17_SW1", EN : "Sh-Signal(Bogen-rechts)_17_SW1", FR : "Sh-Signal(Bogen-rechts)_17_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_18_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_18_SW1", EN : "Sh-Signal(Bogen-rechts)_18_SW1", FR : "Sh-Signal(Bogen-rechts)_18_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_19_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_19_SW1", EN : "Sh-Signal(Bogen-rechts)_19_SW1", FR : "Sh-Signal(Bogen-rechts)_19_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_20_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_20_SW1", EN : "Sh-Signal(Bogen-rechts)_20_SW1", FR : "Sh-Signal(Bogen-rechts)_20_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_21_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_21_SW1", EN : "Sh-Signal(Bogen-rechts)_21_SW1", FR : "Sh-Signal(Bogen-rechts)_21_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_22_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_22_SW1", EN : "Sh-Signal(Bogen-rechts)_22_SW1", FR : "Sh-Signal(Bogen-rechts)_22_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_23_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_23_SW1", EN : "Sh-Signal(Bogen-rechts)_23_SW1", FR : "Sh-Signal(Bogen-rechts)_23_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_24_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_24_SW1", EN : "Sh-Signal(Bogen-rechts)_24_SW1", FR : "Sh-Signal(Bogen-rechts)_24_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_25_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_25_SW1", EN : "Sh-Signal(Bogen-rechts)_25_SW1", FR : "Sh-Signal(Bogen-rechts)_25_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_26_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_26_SW1", EN : "Sh-Signal(Bogen-rechts)_26_SW1", FR : "Sh-Signal(Bogen-rechts)_26_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_27_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_27_SW1", EN : "Sh-Signal(Bogen-rechts)_27_SW1", FR : "Sh-Signal(Bogen-rechts)_27_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_28_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_28_SW1", EN : "Sh-Signal(Bogen-rechts)_28_SW1", FR : "Sh-Signal(Bogen-rechts)_28_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_29_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_29_SW1", EN : "Sh-Signal(Bogen-rechts)_29_SW1", FR : "Sh-Signal(Bogen-rechts)_29_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_30_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_30_SW1", EN : "Sh-Signal(Bogen-rechts)_30_SW1", FR : "Sh-Signal(Bogen-rechts)_30_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_31_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_31_SW1", EN : "Sh-Signal(Bogen-rechts)_31_SW1", FR : "Sh-Signal(Bogen-rechts)_31_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_32_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_32_SW1", EN : "Sh-Signal(Bogen-rechts)_32_SW1", FR : "Sh-Signal(Bogen-rechts)_32_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_33_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_33_SW1", EN : "Sh-Signal(Bogen-rechts)_33_SW1", FR : "Sh-Signal(Bogen-rechts)_33_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_34_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_34_SW1", EN : "Sh-Signal(Bogen-rechts)_34_SW1", FR : "Sh-Signal(Bogen-rechts)_34_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_35_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_35_SW1", EN : "Sh-Signal(Bogen-rechts)_35_SW1", FR : "Sh-Signal(Bogen-rechts)_35_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_36_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_36_SW1", EN : "Sh-Signal(Bogen-rechts)_36_SW1", FR : "Sh-Signal(Bogen-rechts)_36_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_37_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_37_SW1", EN : "Sh-Signal(Bogen-rechts)_37_SW1", FR : "Sh-Signal(Bogen-rechts)_37_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_38_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_38_SW1", EN : "Sh-Signal(Bogen-rechts)_38_SW1", FR : "Sh-Signal(Bogen-rechts)_38_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_39_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_39_SW1", EN : "Sh-Signal(Bogen-rechts)_39_SW1", FR : "Sh-Signal(Bogen-rechts)_39_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_40_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_40_SW1", EN : "Sh-Signal(Bogen-rechts)_40_SW1", FR : "Sh-Signal(Bogen-rechts)_40_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_41_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_41_SW1", EN : "Sh-Signal(Bogen-rechts)_41_SW1", FR : "Sh-Signal(Bogen-rechts)_41_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_42_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_42_SW1", EN : "Sh-Signal(Bogen-rechts)_42_SW1", FR : "Sh-Signal(Bogen-rechts)_42_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_43_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_43_SW1", EN : "Sh-Signal(Bogen-rechts)_43_SW1", FR : "Sh-Signal(Bogen-rechts)_43_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_44_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_44_SW1", EN : "Sh-Signal(Bogen-rechts)_44_SW1", FR : "Sh-Signal(Bogen-rechts)_44_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_45_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_45_SW1", EN : "Sh-Signal(Bogen-rechts)_45_SW1", FR : "Sh-Signal(Bogen-rechts)_45_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_46_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_46_SW1", EN : "Sh-Signal(Bogen-rechts)_46_SW1", FR : "Sh-Signal(Bogen-rechts)_46_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_47_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_47_SW1", EN : "Sh-Signal(Bogen-rechts)_47_SW1", FR : "Sh-Signal(Bogen-rechts)_47_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_48_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_48_SW1", EN : "Sh-Signal(Bogen-rechts)_48_SW1", FR : "Sh-Signal(Bogen-rechts)_48_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal_49_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-rechts)_49_SW1", EN : "Sh-Signal(Bogen-rechts)_49_SW1", FR : "Sh-Signal(Bogen-rechts)_49_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_01_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_01_SW1", EN : "Sh-Signal(Bogen-links)_01_SW1", FR : "Sh-Signal(Bogen-links)_01_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_02_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_02_SW1", EN : "Sh-Signal(Bogen-links)_02_SW1", FR : "Sh-Signal(Bogen-links)_02_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_03_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_03_SW1", EN : "Sh-Signal(Bogen-links)_03_SW1", FR : "Sh-Signal(Bogen-links)_03_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_04_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_04_SW1", EN : "Sh-Signal(Bogen-links)_04_SW1", FR : "Sh-Signal(Bogen-links)_04_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_05_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_05_SW1", EN : "Sh-Signal(Bogen-links)_05_SW1", FR : "Sh-Signal(Bogen-links)_05_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_06_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_06_SW1", EN : "Sh-Signal(Bogen-links)_06_SW1", FR : "Sh-Signal(Bogen-links)_06_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_07_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_07_SW1", EN : "Sh-Signal(Bogen-links)_07_SW1", FR : "Sh-Signal(Bogen-links)_07_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_08_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_08_SW1", EN : "Sh-Signal(Bogen-links)_08_SW1", FR : "Sh-Signal(Bogen-links)_08_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_09_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_09_SW1", EN : "Sh-Signal(Bogen-links)_09_SW1", FR : "Sh-Signal(Bogen-links)_09_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_10_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_10_SW1", EN : "Sh-Signal(Bogen-links)_10_SW1", FR : "Sh-Signal(Bogen-links)_10_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_11_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_11_SW1", EN : "Sh-Signal(Bogen-links)_11_SW1", FR : "Sh-Signal(Bogen-links)_11_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_12_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_12_SW1", EN : "Sh-Signal(Bogen-links)_12_SW1", FR : "Sh-Signal(Bogen-links)_12_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_13_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_13_SW1", EN : "Sh-Signal(Bogen-links)_13_SW1", FR : "Sh-Signal(Bogen-links)_13_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_14_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_14_SW1", EN : "Sh-Signal(Bogen-links)_14_SW1", FR : "Sh-Signal(Bogen-links)_14_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_15_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_15_SW1", EN : "Sh-Signal(Bogen-links)_15_SW1", FR : "Sh-Signal(Bogen-links)_15_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_16_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_16_SW1", EN : "Sh-Signal(Bogen-links)_16_SW1", FR : "Sh-Signal(Bogen-links)_16_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_17_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_17_SW1", EN : "Sh-Signal(Bogen-links)_17_SW1", FR : "Sh-Signal(Bogen-links)_17_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_18_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_18_SW1", EN : "Sh-Signal(Bogen-links)_18_SW1", FR : "Sh-Signal(Bogen-links)_18_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_19_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_19_SW1", EN : "Sh-Signal(Bogen-links)_19_SW1", FR : "Sh-Signal(Bogen-links)_19_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_20_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_20_SW1", EN : "Sh-Signal(Bogen-links)_20_SW1", FR : "Sh-Signal(Bogen-links)_20_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_21_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_21_SW1", EN : "Sh-Signal(Bogen-links)_21_SW1", FR : "Sh-Signal(Bogen-links)_21_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_22_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_22_SW1", EN : "Sh-Signal(Bogen-links)_22_SW1", FR : "Sh-Signal(Bogen-links)_22_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_23_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_23_SW1", EN : "Sh-Signal(Bogen-links)_23_SW1", FR : "Sh-Signal(Bogen-links)_23_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_24_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_24_SW1", EN : "Sh-Signal(Bogen-links)_24_SW1", FR : "Sh-Signal(Bogen-links)_24_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_25_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_25_SW1", EN : "Sh-Signal(Bogen-links)_25_SW1", FR : "Sh-Signal(Bogen-links)_25_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_26_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_26_SW1", EN : "Sh-Signal(Bogen-links)_26_SW1", FR : "Sh-Signal(Bogen-links)_26_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_27_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_27_SW1", EN : "Sh-Signal(Bogen-links)_27_SW1", FR : "Sh-Signal(Bogen-links)_27_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_28_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_28_SW1", EN : "Sh-Signal(Bogen-links)_28_SW1", FR : "Sh-Signal(Bogen-links)_28_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_29_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_29_SW1", EN : "Sh-Signal(Bogen-links)_29_SW1", FR : "Sh-Signal(Bogen-links)_29_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_30_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_30_SW1", EN : "Sh-Signal(Bogen-links)_30_SW1", FR : "Sh-Signal(Bogen-links)_30_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_31_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_31_SW1", EN : "Sh-Signal(Bogen-links)_31_SW1", FR : "Sh-Signal(Bogen-links)_31_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_32_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_32_SW1", EN : "Sh-Signal(Bogen-links)_32_SW1", FR : "Sh-Signal(Bogen-links)_32_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_33_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_33_SW1", EN : "Sh-Signal(Bogen-links)_33_SW1", FR : "Sh-Signal(Bogen-links)_33_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_34_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_34_SW1", EN : "Sh-Signal(Bogen-links)_34_SW1", FR : "Sh-Signal(Bogen-links)_34_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_35_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_35_SW1", EN : "Sh-Signal(Bogen-links)_35_SW1", FR : "Sh-Signal(Bogen-links)_35_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_36_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_36_SW1", EN : "Sh-Signal(Bogen-links)_36_SW1", FR : "Sh-Signal(Bogen-links)_36_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_37_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_37_SW1", EN : "Sh-Signal(Bogen-links)_37_SW1", FR : "Sh-Signal(Bogen-links)_37_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_38_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_38_SW1", EN : "Sh-Signal(Bogen-links)_38_SW1", FR : "Sh-Signal(Bogen-links)_38_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_39_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_39_SW1", EN : "Sh-Signal(Bogen-links)_39_SW1", FR : "Sh-Signal(Bogen-links)_39_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_40_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_40_SW1", EN : "Sh-Signal(Bogen-links)_40_SW1", FR : "Sh-Signal(Bogen-links)_40_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_41_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_41_SW1", EN : "Sh-Signal(Bogen-links)_41_SW1", FR : "Sh-Signal(Bogen-links)_41_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_42_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_42_SW1", EN : "Sh-Signal(Bogen-links)_42_SW1", FR : "Sh-Signal(Bogen-links)_42_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_43_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_43_SW1", EN : "Sh-Signal(Bogen-links)_43_SW1", FR : "Sh-Signal(Bogen-links)_43_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_44_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_44_SW1", EN : "Sh-Signal(Bogen-links)_44_SW1", FR : "Sh-Signal(Bogen-links)_44_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_45_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_45_SW1", EN : "Sh-Signal(Bogen-links)_45_SW1", FR : "Sh-Signal(Bogen-links)_45_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_46_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_46_SW1", EN : "Sh-Signal(Bogen-links)_46_SW1", FR : "Sh-Signal(Bogen-links)_46_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_47_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_47_SW1", EN : "Sh-Signal(Bogen-links)_47_SW1", FR : "Sh-Signal(Bogen-links)_47_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_48_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_48_SW1", EN : "Sh-Signal(Bogen-links)_48_SW1", FR : "Sh-Signal(Bogen-links)_48_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal2_49_SW1" : {
+    Name : {DE : "Sh-Signal(Bogen-links)_49_SW1", EN : "Sh-Signal(Bogen-links)_49_SW1", FR : "Sh-Signal(Bogen-links)_49_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_01_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_01_SW1", EN : "Sh-Signal(Aufhängung-rechts)_01_SW1", FR : "Sh-Signal(Aufhängung-rechts)_01_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_02_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_02_SW1", EN : "Sh-Signal(Aufhängung-rechts)_02_SW1", FR : "Sh-Signal(Aufhängung-rechts)_02_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_03_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_03_SW1", EN : "Sh-Signal(Aufhängung-rechts)_03_SW1", FR : "Sh-Signal(Aufhängung-rechts)_03_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_04_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_04_SW1", EN : "Sh-Signal(Aufhängung-rechts)_04_SW1", FR : "Sh-Signal(Aufhängung-rechts)_04_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_05_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_05_SW1", EN : "Sh-Signal(Aufhängung-rechts)_05_SW1", FR : "Sh-Signal(Aufhängung-rechts)_05_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_06_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_06_SW1", EN : "Sh-Signal(Aufhängung-rechts)_06_SW1", FR : "Sh-Signal(Aufhängung-rechts)_06_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_07_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_07_SW1", EN : "Sh-Signal(Aufhängung-rechts)_07_SW1", FR : "Sh-Signal(Aufhängung-rechts)_07_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_08_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_08_SW1", EN : "Sh-Signal(Aufhängung-rechts)_08_SW1", FR : "Sh-Signal(Aufhängung-rechts)_08_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_09_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_09_SW1", EN : "Sh-Signal(Aufhängung-rechts)_09_SW1", FR : "Sh-Signal(Aufhängung-rechts)_09_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_10_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_10_SW1", EN : "Sh-Signal(Aufhängung-rechts)_10_SW1", FR : "Sh-Signal(Aufhängung-rechts)_10_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_11_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_11_SW1", EN : "Sh-Signal(Aufhängung-rechts)_11_SW1", FR : "Sh-Signal(Aufhängung-rechts)_11_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_12_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_12_SW1", EN : "Sh-Signal(Aufhängung-rechts)_12_SW1", FR : "Sh-Signal(Aufhängung-rechts)_12_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_13_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_13_SW1", EN : "Sh-Signal(Aufhängung-rechts)_13_SW1", FR : "Sh-Signal(Aufhängung-rechts)_13_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_14_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_14_SW1", EN : "Sh-Signal(Aufhängung-rechts)_14_SW1", FR : "Sh-Signal(Aufhängung-rechts)_14_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_15_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_15_SW1", EN : "Sh-Signal(Aufhängung-rechts)_15_SW1", FR : "Sh-Signal(Aufhängung-rechts)_15_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_16_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_16_SW1", EN : "Sh-Signal(Aufhängung-rechts)_16_SW1", FR : "Sh-Signal(Aufhängung-rechts)_16_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_17_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_17_SW1", EN : "Sh-Signal(Aufhängung-rechts)_17_SW1", FR : "Sh-Signal(Aufhängung-rechts)_17_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_18_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_18_SW1", EN : "Sh-Signal(Aufhängung-rechts)_18_SW1", FR : "Sh-Signal(Aufhängung-rechts)_18_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_19_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_19_SW1", EN : "Sh-Signal(Aufhängung-rechts)_19_SW1", FR : "Sh-Signal(Aufhängung-rechts)_19_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_20_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_20_SW1", EN : "Sh-Signal(Aufhängung-rechts)_20_SW1", FR : "Sh-Signal(Aufhängung-rechts)_20_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_21_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_21_SW1", EN : "Sh-Signal(Aufhängung-rechts)_21_SW1", FR : "Sh-Signal(Aufhängung-rechts)_21_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_22_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_22_SW1", EN : "Sh-Signal(Aufhängung-rechts)_22_SW1", FR : "Sh-Signal(Aufhängung-rechts)_22_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_23_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_23_SW1", EN : "Sh-Signal(Aufhängung-rechts)_23_SW1", FR : "Sh-Signal(Aufhängung-rechts)_23_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_24_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_24_SW1", EN : "Sh-Signal(Aufhängung-rechts)_24_SW1", FR : "Sh-Signal(Aufhängung-rechts)_24_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_25_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_25_SW1", EN : "Sh-Signal(Aufhängung-rechts)_25_SW1", FR : "Sh-Signal(Aufhängung-rechts)_25_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_26_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_26_SW1", EN : "Sh-Signal(Aufhängung-rechts)_26_SW1", FR : "Sh-Signal(Aufhängung-rechts)_26_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_27_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_27_SW1", EN : "Sh-Signal(Aufhängung-rechts)_27_SW1", FR : "Sh-Signal(Aufhängung-rechts)_27_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_28_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_28_SW1", EN : "Sh-Signal(Aufhängung-rechts)_28_SW1", FR : "Sh-Signal(Aufhängung-rechts)_28_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_29_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_29_SW1", EN : "Sh-Signal(Aufhängung-rechts)_29_SW1", FR : "Sh-Signal(Aufhängung-rechts)_29_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_30_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_30_SW1", EN : "Sh-Signal(Aufhängung-rechts)_30_SW1", FR : "Sh-Signal(Aufhängung-rechts)_30_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_31_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_31_SW1", EN : "Sh-Signal(Aufhängung-rechts)_31_SW1", FR : "Sh-Signal(Aufhängung-rechts)_31_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_32_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_32_SW1", EN : "Sh-Signal(Aufhängung-rechts)_32_SW1", FR : "Sh-Signal(Aufhängung-rechts)_32_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_33_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_33_SW1", EN : "Sh-Signal(Aufhängung-rechts)_33_SW1", FR : "Sh-Signal(Aufhängung-rechts)_33_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_34_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_34_SW1", EN : "Sh-Signal(Aufhängung-rechts)_34_SW1", FR : "Sh-Signal(Aufhängung-rechts)_34_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_35_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_35_SW1", EN : "Sh-Signal(Aufhängung-rechts)_35_SW1", FR : "Sh-Signal(Aufhängung-rechts)_35_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_36_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_36_SW1", EN : "Sh-Signal(Aufhängung-rechts)_36_SW1", FR : "Sh-Signal(Aufhängung-rechts)_36_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_37_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_37_SW1", EN : "Sh-Signal(Aufhängung-rechts)_37_SW1", FR : "Sh-Signal(Aufhängung-rechts)_37_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_38_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_38_SW1", EN : "Sh-Signal(Aufhängung-rechts)_38_SW1", FR : "Sh-Signal(Aufhängung-rechts)_38_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_39_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_39_SW1", EN : "Sh-Signal(Aufhängung-rechts)_39_SW1", FR : "Sh-Signal(Aufhängung-rechts)_39_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_40_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_40_SW1", EN : "Sh-Signal(Aufhängung-rechts)_40_SW1", FR : "Sh-Signal(Aufhängung-rechts)_40_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_41_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_41_SW1", EN : "Sh-Signal(Aufhängung-rechts)_41_SW1", FR : "Sh-Signal(Aufhängung-rechts)_41_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_42_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_42_SW1", EN : "Sh-Signal(Aufhängung-rechts)_42_SW1", FR : "Sh-Signal(Aufhängung-rechts)_42_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_43_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_43_SW1", EN : "Sh-Signal(Aufhängung-rechts)_43_SW1", FR : "Sh-Signal(Aufhängung-rechts)_43_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_44_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_44_SW1", EN : "Sh-Signal(Aufhängung-rechts)_44_SW1", FR : "Sh-Signal(Aufhängung-rechts)_44_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_45_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_45_SW1", EN : "Sh-Signal(Aufhängung-rechts)_45_SW1", FR : "Sh-Signal(Aufhängung-rechts)_45_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_46_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_46_SW1", EN : "Sh-Signal(Aufhängung-rechts)_46_SW1", FR : "Sh-Signal(Aufhängung-rechts)_46_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_47_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_47_SW1", EN : "Sh-Signal(Aufhängung-rechts)_47_SW1", FR : "Sh-Signal(Aufhängung-rechts)_47_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_48_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_48_SW1", EN : "Sh-Signal(Aufhängung-rechts)_48_SW1", FR : "Sh-Signal(Aufhängung-rechts)_48_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal3_49_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-rechts)_49_SW1", EN : "Sh-Signal(Aufhängung-rechts)_49_SW1", FR : "Sh-Signal(Aufhängung-rechts)_49_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_01_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_01_SW1", EN : "Sh-Signal(Aufhängung-links)_01_SW1", FR : "Sh-Signal(Aufhängung-links)_01_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_02_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_02_SW1", EN : "Sh-Signal(Aufhängung-links)_02_SW1", FR : "Sh-Signal(Aufhängung-links)_02_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_03_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_03_SW1", EN : "Sh-Signal(Aufhängung-links)_03_SW1", FR : "Sh-Signal(Aufhängung-links)_03_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_04_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_04_SW1", EN : "Sh-Signal(Aufhängung-links)_04_SW1", FR : "Sh-Signal(Aufhängung-links)_04_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_05_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_05_SW1", EN : "Sh-Signal(Aufhängung-links)_05_SW1", FR : "Sh-Signal(Aufhängung-links)_05_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_06_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_06_SW1", EN : "Sh-Signal(Aufhängung-links)_06_SW1", FR : "Sh-Signal(Aufhängung-links)_06_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_07_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_07_SW1", EN : "Sh-Signal(Aufhängung-links)_07_SW1", FR : "Sh-Signal(Aufhängung-links)_07_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_08_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_08_SW1", EN : "Sh-Signal(Aufhängung-links)_08_SW1", FR : "Sh-Signal(Aufhängung-links)_08_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_09_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_09_SW1", EN : "Sh-Signal(Aufhängung-links)_09_SW1", FR : "Sh-Signal(Aufhängung-links)_09_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_10_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_10_SW1", EN : "Sh-Signal(Aufhängung-links)_10_SW1", FR : "Sh-Signal(Aufhängung-links)_10_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_11_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_11_SW1", EN : "Sh-Signal(Aufhängung-links)_11_SW1", FR : "Sh-Signal(Aufhängung-links)_11_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_12_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_12_SW1", EN : "Sh-Signal(Aufhängung-links)_12_SW1", FR : "Sh-Signal(Aufhängung-links)_12_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_13_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_13_SW1", EN : "Sh-Signal(Aufhängung-links)_13_SW1", FR : "Sh-Signal(Aufhängung-links)_13_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_14_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_14_SW1", EN : "Sh-Signal(Aufhängung-links)_14_SW1", FR : "Sh-Signal(Aufhängung-links)_14_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_15_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_15_SW1", EN : "Sh-Signal(Aufhängung-links)_15_SW1", FR : "Sh-Signal(Aufhängung-links)_15_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_16_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_16_SW1", EN : "Sh-Signal(Aufhängung-links)_16_SW1", FR : "Sh-Signal(Aufhängung-links)_16_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_17_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_17_SW1", EN : "Sh-Signal(Aufhängung-links)_17_SW1", FR : "Sh-Signal(Aufhängung-links)_17_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_18_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_18_SW1", EN : "Sh-Signal(Aufhängung-links)_18_SW1", FR : "Sh-Signal(Aufhängung-links)_18_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_19_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_19_SW1", EN : "Sh-Signal(Aufhängung-links)_19_SW1", FR : "Sh-Signal(Aufhängung-links)_19_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_20_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_20_SW1", EN : "Sh-Signal(Aufhängung-links)_20_SW1", FR : "Sh-Signal(Aufhängung-links)_20_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_21_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_21_SW1", EN : "Sh-Signal(Aufhängung-links)_21_SW1", FR : "Sh-Signal(Aufhängung-links)_21_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_22_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_22_SW1", EN : "Sh-Signal(Aufhängung-links)_22_SW1", FR : "Sh-Signal(Aufhängung-links)_22_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_23_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_23_SW1", EN : "Sh-Signal(Aufhängung-links)_23_SW1", FR : "Sh-Signal(Aufhängung-links)_23_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_24_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_24_SW1", EN : "Sh-Signal(Aufhängung-links)_24_SW1", FR : "Sh-Signal(Aufhängung-links)_24_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_25_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_25_SW1", EN : "Sh-Signal(Aufhängung-links)_25_SW1", FR : "Sh-Signal(Aufhängung-links)_25_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_26_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_26_SW1", EN : "Sh-Signal(Aufhängung-links)_26_SW1", FR : "Sh-Signal(Aufhängung-links)_26_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_27_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_27_SW1", EN : "Sh-Signal(Aufhängung-links)_27_SW1", FR : "Sh-Signal(Aufhängung-links)_27_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_28_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_28_SW1", EN : "Sh-Signal(Aufhängung-links)_28_SW1", FR : "Sh-Signal(Aufhängung-links)_28_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_29_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_29_SW1", EN : "Sh-Signal(Aufhängung-links)_29_SW1", FR : "Sh-Signal(Aufhängung-links)_29_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_30_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_30_SW1", EN : "Sh-Signal(Aufhängung-links)_30_SW1", FR : "Sh-Signal(Aufhängung-links)_30_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_31_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_31_SW1", EN : "Sh-Signal(Aufhängung-links)_31_SW1", FR : "Sh-Signal(Aufhängung-links)_31_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_32_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_32_SW1", EN : "Sh-Signal(Aufhängung-links)_32_SW1", FR : "Sh-Signal(Aufhängung-links)_32_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_33_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_33_SW1", EN : "Sh-Signal(Aufhängung-links)_33_SW1", FR : "Sh-Signal(Aufhängung-links)_33_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_34_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_34_SW1", EN : "Sh-Signal(Aufhängung-links)_34_SW1", FR : "Sh-Signal(Aufhängung-links)_34_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_35_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_35_SW1", EN : "Sh-Signal(Aufhängung-links)_35_SW1", FR : "Sh-Signal(Aufhängung-links)_35_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_36_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_36_SW1", EN : "Sh-Signal(Aufhängung-links)_36_SW1", FR : "Sh-Signal(Aufhängung-links)_36_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_37_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_37_SW1", EN : "Sh-Signal(Aufhängung-links)_37_SW1", FR : "Sh-Signal(Aufhängung-links)_37_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_38_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_38_SW1", EN : "Sh-Signal(Aufhängung-links)_38_SW1", FR : "Sh-Signal(Aufhängung-links)_38_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_39_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_39_SW1", EN : "Sh-Signal(Aufhängung-links)_39_SW1", FR : "Sh-Signal(Aufhängung-links)_39_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_40_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_40_SW1", EN : "Sh-Signal(Aufhängung-links)_40_SW1", FR : "Sh-Signal(Aufhängung-links)_40_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_41_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_41_SW1", EN : "Sh-Signal(Aufhängung-links)_41_SW1", FR : "Sh-Signal(Aufhängung-links)_41_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_42_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_42_SW1", EN : "Sh-Signal(Aufhängung-links)_42_SW1", FR : "Sh-Signal(Aufhängung-links)_42_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_43_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_43_SW1", EN : "Sh-Signal(Aufhängung-links)_43_SW1", FR : "Sh-Signal(Aufhängung-links)_43_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_44_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_44_SW1", EN : "Sh-Signal(Aufhängung-links)_44_SW1", FR : "Sh-Signal(Aufhängung-links)_44_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_45_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_45_SW1", EN : "Sh-Signal(Aufhängung-links)_45_SW1", FR : "Sh-Signal(Aufhängung-links)_45_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_46_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_46_SW1", EN : "Sh-Signal(Aufhängung-links)_46_SW1", FR : "Sh-Signal(Aufhängung-links)_46_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_47_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_47_SW1", EN : "Sh-Signal(Aufhängung-links)_47_SW1", FR : "Sh-Signal(Aufhängung-links)_47_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_48_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_48_SW1", EN : "Sh-Signal(Aufhängung-links)_48_SW1", FR : "Sh-Signal(Aufhängung-links)_48_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal4_49_SW1" : {
+    Name : {DE : "Sh-Signal(Aufhängung-links)_49_SW1", EN : "Sh-Signal(Aufhängung-links)_49_SW1", FR : "Sh-Signal(Aufhängung-links)_49_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_01_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_01_SW1", EN : "Sh-Signal(hoch)_01_SW1", FR : "Sh-Signal(hoch)_01_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_02_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_02_SW1", EN : "Sh-Signal(hoch)_02_SW1", FR : "Sh-Signal(hoch)_02_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_03_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_03_SW1", EN : "Sh-Signal(hoch)_03_SW1", FR : "Sh-Signal(hoch)_03_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_04_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_04_SW1", EN : "Sh-Signal(hoch)_04_SW1", FR : "Sh-Signal(hoch)_04_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_05_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_05_SW1", EN : "Sh-Signal(hoch)_05_SW1", FR : "Sh-Signal(hoch)_05_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_06_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_06_SW1", EN : "Sh-Signal(hoch)_06_SW1", FR : "Sh-Signal(hoch)_06_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_07_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_07_SW1", EN : "Sh-Signal(hoch)_07_SW1", FR : "Sh-Signal(hoch)_07_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_08_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_08_SW1", EN : "Sh-Signal(hoch)_08_SW1", FR : "Sh-Signal(hoch)_08_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_09_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_09_SW1", EN : "Sh-Signal(hoch)_09_SW1", FR : "Sh-Signal(hoch)_09_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_10_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_10_SW1", EN : "Sh-Signal(hoch)_10_SW1", FR : "Sh-Signal(hoch)_10_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_11_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_11_SW1", EN : "Sh-Signal(hoch)_11_SW1", FR : "Sh-Signal(hoch)_11_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_12_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_12_SW1", EN : "Sh-Signal(hoch)_12_SW1", FR : "Sh-Signal(hoch)_12_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_13_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_13_SW1", EN : "Sh-Signal(hoch)_13_SW1", FR : "Sh-Signal(hoch)_13_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_14_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_14_SW1", EN : "Sh-Signal(hoch)_14_SW1", FR : "Sh-Signal(hoch)_14_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_15_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_15_SW1", EN : "Sh-Signal(hoch)_15_SW1", FR : "Sh-Signal(hoch)_15_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_16_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_16_SW1", EN : "Sh-Signal(hoch)_16_SW1", FR : "Sh-Signal(hoch)_16_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_17_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_17_SW1", EN : "Sh-Signal(hoch)_17_SW1", FR : "Sh-Signal(hoch)_17_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_18_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_18_SW1", EN : "Sh-Signal(hoch)_18_SW1", FR : "Sh-Signal(hoch)_18_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_19_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_19_SW1", EN : "Sh-Signal(hoch)_19_SW1", FR : "Sh-Signal(hoch)_19_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_20_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_20_SW1", EN : "Sh-Signal(hoch)_20_SW1", FR : "Sh-Signal(hoch)_20_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_21_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_21_SW1", EN : "Sh-Signal(hoch)_21_SW1", FR : "Sh-Signal(hoch)_21_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_22_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_22_SW1", EN : "Sh-Signal(hoch)_22_SW1", FR : "Sh-Signal(hoch)_22_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_23_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_23_SW1", EN : "Sh-Signal(hoch)_23_SW1", FR : "Sh-Signal(hoch)_23_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_24_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_24_SW1", EN : "Sh-Signal(hoch)_24_SW1", FR : "Sh-Signal(hoch)_24_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_25_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_25_SW1", EN : "Sh-Signal(hoch)_25_SW1", FR : "Sh-Signal(hoch)_25_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_26_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_26_SW1", EN : "Sh-Signal(hoch)_26_SW1", FR : "Sh-Signal(hoch)_26_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_27_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_27_SW1", EN : "Sh-Signal(hoch)_27_SW1", FR : "Sh-Signal(hoch)_27_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_28_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_28_SW1", EN : "Sh-Signal(hoch)_28_SW1", FR : "Sh-Signal(hoch)_28_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_29_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_29_SW1", EN : "Sh-Signal(hoch)_29_SW1", FR : "Sh-Signal(hoch)_29_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_30_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_30_SW1", EN : "Sh-Signal(hoch)_30_SW1", FR : "Sh-Signal(hoch)_30_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_31_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_31_SW1", EN : "Sh-Signal(hoch)_31_SW1", FR : "Sh-Signal(hoch)_31_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_32_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_32_SW1", EN : "Sh-Signal(hoch)_32_SW1", FR : "Sh-Signal(hoch)_32_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_33_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_33_SW1", EN : "Sh-Signal(hoch)_33_SW1", FR : "Sh-Signal(hoch)_33_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_34_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_34_SW1", EN : "Sh-Signal(hoch)_34_SW1", FR : "Sh-Signal(hoch)_34_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_35_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_35_SW1", EN : "Sh-Signal(hoch)_35_SW1", FR : "Sh-Signal(hoch)_35_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_36_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_36_SW1", EN : "Sh-Signal(hoch)_36_SW1", FR : "Sh-Signal(hoch)_36_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_37_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_37_SW1", EN : "Sh-Signal(hoch)_37_SW1", FR : "Sh-Signal(hoch)_37_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_38_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_38_SW1", EN : "Sh-Signal(hoch)_38_SW1", FR : "Sh-Signal(hoch)_38_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_39_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_39_SW1", EN : "Sh-Signal(hoch)_39_SW1", FR : "Sh-Signal(hoch)_39_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_40_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_40_SW1", EN : "Sh-Signal(hoch)_40_SW1", FR : "Sh-Signal(hoch)_40_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_41_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_41_SW1", EN : "Sh-Signal(hoch)_41_SW1", FR : "Sh-Signal(hoch)_41_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_42_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_42_SW1", EN : "Sh-Signal(hoch)_42_SW1", FR : "Sh-Signal(hoch)_42_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_43_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_43_SW1", EN : "Sh-Signal(hoch)_43_SW1", FR : "Sh-Signal(hoch)_43_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_44_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_44_SW1", EN : "Sh-Signal(hoch)_44_SW1", FR : "Sh-Signal(hoch)_44_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_45_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_45_SW1", EN : "Sh-Signal(hoch)_45_SW1", FR : "Sh-Signal(hoch)_45_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_46_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_46_SW1", EN : "Sh-Signal(hoch)_46_SW1", FR : "Sh-Signal(hoch)_46_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_47_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_47_SW1", EN : "Sh-Signal(hoch)_47_SW1", FR : "Sh-Signal(hoch)_47_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_48_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_48_SW1", EN : "Sh-Signal(hoch)_48_SW1", FR : "Sh-Signal(hoch)_48_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal5_49_SW1" : {
+    Name : {DE : "Sh-Signal(hoch)_49_SW1", EN : "Sh-Signal(hoch)_49_SW1", FR : "Sh-Signal(hoch)_49_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_01_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_01_SW1", EN : "Sh-Signal(Zwerg)_01_SW1", FR : "Sh-Signal(Zwerg)_01_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_02_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_02_SW1", EN : "Sh-Signal(Zwerg)_02_SW1", FR : "Sh-Signal(Zwerg)_02_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_03_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_03_SW1", EN : "Sh-Signal(Zwerg)_03_SW1", FR : "Sh-Signal(Zwerg)_03_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_04_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_04_SW1", EN : "Sh-Signal(Zwerg)_04_SW1", FR : "Sh-Signal(Zwerg)_04_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_05_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_05_SW1", EN : "Sh-Signal(Zwerg)_05_SW1", FR : "Sh-Signal(Zwerg)_05_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_06_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_06_SW1", EN : "Sh-Signal(Zwerg)_06_SW1", FR : "Sh-Signal(Zwerg)_06_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_07_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_07_SW1", EN : "Sh-Signal(Zwerg)_07_SW1", FR : "Sh-Signal(Zwerg)_07_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_08_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_08_SW1", EN : "Sh-Signal(Zwerg)_08_SW1", FR : "Sh-Signal(Zwerg)_08_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_09_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_09_SW1", EN : "Sh-Signal(Zwerg)_09_SW1", FR : "Sh-Signal(Zwerg)_09_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_10_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_10_SW1", EN : "Sh-Signal(Zwerg)_10_SW1", FR : "Sh-Signal(Zwerg)_10_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_11_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_11_SW1", EN : "Sh-Signal(Zwerg)_11_SW1", FR : "Sh-Signal(Zwerg)_11_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_12_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_12_SW1", EN : "Sh-Signal(Zwerg)_12_SW1", FR : "Sh-Signal(Zwerg)_12_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_13_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_13_SW1", EN : "Sh-Signal(Zwerg)_13_SW1", FR : "Sh-Signal(Zwerg)_13_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_14_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_14_SW1", EN : "Sh-Signal(Zwerg)_14_SW1", FR : "Sh-Signal(Zwerg)_14_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_15_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_15_SW1", EN : "Sh-Signal(Zwerg)_15_SW1", FR : "Sh-Signal(Zwerg)_15_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_16_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_16_SW1", EN : "Sh-Signal(Zwerg)_16_SW1", FR : "Sh-Signal(Zwerg)_16_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_17_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_17_SW1", EN : "Sh-Signal(Zwerg)_17_SW1", FR : "Sh-Signal(Zwerg)_17_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_18_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_18_SW1", EN : "Sh-Signal(Zwerg)_18_SW1", FR : "Sh-Signal(Zwerg)_18_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_19_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_19_SW1", EN : "Sh-Signal(Zwerg)_19_SW1", FR : "Sh-Signal(Zwerg)_19_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_20_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_20_SW1", EN : "Sh-Signal(Zwerg)_20_SW1", FR : "Sh-Signal(Zwerg)_20_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_21_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_21_SW1", EN : "Sh-Signal(Zwerg)_21_SW1", FR : "Sh-Signal(Zwerg)_21_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_22_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_22_SW1", EN : "Sh-Signal(Zwerg)_22_SW1", FR : "Sh-Signal(Zwerg)_22_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_23_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_23_SW1", EN : "Sh-Signal(Zwerg)_23_SW1", FR : "Sh-Signal(Zwerg)_23_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_24_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_24_SW1", EN : "Sh-Signal(Zwerg)_24_SW1", FR : "Sh-Signal(Zwerg)_24_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_25_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_25_SW1", EN : "Sh-Signal(Zwerg)_25_SW1", FR : "Sh-Signal(Zwerg)_25_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_26_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_26_SW1", EN : "Sh-Signal(Zwerg)_26_SW1", FR : "Sh-Signal(Zwerg)_26_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_27_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_27_SW1", EN : "Sh-Signal(Zwerg)_27_SW1", FR : "Sh-Signal(Zwerg)_27_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_28_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_28_SW1", EN : "Sh-Signal(Zwerg)_28_SW1", FR : "Sh-Signal(Zwerg)_28_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_29_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_29_SW1", EN : "Sh-Signal(Zwerg)_29_SW1", FR : "Sh-Signal(Zwerg)_29_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_30_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_30_SW1", EN : "Sh-Signal(Zwerg)_30_SW1", FR : "Sh-Signal(Zwerg)_30_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_31_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_31_SW1", EN : "Sh-Signal(Zwerg)_31_SW1", FR : "Sh-Signal(Zwerg)_31_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_32_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_32_SW1", EN : "Sh-Signal(Zwerg)_32_SW1", FR : "Sh-Signal(Zwerg)_32_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_33_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_33_SW1", EN : "Sh-Signal(Zwerg)_33_SW1", FR : "Sh-Signal(Zwerg)_33_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_34_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_34_SW1", EN : "Sh-Signal(Zwerg)_34_SW1", FR : "Sh-Signal(Zwerg)_34_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_35_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_35_SW1", EN : "Sh-Signal(Zwerg)_35_SW1", FR : "Sh-Signal(Zwerg)_35_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_36_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_36_SW1", EN : "Sh-Signal(Zwerg)_36_SW1", FR : "Sh-Signal(Zwerg)_36_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_37_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_37_SW1", EN : "Sh-Signal(Zwerg)_37_SW1", FR : "Sh-Signal(Zwerg)_37_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_38_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_38_SW1", EN : "Sh-Signal(Zwerg)_38_SW1", FR : "Sh-Signal(Zwerg)_38_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_39_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_39_SW1", EN : "Sh-Signal(Zwerg)_39_SW1", FR : "Sh-Signal(Zwerg)_39_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_40_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_40_SW1", EN : "Sh-Signal(Zwerg)_40_SW1", FR : "Sh-Signal(Zwerg)_40_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_41_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_41_SW1", EN : "Sh-Signal(Zwerg)_41_SW1", FR : "Sh-Signal(Zwerg)_41_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_42_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_42_SW1", EN : "Sh-Signal(Zwerg)_42_SW1", FR : "Sh-Signal(Zwerg)_42_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_43_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_43_SW1", EN : "Sh-Signal(Zwerg)_43_SW1", FR : "Sh-Signal(Zwerg)_43_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_44_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_44_SW1", EN : "Sh-Signal(Zwerg)_44_SW1", FR : "Sh-Signal(Zwerg)_44_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_45_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_45_SW1", EN : "Sh-Signal(Zwerg)_45_SW1", FR : "Sh-Signal(Zwerg)_45_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_46_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_46_SW1", EN : "Sh-Signal(Zwerg)_46_SW1", FR : "Sh-Signal(Zwerg)_46_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_47_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_47_SW1", EN : "Sh-Signal(Zwerg)_47_SW1", FR : "Sh-Signal(Zwerg)_47_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_48_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_48_SW1", EN : "Sh-Signal(Zwerg)_48_SW1", FR : "Sh-Signal(Zwerg)_48_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  "SH-Signal6_49_SW1" : {
+    Name : {DE : "Sh-Signal(Zwerg)_49_SW1", EN : "Sh-Signal(Zwerg)_49_SW1", FR : "Sh-Signal(Zwerg)_49_SW1", },
+    Pos : {
+      1 : {DE : "FAHRT(Sh1)", },
+      2 : {DE : "HALT(Sh0)", },
+  }},
+  
+// Konstrukteur TB1
+
+  "GlSpDR750H_TB1" : {
+    Name : {DE : "Gleissperre Hand 750mm rot TB1", EN : "Track barrier hand 750mm red TB1", FR : "Barrière de voie main 750mm rouge TB1", },
+    Pos : {
+      1 : {DE : "Fahrt gesperrt", EN : "Stop", },
+      2 : {DE : "Fahrt frei", EN : "Go", },
+  }},
+  "GlSpDR750H1_TB1" : {
+    Name : {DE : "Gleissperre Hand 750mm gelb TB1", EN : "Track barrier hand 750mm yellow TB1", FR : "Barrière de voie main 750mm jaune TB1", },
+    Pos : {
+      1 : {DE : "Fahrt gesperrt", EN : "Stop", },
+      2 : {DE : "Fahrt frei", EN : "Go", },
   }},
 
 }
