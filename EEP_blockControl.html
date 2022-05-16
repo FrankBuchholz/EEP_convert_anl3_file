@@ -369,7 +369,7 @@ blockControlChannel.onmessage = function(event) {
 				+`allowed=${varName}, ${" ".repeat(maxEEProuteLength - varName.length)}`
 				//+(train.currentSpeed != 0 ? `currentSpeed=${train.currentSpeed.toFixed(0)} ` : ``)				
 				+(train.targetSpeed  != 0 ? `speed=${train.targetSpeed.toFixed(0)} `  : ``)				
-				+`}`
+				+`},`
 			);
 		}
 		text.push("}");
