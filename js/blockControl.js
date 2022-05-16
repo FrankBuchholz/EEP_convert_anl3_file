@@ -487,8 +487,20 @@ Limitations:
 		for (const trainName in global.Zugverband[GleissystemID]) {
 			const train = global.Zugverband[GleissystemID][trainName];
 			trains.push({
-				name 		: trainName,
-				routeName	: train.routeName,
+			// train data
+				name 			: trainName,
+				routeName		: train.routeName,
+				
+				currentSpeed	: train.currentSpeed,	// km/h
+				lastDir			: train.lastDir,		// if currentSpeed is zero: currentSpeed = (lastDir == 1 ? '+0' : '-0')
+
+				targetSpeed		: train.targetSpeed,	// km/h		
+				
+				// position of train
+				GleisID			: train.GleisID,
+				position		: train.position,		// m
+				direction		: train.direction,
+				depot			: train.depot,
 			});
 		}
 //	}

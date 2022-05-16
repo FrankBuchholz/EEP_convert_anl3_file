@@ -362,7 +362,15 @@ blockControlChannel.onmessage = function(event) {
 		text.push("\nlocal trains = {");
 		for (const train of trains) {
 			const varName = EEProutes[train.routeName] || "all";
-			text.push(` { name="${train.name}",${" ".repeat(1+maxTrainLength - train.name.length)}signal=0, allowed=${varName} ${" ".repeat(maxEEProuteLength - varName.length)}},`);
+			text.push(
+				 `  { `
+				+`name="${train.name}", ${" ".repeat(maxTrainLength - train.name.length)}`
+				+`signal=0, `
+				+`allowed=${varName}, ${" ".repeat(maxEEProuteLength - varName.length)}`
+				//+(train.currentSpeed != 0 ? `currentSpeed=${train.currentSpeed.toFixed(0)} ` : ``)				
+				+(train.targetSpeed  != 0 ? `speed=${train.targetSpeed.toFixed(0)} `  : ``)				
+				+`}`
+			);
 		}
 		text.push("}");
 		

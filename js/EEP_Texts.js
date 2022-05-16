@@ -1019,6 +1019,11 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Number of driveways`,
 		FR : `Nombre d'itinéraires`,
 	},
+	'Anzahl wartender Zugverbände' : {
+		DE : `Anzahl wartender Zugverbände`, 
+		EN : `Number of waiting train sets`, 
+		FR : `Nombre de trains en attente`,
+	},
 	Breite : {	// Dimension der Anlage in x-Richtung
 		DE : `Breite`,
 		EN : `Width`,

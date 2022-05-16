@@ -211,6 +211,7 @@ function process_node(sutrackp) {
 		Signale 	= [], 	// ID (des Signals), Gleissystem, Gleis, Name, Meldung
 		Kontakte 	= [], 	// SetType, Gleissystem, Gleis, Kontakt
 		virtualConnections = [], // Gleissystem, Gleis1, Anschluss1, Gleis2, Anschluss
+		waitingTrains = [], // ID (des Zugverbandes), speed
 		Zugverbaende = new Map(),//[], 	// ID (des Zugverbandes), Name, Gleisort, Fahrzeuge
 		Rollmaterialien = [], 	// Name (des Rollmaterials), Rollmaterial, Zugverband
 		Gleisstile	 = [],	// Gleisstil, Datei, Anzahl
@@ -489,6 +490,20 @@ mit
 				// get potential sort fields
 				const SignalID	= Meldung.getAttribute('Key_Id');
 				const Name		= Meldung.getAttribute('name');
+				let countTrains = 0;
+				
+				// Signale mit wartenden Zügen 
+				for (const Wartender of Meldung.getElementsByTagName('Wartender')) {
+					countTrains += 1;
+
+					const ZugID 		= Wartender.getAttribute('zugverbandID');
+					const targetSpeed 	= +Wartender.getAttribute('sollgeschwindigkeit') * 3600 / 1000; // km/h
+
+					waitingTrains[ZugID] = {
+						SignalID		: SignalID,
+						targetSpeed		: targetSpeed,
+					};					
+				}
 
 				Signale.push({
 					ID				: Number(SignalID),  // sort fields
@@ -498,6 +513,8 @@ mit
 					GleisID			: GleisID,
 
 					Meldung 		: Meldung,
+					
+					countTrains		: countTrains,
 				});
 
 				// Signale mit KontaktZiel
@@ -967,6 +984,8 @@ mit
 	<Meldung Position="1687.619" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" clsid="D180F669-DCCC-42E9-960C-B5305B29F69D" name="ShSig_Licht_EpIV_kl" Key_Id="34" Hofs="300" Vofs="300" LockEd="0">
 		<KontaktZiel>2</KontaktZiel>
 		<Signal stellung="2" wirkungsdistanz="1000" StopAt="0" Geschwindigkeit="0" Delay="0" ActDelay="0"/>
+			<Wartender fuhrparkID="1" zugverbandID="6" sollgeschwindigkeit="13.88889"/>
+		</Signal>	
 	</Meldung>
 
 	Achtung: Fahrstrassen werden ebenfalls durch Meldungen realisiert
@@ -993,6 +1012,8 @@ mit
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 		const TipTxt	 	= Signal.Meldung.getAttribute('TipTxt');
+		
+		const countTrains	= Signal.countTrains;
 
 		// Fahrstraßen
 		const Routes		= Signal.Meldung.getAttribute('Routes');
@@ -1116,6 +1137,7 @@ mit
 		{ th : _('Kontaktziel'),		td : (KontaktZiel != 0 ? KontaktZiel : ''), },
 		{ th : _('Anzahl Fahrstraßen'),	td : Routes, },
 		{ th : _('Fahrstraßen'),		td : RoutesText, html : true, },
+		{ th : _('Anzahl wartender Zugverbände'), td : countTrains, },
 		{ th : _('Datei'),				td : File, },
 		{ th : _('Name'),				td : getSignalName(File), },
 		{ th : _('TipTxt'),				td : (TipTxt ? TipTxt : '') },
@@ -1435,15 +1457,20 @@ mit
 		const GleisID 		= Zugverband.Gleisort.getAttribute('gleisID');
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
 		const Gleisdatei	= Gleis.getAttribute('gsbname');
-		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100;
+		const Position		= Zugverband.Gleisort.getAttribute('parameter') / 100; // m
 		const ausrichtung 	= Zugverband.Gleisort.getAttribute('ausrichtung');
 		const RouteID 		= Zugverband.Zugverband.getAttribute('Route');
 		const LastDir 		= Zugverband.Zugverband.getAttribute('LastDir');
-		const Geschwindigkeit = Zugverband.Zugverband.getAttribute('Geschwindigkeit') * 3600 / 1000;
-		const sollgeschwindigkeit = Zugverband.Zugverband.getAttribute('sollgeschwindigkeit') * 3600 / 1000;
+		const currentSpeed 	= Zugverband.Zugverband.getAttribute('Geschwindigkeit') * 3600 / 1000; // km/h
+		let   targetSpeed 	= Zugverband.Zugverband.getAttribute('sollgeschwindigkeit') * 3600 / 1000; // km/h
 		const autopilot 	= Zugverband.Zugverband.getAttribute('autopilot');
 		const Hide 			= Zugverband.Zugverband.getAttribute('Hide');
 
+		const waitingTrain 	= waitingTrains[ZugID];
+		if (waitingTrain && waitingTrain.speed != 0) {
+			targetSpeed = waitingTrain.targetSpeed;
+		}
+		
 		fillTable(thead, tbody, [
 
 		{ th : _('Zugverband'),				td : ZugID },
@@ -1459,8 +1486,8 @@ mit
 		{ th : _('Name'),					td : Name },
 		{ th : _('Anzahl Rollmaterialien'),	td : Anzahl },
 		{ th : _('Route'),					td : (RouteID != 0 ? RouteID + ': ' + Routen[RouteID] : '') },
-		{ th : _('Geschwindigkeit') + ' km/h',		td : (Geschwindigkeit != 0 ? Geschwindigkeit.toFixed(0) : (LastDir == 1 ? '+0' : '-0')) },
-		{ th : _('Sollgeschwindigkeit') + ' km/h',	td : sollgeschwindigkeit.toFixed(0) },
+		{ th : _('Geschwindigkeit') + ' km/h',		td : (currentSpeed != 0 ? currentSpeed.toFixed(1) : (LastDir == 1 ? '+0' : '-0')) },
+		{ th : _('Sollgeschwindigkeit') + ' km/h',	td : (targetSpeed ? targetSpeed.toFixed(0) : "") },
 		{ th : _('Automatik'),				td : autopilot },
 		{ th : _('Depot'),					td : Hide },
 
