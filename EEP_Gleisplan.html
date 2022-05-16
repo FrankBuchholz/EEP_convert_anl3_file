@@ -679,6 +679,7 @@ function prepareGleissysteme(sutrackp) {
 	// Collections for direct access
 	global.Gleissysteme 	= {};	// Verwendung: Gleis = global.Gleissysteme[GleissystemID][GleisID];
 	global.Meldungen 		= {};
+	global.waitingTrains 	= [], 	// ID (des Zugverbandes), speed
 	global.Weichen 			= {};
 	global.Kontakte			= {};
 	global.KontaktZiele		= {};
@@ -778,7 +779,18 @@ function prepareGleissysteme(sutrackp) {
 					 trackSignals[GleissystemID][GleisID] = [];
 				}
 				trackSignals[GleissystemID][GleisID].push({Meldung : Meldung});
+				
+				// Signale mit wartenden Zügen 
+				for (const Wartender of Meldung.getElementsByTagName('Wartender')) {
+					const ZugID 		= Wartender.getAttribute('zugverbandID');
+					const targetSpeed 	= +Wartender.getAttribute('sollgeschwindigkeit') * 3600 / 1000; // km/h
 
+					global.waitingTrains[ZugID] = {
+						SignalID		: SignalID,
+						targetSpeed		: targetSpeed,
+					};					
+				}
+				
 				// Signale mit KontaktZiel
 				const KontaktZielEntry 	= Meldung.getElementsByTagName("KontaktZiel")[0];
 				if (KontaktZielEntry) {
@@ -1037,21 +1049,39 @@ function prepareGleissysteme(sutrackp) {
 			global.Zugverband[GleissystemID] = {};
 		}
 		const trainName		= Zugverband.getAttribute("name");
-		const velocity		= +Zugverband.getAttribute("Geschwindigkeit") * 3600 / 1000;	// km/h
+
+		// Current speed
+		const currentSpeed 	= +Zugverband.getAttribute('Geschwindigkeit') * 3600 / 1000;		// km/h
+		const lastDir 		= Zugverband.getAttribute('LastDir');	// if currentSpeed is zero: currentSpeed = (lastDir == 1 ? '+0' : '-0')
+
+		// Target speed as long as the train is not influenced by a signal
+		let targetSpeed 	= +Zugverband.getAttribute('sollgeschwindigkeit') * 3600 / 1000;	// km/h
+
+		// Target speed for trains which are influenced by a signal
+		// <Signal>...<Wartender fuhrparkID="1" zugverbandID="7" sollgeschwindigkeit="11.11111"/>
+		const ZugID			= Zugverband.getAttribute('ZugID');
+		const waitingTrain 	= global.waitingTrains[ZugID];
+		if (waitingTrain && waitingTrain.speed != 0) {
+			targetSpeed = waitingTrain.targetSpeed;
+		}
+		
 		const depot			= Zugverband.getAttribute("Hide");
 
 		const position		= Gleisort.getAttribute("parameter") / 100; 	// m
 		const direction		= Gleisort.getAttribute("ausrichtung");
-		const lastDir 		= Zugverband.getAttribute('LastDir');
 
 		const routeID		= Zugverband.getAttribute("Route");
 		const routeName		= global.Routen[routeID] || "";
 
 		global.Zugverband[GleissystemID][trainName] = {
 			// train data
-			velocity	: velocity,
-			lastDir		: lastDir,	// velocity (lastDir == 1 ? '+0' : '-0')
-			routeName	: routeName,
+			routeName		: routeName,
+
+			currentSpeed	: currentSpeed,
+			lastDir			: lastDir,		
+
+			targetSpeed		: targetSpeed,
+
 			// position of train
 			GleisID		: GleisID,
 			position	: position,
