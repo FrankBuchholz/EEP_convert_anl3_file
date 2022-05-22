@@ -225,7 +225,7 @@ blockControlChannel.onmessage = function(event) {
 		const data = document.getElementById('data');
 		data.textContent = `Received! Time stamp: ${event.timeStamp}`;
 
-		if (trackdata) {	// Does the uses requests generating track data?
+		//if (trackdata) {	// Does the uses requests generating track data?
 			/*
 			Use the routes data to calculate the tracks of a block: 
 			  previous tracks of a block = tracks before last turnout of a route
@@ -308,7 +308,7 @@ blockControlChannel.onmessage = function(event) {
 					blockTrack.next = blockTrack.prev;
 				}
 			}
-		}
+		//}
 
 		
 		let text = []; 
@@ -368,7 +368,7 @@ blockControlChannel.onmessage = function(event) {
 				+`signal=0, `
 				+`allowed=${varName}, ${" ".repeat(maxEEProuteLength - varName.length)}`
 				//+(train.currentSpeed != 0 ? `currentSpeed=${train.currentSpeed.toFixed(0)} ` : ``)				
-				+(train.targetSpeed  != 0 ? `speed=${train.targetSpeed.toFixed(0)} `  : ``)				
+				+(train.targetSpeed  != 0 ? `speed=${Math.abs(train.targetSpeed).toFixed(0)} `  : ``)				
 				+`},`
 			);
 		}
@@ -478,12 +478,15 @@ blockControlChannel.onmessage = function(event) {
 		text.push("\nlocal routes = {");
 		for (const entry of routes) {
 			let line = "";
+			// reverse direction
+			const blockTrack = blockTracks[entry.startSignalID];				
+			const reverse = (blockTrack.reverseDirection ? `, reverse=true` : ``);
+			
 			// Header
 			if (!extended) {
 				line +=  `  { ${_id(entry.startSignalID)}, ${_id(entry.SignalID)}, turn={`;
-				
 			} else {
-				line += `\n  { ${_id(entry.startSignalID)}, turn={ -- Track`;
+				line += `\n  { ${_id(entry.startSignalID)}${reverse}, turn={ -- Track`;
 			}
 			// Entries
 			for (const turn of entry.turns) {
@@ -513,11 +516,11 @@ blockControlChannel.onmessage = function(event) {
 			}
 			// Footer
 			if (!extended) {
-				line +=   ` }},`;
+				line +=   ` }${reverse} },`;
 				
 			} else {
 				line += `\n        },`
-					 +  `\n    ${_id(entry.SignalID)} },`;
+					 +  `\n    ${_id(entry.SignalID)}},`;
 			}
 			text.push(line);
 		}
