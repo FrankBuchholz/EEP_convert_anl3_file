@@ -583,10 +583,18 @@ end
 		// Output
 //		data.textContent = text.join("\n");
 		data.innerHTML = text.join("\n");
+		
+		// Copy data to clipboard
+		navigator.clipboard.writeText(data.textContent).then(() => {
+			// Inform the user that the action took place.
+			// Nobody likes hidden stuff being done under the hood!
+			//alert("Data copied to clipboard");
+			const msg = document.getElementById('msg');
+			msg.textContent = "Data is copied to clipboard, too.";			
+		});		
 	}
 }
 </script>
-
 </main>
 
 </body>
