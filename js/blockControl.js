@@ -209,7 +209,7 @@ function followRoute(
 			if (   (Anschluss == "Anfang" && ParaOderAnti != forward)	 	// wrong side of the signal
 				|| (Anschluss != "Anfang" && ParaOderAnti == forward) ) { 
 				
-				// Change mode: stop searching at netxt turnout
+				// Change mode: stop searching at next turnout
 				stopAtTurnout = true;
 				continue; 
 			}
