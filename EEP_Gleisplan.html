@@ -2216,8 +2216,10 @@ if (near > far) { //###
 		// Log defect data
 		if (isNaN( mMatrix[posX] )) {
 			console.log("NaN Error: "
-				+ ' Gleis ' + GleissystemID + '-' + GleisID
+				+ TrackSystemText(GleissystemID) + '-' + GleisID + ' ' + CurveType
 			);
+			// Replace defect data with initial data to avoid followup errors.
+			mMatrix = matrix.identity;
 		}
 
 		// Group node for Gleis
