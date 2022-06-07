@@ -2206,10 +2206,6 @@ if (near > far) { //###
 		+ " for " + TrackSystemText(GleissystemID) + " " + GleisID
 );}
 
-		Gleis.CurveType = CurveType;
-		Gleis.Laenge 	= Laenge;
-		Gleis.mPos 		= mMatrix;
-
 		let Winkel, DeltaX, DeltaY, DeltaZ, svgRotate;
 		const posX = 12, posY = 13, posZ = 14; // Index in mMatrix
 
@@ -2221,6 +2217,10 @@ if (near > far) { //###
 			// Replace defect data with initial data to avoid followup errors.
 			mMatrix = matrix.identity();
 		}
+
+		Gleis.CurveType = CurveType;
+		Gleis.Laenge 	= Laenge;
+		Gleis.mPos 		= mMatrix;
 
 		// Group node for Gleis
 		const classList = Gleisart[clsid] 
