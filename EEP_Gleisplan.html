@@ -2219,7 +2219,7 @@ if (near > far) { //###
 				+ TrackSystemText(GleissystemID) + '-' + GleisID + ' ' + CurveType
 			);
 			// Replace defect data with initial data to avoid followup errors.
-			mMatrix = matrix.identity;
+			mMatrix = matrix.identity();
 		}
 
 		// Group node for Gleis
