@@ -76,6 +76,7 @@ select,
 input,
 button {
 	user-select: none;
+	-webkit-user-select: none;	/* WebKit-specific values */
 }
 /* ]]> */
 </style>
@@ -5352,7 +5353,9 @@ function changeHeightRange(valueLow, valueHigh) {
 })(this); // end module
 </script>
 
-<link rel="stylesheet" href="node_modules/toolwindow/dist/toolwindow.css"/>
+<!-- replace deprecated CSS2 system colors -->
+<!-- <link rel="stylesheet" href="node_modules/toolwindow/dist/toolwindow.css"/> -->
+<link rel="stylesheet" href="css/toolwindow.css"/>
 <!-- Not possible, see same issue above -->
 <!-- <link rel="stylesheet" href="https://raw.githubusercontent.com/fluffynuts/toolwindow/master/dist/toolwindow.css"/> -->
 <script type="text/javascript" src="node_modules/toolwindow/dist/toolwindow.js"></script>
