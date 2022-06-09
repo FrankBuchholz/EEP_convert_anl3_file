@@ -95,7 +95,7 @@ function calculate(event) {
 	const msg = document.getElementById('msg');
 	msg.textContent = "";
 	const data = document.getElementById('data');
-	data.textContent = `Request Submitted! Time stamp: ${event.timeStamp}`;
+	data.textContent = `Request Submitted! Time stamp: ${event.timeStamp.toFixed(2)}`;
 	
 	const GleissystemID 		= form.querySelector('input[name="GleissystemID"]:checked').value;
 
@@ -223,7 +223,7 @@ blockControlChannel.onmessage = function(event) {
 		msg.textContent = message || "";
 
 		const data = document.getElementById('data');
-		data.textContent = `Received! Time stamp: ${event.timeStamp}`;
+		data.textContent = `Received! Time stamp: ${event.timeStamp.toFixed(2)}`;
 
 		//if (trackdata) {	// Does the uses requests generating track data?
 			/*
@@ -238,6 +238,12 @@ blockControlChannel.onmessage = function(event) {
 			*/
 			for (const route of routes) {
 				const turns = route.turns;
+				
+				// Ingnore routes on single tracks (two signals on same track)
+				if ( !turns[1] ) {
+					console.log("Both blocks " + route.startSignalID + " and " + route.SignalID + " are located on the same track " + turns[0].GleisID )
+					continue;
+				}
 				
 				// Find trans at the beginning of a block
 				if (!blockTracks[route.SignalID]) {					// Do we know this target signal already?
@@ -480,7 +486,7 @@ blockControlChannel.onmessage = function(event) {
 			let line = "";
 			// reverse direction
 			const blockTrack = blockTracks[entry.startSignalID];				
-			const reverse = (blockTrack.reverseDirection ? `, reverse=true` : ``);
+			const reverse = (blockTrack && blockTrack.reverseDirection ? `, reverse=true` : ``);
 			
 			// Header
 			if (!extended) {
