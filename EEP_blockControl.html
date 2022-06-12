@@ -323,7 +323,7 @@ blockControlChannel.onmessage = function(event) {
 		const GleissystemID = form.querySelector('input[name="GleissystemID"]:checked').value;
 		text.push(`-- EEP ${_("Datei")} '${filename}'`); 
 		text.push(`-- ` + EEP_Texts.getText("msg", 'LuaProgramBlockControl', TrackSystemText(GleissystemID)));
-		
+		text.push(`-- For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): blockControl.enterBlock_##`);
 		// Output EEProutes
 		text.push("\n-- " + _("allowedBlocks"));
 		let maxTrainLength = 0;
@@ -602,7 +602,7 @@ Next steps:<ol>
 <li>Paste the Lua code shown below, which is already copied into the clipboard, into the 'LUA script editor' window.</li>
 <li>Click the 'Reload script' button, this automatically creates the sensor functions needed.</li>
 <li>Go to 2D mode</li>
-<li>For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): <span style="font-family:monospace;">>blockControl.enterBlock_##</span></li></ol>
+<li>For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): <span style="font-family:monospace;">blockControl.enterBlock_##</span></li></ol>
 `;
 			
 		});		
