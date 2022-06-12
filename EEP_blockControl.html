@@ -596,7 +596,15 @@ end
 			// Nobody likes hidden stuff being done under the hood!
 			//alert("Data copied to clipboard");
 			const msg = document.getElementById('msg');
-			msg.textContent = "Data is copied to clipboard, too.";			
+			msg.innerHTML = `
+Next steps:<ol>
+<li>In EEP go to 3D mode</li>
+<li>Paste the Lua code shown below, which is already copied into the clipboard, into the 'LUA script editor' window.</li>
+<li>Click the 'Reload script' button, this automatically creates the sensor functions needed.</li>
+<li>Go to 2D mode</li>
+<li>For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): <span style="font-family:monospace;">>blockControl.enterBlock_##</span></li></ol>
+`;
+			
 		});		
 	}
 }
