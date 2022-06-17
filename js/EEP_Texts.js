@@ -591,12 +591,17 @@ info : {
 	Achsengruppe : {
 		DE : `Achsengruppe`, 
 		EN : `Moveable elements group`,
-		FR : `Groupe d'éléments mobiles `,
+		FR : `Groupe d'éléments mobiles`,
 	},
 	Achsenfilter : {
 		DE : `Achsenfilter`,
 		EN : `Moveable element filter`, 
-		FR : `Filtre d'éléments mobiles `, 
+		FR : `Filtre d'éléments mobiles`, 
+	},	
+	'Anzahl Achsen' : {
+		DE : `Anzahl Achsen`,
+		EN : `Count of moveable elements`, 
+		FR : `Nombre d'éléments mobiles`, 
 	},	
 	Blickrichtung : {
 		DE : `Blickrichtung`, 

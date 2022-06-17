@@ -1753,6 +1753,16 @@ x	RollIdx="3"
 			/>
 		</Getriebe>
 	</Zugmaschine>
+	<Modell>
+		<Achse Parameter="0" Velocity="0.0002"/>
+		<Achse Parameter="0" Velocity="0.0002"/>
+		<Achse Parameter="0" Velocity="0.0002">
+			<Achse Parameter="11.86824" Velocity="0.0002"/>
+			<Achse Parameter="11.86824" Velocity="0.0002"/>
+			...
+		</Achse>
+		...
+	</Modell>
 </Rollmaterial>
 */			
 
@@ -1782,6 +1792,8 @@ x	RollIdx="3"
 		const Motor			= (Zugmaschine ? Zugmaschine.getElementsByTagName("Motor")[0] : false);
 		const leistung		= (Motor ? Motor.getAttribute("leistung") : 0);
 
+		const Achsen		= Rollmaterial.Rollmaterial.querySelectorAll('Modell > Achse');
+
 		fillTable(thead, tbody, [
 
 		{ th : _('Name'),					td : Name },
@@ -1792,6 +1804,8 @@ x	RollIdx="3"
 
 		{ th : _('vUeberhang'),				td : vUeberhang },
 		{ th : _('hUeberhang'),				td : hUeberhang },
+
+		//{ th : _('Anzahl Achsen'),			td : Achsen.length }, // The total count of axis is greater than the count of movable axis
 
 		{ th : _('Zugverband'),				td : ZugverbandName },
 		{ th : _('Position'),				td : Position },
