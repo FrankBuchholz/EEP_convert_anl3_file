@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<!-- 
+Analyze .ini files of EEP
+
+Definition:
+https://wiki.eepshopping.de/index.php?title=Externe_*.ini-Dateien_der_Modelle 
+
+Icons:
+https://wiki.eepshopping.de/index.php?title=Modellicons 
+-->
+<html lang="de">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Einstellungskombinationen von EEP-ini-Dateien</title>
+<meta name="description" content="Dieses Programm liest .ini-Dateien und zeigt die darin enthaltenen Einstellungskombinationen an.">
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,Rollmaterialien, Signale" />
+<meta name="language" content="de" />
+<link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
+
+<style>
+.hidden {
+	display: none;
+}
+
+fieldset {
+	border-width: 0;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
+	padding-block-start: 0;
+	padding-inline-start: 0;
+	padding-inline-end: 0;
+	padding-block-end: 0;
+}
+</style>
+
+<script type="text/javascript" src="js/EEP_Signale_Daten.js"></script><!-- Lade Zusatzdaten zu Signalen: Name, Signalstellung -->
+
+<script type="text/javascript">
+
+<!-- - - - - - - -->
+
+function readIniFiles(fileList) {
+	// Selection screen
+	document.getElementById("fileselector").classList.add("hidden");
+
+	const promises = [];
+	for (const file of fileList) {
+		const filePromise = new Promise(resolve => {
+			const reader = new FileReader();
+			reader.readAsText(file, 'windows-1252');
+			reader.onload = (ProgressEvent) => {
+				resolve({
+					file: file,
+					section: parseIniString(reader.result)
+				});
+			}
+		});
+		promises.push(filePromise);
+	}
+	Promise.all(promises).then(iniFiles => {
+		// iniFiles will be an array containing contents of the files
+		const settingsCombinations = {};
+		for (const iniFile of iniFiles) {
+			iniFile.combination = {};	// Setting
+			iniFile.settingsCombination = 0;	// Hash code which represents the set of settings
+			
+			// Is it a signal file?
+			let section = 'Model_SignalFunc'; 			// specific section for signals
+			let pattern = /^Pos(\d+)_Fn_Name_/ 			// Signal position: Pos01_Fn_Name_GER	
+			if (!iniFile.section[section]) {
+				// no signal file, let's try to interpret movable axis
+				section = 'FileInfo';					// Movable axis
+				pattern = /^MovAxis(\d+)_/;				// Movable axis: MovAxis3_GER
+			}
+			
+			if (iniFile.section[section]) {
+				for (const parameter in iniFile.section[section]) {
+					const match = parameter.match(pattern);
+					if (match) {
+						iniFile.combination[Number(match[1])] = {
+							DE : iniFile.section[section][match[0] + 'GER'],
+							EN : iniFile.section[section][match[0] + 'ENG'],
+							FR : iniFile.section[section][match[0] + 'FRA'],
+						}
+					}
+				}
+
+				// Generate ID
+				if (iniFile.combination != {}) {
+					iniFile.settingsCombination = Math.abs(JSON.stringify(iniFile.combination).hashCode());
+					/*
+					Beispiele zu settingsCombinationen:
+					[0256533125] = { 1 : Halt, 2 : Fahrt, }
+					[1275122147] = { 1 : Fahrt, 2 : Halt, }
+					*/
+				}
+				if (!settingsCombinations[iniFile.settingsCombination]) {
+					settingsCombinations[iniFile.settingsCombination] = {
+						combinationArray : iniFile.combination,
+						Entries : [],
+					};
+				}
+				// Cross reference
+				settingsCombinations[iniFile.settingsCombination].Entries.push(
+					iniFile.file.name.substr(0, iniFile.file.name.length - 4)
+				);
+
+			}
+		}
+		showIniFiles(iniFiles, settingsCombinations);
+    });
+}
+
+String.prototype.hashCode = function() {
+  let hash = 0;
+  if (this.length === 0) return hash;
+  for (let i = 0; i < this.length; i++) {
+    const chr   = this.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
+function parseIniString(data){
+	const regex = {
+		section: /^\s*\[\s*([^\]]*)\s*\]\s*$/,
+		param: /^\s*([^=]+?)\s*=\s*\"?(.*?)\"?\s*$/,
+		comment: /^\s*;.*$/,
+	};
+	const value = {};
+	const lines = data.split(/[\r\n]+/);
+	let section = null;
+	for (const line of lines) {
+		if (regex.comment.test(line)) {
+			continue;
+		} else if (regex.param.test(line)) {
+			const match = line.match(regex.param);
+			if (section) {
+				value[section][match[1]] = match[2];
+			} else {
+				value[match[1]] = match[2];
+			}
+		} else if (regex.section.test(line)) {
+			const match = line.match(regex.section);
+			value[match[1]] = {};
+			section = match[1];
+		} else if (line.length == 0 && section) {
+			section = null;
+		};
+	}
+	return value;
+}
+
+function showIniFiles(iniFiles, settingsCombinations) {
+	const unknownOnly 	= document.getElementById('checkboxUnknownOnly').checked;
+	const target 		= document.getElementById('container');
+	let div, p;
+
+	div = document.createElement('div');
+	target.appendChild(div);
+
+	if ( document.querySelector('input[name="outputFormat"]:checked').id === "list" ) {	// list, code
+
+		// Show list grouped by settingsCombination
+		for (const settingsCombination in settingsCombinations) {
+
+			// Header
+			p = document.createElement('p');
+			div.appendChild(p);
+			p.innerHTML =
+				  `<b>Einstellungskombination ${('0000000000' + settingsCombination).slice(-10)}` + '</b><br>'
+				;
+
+			// settingsCombinations
+			p = document.createElement('p');
+			div.appendChild(p);
+			if ( Object.keys(settingsCombinations[settingsCombination].combinationArray).length === 0 ) {
+				p.innerHTML = '[empty]';
+			} else {
+				for (const combinationNr in settingsCombinations[settingsCombination].combinationArray) {
+					const combination = settingsCombinations[settingsCombination].combinationArray[combinationNr];
+					p.innerHTML +=
+						combinationNr + ' : '
+						+ (combination.DE ? '"' + combination.DE + '" ' : '')
+						+ (combination.EN ? '"' + combination.EN + '" ' : '')
+						+ (combination.FR ? '"' + combination.FR + '" ' : '')
+						+ '<br>'
+					;
+				}
+			}
+
+			// Entries
+			p = document.createElement('p');
+			div.appendChild(p);
+			for (const index in settingsCombinations[settingsCombination].Entries) {
+				p.innerHTML +=
+				  `${settingsCombinations[settingsCombination].Entries[index]}<br>`
+				;
+			}
+
+		}
+
+	} else {	// outputFormat = code
+
+		// Stringify settingsCombinationen for usage in EEP_Gleisplan.html and EEP_Inventar.html
+		p = document.createElement('p');
+		div.appendChild(p);
+		p.innerHTML = 'const combination = {';
+		for (const iniFile of iniFiles) {
+			const filename = iniFile.file.name.substr(0, iniFile.file.name.length - 4);
+			if ( !unknownOnly || !Signalstellung[filename] ) {			// Ignore known signals
+			if ( Object.keys(iniFile.combination).length > 0 ) {
+
+				p.innerHTML += `<br>&nbsp;&nbsp;"${filename}" : `+'{';
+
+				if (iniFile.section.FileInfo) {
+					p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Name : {'
+						+ (iniFile.section.FileInfo.Name_GER ? `DE : "${iniFile.section.FileInfo.Name_GER}", ` : '')
+						+ (iniFile.section.FileInfo.Name_ENG ? `EN : "${iniFile.section.FileInfo.Name_ENG}", ` : '')
+						+ (iniFile.section.FileInfo.Name_FRA ? `FR : "${iniFile.section.FileInfo.Name_FRA}", ` : '')
+						+ '},'
+						//+ `Desc = ${iniFile.section.FileInfo.Description_GER}<br>`
+						//+ `settingsCombination = ${iniFile.settingsCombination}<br>`
+						;
+				}
+
+				p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Pos : {'
+				//p = document.createElement('p');
+				//div.appendChild(p);
+				for (const combination in iniFile.combination) {
+					p.innerHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${combination} : `+'{'
+						+ (iniFile.combination[combination].DE ? `DE : "${iniFile.combination[combination].DE}", ` : '')
+						+ (iniFile.combination[combination].EN ? `EN : "${iniFile.combination[combination].EN}", ` : '')
+						+ (iniFile.combination[combination].FR ? `FR : "${iniFile.combination[combination].FR}", ` : '')
+						+ '},'
+					;
+				}
+				p.innerHTML += '<br>&nbsp;&nbsp;}},';
+			}
+			}
+		}
+		p.innerHTML += '<br>}';
+	}
+}
+</script>
+</head>
+<body>
+
+<h3>EEP .ini-Dateien</h3>
+
+<section id='fileselector'> <!-- Selection screen -->
+
+<form action='#' onsubmit="return false;"> <!-- better not to use inline listener, explizit register is better -->
+	<label for="fileinput">Wähle und lade eine oder mehrere EEP .ini-Dateien</label>
+	<input type='file' id='inifile' accept='.ini' multiple onchange='readIniFiles(this.files)'>
+	<!-- An extra button is not neccessary -->
+	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
+</form>
+<p>Die .ini-Dateien im Ordner C:\EEP15\Resourcen.unp\ werden über das EEP-Programm mit der Funktion "Extras ⭢ Ressourcen-Extraktor" erstellt.</p>
+<p>Die Ausgabe erfolgt gruppiert nach der Kombination der in der .ini-Datei enthaltenen Einstellungen. Dafür wird je Kombination eine eindeutige ID generiert.</P>
+
+<form>
+	<fieldset>
+		Format der Ausgabe:
+		<input type="radio" name="outputFormat" id="list" checked /><label for="list">Liste</label>
+		<input type="radio" name="outputFormat" id="code" /><label for="code">Code</label>
+		<input id="checkboxUnknownOnly" type="checkbox"><label for="checkboxUnknownOnly">Nur unbekannte Signale anzeigen</label
+	</fieldset>
+</form>
+
+<p><small>(c) Frank Buchholz, 2022</small></p>
+</section> <!-- fileselector -->
+
+<div id='container'></div>
+</body>
+</html>
