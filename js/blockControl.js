@@ -595,7 +595,17 @@ blockControlChannel.onmessage = function(ev) {
 			= blockControl.calculate(GleissystemID);
 
 		// Get file name without extension
-		const filename = document.getElementById("filename").textContent;	
+		const filename = document.getElementById("filename").textContent;
+		
+		// Collect Lua functions in contacts (which might require module BetterContacts)
+		const LuaFunctions = [];
+		for (let KontaktID = 0; KontaktID < global.Kontakte.Anzahl; KontaktID++) {
+			const Kontakt	= global.Kontakte[KontaktID];
+			const LuaFn 	= Kontakt.getAttribute("LuaFn");
+			if (LuaFn != "") {
+				LuaFunctions.push(LuaFn)
+			}
+		}
 		
 		// send results
 		blockControlChannel.postMessage({
@@ -607,6 +617,7 @@ blockControlChannel.onmessage = function(ev) {
 			routes			: routes,
 			trains			: trains,
 			startSignals	: startSignals,
+			LuaFunctions	: LuaFunctions,
 			message			: message,
 		});
 	}

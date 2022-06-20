@@ -212,6 +212,7 @@ blockControlChannel.onmessage = function(event) {
 		const routes 		= event.data.routes;
 		const trains 		= event.data.trains;
 		const startSignals	= event.data.startSignals;
+		const LuaFunctions	= event.data.LuaFunctions;
 		const message 		= event.data.message;
 
 		const trackdata 	= document.getElementById('trackdata').checked;
@@ -316,6 +317,19 @@ blockControlChannel.onmessage = function(event) {
 			}
 		//}
 
+
+		// Check if Lua functions in contacts require module BetterContacts
+		let useBetterContacts = false;
+		//                   /[ `!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/
+		const specialChars = /[`!@#$%^&*()+\-=\[\]{};':"\\|,<>\/?~]/; // Allow: space _ .
+		for (const LuaFn of LuaFunctions) {
+console.log(specialChars.test(LuaFn) + " " + LuaFn);
+			if (specialChars.test(LuaFn)) {
+				useBetterContacts = true;
+				//break;
+			}
+		}
+
 		
 		let text = []; 
 		
@@ -323,7 +337,11 @@ blockControlChannel.onmessage = function(event) {
 		const GleissystemID = form.querySelector('input[name="GleissystemID"]:checked').value;
 		text.push(`-- EEP ${_("Datei")} '${filename}'`); 
 		text.push(`-- ` + EEP_Texts.getText("msg", 'LuaProgramBlockControl', TrackSystemText(GleissystemID)));
-		text.push(`-- For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): blockControl.enterBlock_##`);
+		if (useBetterContacts) {
+			text.push(`-- For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): blockControl.enterBlock(Zugname, ##)`);
+		} else {
+			text.push(`-- For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): blockControl.enterBlock_##`);
+		};
 		// Output EEProutes
 		text.push("\n-- " + _("allowedBlocks"));
 		let maxTrainLength = 0;
@@ -533,13 +551,13 @@ blockControlChannel.onmessage = function(event) {
 		text.push("}");
 
 // Remaining part of main script in EEP
-const LuaCode_1 = `
+const LuaCode = [ `
 -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 -- Remaining part of main script in EEP
 -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-clearlog()
-
+clearlog()`,`
+require("BetterContacts_BH2")       -- Load module BetterContacts from Benny`,`
 local blockControl = require("blockControl")   -- Load the module
 
 blockControl.init({                 -- Initialize the module
@@ -550,11 +568,9 @@ blockControl.init({                 -- Initialize the module
   blockSignals    = block_signals,  -- Block signals
   twoWayBlocks    = two_way_blocks, -- Two way twin blocks (array or set of related blocks)
   routes          = routes,         -- Routes via turnouts from one block to the next block
-  paths           = anti_deadlock_paths, -- Critical paths on which trains have to go to avoid lockdown situations`;
-const LuaCode_2 = `
+  paths           = anti_deadlock_paths, -- Critical paths on which trains have to go to avoid lockdown situations`,`
   trackSystem     = track_system,	-- Track system (required to define block tracks) 
-  blockTracks     = block_tracks,	-- Previous, first, last and nexts tracks of blocks`;
-const LuaCode_3 = `
+  blockTracks     = block_tracks,	-- Previous, first, last and nexts tracks of blocks`,`
   MAINSW          = main_signal,    -- ID of the main switch (optional)
 
   MAINON          = 1,              -- ON    state of main switch
@@ -565,12 +581,12 @@ const LuaCode_3 = `
   TRAINSIGGRN     = 2,              -- GREEN state of train signals
 })
 
---[[ Optional: Set one or more runtime parameters at any time 
+-- [[ Optional: Set one or more runtime parameters at any time 
 blockControl.set({
   logLevel        = 1,              -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
   showTippText    = true,           -- (Optional) Show tipp texts true / false (Later you can toggle the visibility of the tipp texts using the main switch.)
-  start           = false,          -- (Optional) Activate/deactivate main signal. Useful to start automatic block control after finding all known train.
-  startAllTrains  = true,           -- (Optional) Activate/deactivate all train signals
+  start           = false,          -- (Optional) Activate / deactivate main signal. Useful to start automatic block control after finding all known trains.
+  startAllTrains  = true,           -- (Optional) Activate / deactivate all train signals
 })
 --]]
 
@@ -578,13 +594,17 @@ function EEPMain()
   blockControl.run()
   return 1
 end		
-`;
+`];
 		
-		text.push(LuaCode_1);
-		if (trackdata) {
-			text.push(LuaCode_2);
+		text.push(LuaCode[0]);
+		if (useBetterContacts) {
+			text.push(LuaCode[1]);
 		}	
-		text.push(LuaCode_3);
+		text.push(LuaCode[2]);
+		if (trackdata) {
+			text.push(LuaCode[3]);
+		}	
+		text.push(LuaCode[4]);
 
 		// Output
 //		data.textContent = text.join("\n");
@@ -596,14 +616,25 @@ end
 			// Nobody likes hidden stuff being done under the hood!
 			//alert("Data copied to clipboard");
 			const msg = document.getElementById('msg');
-			msg.innerHTML = `
+			if (useBetterContacts) {
+				msg.innerHTML = `
+Next steps:<ol>
+<li>In EEP go to 3D mode</li>
+<li>Paste the Lua code shown below, which is already copied into the clipboard, into the 'LUA script editor' window.</li>
+<li>Click the 'Reload script' button</li>
+</ol>
+`;
+			} else {
+				msg.innerHTML = `
 Next steps:<ol>
 <li>In EEP go to 3D mode</li>
 <li>Paste the Lua code shown below, which is already copied into the clipboard, into the 'LUA script editor' window.</li>
 <li>Click the 'Reload script' button, this automatically creates the sensor functions needed.</li>
 <li>Go to 2D mode</li>
-<li>For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): <span style="font-family:monospace;">blockControl.enterBlock_##</span></li></ol>
+<li>For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): <span style="font-family:monospace;">blockControl.enterBlock_##</span></li>
+</ol>
 `;
+			}
 			
 		});		
 	}
