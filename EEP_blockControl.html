@@ -206,6 +206,7 @@ blockControlChannel.onmessage = function(event) {
 	
 	if (command == "data") {
 		const filename 		= event.data.filename;
+		const EEPversion	= Number(event.data.EEPversion);
 		const blockSignals 	= event.data.blockSignals;
 		const ignoredSignals = event.data.ignoredSignals;
 		const twoWayBlocks 	= event.data.twoWayBlocks;
@@ -393,17 +394,20 @@ blockControlChannel.onmessage = function(event) {
 
 		// Output trains
 		text.push("\nlocal trains = {");
+		let i = 1;
 		for (const train of trains) {
 			const varName = EEProutes[train.routeName] || "all";
 			text.push(
 				 `  { `
 				+`name="${train.name}", ${" ".repeat(maxTrainLength - train.name.length)}`
 				+`signal=0, `
+				+(EEPversion && EEPversion < 14.2 ? `slot=${i}, ` : ``)
 				+`allowed=${varName}, ${" ".repeat(maxEEProuteLength - varName.length)}`
 				//+(train.currentSpeed != 0 ? `currentSpeed=${train.currentSpeed.toFixed(0)} ` : ``)				
-				+(train.targetSpeed  != 0 ? `speed=${Math.abs(train.targetSpeed).toFixed(0)} `  : ``)				
+				+(train.targetSpeed  != 0 ? `speed=${Math.abs(train.targetSpeed).toFixed(0)} `  : ``)
 				+`},`
 			);
+			i++;
 		}
 		text.push("}");
 		
