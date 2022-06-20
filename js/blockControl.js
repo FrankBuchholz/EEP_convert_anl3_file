@@ -611,6 +611,7 @@ blockControlChannel.onmessage = function(ev) {
 		blockControlChannel.postMessage({
 			command			: "data",
 			filename		: filename,
+			EEPversion 		: global.EEPversion,
 			blockSignals	: blockSignals,
 			ignoredSignals	: ignoredSignals,
 			twoWayBlocks	: twoWayBlocks,
