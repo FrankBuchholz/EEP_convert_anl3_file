@@ -320,16 +320,25 @@ blockControlChannel.onmessage = function(event) {
 
 		// Check if Lua functions in contacts require module BetterContacts
 		let useBetterContacts = false;
+		const calledBlocks = {};
 		//                   /[ `!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/
 		const specialChars = /[`!@#$%^&*()+\-=\[\]{};':"\\|,<>\/?~]/; // Allow: space _ .
 		for (const LuaFn of LuaFunctions) {
-console.log(specialChars.test(LuaFn) + " " + LuaFn);
 			if (specialChars.test(LuaFn)) {
 				useBetterContacts = true;
 				//break;
 			}
+			// Identify block numbers from following patterns:
+			//   blockControl.enterBlock_##
+			//   blockControl.enterBlock(Zugname, ##)
+			//const regex = /blockControl.(?:enter|leave)Block(?:_|\(Zugname, )?(\d+)(?:\))?/;
+			const regex = /blockControl.enterBlock(?:_|\(Zugname, )?(\d+)(?:\))?/;
+			const groups = regex.exec(LuaFn);
+			if (groups && groups[1]) {
+				const b = parseInt(groups[1]);
+				calledBlocks[b] = true;
+			}
 		}
-
 		
 		let text = []; 
 		
@@ -434,6 +443,19 @@ console.log(specialChars.test(LuaFn) + " " + LuaFn);
 			text.push("}");
 			
 		}
+		
+		// Show list of blocks without any contact calling the enterBlock function
+		let t = "";
+		for (const entry of blockSignals) {
+			if (!calledBlocks[entry.SignalID]) {
+				t += `${_id(entry.SignalID)}, `;
+			}
+		};
+		if (t != "") {
+			text.push("-- Blocks without any contact calling the corresponding enterBlock function: " + t);
+		}
+		
+		// Show result of checking signal patterns
 		if (countBlockSignalPositions.RED_GRN > 0 && countBlockSignalPositions.GRN_RED > 0) {
 			text.push(`-- Caution:`);
 		}
