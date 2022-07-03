@@ -410,15 +410,6 @@ blockControlChannel.onmessage = function(event) {
 			i++;
 		}
 		text.push("}");
-		
-		// Output ignored signals
-		if (ignoredSignals.length > 0) {
-			let t = "-- Ignored signals: ";
-			for (const entry of ignoredSignals) {
-				t += `${_id(entry.SignalID)}, `;
-			};
-			text.push(t);
-		}
 
 		// Output start signal
 		const startSignal = (startSignals && startSignals[0] ? startSignals[0].SignalID : 0);
@@ -474,6 +465,15 @@ blockControlChannel.onmessage = function(event) {
 		if (countBlockSignalPositions.RED_GRN < countBlockSignalPositions.GRN_RED) {
 			BLKSIGRED = 2;
 			BLKSIGGRN = 1;
+		}
+		
+		// Output ignored signals
+		if (ignoredSignals.length > 0) {
+			let t = "-- Ignored signals: ";
+			for (const entry of ignoredSignals) {
+				t += `${_id(entry.SignalID)}, `;
+			};
+			text.push(t);
 		}
 
 		// Output two way blocks
