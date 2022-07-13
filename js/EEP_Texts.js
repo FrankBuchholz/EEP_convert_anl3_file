@@ -751,35 +751,45 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Switch/Signal`, 
 		FR : `Aiguillage/Signal`, 
 	},
-	'Fahrzeug +$1 km/h max' : {
-		DE : `Fahrzeug +$1 km/h max`, 
-		EN : `Vehicle +$1 km/h max`, 
-		FR : `Véhicule +$1 km/h max`, 
+	'Fahrzeug' : {						// ID_CONTACT_COMBO_TXT4
+		DE : `Fahrzeug`, 
+		EN : `Vehicle`, 
+		FR : `Véhicule`, 
 	},
-	'Fahrzeug +$1 km/h min' : {
-		DE : `Fahrzeug +$1 km/h min`, 
-		EN : `Vehicle +$1 km/h min`, 
-		FR : `Véhicule +$1 km/h min`, 
+	'Geschwindigkeit' : {				// IDC_STATIC_SETSPEED	
+		DE : `Geschwindigkeit`, 
+		EN : `Speed`, 
+		FR : `Vitesse`, 
 	},
-	'Fahrzeug +$1 km/h soll' : {
-		DE : `Fahrzeug +$1 km/h soll`, 
-		EN : `Vehicle +$1 km/h setpoint`, 
-		FR : `Véhicule +$1 km/h consigne`, 
+	'nicht langsamer als $1 km/h' : {	// IDC_RADIO_MIN
+		DE : `nicht langsamer als $1 km/h`, 
+		EN : `not slower than $1 km/h`, 
+		FR : `pas moins de $1 km/h`, 
 	},
-	'Fahrzeug -$1 km/h max' : {
-		DE : `Fahrzeug -$1 km/h max`, 
-		EN : `Vehicle -$1 km/h max`, 
-		FR : `Véhicule -$1 km/h max`, 
+	'nicht schneller als $1 km/h' : {	// IDC_RADIO_MAX
+		DE : `nicht schneller als $1 km/h`, 
+		EN : `not faster than $1 km/h`, 
+		FR : `pas plus vite que $1 km/h`, 
 	},
-	'Fahrzeug -$1 km/h min' : {
-		DE : `Fahrzeug -$1 km/h min`, 
-		EN : `Vehicle -$1 km/h min`, 
-		FR : `Véhicule -$1 km/h min`, 
+	'festlegen auf $1 km/h' : {			// IDC_RADIO_SET
+		DE : `festlegen auf $1 km/h`, 
+		EN : `set to $1 km/h`, 
+		FR : `fixe $1 km/h`, 
 	},
-	'Fahrzeug -$1 km/h soll' : {
-		DE : `Fahrzeug -$1 km/h soll`, 
-		EN : `Vehicle -$1 km/h setpoint`, 
-		FR : `Véhicule -$1 km/h consigne`, 
+	'Fahrtrichtungsumkehr' : {			// IDC_CHECK_REVERSE
+		DE : `Fahrtrichtungsumkehr`, 
+		EN : `Reverse direction`, 
+		FR : `Direction inverse`, 
+	},
+	'wiederherstellen' : {				// IDC_CHECK_SPEEDSAVE
+		DE : `wiederherstellen`, 
+		EN : `restore`, 
+		FR : `restaure`, 
+	},
+	'vormerken' : {						// IDC_CHECK_SPEEDSAVE
+		DE : `vormerken`, 
+		EN : `store`, 
+		FR : `mémorise`, 
 	},
 	'Halt $1 m' : {
 		DE : `Halt $1 m`, 

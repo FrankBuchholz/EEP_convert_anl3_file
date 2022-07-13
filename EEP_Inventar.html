@@ -1209,15 +1209,33 @@ mit
 		// Achtung: die Variable $1 wird ersetzt
 		const KontaktText = {	// SetValue
 			0 		: _('Weiche/Signal'),
-			1 		: _('Fahrzeug +$1 km/h max'),
-			2 		: _('Fahrzeug +$1 km/h min'),
-			3 		: _('Fahrzeug +$1 km/h soll'),
-			//4		: '',							// not used
-			5 		: _('Fahrzeug -$1 km/h max'),
-			6 		: _('Fahrzeug -$1 km/h min'),
-			7 		: _('Fahrzeug -$1 km/h soll'),
-			8 		: _('Halt $1 m'),
-			// 17, 33, 34 unbekannt
+
+			8 		: _('Halt $1 m'), // Haltekontakt für befahrbares Rollmaterial
+			
+		1 		: _('Fahrzeug')+(+SetValue > 0 ? " "+_('Geschwindigkeit')+" "+_('nicht langsamer als $1 km/h') : ""),
+		2 		: _('Fahrzeug')+" "+_('Geschwindigkeit')+" "+_('nicht schneller als $1 km/h'),
+		3 		: _('Fahrzeug')+" "+_('Geschwindigkeit')+" "+_('festlegen auf $1 km/h'),
+
+		5 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+(+SetValue > 0 ? ", "+_('Geschwindigkeit')+" "+_('nicht langsamer als $1 km/h') : ""),
+		6 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+", "+_('Geschwindigkeit')+" "+_('nicht schneller als $1 km/h'),
+		7 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+", "+_('Geschwindigkeit')+" "+_('festlegen auf $1 km/h'),
+		
+		17 		: _('Fahrzeug')+" "+_('Geschwindigkeit')+" "+_('wiederherstellen')+(+SetValue > 0 ? ", "+_('nicht langsamer als $1 km/h') : ""),
+		18 		: _('Fahrzeug')+" "+_('Geschwindigkeit')+" "+_('wiederherstellen')+", "+_('nicht schneller als $1 km/h'),
+		19 		: _('Fahrzeug')+" "+_('Geschwindigkeit')+" "+_('wiederherstellen')+", "+_('festlegen auf $1 km/h'),
+
+		21 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+", "+_('Geschwindigkeit')+" "+_('wiederherstellen')+(+SetValue > 0 ? ", "+_('nicht langsamer als $1 km/h') : ""),
+		22 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+", "+_('Geschwindigkeit')+" "+_('wiederherstellen')+", "+_('nicht schneller als $1 km/h'),
+		23 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+", "+_('Geschwindigkeit')+" "+_('wiederherstellen')+", "+_('festlegen auf $1 km/h'),
+		
+		33 		: _('Fahrzeug')+" "+_('Geschwindigkeit')+" "+_('vormerken')+(+SetValue > 0 ? ", "+_('nicht langsamer als $1 km/h') : ""),
+		34 		: _('Fahrzeug')+" "+_('Geschwindigkeit')+" "+_('vormerken')+", "+_('nicht schneller als $1 km/h'),
+		35 		: _('Fahrzeug')+" "+_('Geschwindigkeit')+" "+_('vormerken')+", "+_('festlegen auf $1 km/h'),
+
+		37 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+", "+_('Geschwindigkeit')+" "+_('vormerken')+(+SetValue > 0 ? ", "+_('nicht langsamer als $1 km/h') : ""),
+		38 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+", "+_('Geschwindigkeit')+" "+_('vormerken')+", "+_('nicht schneller als $1 km/h'),
+		39 		: _('Fahrzeug')+" "+_('Fahrtrichtungsumkehr')+", "+_('Geschwindigkeit')+" "+_('vormerken')+", "+_('festlegen auf $1 km/h'),
+
 			128 	: _('Omegas'),
 			256 	: _('Sound'),
 			512 	: _('Kamera'),
@@ -1231,17 +1249,14 @@ mit
 
 		const Ziel = KontaktZiele[KontaktZiel];
 
-		let KontaktTypText = KontaktText[SetType];
+		let KontaktTypText = (KontaktText[SetType] ? KontaktText[SetType] : _('unbekannt'));
 
 		// Spezielle Kontakt-Typen
 		if 		  (SetType == 0) {
 			KontaktTypText = Ziel.Typ;
 
-		} else if (SetType >= 1 && SetType <= 7) {
-			KontaktTypText = KontaktTypText.replace('$1', SetValue);			// 'Fahrzeug +$1 max'
-
-		} else if (SetType == 8) {
-			KontaktTypText = KontaktTypText.replace('$1', SetValue);			// 'Halt $1 m'
+		} else if (SetType >= 1 && SetType <= 39) {		// Fahrzeug
+			KontaktTypText = KontaktTypText.replace('$1', SetValue);			// Geschwindigkeit eintragen
 
 		} else if (SetType == 256) {										// Sound
 			KontaktTypText += ' ' + Sounds[SetValue];
