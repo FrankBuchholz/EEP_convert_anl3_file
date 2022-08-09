@@ -1074,6 +1074,11 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Tip's text`,
 		FR : `Info-texte`,
 	},
+	virtualConnection : {
+		DE : `Virtuelle Verbindung zwischen `, 
+		EN : `Virtual connection between`, 
+		FR : `Connexion virtuelle entre`, 
+	},
 	virtualConnections : {
 		DE : `Virtuelle Verbindungen`, 
 		EN : `Virtual Connections`, 
