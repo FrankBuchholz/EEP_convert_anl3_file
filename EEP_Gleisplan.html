@@ -865,13 +865,13 @@ function prepareGleissysteme(sutrackp) {
 			if (!trackConnections[GleissystemID][GleisID1]) {
 				 trackConnections[GleissystemID][GleisID1] = {};
 			}
-			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2, Flags : Flags};
+			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2, Flags : Flags, Direction : 1 };
 
 			// Store relation GleisID2 -> GleisID1
 			if (!trackConnections[GleissystemID][GleisID2]) {
 				 trackConnections[GleissystemID][GleisID2] = {};
 			}
-			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1, Flags : Flags};
+			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1, Flags : Flags, Direction : 2 };
 		}
 	}
 	// Now we are able to show connections on detail popups
@@ -2859,7 +2859,8 @@ if (near > far) { //###
 		for (const Anschluss in connections) {	// Anfang, Ende, EndeAbzweig, EndeKoAbzweig
 
 			const connection = connections[Anschluss];
-			if (connection.Flags && Anschluss === "Anfang") {	// Virtual connection in backward direction
+			//if (connection.Flags && Anschluss === "Anfang") {	// Virtual connection in backward direction
+			if (connection.Flags && connection.Direction === 1) {	// Virtual connection (in first direction)
 
 				const connectedGleis   = global.Gleissysteme[GleissystemID][connection.GleisID];
 
@@ -5457,8 +5458,10 @@ function showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss) {
 		code: "V" + GleissystemID + "-" + GleisID + "-" + Anschluss,
 		title: `${TrackSystemText(GleissystemID)} ${GleisID} ⇔ ${connection.GleisID} ${_('virtuell')}`,	// ☍ 260D ↝ 219D ↝ 2192 ↣ 21A3 ↦ 21A6 ⇄ 21C4 ⇔ 21D4 ⇿ 21FF
 		content:
-			`${_('Anfang')}: ${TrackSystemText(GleissystemID)} ${GleisID} ${Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vPos}])">${vPos[posX].toFixed(0)}m, ${vPos[posY].toFixed(0)}m<\/a>)`
-			+ `<br>${_('Ende')}: ${TrackSystemText(GleissystemID)} ${connection.GleisID} ${connection.Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vEnd}])">${vEnd[posX].toFixed(0)}m, ${vEnd[posY].toFixed(0)}m<\/a>)`
+		    `${_('virtualConnection')}`
+			+ `<br>${TrackSystemText(GleissystemID)} ${GleisID} ${Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vPos}])">${vPos[posX].toFixed(0)}m, ${vPos[posY].toFixed(0)}m<\/a>)`
+			+ `<br>${_('und')}`
+			+ `<br>${TrackSystemText(GleissystemID)} ${connection.GleisID} ${connection.Anschluss} (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${vEnd}])">${vEnd[posX].toFixed(0)}m, ${vEnd[posY].toFixed(0)}m<\/a>)`
 			+ `<br>${_('Länge')}: ${Math.sqrt((vPos[posX]-vEnd[posX])**2 + (vPos[posY]-vEnd[posY])**2).toFixed(0)}m`
 			//+ objectToHTML( xxx )
 	});
