@@ -2736,6 +2736,7 @@ if (near > far) { //###
 			const fireOnAnti  	= Kontakt.getAttribute("fireOnAnti"); 	// Kontakt aktiv für Gleisrichtung 2
 			const SetType 		= Number(Kontakt.getAttribute("SetType"));
 			const SetValue 		= Number(Kontakt.getAttribute("SetValue"));
+			const Wartender		= Number(Kontakt.getAttribute("Wartender"));
 			const KontaktZiel 	= Number(Kontakt.getAttribute("KontaktZiel"));
 			const LuaFn 		= Kontakt.getAttribute("LuaFn");
 
@@ -2827,8 +2828,14 @@ if (near > far) { //###
 
 			// Show text of Kontakt
 			let KontaktTypText = getKontaktIcon(GleissystemID, SetType, SetValue);
-			if (LuaFn && LuaFn !== "") {
-				KontaktTypText += "Lua"
+			if (SetType === 1280 && Wartender != 0) {	// Einfahrt Depot, Depot-ID = Wartender
+				KontaktTypText = Wartender + KontaktTypText;
+			}
+			if (SetType === 1536) {						// Ausfahrt Depot, Depot-ID = SetValue
+				KontaktTypText = KontaktTypText + SetValue;
+			}
+			if (LuaFn && LuaFn !== "") {				// Lua-Function 
+				KontaktTypText += "Lua";
 			}
 			if (KontaktZiel > 0 ) {
 				const Ziel = global.KontaktZiele[KontaktZiel];
@@ -5770,8 +5777,8 @@ function getKontaktIcon(GleissystemID, SetType, SetValue) {
 		512 	: '📷', 	// Kamera 					📷 \u1F4F7
 		768 	: '🏠', 	// Immobilie				🏠 \u1F3E0
 		1024 	: '\u2387', // DKW/EKW					💢 ⎇ \u2387
-		1280 	: '\u21E5', // Einfahrt Depot			⇥ \u21E5 ⍖ \u2356 ⭢
-		1536 	: '\u21A6', // Ausfahrt Depot			↦ \u21A6 ⍏ \u234F ⭢
+		1280 	: '\u21E4', // Einfahrt Depot			⇤ \u21E4 ⇥ \u21E5 ⍖ \u2356 ⭢
+		1536 	: '\u21A4', // Ausfahrt Depot			↤ \u21A4 ↦ \u21A6 ⍏ \u234F ⭢
 		2048 	: '\u2398', // Animationen				⮔ 2B94 ⎘ \u2398 ↬ \u21AC ↝ \u219D
 		32768	: '\u2042',	// Gruppe					⁂ \u2042 ⭢
 							// 							⌂ \u2302 ⌥ \u2325   → = &rarr; = \u8594;   ⭢ = \u2B62
@@ -5798,7 +5805,7 @@ function getKontaktIcon(GleissystemID, SetType, SetValue) {
 	return Icon;
 }
 
-function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
+function getKontaktText(GleissystemID, SetType, SetValue, Wartender, VolDist, ConnectF) {
 	// Achtung: die Variable $1 wird ersetzt
 	const KontaktText = {	// SetValue
 		0 		: _('Weiche/Signal'),
@@ -5834,8 +5841,8 @@ function getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF) {
 		512 	: _('Kamera'),
 		768 	: _('Immobilie'),
 		1024 	: _('DKW/EKW'),
-		1280 	: _('Einfahrt Depot'),
-		1536 	: _('Ausfahrt Depot'),
+		1280 	: _('Einfahrt Depot')+" "+Wartender, 	// Depot-ID = Wartender (0=default)
+		1536 	: _('Ausfahrt Depot')+" "+SetValue,		// Depot-ID = SetValue
 		2048 	: _('Animationen'),
 		32768 	: _('Gruppen-Kontaktpunkt'),
 	};
@@ -5949,6 +5956,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const NameFilter 	= Kontakt.getAttribute("NameFilter");
 	const TrainNewName 	= Kontakt.getAttribute("TrainNewName");
 	const zuStellung 	= Kontakt.getAttribute("zuStellung");
+	const Wartender 	= Kontakt.getAttribute("Wartender");
 	const Wechseln 		= Kontakt.getAttribute("Wechseln");
 	const ConnectF 		= Kontakt.getAttribute("ConnectF");
 	const ConnectR 		= Kontakt.getAttribute("ConnectR");
@@ -6016,7 +6024,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 			+ `<br>${_('Kontakttyp')} ` + SetType + ": "
 			// KontaktTyp[SetType] mit Modifikation
 			+ getKontaktIcon(GleissystemID, SetType, SetValue) + " "
-			+ getKontaktText(GleissystemID, SetType, SetValue, VolDist, ConnectF)
+			+ getKontaktText(GleissystemID, SetType, SetValue, Wartender, VolDist, ConnectF)
 			+ (SetType == 768 ||  SetType == 1024 ? `<br>${_('ImmoIdx')}: ` + SetValue : "")	// Verweis auf ImmoIdx
 			//+ (SetType == 512 && ConnectF != 0 ? `<br>ConnectF: ` + ConnectF : "")
 			+ (KontaktZiel != null && KontaktZiel != 0

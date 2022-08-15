@@ -347,10 +347,11 @@ blockControlChannel.onmessage = function(event) {
 		const GleissystemID = form.querySelector('input[name="GleissystemID"]:checked').value;
 		text.push(`-- EEP ${_("Datei")} '${filename}'`); 
 		text.push(`-- ` + EEP_Texts.getText("msg", 'LuaProgramBlockControl', TrackSystemText(GleissystemID)));
+		text.push(`-- For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal):`);
 		if (useBetterContacts) {
-			text.push(`-- For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): blockControl.enterBlock(Zugname, ##)`);
+			text.push(`--   blockControl.enterBlock(Zugname, ##)`);
 		} else {
-			text.push(`-- For every block entry sensor enter the following into field 'Lua function' (where ## is the number of the block signal): blockControl.enterBlock_##`);
+			text.push(`--   blockControl.enterBlock_##`);
 		};
 		// Output EEProutes
 		text.push("\n-- " + _("allowedBlocks"));
@@ -402,9 +403,9 @@ blockControlChannel.onmessage = function(event) {
 				+`name="${train.name}", ${" ".repeat(maxTrainLength - train.name.length)}`
 				+`signal=0, `
 				+(EEPversion && EEPversion < 14.2 ? `slot=${i}, ` : ``)
-				+`allowed=${varName}, ${" ".repeat(maxEEProuteLength - varName.length)}`
-				//+(train.currentSpeed != 0 ? `currentSpeed=${train.currentSpeed.toFixed(0)} ` : ``)				
-				+(train.targetSpeed  != 0 ? `speed=${Math.abs(train.targetSpeed).toFixed(0)} `  : ``)
+				//+(train.currentSpeed != 0 ? `currentSpeed=${train.currentSpeed.toFixed(0)}, ` : ``)				
+				+(train.targetSpeed  != 0 ? `speed=${Math.abs(train.targetSpeed).toFixed(0)}, `  : ``)
+				+`allowed=${varName} ${" ".repeat(maxEEProuteLength - varName.length)}`
 				+`},`
 			);
 			i++;
@@ -578,23 +579,30 @@ blockControlChannel.onmessage = function(event) {
 
 // Remaining part of main script in EEP
 const LuaCode = [ `
+local anti_deadlock_paths = { -- (Optional) Critical paths on which trains have to go to avoid lockdown situations
+}
+
+local crossings_protection = { -- (Optional) Coupled turnouts to protect crossings
+}
+
 -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 -- Remaining part of main script in EEP
 -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 clearlog()`,`
-require("BetterContacts_BH2")       -- Load module BetterContacts from Benny`,`
-local blockControl = require("blockControl")   -- Load the module
-
+require("BetterContacts_BH2")       -- Load module BetterContacts from Benny
+blockControl = require("blockControl")   -- Load the module (global variable to serve BetterContacts)`,`
+local blockControl = require("blockControl")   -- Load the module`,`
 blockControl.init({                 -- Initialize the module
   logLevel        = 1,              -- (Optional) Log level 0 (default): off, 1: normal, 2: full, 3: extreme
 
   trains          = trains,         -- (Optional) Unknown trains get detected automatically, however, such trains do not have a train signal and can go everywhere.
   
-  blockSignals    = block_signals,  -- Block signals
-  twoWayBlocks    = two_way_blocks, -- Two way twin blocks (array or set of related blocks)
+  blockSignals    = block_signals,  -- (Optional) Block signals
+  twoWayBlocks    = two_way_blocks, -- (Optional) Two way twin blocks (pairs of related blocks)
   routes          = routes,         -- Routes via turnouts from one block to the next block
-  paths           = anti_deadlock_paths, -- Critical paths on which trains have to go to avoid lockdown situations`,`
+  paths           = anti_deadlock_paths, -- (Optional) Critical paths on which trains have to go to avoid lockdown situations
+  crossings       = crossings_protection, -- (Optional) Coupled turnouts to protect crossings`,`
   trackSystem     = track_system,	-- Track system (required to define block tracks) 
   blockTracks     = block_tracks,	-- Previous, first, last and nexts tracks of blocks`,`
   MAINSW          = main_signal,    -- ID of the main switch (optional)
@@ -625,12 +633,14 @@ end
 		text.push(LuaCode[0]);
 		if (useBetterContacts) {
 			text.push(LuaCode[1]);
+		} else {
+			text.push(LuaCode[2]);
 		}	
-		text.push(LuaCode[2]);
+		text.push(LuaCode[3]);
 		if (trackdata) {
-			text.push(LuaCode[3]);
+			text.push(LuaCode[4]);
 		}	
-		text.push(LuaCode[4]);
+		text.push(LuaCode[5]);
 
 		// Output
 //		data.textContent = text.join("\n");
