@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    name: Release
+
+    if: github.repository == 'FrankBuchholz/EEP_convert_anl3_file'
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Build
+      run: zip -r ./dist/EEP_convert_anl3_file.zip EEP_Gleisplan.html EEP_Inventar.html EEP_Signale.html js/ css/
+
+    - name: Create release
+      uses: actions/github-script@v6
+      with:
+        script: |
+          try {
+            const tag = context.ref.split('/').pop();
+            core.info('Release tag: ' + tag);
+            const release = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: tag,
+              tag_name: tag
+            });
+            const fs = require('fs').promises;
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: 'EEP_convert_anl3_file.zip',
+              data: await fs.readFile('./dist/EEP_convert_anl3_file.zip')
+            });
+          } catch (error) {
+            core.setFailed(error.message);
+          }
