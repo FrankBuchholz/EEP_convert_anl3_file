@@ -1778,6 +1778,9 @@ x	RollIdx="3"
 		</Achse>
 		...
 	</Modell>
+	<AxisPreset>
+		<Table Count="3" e0="0" e1="0" e2="4.08407"/>
+    </AxisPreset>
 </Rollmaterial>
 */			
 
@@ -1808,6 +1811,29 @@ x	RollIdx="3"
 		const leistung		= (Motor ? Motor.getAttribute("leistung") : 0);
 
 		const Achsen		= Rollmaterial.Rollmaterial.querySelectorAll('Modell > Achse');
+		const AxisPresets	= Rollmaterial.Rollmaterial.getElementsByTagName('AxisPreset');
+		
+		// AxisPreset
+		let AxisPresetText = '';
+		let AxisPresetNr = 0;
+		for (const AxisPreset of AxisPresets) {
+			AxisPresetNr += 1;
+			if (AxisPresetText !== '') {
+				AxisPresetText += '<br>';
+			}
+			AxisPresetText += '[' + AxisPresetNr + ']';
+			const Table		= AxisPreset.getElementsByTagName('Table')[0];
+			const Count		= Table.getAttribute('Count');
+			for (let Axis = 0; Axis < Count; Axis++) {
+				const value = Table.getAttribute('e'+Axis);
+				if (value === '1') {					// Switch axis
+					AxisPresetText += ' ' + (Axis+1) + '=' + _('An');
+				} else if  (value > 0.05) {
+					const pos = value/Math.PI/2*100;	// Rotation axis  
+					AxisPresetText += ' ' + (Axis+1) + '=' + pos.toFixed(0) + '%';
+				}
+			}
+		}
 
 		fillTable(thead, tbody, [
 
@@ -1825,6 +1851,7 @@ x	RollIdx="3"
 		{ th : _('Zugverband'),				td : ZugverbandName },
 		{ th : _('Position'),				td : Position },
 		{ th : _('Ausrichtung'),			td : ausrichtung },
+		{ th : _('Achsengruppe'),			td : AxisPresetText, html : true },
 
 		{ th : _('Datei'),					td : File },
 
