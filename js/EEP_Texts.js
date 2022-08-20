@@ -593,6 +593,11 @@ info : {
 		EN : `Moveable elements group`,
 		FR : `Groupe d'éléments mobiles`,
 	},
+	An : { // An - Aus
+		DE : `An`, 
+		EN : `On`,
+		FR : `On`,
+	},
 	Achsenfilter : {
 		DE : `Achsenfilter`,
 		EN : `Moveable element filter`, 
