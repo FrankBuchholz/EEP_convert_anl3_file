@@ -83,6 +83,7 @@ function loadFile(file) {
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <script type="text/javascript" src="js/EEP_Signale_Daten.js"></script> <!-- Lade Zusatzdaten zu Signalen: Name, Signalstellungen -->
+<script type="text/javascript" src="js/EEP_MovableAxis_Data.js"></script><!-- Lade Zusatzdaten zu beweglichen Achsen -->
 
 <script type="text/javascript"> // process_node
 "use strict";
@@ -1784,6 +1785,34 @@ x	RollIdx="3"
 </Rollmaterial>
 */			
 
+	function getMovableAxisText(Path, AxisNr) {
+		let Text = '';
+		
+		const File = Path.substring( Path.lastIndexOf(`\\`) + 1, Path.length - 4 );
+		
+		if (!MovableAxis[File]) {
+			// no text
+			Text = '(' + AxisNr + ')';
+
+		} else if (typeof(MovableAxis[File].MovAxis[AxisNr]) === "string") {
+			Text += MovableAxis[File].MovAxis[AxisNr] + ' (' + AxisNr + ')';
+
+		} else if (typeof(MovableAxis[File].MovAxis[AxisNr]) === "object") {
+			Text += (   MovableAxis[File].MovAxis[AxisNr][EEP_Texts.getLanguage()]
+				     || MovableAxis[File].MovAxis[AxisNr].DE	// primary language
+				     || MovableAxis[File].MovAxis[AxisNr].EN	// secondary language
+				    ) + " (" + AxisNr + ')'
+				;
+
+		} else {
+			// no text
+			Text = '(' + AxisNr + ')';
+
+		}
+
+		return Text;
+	}
+
 	const clsidPropelled 	= "16095510-0EAB-46AF-B294-CBB6D3516007";
 	const clsidNotPropelled	= "7B0D0A3A-0882-44D6-B3E7-45D933A70F74";
 
@@ -1800,7 +1829,7 @@ x	RollIdx="3"
 		const clsid			= Rollmaterial.Rollmaterial.getAttribute("clsid");
 		const vUeberhang	= Rollmaterial.Rollmaterial.getAttribute("vUeberhang");
 		const hUeberhang	= Rollmaterial.Rollmaterial.getAttribute("hUeberhang");
-		const File			= Rollmaterial.Rollmaterial.getAttribute("typ");
+		const Path			= Rollmaterial.Rollmaterial.getAttribute("typ");
 
 		const ZugverbandName = Rollmaterial.Zugverband.getAttribute('name');
 		const Position		= Rollmaterial.Position;
@@ -1818,19 +1847,37 @@ x	RollIdx="3"
 		let AxisPresetNr = 0;
 		for (const AxisPreset of AxisPresets) {
 			AxisPresetNr += 1;
-			if (AxisPresetText !== '') {
-				AxisPresetText += '<br>';
-			}
-			AxisPresetText += '[' + AxisPresetNr + ']';
 			const Table		= AxisPreset.getElementsByTagName('Table')[0];
 			const Count		= Table.getAttribute('Count');
-			for (let Axis = 0; Axis < Count; Axis++) {
-				const value = Table.getAttribute('e'+Axis);
-				if (value === '1') {					// Switch axis
-					AxisPresetText += ' ' + (Axis+1) + '=' + _('An');
-				} else if  (value > 0.05) {
-					const pos = value/Math.PI/2*100;	// Rotation axis  
-					AxisPresetText += ' ' + (Axis+1) + '=' + pos.toFixed(0) + '%';
+
+			if (Count > 0) {
+				if (AxisPresetText !== '') {
+					AxisPresetText += '<br>';
+				}
+				AxisPresetText += '[' + AxisPresetNr + ']';
+			
+				let first = true;
+				for (let Axis = 0; Axis < Count; Axis++) {
+					const value  = Table.getAttribute('e'+Axis);
+					const AxisNr = Axis + 1					
+
+					if (value === '1') {						// Switch axis
+						AxisPresetText += 
+							  (first ? ' ' : ', ')
+							+ getMovableAxisText(Path, AxisNr) // The name of the axis is only available in the corresponding .ini-File 
+							+ '=' 
+							+ _('Ein');
+						first = false;	
+							
+					} else if  (value > 0.05) {
+						const pos = value/Math.PI/2*100;		// Rotation axis  
+						AxisPresetText += 
+							  (first ? ' ' : ', ')
+							+ getMovableAxisText(Path, AxisNr)  // The name of the axis is only available in the corresponding .ini-File
+							+ '='
+							+ pos.toFixed(0) + '%';
+						first = false;	
+					}
 				}
 			}
 		}
@@ -1853,7 +1900,7 @@ x	RollIdx="3"
 		{ th : _('Ausrichtung'),			td : ausrichtung },
 		{ th : _('Achsengruppe'),			td : AxisPresetText, html : true },
 
-		{ th : _('Datei'),					td : File },
+		{ th : _('Datei'),					td : Path },
 
 		]) })
 
