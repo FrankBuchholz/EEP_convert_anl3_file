@@ -35,6 +35,7 @@ fieldset {
 </style>
 
 <script type="text/javascript" src="js/EEP_Signale_Daten.js"></script><!-- Lade Zusatzdaten zu Signalen: Name, Signalstellung -->
+<script type="text/javascript" src="js/EEP_MovableAxis_Data.js"></script><!-- Lade Zusatzdaten zu beweglichen Achsen -->
 
 <script type="text/javascript">
 
@@ -76,12 +77,24 @@ function readIniFiles(fileList) {
 			
 			if (iniFile.section[section]) {
 				for (const parameter in iniFile.section[section]) {
+
 					const match = parameter.match(pattern);
 					if (match) {
-						iniFile.combination[Number(match[1])] = {
+						const id = Number(match[1]);
+						if (iniFile.combination[id]) {					// Only process the first entry per position/axis
+							continue;
+						}
+
+						iniFile.combination[id] = {						// Get all languages in one step
 							DE : iniFile.section[section][match[0] + 'GER'],
 							EN : iniFile.section[section][match[0] + 'ENG'],
 							FR : iniFile.section[section][match[0] + 'FRA'],
+						}
+						
+						if (section == 'Model_SignalFunc') {			// Signals
+							iniFile.combination[id].Pos = id;
+						} else if (section == 'FileInfo') {				// Others
+							iniFile.combination[id].MovAxis = id;
 						}
 					}
 				}
@@ -204,36 +217,54 @@ function showIniFiles(iniFiles, settingsCombinations) {
 
 	} else {	// outputFormat = code
 
-		// Stringify settingsCombinationen for usage in EEP_Gleisplan.html and EEP_Inventar.html
+		// Stringify data for usage in EEP_Gleisplan.html and EEP_Inventar.html
 		p = document.createElement('p');
 		div.appendChild(p);
-		p.innerHTML = 'const combination = {';
+		p.innerHTML = 'const data = {';
 		for (const iniFile of iniFiles) {
-			const filename = iniFile.file.name.substr(0, iniFile.file.name.length - 4);
-			if ( !unknownOnly || !Signalstellung[filename] ) {			// Ignore known signals
+			let filename = iniFile.file.name.substr(0, iniFile.file.name.length - 4);
+			if (!iniFile.section.Model_SignalFunc) {
+				filename = filename.toUpperCase();												// Upper case file name for rolling stocks
+			}
+			
+			if ( !unknownOnly || ( !Signalstellung[filename] && !MovableAxis[filename] ) ) {	// Ignore known data
+			
 			if ( Object.keys(iniFile.combination).length > 0 ) {
 
-				p.innerHTML += `<br>&nbsp;&nbsp;"${filename}" : `+'{';
+				p.innerHTML += `<br>&nbsp;&nbsp;"${filename}" : `+'{';							// Show file name as key 
 
-				if (iniFile.section.FileInfo) {
-					p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Name : {'
-						+ (iniFile.section.FileInfo.Name_GER ? `DE : "${iniFile.section.FileInfo.Name_GER}", ` : '')
-						+ (iniFile.section.FileInfo.Name_ENG ? `EN : "${iniFile.section.FileInfo.Name_ENG}", ` : '')
-						+ (iniFile.section.FileInfo.Name_FRA ? `FR : "${iniFile.section.FileInfo.Name_FRA}", ` : '')
+				const FileInfo = iniFile.section.FileInfo;
+				if (FileInfo) {
+					p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Name : {'						// Show name as data
+						+ (FileInfo.Name_GER ? `DE : "${FileInfo.Name_GER}", ` : '')
+						+ (FileInfo.Name_ENG ? `EN : "${FileInfo.Name_ENG}", ` : '')
+						+ (FileInfo.Name_FRA ? `FR : "${FileInfo.Name_FRA}", ` : '')
 						+ '},'
-						//+ `Desc = ${iniFile.section.FileInfo.Description_GER}<br>`
+						//+ `Desc = ${FileInfo.Description_GER}<br>`
 						//+ `settingsCombination = ${iniFile.settingsCombination}<br>`
 						;
 				}
 
-				p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Pos : {'
+				p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;'									// Show position for signals respective movable axis for others
+					+ (iniFile.section.Model_SignalFunc ? 'Pos' : 'MovAxis' )
+					+ ' : {'
 				//p = document.createElement('p');
 				//div.appendChild(p);
-				for (const combination in iniFile.combination) {
-					p.innerHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${combination} : `+'{'
-						+ (iniFile.combination[combination].DE ? `DE : "${iniFile.combination[combination].DE}", ` : '')
-						+ (iniFile.combination[combination].EN ? `EN : "${iniFile.combination[combination].EN}", ` : '')
-						+ (iniFile.combination[combination].FR ? `FR : "${iniFile.combination[combination].FR}", ` : '')
+//				for (const id in iniFile.combination) {
+				let index = 0;
+				for (key of Object.keys(iniFile.combination).sort((a, b) => (a - b))) {			// Sorted output
+					const entry = iniFile.combination[key];
+					let id = key;
+					if (entry.MovAxis) {
+						index++;
+						id = index; 
+					}
+					p.innerHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${id} : `
+						+'{'
+						+ (entry.DE ? `DE : "${entry.DE}", ` : '')
+						+ (entry.EN ? `EN : "${entry.EN}", ` : '')
+						+ (entry.FR ? `FR : "${entry.FR}", ` : '')
+						+ (entry.MovAxis ? `axis : ${entry.MovAxis}, ` : '')
 						+ '},'
 					;
 				}
@@ -266,7 +297,7 @@ function showIniFiles(iniFiles, settingsCombinations) {
 		Format der Ausgabe:
 		<input type="radio" name="outputFormat" id="list" checked /><label for="list">Liste</label>
 		<input type="radio" name="outputFormat" id="code" /><label for="code">Code</label>
-		<input id="checkboxUnknownOnly" type="checkbox"><label for="checkboxUnknownOnly">Nur unbekannte Signale anzeigen</label
+		<input id="checkboxUnknownOnly" type="checkbox"><label for="checkboxUnknownOnly">Nur Daten zu bislang unbekannten Dateien anzeigen</label
 	</fieldset>
 </form>
 

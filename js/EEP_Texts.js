@@ -593,8 +593,8 @@ info : {
 		EN : `Moveable elements group`,
 		FR : `Groupe d'éléments mobiles`,
 	},
-	An : { // An - Aus
-		DE : `An`, 
+	Ein : { // Ein - Aus
+		DE : `Ein`, 
 		EN : `On`,
 		FR : `On`,
 	},
