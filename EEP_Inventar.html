@@ -11,6 +11,7 @@
 <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
 
 <script type="text/javascript" src="js/EEP_Texts.js"></script> <!-- Load texts and translations -->
+<script type="text/javascript" src="js/EEP_Icons.js"></script> <!-- Load icons -->
 <link rel="stylesheet" href="css/EEP_Texts.css">
 
 <!--
@@ -1812,6 +1813,20 @@ x	RollIdx="3"
 
 		return Text;
 	}
+	
+	function getIcon(Path) {
+		const File = Path.substring( Path.lastIndexOf(`\\`) + 1, Path.length - 4 );
+		if (MovableAxis[File] && MovableAxis[File].Icon) {
+			const iconID = MovableAxis[File].Icon;
+			if (iconID) {
+				const Icon = Icons[iconID];
+				if (Icon) {
+					return `<img src="${IconServer}${Icon.src}" title="${Icon.DE}" width="24" height="24">`
+				}
+			}
+		}
+		return '';
+	}
 
 	const clsidPropelled 	= "16095510-0EAB-46AF-B294-CBB6D3516007";
 	const clsidNotPropelled	= "7B0D0A3A-0882-44D6-B3E7-45D933A70F74";
@@ -1886,6 +1901,8 @@ x	RollIdx="3"
 
 		{ th : _('Name'),					td : Name },
 		{ th : _('RollIdx'),				td : RollIdx },
+
+		{ th : _('Icon'),					td : getIcon(Path), html : true },
 
 		{ th : _('Angetrieben'),			td : (clsid === clsidPropelled ? 1 : 0) },
 		{ th : _('Leistung'),				td : leistung },

@@ -136,6 +136,15 @@ function parseIniString(data){
 	return value;
 }
 
+function orderByFileName(a,b) {
+	// Sort by text ascending
+	const NameA = iniFiles[a].file.name.toLowerCase();
+	const NameB = iniFiles[b].file.name.toLowerCase();
+	if (NameA < NameB)	{ return -1; }
+	if (NameA > NameB)	{ return 1;  }
+	return 0;
+}
+
 function showSignalIniFiles(iniFiles, Signalstellungen) {
 	const unknownOnly 	= document.getElementById('checkboxUnknownOnly').checked;
 	const target 		= document.getElementById('container');
@@ -187,25 +196,40 @@ function showSignalIniFiles(iniFiles, Signalstellungen) {
 		p = document.createElement('p');
 		div.appendChild(p);
 		p.innerHTML = 'const Signalstellung = {';
-		for (const iniFile of iniFiles) {
+		
+//		for (const iniFile of iniFiles) {
+		Object.keys(iniFiles).sort(orderByFileName).forEach(function(key, index) {
+			const iniFile = iniFiles[key];
+		  
 			const filename = iniFile.file.name.substr(0, iniFile.file.name.length - 4);
 			if ( !unknownOnly || !Signalstellung[filename] ) {
 			if ( Object.keys(iniFile.Signalstellung).length > 0 ) {
 
 				p.innerHTML += `<br>&nbsp;&nbsp;"${filename}" : `+'{';
 
-				if (iniFile.section.FileInfo) {
-					p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Name : {'
-						+ (iniFile.section.FileInfo.Name_GER ? `DE : "${iniFile.section.FileInfo.Name_GER}", ` : '')
-						+ (iniFile.section.FileInfo.Name_ENG ? `EN : "${iniFile.section.FileInfo.Name_ENG}", ` : '')
-						+ (iniFile.section.FileInfo.Name_FRA ? `FR : "${iniFile.section.FileInfo.Name_FRA}", ` : '')
+				const FileInfo = iniFile.section.FileInfo;
+				if (FileInfo) {
+					p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;'
+						+'Name'
+						+' : {'
+						+ (FileInfo.Name_GER ? `DE : "${FileInfo.Name_GER}", ` : '')
+						+ (FileInfo.Name_ENG ? `EN : "${FileInfo.Name_ENG}", ` : '')
+						+ (FileInfo.Name_FRA ? `FR : "${FileInfo.Name_FRA}", ` : '')
 						+ '},'
-						//+ `Desc = ${iniFile.section.FileInfo.Description_GER}<br>`
+						//+ `Desc = ${FileInfo.Description_GER}<br>`
 						//+ `Stellungskombination = ${iniFile.Stellungskombination}<br>`
 						;
+						
+					if (FileInfo.Icon) {
+						p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;'
+							+'Icon'
+							+' : ' + FileInfo.Icon + ',';					
+					}	
 				}
 
-				p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;Pos : {'
+				p.innerHTML += '<br>&nbsp;&nbsp;&nbsp;&nbsp;'
+					+'Pos'
+					+' : {'
 				//p = document.createElement('p');
 				//div.appendChild(p);
 				for (const Signalstellung in iniFile.Signalstellung) {
@@ -219,7 +243,8 @@ function showSignalIniFiles(iniFiles, Signalstellungen) {
 				p.innerHTML += '<br>&nbsp;&nbsp;}},';
 			}
 			}
-		}
+//		}
+		})
 		p.innerHTML += '<br>}';
 	}
 }

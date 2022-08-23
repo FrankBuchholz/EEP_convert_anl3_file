@@ -203,6 +203,11 @@ info : {
 		EN : `Others`, 
 		FR : `Autres`, 
 	},
+	Icon : {
+		DE : `Icon`, 
+		EN : `Icon`, 
+		FR : `Icon`, 
+	},
 	Reset : {
 		DE : `Zurücksetzen`, 
 		EN : `Reset`, 
