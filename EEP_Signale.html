@@ -136,16 +136,17 @@ function parseIniString(data){
 	return value;
 }
 
-function orderByFileName(a,b) {
-	// Sort by text ascending
-	const NameA = iniFiles[a].file.name.toLowerCase();
-	const NameB = iniFiles[b].file.name.toLowerCase();
-	if (NameA < NameB)	{ return -1; }
-	if (NameA > NameB)	{ return 1;  }
-	return 0;
-}
-
 function showSignalIniFiles(iniFiles, Signalstellungen) {
+
+	function orderByFileName(a,b) {
+		// Sort by text ascending
+		const NameA = iniFiles[a].file.name.toLowerCase();
+		const NameB = iniFiles[b].file.name.toLowerCase();
+		if (NameA < NameB)	{ return -1; }
+		if (NameA > NameB)	{ return 1;  }
+		return 0;
+	}
+
 	const unknownOnly 	= document.getElementById('checkboxUnknownOnly').checked;
 	const target 		= document.getElementById('container');
 	let div, p;
