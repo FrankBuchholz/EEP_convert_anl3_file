@@ -139,12 +139,23 @@ function parseIniString(data){
 function showSignalIniFiles(iniFiles, Signalstellungen) {
 
 	function orderByFileName(a,b) {
-		// Sort by text ascending
+		// Sort by text ascending ignoring case
 		const NameA = iniFiles[a].file.name.toLowerCase();
 		const NameB = iniFiles[b].file.name.toLowerCase();
 		if (NameA < NameB)	{ return -1; }
 		if (NameA > NameB)	{ return 1;  }
 		return 0;
+		
+		/* Another option might be to use localeCompare()
+		https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+		https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Collator/Collator
+		return 
+			iniFiles[a].file.name.localeCompare(	// 1st text
+			iniFiles[b].file.name, 					// 2nd text
+			undefined, 								// locales like 'de' or 'en'
+			{ sensitivity: 'accent' }				// sensitivity: 'base' (ä = a) or 'accent', numeric: true, caseFirst: 'lower'
+		);
+		*/
 	}
 
 	const unknownOnly 	= document.getElementById('checkboxUnknownOnly').checked;
