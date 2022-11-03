@@ -1383,6 +1383,7 @@ if (BinZ == -1 ) {
 			const Spline	= Curve.getElementsByTagName("Spline")[0];
 			const Rotator	= Curve.getElementsByTagName("Rotator")[0];
 			const RotatorChain	= Curve.getElementsByTagName("RotatorChain")[0];
+			const PolygonalChain = Curve.getElementsByTagName("PolygonalChain")[0]; // Available as of EEP 17.1
 
 			// Get track geometry per CurveType
 			if (EEPCurve) {	// EEPCurve = Line or Arc
@@ -2061,6 +2062,48 @@ console.log(`Cubic ${TrackSystemText(GleissystemID)} ${GleisID}`
 				console.log(`RotatorChain not supported yet: ${TrackSystemText(GleissystemID)} ${GleisID}`);
 				continue;
 
+			} else if (PolygonalChain) {
+				CurveType 	= 'PolygonalChain';
+
+				Gleis.PolygonalPoints = [];
+				//const VectorBundleList = PolygonalChain.getElementsByTagName("VectorBundle");
+				const PositionList = PolygonalChain.getElementsByTagName("Position");
+				const VectorList   = PolygonalChain.getElementsByTagName("Vector");
+				let p0X, p0Y, p0Z;
+				for (let Index = 0; Index < PositionList.length; Index++) {
+					const Position = PositionList[Index];
+					
+					const pX = +Position.getAttribute("x");
+					const pY = +Position.getAttribute("y");
+					const pZ = +Position.getAttribute("z");
+
+					const Vector = VectorList[Index];
+					
+					const dx = +Vector.getAttribute("dx");
+					const dy = +Vector.getAttribute("dy");
+					const dz = +Vector.getAttribute("dz");
+
+					if (Index == 0) {
+						// Calculate start point
+						mMatrix = [
+								mMatrix,
+								matrix.translate(pX, pY, pZ),
+							].reduce(matrix.multiply);
+						p0X = pX;
+						p0Y = pY;
+						p0Z = pZ;	
+					}
+					
+					// Store relative coordinates of the polygonal points
+					Gleis.PolygonalPoints[Index] = { 
+						x  : pX - p0X, y  : pY - p0Y, z  : pZ - p0Z, 
+						dx : dx,       dy : dy,       dz : dz, 
+					};
+				}
+				
+				//continue;
+
+
 			} else { // curve not supported yet
 				CurveType 	= 'others';
 				console.log(`other curve type not supported yet:  ${TrackSystemText(GleissystemID)} ${GleisID}`);
@@ -2290,6 +2333,35 @@ if (near > far) { //###
 			const Index = (near > far ? Gleis.BezierPoints.length - 1 : 0);
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints[Index], t);
 
+		} else if (CurveType === 'PolygonalChain') {
+
+			// Create svg curve
+			let d = "";
+			for (let I = 0; I < Gleis.PolygonalPoints.length; I++) {
+				const Index = (near > far ? Gleis.PolygonalPoints.length - 1 - I : I);	// reverse / normal
+				const Point = Gleis.PolygonalPoints[Index];
+
+				if (d === "") {
+					d += `M ${Point.x} ${Point.y}`
+				} else {
+					d += ` L ${Point.x} ${Point.y}`
+				}
+			}
+			
+			svgAppend(svgGleisGroup, {
+				svg_tag				: `path`,
+				//class				: `stil-${stil}`,
+				d 					: d,
+				transform 			: matrixToTransform(mMatrix)
+			});
+			
+			// Calculate end point
+			const I = Gleis.PolygonalPoints.length - 1;
+			DeltaX		= Gleis.PolygonalPoints[I].x - Gleis.PolygonalPoints[0].x;
+			DeltaY 		= Gleis.PolygonalPoints[I].y - Gleis.PolygonalPoints[0].y;
+			DeltaZ		= Gleis.PolygonalPoints[I].z - Gleis.PolygonalPoints[0].z;
+			Winkel		= Math.acos(Gleis.PolygonalPoints[I].dx);
+			
 		} else if (CurveType === 'Clothoid') {
 			let points, svgPath;
 			[points, svgPath] = calcClothoidCurve(
@@ -2435,6 +2507,15 @@ if (near > far) { //###
 
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierPoint(Gleis.BezierPoints, Laenge / 2, near, far) 
 			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${-DeltaY})`;	// svg: mirrored y-coordinate
+			
+		} else if (CurveType === 'PolygonalChain') {
+			const I = Math.floor(Gleis.PolygonalPoints.length / 2);
+			DeltaX		= Gleis.PolygonalPoints[I].x - Gleis.PolygonalPoints[0].x;
+			DeltaY 		= Gleis.PolygonalPoints[I].y - Gleis.PolygonalPoints[0].y;
+			DeltaZ		= Gleis.PolygonalPoints[I].z - Gleis.PolygonalPoints[0].z;
+			// yaw = atan(y/x)
+			// pitch = atan(z/sqrt(x^2+y^2))			
+			Winkel		= Math.atan2(Gleis.PolygonalPoints[I].dy, Gleis.PolygonalPoints[I].dx);
 
 		} else if (CurveType === 'Clothoid') {
 			let points, svgPath;
@@ -2620,7 +2701,7 @@ if (near > far) { //###
 		// </Meldung>
 
 		const trackSignalEntries = global.trackSignals[GleissystemID][GleisID];
-		if (trackSignalEntries) {
+		if (trackSignalEntries && CurveType !== 'PolygonalChain') { // PolygonalChain is not supported yet
 		for (const trackSignalEntry of trackSignalEntries) {
 			const Meldung		= trackSignalEntry.Meldung;
 			const SignalID		= Meldung.getAttribute("Key_Id");
@@ -2726,6 +2807,7 @@ if (near > far) { //###
 		}} // Signale
 
 		// Kontakte
+		if (CurveType !== 'PolygonalChain') { // PolygonalChain is not supported yet
 		for (const Kontakt of Gleis.getElementsByTagName("Kontakt")) {
 			const Position		= (near > far 	//###
 									? Laenge - Kontakt.getAttribute("Position") / 100	// reverse
@@ -2853,6 +2935,7 @@ if (near > far) { //###
 			}
 
 		} // Kontakte
+		}
 
 	} // Gleise
 
