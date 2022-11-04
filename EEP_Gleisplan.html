@@ -2065,44 +2065,52 @@ console.log(`Cubic ${TrackSystemText(GleissystemID)} ${GleisID}`
 			} else if (PolygonalChain) {
 				CurveType 	= 'PolygonalChain';
 
-				Gleis.PolygonalPoints = [];
 				//const VectorBundleList = PolygonalChain.getElementsByTagName("VectorBundle");
 				const PositionList = PolygonalChain.getElementsByTagName("Position");
 				const VectorList   = PolygonalChain.getElementsByTagName("Vector");
-				let p0X, p0Y, p0Z;
-				for (let Index = 0; Index < PositionList.length; Index++) {
-					const Position = PositionList[Index];
-					
-					const pX = +Position.getAttribute("x");
-					const pY = +Position.getAttribute("y");
-					const pZ = +Position.getAttribute("z");
 
-					const Vector = VectorList[Index];
-					
-					const dx = +Vector.getAttribute("dx");
-					const dy = +Vector.getAttribute("dy");
-					const dz = +Vector.getAttribute("dz");
-
-					if (Index == 0) {
-						// Calculate start point
-						mMatrix = [
-								mMatrix,
-								matrix.translate(pX, pY, pZ),
-							].reduce(matrix.multiply);
-						p0X = pX;
-						p0Y = pY;
-						p0Z = pZ;	
-					}
-					
-					// Store relative coordinates of the polygonal points
-					Gleis.PolygonalPoints[Index] = { 
-						x  : pX - p0X, y  : pY - p0Y, z  : pZ - p0Z, 
-						dx : dx,       dy : dy,       dz : dz, 
-					};
-				}
+				const Position = PositionList[0];
+				const pX = +Position.getAttribute("x"); 
+				const pY = +Position.getAttribute("y"); 
+				const pZ = +Position.getAttribute("z"); 
 				
-				//continue;
+				// Calculate start point
+				mMatrix = [
+						mMatrix,
+						matrix.translate(pX, pY, pZ),
+					].reduce(matrix.multiply);
+				
+				Gleis.BezierPoints = [];
+				for (let Index = 1; Index < PositionList.length; Index++) {
+					// First point of current Bezier segment
+					const aPoint    = PositionList[Index-1];
+					const B1X		= +aPoint.getAttribute("x") - pX; 
+					const B1Y		= +aPoint.getAttribute("y") - pY; 
+					const B1Z		= +aPoint.getAttribute("z") - pZ; 
+					// Last point of current Bezier segment
+					const dPoint    = PositionList[Index];
+					const B4X		= +dPoint.getAttribute("x") - pX; 
+					const B4Y 		= +dPoint.getAttribute("y") - pY; 
+					const B4Z 		= +dPoint.getAttribute("z") - pZ; 
+					// Distance between first and last point
+					const d 		= 1/3 * Math.sqrt( (B1X-B4X)**2 + (B1Y-B4Y)**2 + (B1Z-B4Z)**2 );
+					// Control point with 1/3 distance from first point in +vector direction 
+					const aVector 	= VectorList[Index-1];
+					const B2X 		= B1X + d * (+aVector.getAttribute("dx"));
+					const B2Y 		= B1Y + d * (+aVector.getAttribute("dy"));
+					const B2Z 		= B1Z + d * (+aVector.getAttribute("dz"));
+					// Control point with 1/3 distance from last point in -vector direction 
+					const dVector 	= VectorList[Index];
+					const B3X 		= B4X + d * (-dVector.getAttribute("dx"));
+					const B3Y 		= B4Y + d * (-dVector.getAttribute("dy"));
+					const B3Z 		= B4Z + d * (-dVector.getAttribute("dz"));
 
+					// Calculate length of bezier segment
+					// Source: http://bl.ocks.org/hnakamur/e7efd0602bfc15f66fc5
+					const arcLength2D = getArcLength( [B1X, B2X, B3X, B4X], [B1Y, B2Y, B3Y, B4Y] );
+
+					Gleis.BezierPoints[Index-1] = [ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z], arcLength2D ];
+				}
 
 			} else { // curve not supported yet
 				CurveType 	= 'others';
@@ -2282,7 +2290,7 @@ if (near > far) { //###
 		});
 
 		// Calculate end point and create svg curve
-		if (Gleis.BezierPoints) { //CurveType === 'Cubic' / 'Spline'
+		if (Gleis.BezierPoints) { // CurveType: Cubic, Spline, PolygonalChain
 
 			// Create svg curve
 			let d = "";
@@ -2330,38 +2338,9 @@ if (near > far) { //###
 
 			// Calculate end point
 			const t 	= (near > far ? 0 : 1);
-			const Index = (near > far ? Gleis.BezierPoints.length - 1 : 0);
+			const Index = (near > far ? 0 : Gleis.BezierPoints.length - 1);
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints[Index], t);
 
-		} else if (CurveType === 'PolygonalChain') {
-
-			// Create svg curve
-			let d = "";
-			for (let I = 0; I < Gleis.PolygonalPoints.length; I++) {
-				const Index = (near > far ? Gleis.PolygonalPoints.length - 1 - I : I);	// reverse / normal
-				const Point = Gleis.PolygonalPoints[Index];
-
-				if (d === "") {
-					d += `M ${Point.x} ${Point.y}`
-				} else {
-					d += ` L ${Point.x} ${Point.y}`
-				}
-			}
-			
-			svgAppend(svgGleisGroup, {
-				svg_tag				: `path`,
-				//class				: `stil-${stil}`,
-				d 					: d,
-				transform 			: matrixToTransform(mMatrix)
-			});
-			
-			// Calculate end point
-			const I = Gleis.PolygonalPoints.length - 1;
-			DeltaX		= Gleis.PolygonalPoints[I].x - Gleis.PolygonalPoints[0].x;
-			DeltaY 		= Gleis.PolygonalPoints[I].y - Gleis.PolygonalPoints[0].y;
-			DeltaZ		= Gleis.PolygonalPoints[I].z - Gleis.PolygonalPoints[0].z;
-			Winkel		= Math.acos(Gleis.PolygonalPoints[I].dx);
-			
 		} else if (CurveType === 'Clothoid') {
 			let points, svgPath;
 			[points, svgPath] = calcClothoidCurve(
@@ -2503,19 +2482,10 @@ if (near > far) { //###
 		}
 
 		// Calculate mid point
-		if (Gleis.BezierPoints) { //CurveType === 'Cubic' / 'Spline'
+		if (Gleis.BezierPoints) { // CurveType: Cubic, Spline, PolygonalChain
 
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierPoint(Gleis.BezierPoints, Laenge / 2, near, far) 
 			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${-DeltaY})`;	// svg: mirrored y-coordinate
-			
-		} else if (CurveType === 'PolygonalChain') {
-			const I = Math.floor(Gleis.PolygonalPoints.length / 2);
-			DeltaX		= Gleis.PolygonalPoints[I].x - Gleis.PolygonalPoints[0].x;
-			DeltaY 		= Gleis.PolygonalPoints[I].y - Gleis.PolygonalPoints[0].y;
-			DeltaZ		= Gleis.PolygonalPoints[I].z - Gleis.PolygonalPoints[0].z;
-			// yaw = atan(y/x)
-			// pitch = atan(z/sqrt(x^2+y^2))			
-			Winkel		= Math.atan2(Gleis.PolygonalPoints[I].dy, Gleis.PolygonalPoints[I].dx);
 
 		} else if (CurveType === 'Clothoid') {
 			let points, svgPath;
@@ -2701,7 +2671,7 @@ if (near > far) { //###
 		// </Meldung>
 
 		const trackSignalEntries = global.trackSignals[GleissystemID][GleisID];
-		if (trackSignalEntries && CurveType !== 'PolygonalChain') { // PolygonalChain is not supported yet
+		if (trackSignalEntries) {
 		for (const trackSignalEntry of trackSignalEntries) {
 			const Meldung		= trackSignalEntry.Meldung;
 			const SignalID		= Meldung.getAttribute("Key_Id");
@@ -2714,12 +2684,11 @@ if (near > far) { //###
 			const ParaOderAnti 	= trackSignalEntry.ParaOderAnti; //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 
 			// Calculate point
-			if (Gleis.BezierPoints) { //CurveType === 'Cubic' / 'Spline'
+			if (Gleis.BezierPoints) { // CurveType: Cubic, Spline, PolygonalChain
 				//const t = (Laenge ? Position / Laenge : 0);
 				//const BezierPoints = Gleis.BezierPoints[0]; // Incomplete: only the first segment is supported yet
 				//[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(BezierPoints, t);
 				[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierPoint(Gleis.BezierPoints, Position, near, far) 
-			
 
 			} else if (CurveType === 'Clothoid') {
 				let points, svgPath;
@@ -2807,7 +2776,6 @@ if (near > far) { //###
 		}} // Signale
 
 		// Kontakte
-		if (CurveType !== 'PolygonalChain') { // PolygonalChain is not supported yet
 		for (const Kontakt of Gleis.getElementsByTagName("Kontakt")) {
 			const Position		= (near > far 	//###
 									? Laenge - Kontakt.getAttribute("Position") / 100	// reverse
@@ -2935,7 +2903,6 @@ if (near > far) { //###
 			}
 
 		} // Kontakte
-		}
 
 	} // Gleise
 
