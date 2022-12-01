@@ -1591,8 +1591,8 @@ clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGC
 		
 		let AutoAuslass = '';
 		if ( Depot.Wartender == 0 ) {
-			// individuelle Abfahrtzeiten der Zugverbände (Sekunden ab Mitternacht)
-			AutoAuslass = _('individuelle Abfahrtzeiten');
+			// individuelle Abfahrtzeit der Zugverbände (Sekunden ab Mitternacht)
+			AutoAuslass = _('individuelle Abfahrtzeit');
 			
 		} else if ( Depot.Wartender != 0 & Depot.SignalData == 0 ) {
 			// Auto-Zeit in Sekunden nach der jeweils der nächste Zugverband ausfährt
@@ -1639,7 +1639,7 @@ clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGC
 		let AutoAuslass = '';
 		let TTime = 0;
 		if ( Depot.Wartender == 0 ) {
-			// individuelle Abfahrtzeiten der Zugverbände (Sekunden ab Mitternacht)
+			// individuelle Abfahrtzeit der Zugverbände (Sekunden ab Mitternacht)
 			AutoAuslass = _('individuelle Abfahrtzeit');
 			
 		} else if ( Depot.Wartender != 0 & Depot.SignalData == 0 ) {
@@ -1661,7 +1661,7 @@ clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGC
 
 			let TTimeVal;
 			if ( Depot.Wartender == 0 ) {
-				// individuelle Abfahrtzeiten der Zugverbände (Sekunden ab Mitternacht)
+				// individuelle Abfahrtzeit der Zugverbände (Sekunden ab Mitternacht)
 				TTimeVal = new Date(1000 * Math.abs(Train.TTime)).toISOString().substr(11, 8)	// seconds -> hh:mm:ss
 				
 			} else if ( Depot.Wartender != 0 & Depot.SignalData == 0 ) {
@@ -2712,7 +2712,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)"><a href='#divKontakt'><span lang="de">Kontakte</span><span lang="en">Contacts</span><span lang="fr">Contacts</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='virtualConnections' 	checked autocomplete='off' onchange="toggleElements('.virtualConnections', this.checked)"><a href='#divvirtualConnections'><span lang="de">virtuelle Verbindungen</span><span lang="en">Virtual connections</span><span lang="fr">Connexions virtuelles</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Zugverband' 	checked autocomplete='off' onchange="toggleElements('.Zugverband', this.checked)"><a href='#divZugverband'><span lang="de">Zugverband</span><span lang="en">Train set</span><span lang="fr">Convoi ferroviaire</span></a></label></div>
-	<div class="item"><label><input type='checkbox' name='Depot' 	checked autocomplete='off' onchange="toggleElements('.Depot', this.checked)"><a href='#divDepot'><span lang="de">Depot</span><span lang="en">Depot</span><span lang="fr">Dépôt</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Depot' 	checked autocomplete='off' onchange="toggleElements('.Depot', this.checked);toggleElements('.DepotZugverbaende', this.checked)"><a href='#divDepot'><span lang="de">Depot</span><span lang="en">Depot</span><span lang="fr">Dépôt</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Rollmaterial'	checked autocomplete='off' onchange="toggleElements('.Rollmaterial', this.checked)"><a href='#divRollmaterial'><span lang="de">Rollmaterialien</span><span lang="en">Rolling stock</span><span lang="fr">Matériel roulant</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisstil'	checked autocomplete='off' onchange="toggleElements('.Gleisstil', this.checked)"><a href='#divGleisstil'><span lang="de">Gleisstile</span><span lang="en">Track styles</span><span lang="fr">Styles de voie</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Gleisobjekt'	checked autocomplete='off' onchange="toggleElements('.Gleisobjekt', this.checked)"><a href='#divGleisobjekt'><span lang="de">Gleisobjekte</span><span lang="en">Track objects</span><span lang="fr">Objets de voie</span></a></label></div>
