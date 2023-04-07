@@ -1193,11 +1193,18 @@ mit
 		const ActDelay 		= Kontakt.Kontakt.getAttribute('ActDelay');
 		const TrainSide 	= Kontakt.Kontakt.getAttribute('TrainSide');
 		const RouteID 		= Kontakt.Kontakt.getAttribute('Route');
+		const RouteID2 		= Kontakt.Kontakt.getAttribute('Route2');
 		const TrainID 		= Kontakt.Kontakt.getAttribute('TrainID');
 		const TrainID2 		= Kontakt.Kontakt.getAttribute('TrainID2');
+		const Light 		= Kontakt.Kontakt.getAttribute('Light');
+		const LastTrainID	= Kontakt.Kontakt.getAttribute('LastTrainID');
+		const LastOfs		= Kontakt.Kontakt.getAttribute('LastOfs');
 		const NameFilter 	= Kontakt.Kontakt.getAttribute('NameFilter');
 		const TrainNewName 	= Kontakt.Kontakt.getAttribute('TrainNewName');
+		const KontaktDist 	= Kontakt.Kontakt.getAttribute('KontaktDist');
+		const TrainDist 	= Kontakt.Kontakt.getAttribute('TrainDist');
 		const zuStellung 	= Kontakt.Kontakt.getAttribute('zuStellung');
+		const Wartender 	= Kontakt.Kontakt.getAttribute('Wartender');
 		const Wechseln 		= Kontakt.Kontakt.getAttribute('Wechseln');
 		const ConnectF 		= Kontakt.Kontakt.getAttribute('ConnectF');
 		const ConnectR 		= Kontakt.Kontakt.getAttribute('ConnectR');
@@ -1206,6 +1213,7 @@ mit
 		const AxisPos 		= Kontakt.Kontakt.getAttribute('AxisPos'); 
 		const AxisFilter 	= Kontakt.Kontakt.getAttribute('AxisFilter');
 		const LuaFn		 	= Kontakt.Kontakt.getAttribute('LuaFn');
+		const Group		 	= Kontakt.Kontakt.getAttribute('Group');
 		const TipTxt	 	= Kontakt.Kontakt.getAttribute('TipTxt');
 
 		// Achtung: die Variable $1 wird ersetzt
@@ -1254,16 +1262,16 @@ mit
 		let KontaktTypText = (KontaktText[SetType] ? KontaktText[SetType] : _('unbekannt'));
 
 		// Spezielle Kontakt-Typen
-		if 		  (SetType == 0) {
+		if 		  (SetType == 0) {										// Weiche/Signal
 			KontaktTypText = Ziel.Typ;
 
-		} else if (SetType >= 1 && SetType <= 39) {		// Fahrzeug
-			KontaktTypText = KontaktTypText.replace('$1', SetValue);			// Geschwindigkeit eintragen
+		} else if (SetType >= 1 && SetType <= 39) {						// Fahrzeug
+			KontaktTypText = KontaktTypText.replace('$1', SetValue);	// Geschwindigkeit eintragen
 
-		} else if (SetType == 256) {										// Sound
+		} else if (SetType == 256) {									// Sound
 			KontaktTypText += ' ' + Sounds[SetValue];
 
-		} else if (SetType == 512) {
+		} else if (SetType == 512) {									// Kamera
 			/* ConnectF: 4 Byte Ganzzahl
 				Byte 1 (LSB):	KameraID Start
 				Byte 2:			Perspektive Start
@@ -1308,8 +1316,7 @@ mit
 					? ` [${Perspektive[EndePerspektive]}]`
 					: '' );
 
-		} else if (SetType == 1024) {
-			// DKW/EKW Weichenstellung
+		} else if (SetType == 1024) {								// DKW/EKW Weichenstellung
 			const VolDistText = {
 				0 : _('Umschalter'),
 				1 : _('links-links'),
@@ -1318,7 +1325,14 @@ mit
 				4 : _('rechts-links'),
 			}
 
-			KontaktTypText += ' ' + VolDistText[VolDist];	// DKW/EKW Weichenstellung
+			KontaktTypText += ' ' + VolDistText[VolDist];			// DKW/EKW Weichenstellung
+
+		} else if (SetType === 1280 && Wartender != 0) {  			// Einfahrt Depot
+			KontaktTypText += ' ' + Wartender;						// Depot-ID = Wartender (0=default)
+
+		} else if (SetType === 1536) {  							// Ausfahrt Depot
+			KontaktTypText += ' ' + SetValue;						// Depot-ID = SetValue
+
 		}
 
 		// SignalData
