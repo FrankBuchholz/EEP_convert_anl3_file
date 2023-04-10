@@ -1024,6 +1024,122 @@ function prepareGleissysteme(sutrackp) {
 					}
 				} // while searching for tracks
 
+				// Now we can follow the tracks to find the position of the stop point on the track (duplicate code as above)
+				const StopAt 	= entry.Meldung.getElementsByTagName("Signal")[0].getAttribute("StopAt") / 100; // immmer positiv
+				if (StopAt > 0) {
+					let currentGleisID 	= GleisID;	// Let's start with the current track
+					let Position		= entry.Meldung.getAttribute("Position") / 100; 	// Wert zwischen 0 und Gleis.Laenge
+					let ParaOderAnti 	= entry.Meldung.getAttribute("ParaOderAnti"); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
+					let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
+					let Laenge, near, far;	//###
+					if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
+						const Interval 	= Gleis.getElementsByTagName("Interval")[0];
+						near			= +Interval.getAttribute("near");
+						far 			= +Interval.getAttribute("far");
+						Laenge	= Math.abs( far - near );
+					} else {  /* EEP 15 */
+						const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
+						Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
+					}
+					// Do we find the stop position on the same track?
+					Position = Position + (Distanz - StopAt) * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
+					if (Position >= 0 && Position <= Laenge) {
+						// The stop point is on the same track
+						trackSignals[GleissystemID][currentGleisID].push({
+							Meldung 		: entry.Meldung,
+							SignalID		: SignalID,
+							signalType 		: "StopAt",
+							Position 		: Position,
+							ParaOderAnti	: ParaOderAnti,
+						});
+						continue;
+					}
+
+					if (Position > Laenge) { 					// look forward
+						Position	= Position - Laenge;		// remaining position on next track
+					} else {									// look backward
+						Position	= -Position;				// remaining position on previous track
+					}
+
+					// The stop point is on a different track
+					while (Position > 0) {
+						let nextGleisID, Anschluss;
+
+						if (!trackConnections[GleissystemID][currentGleisID]) { // should not happen
+							console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}`);
+							break;
+						}
+
+						if (ParaOderAnti == 1) { // look forward
+
+							if (trackConnections[GleissystemID][currentGleisID].Ende) { 
+								nextGleisID		= trackConnections[GleissystemID][currentGleisID].Ende.GleisID;
+								Anschluss		= trackConnections[GleissystemID][currentGleisID].Ende.Anschluss;
+								ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+							
+							} else if (trackConnections[GleissystemID][currentGleisID].EndeAbzweig) {  // should not happen
+								console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Ende`);
+								nextGleisID		= trackConnections[GleissystemID][currentGleisID].EndeAbzweig.GleisID;
+								Anschluss		= trackConnections[GleissystemID][currentGleisID].EndeAbzweig.Anschluss;
+								ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+							
+							} else {
+								console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.EndeAbzweig`);
+								break;
+							}
+
+						} else {				// look backward
+
+							if (!trackConnections[GleissystemID][currentGleisID].Anfang) { // should not happen
+								console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Anfang`);
+								break;
+							}
+
+							nextGleisID		= trackConnections[GleissystemID][currentGleisID].Anfang.GleisID;
+							Anschluss		= trackConnections[GleissystemID][currentGleisID].Anfang.Anschluss;
+							ParaOderAnti	= (Anschluss !== "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+						}
+
+						Gleis 	= global.Gleissysteme[GleissystemID][nextGleisID];
+						if (!Gleis) { // should not happen
+							console.log(`Error: Signal ${SignalID} no track for ${GleissystemID}-${nextGleisID}`);
+							break;
+						}
+
+						let Laenge;
+						if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
+							const Interval 	= Gleis.getElementsByTagName("Interval")[0];
+							const near		= +Interval.getAttribute("near");
+							const far 		= +Interval.getAttribute("far");
+							Laenge	= Math.abs( far - near );
+						} else {  /* EEP 15 */
+							const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
+							Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
+						}
+
+						if (Position <= Laenge) {
+							// The main signal is on the this track
+							if (!trackSignals[GleissystemID][nextGleisID]) {
+								 trackSignals[GleissystemID][nextGleisID] = [];
+							}
+							trackSignals[GleissystemID][nextGleisID].push({
+								Meldung 		: entry.Meldung,
+								SignalID		: SignalID,
+								signalType 		: "StopAt",
+								Position 		: (Anschluss === "Anfang" ? Position : Laenge - Position),
+								ParaOderAnti	: ParaOderAnti,
+							});
+							break;
+
+						} else {
+							// keep going
+							currentGleisID 	= nextGleisID;
+							Position 		= Position - Laenge;
+						}
+					} // while searching for tracks
+				}
+
+
 			} // Signale
 		} // Gleise
 	} // Gleissysteme
@@ -1634,9 +1750,9 @@ Eisenbahn 3	Arc	Länge: 70m	Anfang: 1									near="0"        far="70.18061"
 				const dh 	= b * w; // * (DirX2 * NorY2 >= 0 ? 1 : -1);
 				*/
 				const r    = Math.sqrt(a*a + b*b);
-				const wPos = (-near) 		/ r;
-				const wMid = (far-near)/2 / r;
-				const wEnd = (far) 		/ r;
+				const wPos = (-near)		/ r;
+				const wMid = (far-near)/2 	/ r;
+				const wEnd = (far) 			/ r;
 
 				// mPos
 				mMatrix = [
@@ -1664,9 +1780,6 @@ Eisenbahn 3	Arc	Länge: 70m	Anfang: 1									near="0"        far="70.18061"
 							matrix.translate(a, 0, b*wPos),
 							matrix.swapXY(),		// swap x/y and mirror at x axis because of upside-down orientation in SVG
 						  ].reduce(matrix.multiply);
-
-
-//if (GleissystemID == "3" && GleisID == "559"	) debugger;
 
 				const Radius = a;
 				Kruemmung 	= 1 / Radius;
@@ -1721,6 +1834,17 @@ console.log("Helix Vergleich\t" + TrackSystemText(GleissystemID) + " " + GleisID
 											];
 
 				}
+
+console.log( 
+      "\t" + CurveType 
+	+ "\t" + GleisID
+	+ "\tPos\t" + mPos[12] + "\t" + mPos[13]+ "\t" + mPos[14]
+	+ "\tMid\t" + mMid[12] + "\t" + mMid[13]+ "\t" + mMid[14]
+	+ "\tEnd\t" + mEnd[12] + "\t" + mEnd[13]+ "\t" + mEnd[14]
+	+ "\tRadius\t" + a // Radius 
+	+ "\tHeight\t" + b // Height
+	+ "\tr\t" + r // Math.sqrt(a*a + b*b) 
+)
 
 				Gleis.Helix = {	// Store Helix parameters
 					a: 		a,
@@ -2112,6 +2236,15 @@ console.log(`Cubic ${TrackSystemText(GleissystemID)} ${GleisID}`
 					Gleis.BezierPoints[Index-1] = [ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z], arcLength2D ];
 				}
 
+const point = Gleis.BezierPoints[Gleis.BezierPoints.length -1]
+console.log( 
+      "\t" + CurveType 
+	+ "\t" + GleisID
+	+ "\tPos\t" + mMatrix[12] + "\t" + mMatrix[13]+ "\t" + mMatrix[14]
+	+ "\tMid\t" + 0           + "\t" + 0          + "\t" + 0
+	+ "\tEnd\t" + point[3][0] + "\t" + point[3][1] + "\t" + point[3][2]
+
+)
 			} else { // curve not supported yet
 				CurveType 	= 'others';
 				console.log(`other curve type not supported yet:  ${TrackSystemText(GleissystemID)} ${GleisID}`);
@@ -2584,7 +2717,7 @@ if (near > far) { //###
 								  + ` scale(1 -1)`,
 		});
 
-		if (global.__showCircles__) {	// degugging feature
+		if (global.__showCircles__) {	// debugging feature
 			if (Gleis.BezierPoints) {
 				for (const BezierPoints of Gleis.BezierPoints) {
 					svgAppend(svgGleisGroup, {
@@ -2680,7 +2813,7 @@ if (near > far) { //###
 									? Laenge - trackSignalEntry.Position	// reverse
 									: trackSignalEntry.Position 			// normal
 									);
-			const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
+			const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100; // Abstand zwischen Vor-und Hauptsignal
 			const ParaOderAnti 	= trackSignalEntry.ParaOderAnti; //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 
 			// Calculate point
@@ -2727,18 +2860,18 @@ if (near > far) { //###
 					),
 				].reduce(matrix.multiply);
 
-			// Group node for Signal
+			// Group node for Signal (Multiple groups for pre signal, stop position and main signal?)
 			const svgSignalGroup = svgAppend(svgGleisGroup, {
 				svg_tag	: `g`,
 				id		: `S${SignalID}`,
 				class	: `Signal`,
 			});
 
-			if (global.__showCircles__) {	// degugging feature
+			if (global.__showCircles__) {	// debugging feature
 				// Show circle at Point
 				svgAppend(svgSignalGroup, {
 					svg_tag				: `circle`,
-					r					: 2,
+					r					: 1,
 					transform 			: matrixToTransform(Meldung.mPos),
 				});
 			}
@@ -2749,6 +2882,7 @@ if (near > far) { //###
 				href				: (	  signalType === "FStart" 	? "#SymbolFStart"
 										: signalType === "FZiel" 	? "#SymbolFZiel"
 										: signalType === "pre" 		? "#SymbolPreSignal"
+										: signalType === "StopAt" 	? "#SymbolStopAt"
 										: 							  "#SymbolSignal"
 									  ),
 				transform 			: matrixToTransform(Meldung.mPos)
@@ -2757,12 +2891,13 @@ if (near > far) { //###
 			});
 
 			// Show text of Signal / Fahrstraße
-			if (signalType !== "pre") { // do not show any text for pre-signals
+			if (signalType !== "pre" && signalType !== "StopAt") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `text`,
 				text				: (	  signalType === "FStart"	? 'Fs' // ### Translation needed
 										: signalType === "FZiel"	? 'Fz'
 										: signalType === "pre" 		? 'S'
+										: signalType === "StopAt" 	? 'stop '
 										: 						  	  'S'
 									  )
 										+ SignalID
@@ -4264,7 +4399,7 @@ text.text-anchor-end {
 
 /* Symbole */
 
-#SymbolSignal, #SymbolPreSignal, #SymbolFStart, #SymbolFZiel, #SymbolKontakt {
+#SymbolSignal, #SymbolPreSignal, #SymbolStopAt, #SymbolFStart, #SymbolFZiel, #SymbolKontakt {
 	marker-start: none;
 	marker-end:   none;
 	stroke-width: var(--narrow-stroke-width);
@@ -4324,6 +4459,9 @@ text.text-anchor-end {
 	</symbol>
 	<symbol id="SymbolPreSignal" width="20" height="10" viewBox="-10 0 20 10">
 		<path d="M 0 0 L 0 0.9" /><circle cx="0" cy="1.3" r="0.4" /> <!-- Linie mit kleinem Kreis -->
+	</symbol>
+	<symbol id="SymbolStopAt" width="20" height="10" viewBox="-10 0 20 10">
+		<path d="M 0 0 L 0 0.9" /> <!-- Linie -->
 	</symbol>
 	<symbol id="SymbolKontakt" width="20" height="10" viewBox="-10 0 20 10">
 		<path d="M 0 0 L 0 0.9  M 0 0.9 L 0.7 2.1 L -0.7 2.1 Z" /> <!-- Linie mit Dreieck -->
@@ -5668,7 +5806,8 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 
 	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
 	const SignalData	= Meldung.getElementsByTagName("Signal")[0].getAttribute("SignalData");
- 	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
+ 	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100; // Abstand zwischen Vor- und Hauptsignal
+ 	const StopAt		= Meldung.getElementsByTagName("Signal")[0].getAttribute("StopAt") / 100; // Halteabstand
 
 	// Vor- / Hauptsignal
 	let signalType      = "";
@@ -5805,6 +5944,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			+ (Signalstellung[File] && File !== getSignalName(File) ? `<br>${getSignalName(File)}` : "")
 			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
 			+ (Distanz !=0 ? `<br>${(signalType == "pre" ? _('Distanz zum Hauptsignal') :  _('Distanz zum Vorsignal'))}: ${Distanz.toFixed(0)}m` : "")
+			+ (StopAt != 0 ? `<br>${_('Halteabstand')}: ${StopAt.toFixed(0)}m`: "")
 			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
 			+ (SignalData != null ? `<br>${_('SignalData')}: ${SignalData}` : "")
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
@@ -5989,9 +6129,9 @@ console.log('Kamera'
 function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 //<Kontakt Position="2186.82" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="6" LastOfs="2213.881" ConnectF="2" ConnectR="2" VolDist="28" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" SignalData="0" KontaktZiel="1" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
 	const Kontakt		= global.Kontakte[KontaktID];
-	const SetType 		= Kontakt.getAttribute("SetType");
-	const SetValue 		= Kontakt.getAttribute("SetValue");
-	const KontaktZiel 	= Number(Kontakt.getAttribute("KontaktZiel"));
+	const SetType 		= +Kontakt.getAttribute("SetType");
+	const SetValue 		= +Kontakt.getAttribute("SetValue");
+	const KontaktZiel 	= +Kontakt.getAttribute("KontaktZiel");
 	const Position		= Kontakt.getAttribute("Position") / 100;
 	const ParaOderAnti 	= Kontakt.getAttribute("ParaOderAnti"); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 	const fireOnPara 	= Kontakt.getAttribute("fireOnPara");
@@ -6002,9 +6142,16 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const ActDelay 		= Kontakt.getAttribute("ActDelay");
 	const TrainSide 	= Kontakt.getAttribute("TrainSide");
 	const RouteID 		= Kontakt.getAttribute("Route");
+	const RouteID2 		= Kontakt.getAttribute('Route2');
 	const TrainID 		= Kontakt.getAttribute("TrainID");
+	const TrainID2 		= Kontakt.getAttribute('TrainID2');
+	const Light 		= Kontakt.getAttribute('Light');
+	const LastTrainID	= Kontakt.getAttribute('LastTrainID');
+	const LastOfs		= Kontakt.getAttribute('LastOfs');
 	const NameFilter 	= Kontakt.getAttribute("NameFilter");
 	const TrainNewName 	= Kontakt.getAttribute("TrainNewName");
+	const KontaktDist 	= Kontakt.getAttribute('KontaktDist');
+	const TrainDist 	= Kontakt.getAttribute('TrainDist');
 	const zuStellung 	= Kontakt.getAttribute("zuStellung");
 	const Wartender 	= Kontakt.getAttribute("Wartender");
 	const Wechseln 		= Kontakt.getAttribute("Wechseln");
@@ -6015,6 +6162,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const AxisPos 		= Kontakt.getAttribute('AxisPos'); 
 	const AxisFilter 	= Kontakt.getAttribute('AxisFilter');
 	const LuaFn 		= Kontakt.getAttribute("LuaFn");
+	const Group		 	= Kontakt.getAttribute('Group');
 	const TipTxt	 	= Kontakt.getAttribute('TipTxt');
 
 	const TrainSidetext = {
