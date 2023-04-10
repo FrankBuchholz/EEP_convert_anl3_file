@@ -1011,6 +1011,7 @@ mit
 		const Count			= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('Count');
 		const SignalData	= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData');
 		const Distanz		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
+		const StopAt		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('StopAt') / 100;
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 		const KontaktZiel 	= Signal.Meldung.getElementsByTagName('KontaktZiel')[0].textContent;
 		const TipTxt	 	= Signal.Meldung.getAttribute('TipTxt');
@@ -1131,6 +1132,7 @@ mit
 		{ th : `y (m)`,					td : Gleis.PosY.toFixed(0), },
 		{ th : _('Position') + ' (m)',	td : Position.toFixed(0), },
 		{ th : _('Distanz zum Hauptsignal') + ' (m)',	td : (Distanz !=0 ? Distanz.toFixed(0) : ''), },
+		{ th : _('Halteabstand') + ' (m)',	td : (StopAt !=0 ? StopAt.toFixed(0) : ''), },
 		{ th : _('Gleisrichtung'),		td : ParaOderAnti, },
 		{ th : _('Signalstellung'),		td : SignalstellungText, },
 		{ th : _('Anzahl Signalstellungen'),	td : Count, },

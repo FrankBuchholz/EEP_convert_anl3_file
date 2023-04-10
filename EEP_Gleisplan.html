@@ -1024,6 +1024,122 @@ function prepareGleissysteme(sutrackp) {
 					}
 				} // while searching for tracks
 
+				// Now we can follow the tracks to find the position of the stop point on the track (duplicate code as above)
+				const StopAt 	= entry.Meldung.getElementsByTagName("Signal")[0].getAttribute("StopAt") / 100; // immmer positiv
+				if (StopAt > 0) {
+					let currentGleisID 	= GleisID;	// Let's start with the current track
+					let Position		= entry.Meldung.getAttribute("Position") / 100; 	// Wert zwischen 0 und Gleis.Laenge
+					let ParaOderAnti 	= entry.Meldung.getAttribute("ParaOderAnti"); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
+					let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
+					let Laenge, near, far;	//###
+					if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
+						const Interval 	= Gleis.getElementsByTagName("Interval")[0];
+						near			= +Interval.getAttribute("near");
+						far 			= +Interval.getAttribute("far");
+						Laenge	= Math.abs( far - near );
+					} else {  /* EEP 15 */
+						const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
+						Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
+					}
+					// Do we find the stop position on the same track?
+					Position = Position + (Distanz - StopAt) * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
+					if (Position >= 0 && Position <= Laenge) {
+						// The stop point is on the same track
+						trackSignals[GleissystemID][currentGleisID].push({
+							Meldung 		: entry.Meldung,
+							SignalID		: SignalID,
+							signalType 		: "StopAt",
+							Position 		: Position,
+							ParaOderAnti	: ParaOderAnti,
+						});
+						continue;
+					}
+
+					if (Position > Laenge) { 					// look forward
+						Position	= Position - Laenge;		// remaining position on next track
+					} else {									// look backward
+						Position	= -Position;				// remaining position on previous track
+					}
+
+					// The stop point is on a different track
+					while (Position > 0) {
+						let nextGleisID, Anschluss;
+
+						if (!trackConnections[GleissystemID][currentGleisID]) { // should not happen
+							console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}`);
+							break;
+						}
+
+						if (ParaOderAnti == 1) { // look forward
+
+							if (trackConnections[GleissystemID][currentGleisID].Ende) { 
+								nextGleisID		= trackConnections[GleissystemID][currentGleisID].Ende.GleisID;
+								Anschluss		= trackConnections[GleissystemID][currentGleisID].Ende.Anschluss;
+								ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+							
+							} else if (trackConnections[GleissystemID][currentGleisID].EndeAbzweig) {  // should not happen
+								console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Ende`);
+								nextGleisID		= trackConnections[GleissystemID][currentGleisID].EndeAbzweig.GleisID;
+								Anschluss		= trackConnections[GleissystemID][currentGleisID].EndeAbzweig.Anschluss;
+								ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+							
+							} else {
+								console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.EndeAbzweig`);
+								break;
+							}
+
+						} else {				// look backward
+
+							if (!trackConnections[GleissystemID][currentGleisID].Anfang) { // should not happen
+								console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Anfang`);
+								break;
+							}
+
+							nextGleisID		= trackConnections[GleissystemID][currentGleisID].Anfang.GleisID;
+							Anschluss		= trackConnections[GleissystemID][currentGleisID].Anfang.Anschluss;
+							ParaOderAnti	= (Anschluss !== "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
+						}
+
+						Gleis 	= global.Gleissysteme[GleissystemID][nextGleisID];
+						if (!Gleis) { // should not happen
+							console.log(`Error: Signal ${SignalID} no track for ${GleissystemID}-${nextGleisID}`);
+							break;
+						}
+
+						let Laenge;
+						if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
+							const Interval 	= Gleis.getElementsByTagName("Interval")[0];
+							const near		= +Interval.getAttribute("near");
+							const far 		= +Interval.getAttribute("far");
+							Laenge	= Math.abs( far - near );
+						} else {  /* EEP 15 */
+							const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
+							Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
+						}
+
+						if (Position <= Laenge) {
+							// The main signal is on the this track
+							if (!trackSignals[GleissystemID][nextGleisID]) {
+								 trackSignals[GleissystemID][nextGleisID] = [];
+							}
+							trackSignals[GleissystemID][nextGleisID].push({
+								Meldung 		: entry.Meldung,
+								SignalID		: SignalID,
+								signalType 		: "StopAt",
+								Position 		: (Anschluss === "Anfang" ? Position : Laenge - Position),
+								ParaOderAnti	: ParaOderAnti,
+							});
+							break;
+
+						} else {
+							// keep going
+							currentGleisID 	= nextGleisID;
+							Position 		= Position - Laenge;
+						}
+					} // while searching for tracks
+				}
+
+
 			} // Signale
 		} // Gleise
 	} // Gleissysteme
@@ -2601,7 +2717,7 @@ if (near > far) { //###
 								  + ` scale(1 -1)`,
 		});
 
-		if (global.__showCircles__) {	// degugging feature
+		if (global.__showCircles__) {	// debugging feature
 			if (Gleis.BezierPoints) {
 				for (const BezierPoints of Gleis.BezierPoints) {
 					svgAppend(svgGleisGroup, {
@@ -2697,7 +2813,7 @@ if (near > far) { //###
 									? Laenge - trackSignalEntry.Position	// reverse
 									: trackSignalEntry.Position 			// normal
 									);
-			const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
+			const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100; // Abstand zwischen Vor-und Hauptsignal
 			const ParaOderAnti 	= trackSignalEntry.ParaOderAnti; //Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 
 			// Calculate point
@@ -2744,18 +2860,18 @@ if (near > far) { //###
 					),
 				].reduce(matrix.multiply);
 
-			// Group node for Signal
+			// Group node for Signal (Multiple groups for pre signal, stop position and main signal?)
 			const svgSignalGroup = svgAppend(svgGleisGroup, {
 				svg_tag	: `g`,
 				id		: `S${SignalID}`,
 				class	: `Signal`,
 			});
 
-			if (global.__showCircles__) {	// degugging feature
+			if (global.__showCircles__) {	// debugging feature
 				// Show circle at Point
 				svgAppend(svgSignalGroup, {
 					svg_tag				: `circle`,
-					r					: 2,
+					r					: 1,
 					transform 			: matrixToTransform(Meldung.mPos),
 				});
 			}
@@ -2766,6 +2882,7 @@ if (near > far) { //###
 				href				: (	  signalType === "FStart" 	? "#SymbolFStart"
 										: signalType === "FZiel" 	? "#SymbolFZiel"
 										: signalType === "pre" 		? "#SymbolPreSignal"
+										: signalType === "StopAt" 	? "#SymbolStopAt"
 										: 							  "#SymbolSignal"
 									  ),
 				transform 			: matrixToTransform(Meldung.mPos)
@@ -2774,12 +2891,13 @@ if (near > far) { //###
 			});
 
 			// Show text of Signal / Fahrstraße
-			if (signalType !== "pre") { // do not show any text for pre-signals
+			if (signalType !== "pre" && signalType !== "StopAt") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `text`,
 				text				: (	  signalType === "FStart"	? 'Fs' // ### Translation needed
 										: signalType === "FZiel"	? 'Fz'
 										: signalType === "pre" 		? 'S'
+										: signalType === "StopAt" 	? 'stop '
 										: 						  	  'S'
 									  )
 										+ SignalID
@@ -4281,7 +4399,7 @@ text.text-anchor-end {
 
 /* Symbole */
 
-#SymbolSignal, #SymbolPreSignal, #SymbolFStart, #SymbolFZiel, #SymbolKontakt {
+#SymbolSignal, #SymbolPreSignal, #SymbolStopAt, #SymbolFStart, #SymbolFZiel, #SymbolKontakt {
 	marker-start: none;
 	marker-end:   none;
 	stroke-width: var(--narrow-stroke-width);
@@ -4341,6 +4459,9 @@ text.text-anchor-end {
 	</symbol>
 	<symbol id="SymbolPreSignal" width="20" height="10" viewBox="-10 0 20 10">
 		<path d="M 0 0 L 0 0.9" /><circle cx="0" cy="1.3" r="0.4" /> <!-- Linie mit kleinem Kreis -->
+	</symbol>
+	<symbol id="SymbolStopAt" width="20" height="10" viewBox="-10 0 20 10">
+		<path d="M 0 0 L 0 0.9" /> <!-- Linie -->
 	</symbol>
 	<symbol id="SymbolKontakt" width="20" height="10" viewBox="-10 0 20 10">
 		<path d="M 0 0 L 0 0.9  M 0 0.9 L 0.7 2.1 L -0.7 2.1 Z" /> <!-- Linie mit Dreieck -->
@@ -5685,7 +5806,8 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 
 	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
 	const SignalData	= Meldung.getElementsByTagName("Signal")[0].getAttribute("SignalData");
- 	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100;
+ 	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100; // Abstand zwischen Vor- und Hauptsignal
+ 	const StopAt		= Meldung.getElementsByTagName("Signal")[0].getAttribute("StopAt") / 100; // Halteabstand
 
 	// Vor- / Hauptsignal
 	let signalType      = "";
@@ -5822,6 +5944,7 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			+ (Signalstellung[File] && File !== getSignalName(File) ? `<br>${getSignalName(File)}` : "")
 			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
 			+ (Distanz !=0 ? `<br>${(signalType == "pre" ? _('Distanz zum Hauptsignal') :  _('Distanz zum Vorsignal'))}: ${Distanz.toFixed(0)}m` : "")
+			+ (StopAt != 0 ? `<br>${_('Halteabstand')}: ${StopAt.toFixed(0)}m`: "")
 			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
 			+ (SignalData != null ? `<br>${_('SignalData')}: ${SignalData}` : "")
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")

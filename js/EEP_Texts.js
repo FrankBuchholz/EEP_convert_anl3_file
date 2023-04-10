@@ -393,6 +393,11 @@ info : {
 		EN : `Distance to the approach signal`, 
 		FR : `Distance du signal d'approche`,
 	},
+	'Halteabstand' : {
+		DE : `Halteabstand`, 
+		EN : `Braking distance`, 
+		FR : `Distance de freinage`,
+	},
 	Gleisrichtung : {
 		DE : `Gleisrichtung`, 
 		EN : `Track direction`, 
