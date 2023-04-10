@@ -1634,9 +1634,9 @@ Eisenbahn 3	Arc	Länge: 70m	Anfang: 1									near="0"        far="70.18061"
 				const dh 	= b * w; // * (DirX2 * NorY2 >= 0 ? 1 : -1);
 				*/
 				const r    = Math.sqrt(a*a + b*b);
-				const wPos = (-near) 		/ r;
-				const wMid = (far-near)/2 / r;
-				const wEnd = (far) 		/ r;
+				const wPos = (-near)		/ r;
+				const wMid = (far-near)/2 	/ r;
+				const wEnd = (far) 			/ r;
 
 				// mPos
 				mMatrix = [
@@ -1664,9 +1664,6 @@ Eisenbahn 3	Arc	Länge: 70m	Anfang: 1									near="0"        far="70.18061"
 							matrix.translate(a, 0, b*wPos),
 							matrix.swapXY(),		// swap x/y and mirror at x axis because of upside-down orientation in SVG
 						  ].reduce(matrix.multiply);
-
-
-//if (GleissystemID == "3" && GleisID == "559"	) debugger;
 
 				const Radius = a;
 				Kruemmung 	= 1 / Radius;
@@ -1721,6 +1718,17 @@ console.log("Helix Vergleich\t" + TrackSystemText(GleissystemID) + " " + GleisID
 											];
 
 				}
+
+console.log( 
+      "\t" + CurveType 
+	+ "\t" + GleisID
+	+ "\tPos\t" + mPos[12] + "\t" + mPos[13]+ "\t" + mPos[14]
+	+ "\tMid\t" + mMid[12] + "\t" + mMid[13]+ "\t" + mMid[14]
+	+ "\tEnd\t" + mEnd[12] + "\t" + mEnd[13]+ "\t" + mEnd[14]
+	+ "\tRadius\t" + a // Radius 
+	+ "\tHeight\t" + b // Height
+	+ "\tr\t" + r // Math.sqrt(a*a + b*b) 
+)
 
 				Gleis.Helix = {	// Store Helix parameters
 					a: 		a,
@@ -2112,6 +2120,15 @@ console.log(`Cubic ${TrackSystemText(GleissystemID)} ${GleisID}`
 					Gleis.BezierPoints[Index-1] = [ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z], arcLength2D ];
 				}
 
+const point = Gleis.BezierPoints[Gleis.BezierPoints.length -1]
+console.log( 
+      "\t" + CurveType 
+	+ "\t" + GleisID
+	+ "\tPos\t" + mMatrix[12] + "\t" + mMatrix[13]+ "\t" + mMatrix[14]
+	+ "\tMid\t" + 0           + "\t" + 0          + "\t" + 0
+	+ "\tEnd\t" + point[3][0] + "\t" + point[3][1] + "\t" + point[3][2]
+
+)
 			} else { // curve not supported yet
 				CurveType 	= 'others';
 				console.log(`other curve type not supported yet:  ${TrackSystemText(GleissystemID)} ${GleisID}`);
@@ -5989,9 +6006,9 @@ console.log('Kamera'
 function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 //<Kontakt Position="2186.82" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="6" LastOfs="2213.881" ConnectF="2" ConnectR="2" VolDist="28" zuStellung="1" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" SignalData="0" KontaktZiel="1" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
 	const Kontakt		= global.Kontakte[KontaktID];
-	const SetType 		= Kontakt.getAttribute("SetType");
-	const SetValue 		= Kontakt.getAttribute("SetValue");
-	const KontaktZiel 	= Number(Kontakt.getAttribute("KontaktZiel"));
+	const SetType 		= +Kontakt.getAttribute("SetType");
+	const SetValue 		= +Kontakt.getAttribute("SetValue");
+	const KontaktZiel 	= +Kontakt.getAttribute("KontaktZiel");
 	const Position		= Kontakt.getAttribute("Position") / 100;
 	const ParaOderAnti 	= Kontakt.getAttribute("ParaOderAnti"); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
 	const fireOnPara 	= Kontakt.getAttribute("fireOnPara");
@@ -6002,9 +6019,16 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const ActDelay 		= Kontakt.getAttribute("ActDelay");
 	const TrainSide 	= Kontakt.getAttribute("TrainSide");
 	const RouteID 		= Kontakt.getAttribute("Route");
+	const RouteID2 		= Kontakt.getAttribute('Route2');
 	const TrainID 		= Kontakt.getAttribute("TrainID");
+	const TrainID2 		= Kontakt.getAttribute('TrainID2');
+	const Light 		= Kontakt.getAttribute('Light');
+	const LastTrainID	= Kontakt.getAttribute('LastTrainID');
+	const LastOfs		= Kontakt.getAttribute('LastOfs');
 	const NameFilter 	= Kontakt.getAttribute("NameFilter");
 	const TrainNewName 	= Kontakt.getAttribute("TrainNewName");
+	const KontaktDist 	= Kontakt.getAttribute('KontaktDist');
+	const TrainDist 	= Kontakt.getAttribute('TrainDist');
 	const zuStellung 	= Kontakt.getAttribute("zuStellung");
 	const Wartender 	= Kontakt.getAttribute("Wartender");
 	const Wechseln 		= Kontakt.getAttribute("Wechseln");
@@ -6015,6 +6039,7 @@ function showKontaktInfo(KontaktID, GleissystemID, GleisID) {
 	const AxisPos 		= Kontakt.getAttribute('AxisPos'); 
 	const AxisFilter 	= Kontakt.getAttribute('AxisFilter');
 	const LuaFn 		= Kontakt.getAttribute("LuaFn");
+	const Group		 	= Kontakt.getAttribute('Group');
 	const TipTxt	 	= Kontakt.getAttribute('TipTxt');
 
 	const TrainSidetext = {

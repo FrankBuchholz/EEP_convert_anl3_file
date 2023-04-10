@@ -1177,8 +1177,8 @@ mit
 
 		const KontaktID		= Kontakt.KontaktID;
 		// const SetType 		= Kontakt.ID;
-		const SetType 		= Kontakt.Kontakt.getAttribute('SetType');
-		const SetValue 		= Kontakt.Kontakt.getAttribute('SetValue');
+		const SetType 		= +Kontakt.Kontakt.getAttribute('SetType');
+		const SetValue 		= +Kontakt.Kontakt.getAttribute('SetValue');
 		const KontaktZiel 	= Kontakt.Kontakt.getAttribute('KontaktZiel');
 		const GleissystemID	= Kontakt.GleissystemID;
 		const GleisID 		= Kontakt.GleisID;
@@ -1204,7 +1204,7 @@ mit
 		const KontaktDist 	= Kontakt.Kontakt.getAttribute('KontaktDist');
 		const TrainDist 	= Kontakt.Kontakt.getAttribute('TrainDist');
 		const zuStellung 	= Kontakt.Kontakt.getAttribute('zuStellung');
-		const Wartender 	= Kontakt.Kontakt.getAttribute('Wartender');
+		const Wartender 	= +Kontakt.Kontakt.getAttribute('Wartender');
 		const Wechseln 		= Kontakt.Kontakt.getAttribute('Wechseln');
 		const ConnectF 		= Kontakt.Kontakt.getAttribute('ConnectF');
 		const ConnectR 		= Kontakt.Kontakt.getAttribute('ConnectR');
