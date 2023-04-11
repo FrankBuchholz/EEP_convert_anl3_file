@@ -2891,13 +2891,13 @@ if (near > far) { //###
 			});
 
 			// Show text of Signal / Fahrstraße
-			if (signalType !== "pre" && signalType !== "StopAt") { // do not show any text for pre-signals or stop points
+			if (signalType !== "pre") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `text`,
 				text				: (	  signalType === "FStart"	? 'Fs' // ### Translation needed
 										: signalType === "FZiel"	? 'Fz'
 										: signalType === "pre" 		? 'S'
-										: signalType === "StopAt" 	? 'stop '
+										: signalType === "StopAt" 	? 'H'
 										: 						  	  'S'
 									  )
 										+ SignalID

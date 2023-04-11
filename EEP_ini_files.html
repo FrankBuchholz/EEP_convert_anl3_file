@@ -129,7 +129,7 @@ function readIniFiles(fileList) {
 				}
 				// Cross reference
 				settingsCombinations[iniFile.settingsCombination].Entries.push(
-					iniFile.file.name.substr(0, iniFile.file.name.length - 4)
+					iniFile.file.name.substr(0, iniFile.file.name.length - 4) + ", '" + iniFile.section.FileInfo.Name_GER + "', '" + iniFile.section.FileInfo.Description_GER + "'"
 				);
 
 			}
