@@ -2891,13 +2891,13 @@ if (near > far) { //###
 			});
 
 			// Show text of Signal / Fahrstraße
-			if (signalType !== "pre" && signalType !== "StopAt") { // do not show any text for pre-signals or stop points
+			if (signalType !== "pre") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `text`,
 				text				: (	  signalType === "FStart"	? 'Fs' // ### Translation needed
 										: signalType === "FZiel"	? 'Fz'
 										: signalType === "pre" 		? 'S'
-										: signalType === "StopAt" 	? 'stop '
+										: signalType === "StopAt" 	? 'H'
 										: 						  	  'S'
 									  )
 										+ SignalID
@@ -5805,7 +5805,9 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const KontaktZiel 	= Meldung.getElementsByTagName("KontaktZiel")[0].textContent;
 
 	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
-	const SignalData	= Meldung.getElementsByTagName("Signal")[0].getAttribute("SignalData");
+	const SignalData	= Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
+	const Count			= Meldung.getElementsByTagName('Signal')[0].getAttribute('Count');		// Anzahl gekoppelter Stellungen Fn01, Fn02,...
+
  	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100; // Abstand zwischen Vor- und Hauptsignal
  	const StopAt		= Meldung.getElementsByTagName("Signal")[0].getAttribute("StopAt") / 100; // Halteabstand
 
@@ -5946,7 +5948,9 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			+ (Distanz !=0 ? `<br>${(signalType == "pre" ? _('Distanz zum Hauptsignal') :  _('Distanz zum Vorsignal'))}: ${Distanz.toFixed(0)}m` : "")
 			+ (StopAt != 0 ? `<br>${_('Halteabstand')}: ${StopAt.toFixed(0)}m`: "")
 			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
-			+ (SignalData != null ? `<br>${_('SignalData')}: ${SignalData}` : "")
+			+ (SignalData != null 
+				? `<br>${_('Schaltverbindung')}: ${SignalData}, ${_('Anzahl gekoppelter Stellungen')}: ${Count}` 
+				: "")
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
 			+ (Routes ? `<br>${_('Fahrstraßen')}: ${Routes}` : "")
 			+ (RoutesText !== "" ? RoutesText : "")

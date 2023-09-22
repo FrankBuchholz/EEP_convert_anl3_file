@@ -458,6 +458,16 @@ info : {
 		EN : `Signal data`, 
 		FR : `Données du signal`, 
 	},
+	'Schaltverbindung' : {
+		DE : `Schaltverbindung`,	// Schaltverbindung zu einem anderen Signal bzw. Weiche 
+		EN : `Logic connection`, 	// Logic connection to another signal or switch
+		FR : `Connexion logique`, 	// Connexion logique à une autre signalisation ou aiguillage
+	},
+	'Anzahl gekoppelter Stellungen' : { // zu einer Schaltverbindung zu einem anderen Signal bzw. Weiche 
+		DE : `Anzahl gekoppelter Stellungen`, 
+		EN : `Number of coupled positions`,
+		FR : `Nombre de positions couplées`,
+	},
 	Kamera : {
 		DE : `Kamera`, 
 		EN : `Camera`, 
@@ -1254,11 +1264,13 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Switch is linked to signal/Switch`,
 		FR : `L'aiguillage est lié au signal ou à l'aiguillage`,
 	},
+/* not needed anymore
 	'Signal ist verknüpft mit Signal/Weiche' : {	// SignalData
 		DE : `Signal ist verknüpft mit Signal/Weiche`,
 		EN : `Signal is linked to signal/Switch`,
 		FR : `Le signal est lié au signal ou à l'aiguillage`,
 	},
+*/
 	'Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten' : {	// NextSigFn1
 		DE : `Wenn die Weiche auf "Durchfahrt" steht, dann verknüpfte ID in angegebene Stellung schalten`,
 		EN : `If the switch is in position "Main line", then switch the linked ID to the given position`,

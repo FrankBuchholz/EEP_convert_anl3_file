@@ -212,6 +212,7 @@ function process_node(sutrackp) {
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
 		Signale 	= [], 	// ID (des Signals), Gleissystem, Gleis, Name, Meldung
 		Kontakte 	= [], 	// SetType, Gleissystem, Gleis, Kontakt
+		Schaltverbindungen = {}, // SignalData, Schaltverbindung zu einem anderen Signal bzw. Weiche
 		virtualConnections = [], // Gleissystem, Gleis1, Anschluss1, Gleis2, Anschluss
 		waitingTrains = [], // ID (des Zugverbandes), speed
 		Zugverbaende = new Map(),//[], 	// ID (des Zugverbandes), Name, Gleisort, Fahrzeuge
@@ -469,6 +470,30 @@ mit
 					GleissystemID 	: GleissystemID,
 					GleisID 		: GleisID,
 				});
+
+				// Schaltverbindung zu einem anderen Signal bzw. Weiche
+				const Target = +Gleis.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
+				if (Target) {
+					const Source = +WeicheID;
+
+					const Koppelung = [];
+					const Count		= Gleis.getAttribute('Count');		// Anzahl gekoppelter Stellungen Fn01, Fn02,...
+					for (let i = 1; i <= Count; i++) {
+						const SourcePos = i;
+						const TargetPos = +Gleis.getAttribute('Fn' + i.toString().padStart(2, '0'));	// gekoppelte Stellung
+						Koppelung.push({ SourcePos : SourcePos, TargetPos : TargetPos, });
+					}
+
+					if (!Schaltverbindungen[Source]) {
+						Schaltverbindungen[Source] = [];
+					}
+					Schaltverbindungen[Source].push({ Target : Target, Koppelung : Koppelung, });
+
+					if (!Schaltverbindungen[Target]) {
+						Schaltverbindungen[Target] = [];
+					}
+					Schaltverbindungen[Target].push({ Source : Source, Koppelung : Koppelung, });
+				}
 			}
 
 			// Weichen mit KontaktZiel
@@ -548,6 +573,31 @@ mit
 							StartSignal : SignalID,
 							Color : Color,
 					})
+				}
+
+				// Schaltverbindung zu einem anderen Signal bzw. Weiche
+				const Signal = Meldung.getElementsByTagName('Signal')[0];
+				const Target = +Signal.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
+				if (Target) {
+					const Source = +SignalID;
+
+					const Koppelung = [];
+					const Count		= Signal.getAttribute('Count');		// Anzahl gekoppelter Stellungen Fn01, Fn02,...
+					for (let i = 1; i <= Count; i++) {
+						const SourcePos = i;
+						const TargetPos = +Signal.getAttribute('Fn' + i.toString().padStart(2, '0'));	// gekoppelte Stellung
+						Koppelung.push({ SourcePos : SourcePos, TargetPos : TargetPos, });
+					}
+
+					if (!Schaltverbindungen[Source]) {
+						Schaltverbindungen[Source] = [];
+					}
+					Schaltverbindungen[Source].push({ Target : Target, Koppelung : Koppelung, });
+
+					if (!Schaltverbindungen[Target]) {
+						Schaltverbindungen[Target] = [];
+					}
+					Schaltverbindungen[Target].push({ Source : Source, Koppelung : Koppelung, });
 				}
 				
 			}
@@ -938,6 +988,34 @@ mit
 		const Kollektor		= Gleis.Kollektor;
 		const GleisobjektID	= (Kollektor ? Number(Gleis.Kollektor.getAttribute('id')) : false );
 
+		// Schaltverbindungen
+		let SchaltverbindungText;
+		for (const i in Schaltverbindungen[WeicheID]) {
+			if (SchaltverbindungText) {
+					SchaltverbindungText += '<br>';
+			} else {
+				SchaltverbindungText = '';
+			}
+
+			const Schaltverbindung = Schaltverbindungen[WeicheID][i]
+			if (Schaltverbindung.Target) { // Die Weiche schaltet ein anderes Signal/Weiche
+				SchaltverbindungText += 'Schaltet ' + Schaltverbindung.Target;
+			}
+			if (Schaltverbindung.Source) { // Die Weiche wird von einem anderen Signal geschaltet
+				SchaltverbindungText += 'Wird geschaltet von ' + Schaltverbindung.Source;
+			}
+			SchaltverbindungText += ' (';
+			for (const i in Schaltverbindung.Koppelung) {
+				const K = Schaltverbindung.Koppelung[i];
+				if ( i > 0) {
+					SchaltverbindungText += ', ';
+				} 
+				//SchaltverbindungText += K.SourcePos + (K.TargetPos > 0 ? '-' + K.TargetPos : '');
+				SchaltverbindungText += K.SourcePos + '-' + K.TargetPos;
+			}
+			SchaltverbindungText += ')';
+		}
+
 		fillTable(thead, tbody, [
 
 		{ th : _('Weiche'),
@@ -962,6 +1040,7 @@ mit
 			},
 		{ th : _('Weichenstellung'),	td : weichenstellung + ': ' + WeichenstellungText[weichenstellung] },
 		{ th : _('SignalData'),		td : SignalData },
+		{ th : _('Schaltverbindung'),	td : SchaltverbindungText, html : true, },
 		{ th : `NextSigFn1`,		td : NextSigFn1 },
 		{ th : `NextSigFn2`,		td : NextSigFn2 },
 		{ th : _('GleisData'),		td : (GleisData != 0 ? GleisData + ': ' + GleisDataText[GleisData] : '') },
@@ -1008,8 +1087,8 @@ mit
 		const Gleis 		= GleisMap.get(GleissystemID).get(GleisID);
 		const Position		= Signal.Meldung.getAttribute('Position') / 100;
 		const Stellung		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('stellung');
-		const Count			= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('Count');
-		const SignalData	= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData');
+		const SignalData	= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData'); 	// Schaltverbindung zu einem anderen Signal bzw. Weiche
+		const Count			= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('Count');		// Anzahl gekoppelter Stellungen Fn01, Fn02,...
 		const Distanz		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('wirkungsdistanz') / 100;
 		const StopAt		= Signal.Meldung.getElementsByTagName('Signal')[0].getAttribute('StopAt') / 100;
 		const ParaOderAnti 	= Signal.Meldung.getAttribute('ParaOderAnti'); // Gleisrichtung 0: Ende -> Anfang, 1: Anfang -> Ende
@@ -1114,6 +1193,34 @@ mit
 			}
 		}
 
+		// Schaltverbindungen
+		let SchaltverbindungText;
+		for (const i in Schaltverbindungen[SignalID]) {
+			if (SchaltverbindungText) {
+					SchaltverbindungText += '<br>';
+			} else {
+				SchaltverbindungText = '';
+			}
+
+			const Schaltverbindung = Schaltverbindungen[SignalID][i]
+			if (Schaltverbindung.Target) { // Das Signal schaltet ein anderes Signal/Weiche
+				SchaltverbindungText += 'Schaltet ' + Schaltverbindung.Target;
+			}
+			if (Schaltverbindung.Source) { // Das Signal wird von einem anderen Signal geschaltet
+				SchaltverbindungText += 'Wird geschaltet von ' + Schaltverbindung.Source;
+			}
+			SchaltverbindungText += ' (';
+			for (const i in Schaltverbindung.Koppelung) {
+				const K = Schaltverbindung.Koppelung[i];
+				if ( i > 0) {
+					SchaltverbindungText += ', ';
+				} 
+				//SchaltverbindungText += K.SourcePos + (K.TargetPos > 0 ? '-' + K.TargetPos : '');
+				SchaltverbindungText += K.SourcePos + '-' + K.TargetPos;
+			}
+			SchaltverbindungText += ')';
+		}
+
 		fillTable(thead, tbody, [
 
 		{ th : _('Signal'),
@@ -1135,9 +1242,10 @@ mit
 		{ th : _('Halteabstand') + ' (m)',	td : (StopAt !=0 ? StopAt.toFixed(0) : ''), },
 		{ th : _('Gleisrichtung'),		td : ParaOderAnti, },
 		{ th : _('Signalstellung'),		td : SignalstellungText, },
-		{ th : _('Anzahl Signalstellungen'),	td : Count, },
 		{ th : _('Signalstellungen'), 	td : SignalstellungenText, html : true, },
-		{ th : _('SignalData'),			td : SignalData, },
+		//{ th : _('Schaltverbindung'),			td : SignalData, },
+		//{ th : _('Anzahl gekoppelter Stellungen'),	td : Count, },
+		{ th : _('Schaltverbindung'),	td : SchaltverbindungText, html : true, },
 		{ th : _('Kontaktziel'),		td : (KontaktZiel != 0 ? KontaktZiel : ''), },
 		{ th : _('Anzahl Fahrstraßen'),	td : Routes, },
 		{ th : _('Fahrstraßen'),		td : RoutesText, html : true, },
@@ -1152,9 +1260,11 @@ mit
 		}
 	})
 
+/* not needed anymore
 	if (Signale.length > 0) {
 		e(div, 'p', 'SignalData: ' + _('Signal ist verknüpft mit Signal/Weiche'));
 	}
+*/
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
