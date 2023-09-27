@@ -161,6 +161,9 @@ function process_node(sutrackp) {
 		5 : _('Spezial'),
 	};
 
+	const clsidPropelled 	= "16095510-0EAB-46AF-B294-CBB6D3516007"; // Angetriebenes Fahrzeug
+	const clsidNotPropelled	= "7B0D0A3A-0882-44D6-B3E7-45D933A70F74"; // Nicht angetriebenes Fahrzeug
+
 	// Groesse der Anlage (alle Positionsangaben in m statt cm)
 	const Schandlaft 	= sutrackp.getElementsByTagName('Schandlaft')[0];
 	const Area = {
@@ -212,7 +215,6 @@ function process_node(sutrackp) {
 		Weichen 	= [], 	// ID (der Weiche), Gleissystem, Gleis
 		Signale 	= [], 	// ID (des Signals), Gleissystem, Gleis, Name, Meldung
 		Kontakte 	= [], 	// SetType, Gleissystem, Gleis, Kontakt
-		Schaltverbindungen = {}, // SignalData, Schaltverbindung zu einem anderen Signal bzw. Weiche
 		virtualConnections = [], // Gleissystem, Gleis1, Anschluss1, Gleis2, Anschluss
 		waitingTrains = [], // ID (des Zugverbandes), speed
 		Zugverbaende = new Map(),//[], 	// ID (des Zugverbandes), Name, Gleisort, Fahrzeuge
@@ -228,6 +230,9 @@ function process_node(sutrackp) {
 	const KameraNamen = {};	// Verwendung: Name = KameraNamen[index];
 
 	const TrackSystem = {};	// Relationship between GleissystemID and TrackSystemNumber
+
+	// Schaltverbindungen zwischen Signalen und/oder Weichen
+	const Couplings = {}; // SignalData, Schaltverbindung zu einem anderen Signal bzw. Weiche
 
 	// Extract data from Gleissystem
 	for (const Gleissystem of sutrackp.getElementsByTagName('Gleissystem')) {
@@ -472,28 +477,7 @@ mit
 				});
 
 				// Schaltverbindung zu einem anderen Signal bzw. Weiche
-				const Target = +Gleis.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
-				if (Target) {
-					const Source = +WeicheID;
-
-					const Koppelung = [];
-					const Count		= Gleis.getAttribute('Count');		// Anzahl gekoppelter Stellungen Fn01, Fn02,...
-					for (let i = 1; i <= Count; i++) {
-						const SourcePos = i;
-						const TargetPos = +Gleis.getAttribute('Fn' + i.toString().padStart(2, '0'));	// gekoppelte Stellung
-						Koppelung.push({ SourcePos : SourcePos, TargetPos : TargetPos, });
-					}
-
-					if (!Schaltverbindungen[Source]) {
-						Schaltverbindungen[Source] = [];
-					}
-					Schaltverbindungen[Source].push({ Target : Target, Koppelung : Koppelung, });
-
-					if (!Schaltverbindungen[Target]) {
-						Schaltverbindungen[Target] = [];
-					}
-					Schaltverbindungen[Target].push({ Source : Source, Koppelung : Koppelung, });
-				}
+				collectCouplings( Gleis, +WeicheID );
 			}
 
 			// Weichen mit KontaktZiel
@@ -577,28 +561,7 @@ mit
 
 				// Schaltverbindung zu einem anderen Signal bzw. Weiche
 				const Signal = Meldung.getElementsByTagName('Signal')[0];
-				const Target = +Signal.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
-				if (Target) {
-					const Source = +SignalID;
-
-					const Koppelung = [];
-					const Count		= Signal.getAttribute('Count');		// Anzahl gekoppelter Stellungen Fn01, Fn02,...
-					for (let i = 1; i <= Count; i++) {
-						const SourcePos = i;
-						const TargetPos = +Signal.getAttribute('Fn' + i.toString().padStart(2, '0'));	// gekoppelte Stellung
-						Koppelung.push({ SourcePos : SourcePos, TargetPos : TargetPos, });
-					}
-
-					if (!Schaltverbindungen[Source]) {
-						Schaltverbindungen[Source] = [];
-					}
-					Schaltverbindungen[Source].push({ Target : Target, Koppelung : Koppelung, });
-
-					if (!Schaltverbindungen[Target]) {
-						Schaltverbindungen[Target] = [];
-					}
-					Schaltverbindungen[Target].push({ Source : Source, Koppelung : Koppelung, });
-				}
+				collectCouplings( Signal, +SignalID );
 				
 			}
 
@@ -909,7 +872,7 @@ mit
 		Sounds[SoundID] = SoundName;
 	}
 
-	// Extrakt data from Kamerasammlung
+	// Extract data from Kamerasammlung
 	const Kamerasammlung = sutrackp.getElementsByTagName('Kammerasammlung')[0];
 	const KameraList = Kamerasammlung.getElementsByTagName('Kammera');
 	let KameraID = 0;
@@ -956,12 +919,134 @@ mit
 	e(div, 'p',
 		`${_('Min./max Höhe')}: ${(usedArea.min.z).toFixed(0)} m .. ${(usedArea.max.z).toFixed(0) } m`
 	);
+	
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	div = createSwitchesTable();			// Anzeige der Weichen
+	/* not needed anymore
+	if (Weichen.length > 0) {
+		e(div, 'p', 'SignalData: ' + _('Weiche ist verknüpft mit Signal/Weiche'));
+		e(div, 'p', 'NextSigFn1: ' + _('Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten'));
+		e(div, 'p', 'NextSigFn2: ' + _('Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten'));
+	}
+	*/
+
+	div = createSignalsTable(); 			// Anzeige der Signale
+	/* not needed anymore
+	if (Signale.length > 0) {
+		e(div, 'p', 'SignalData: ' + _('Signal ist verknüpft mit Signal/Weiche'));
+	}
+	*/
+
+	div = createContactsTable(); 			// Anzeige der Kontakte
+	div = createVirtualConnectionsTable(); 	// Anzeige der virtuellen Verbindungen
+	div = createTrainsTable(); 				// Anzeige der Zugverbände
+	
+	if (Depots.length > 0) {				// Hide empty Depot
+		div = createDepotsTable(); 			// Anzeige der Depots
+		div = createDepotTrainsTable();		// Anzeige der Zugverbände in Depots
+	}
+	
+	div = createVehiclesTable(); 			// Anzeige der Rollmaterialien
+	div = createTrackTypeTable(); 			// Anzeige der Gleisstile
+	div = createTrackObjectsTable(); 		// Anzeige der Gleisobjekte
+	div = createCamerasTable(); 			// Anzeige der Kameras
+	div = createGBSTable(); 				// Anzeige der GBS
+	
+	showGBS( GBS_table, div );
+
+	// Allow to sort all tables by clicking on the header
+	prepareSort();
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+// Schaltverbindungen zwischen Signalen und/oder Weichen
+	function collectCouplings( Object, SourceID ) {
+		const TargetID = +Object.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
+		if (TargetID) {
+			const Connections = [];
+			// gekoppelte Stellungen für Signale
+			const Count = Object.getAttribute('Count');		// Anzahl der Attribute Fn01, Fn02,...
+			if (Count) {
+				for (let i = 1; i <= Count; i++) {
+					const SourcePos = i;
+					const TargetPos = Object.getAttribute('Fn' + i.toString().padStart(2, '0'));	// gekoppelte Stellung
+					if (TargetPos && TargetPos != 0) {
+						Connections.push({ SourcePos : SourcePos, TargetPos : +TargetPos, });
+					}
+				}
+			}
+			// Gekoppelte Stellungen für Weichen 
+			for (let i = 1; i <= 5; i++) { // Attribute NextSigFn1 (gerade), NextSigFn2 (Abzweig), NextSigFn3, NextSigFn4, NextSigFn5
+				const SourcePos = i;
+				const TargetPos = Object.getAttribute('NextSigFn' + i);	// gekoppelte Stellung
+				if (TargetPos && TargetPos != 0) {
+					Connections.push({ SourcePos : SourcePos, TargetPos : +TargetPos, });
+				}
+			}			
 
-	// Anzeige der Weichen
-	div = createTable({
+			if (!Couplings[SourceID]) {
+				Couplings[SourceID] = [];
+			}
+			Couplings[SourceID].push({ TargetID : TargetID, Connections : Connections, });
+
+			if (!Couplings[TargetID]) {
+				Couplings[TargetID] = [];
+			}
+			Couplings[TargetID].push({ SourceID : SourceID, Connections : Connections, });
+		}
+	} // function collectCouplings
+
+	function getCouplingText( SourceID ) {
+		let Text;
+		for (const i in Couplings[SourceID]) {
+			if (Text) {
+					Text += '<br>';
+			} else {
+				Text = '';
+			}
+
+			const Coupling = Couplings[SourceID][i]
+			let ID;
+			let GleissystemID;
+			let GleisID;
+			if (Coupling.TargetID) { // Signal/Weiche schaltet ein anderes Signal/Weiche
+				ID = Coupling.TargetID;
+				Text += _('Schaltet') + ' ';
+			}	
+			if (Coupling.SourceID) { // Signal/Weiche wird von einem anderen Signal/Weiche geschaltet
+				ID = Coupling.SourceID;
+				Text += _('Wird geschaltet von') + ' ';			
+			}
+			const Weiche = Weichen.find(x => x.ID === ID);
+			if (Weiche) {
+				Text += _('Weiche') + ' ' + `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${ID},${Weiche.GleissystemID},${Weiche.GleisID});">`
+				+ ID
+				+ `<\/a>`;
+			}
+			const Signal = Signale.find(x => x.ID === ID);
+			if (Signal) {
+				Text += _('Signal') + ' ' + `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${ID},${Signal.GleissystemID},${Signal.GleisID});">`
+				+ ID
+				+ `<\/a>`;
+			}
+			Text += ' (';
+			for (const i in Coupling.Connections) {
+				const Connection = Coupling.Connections[i];
+				if ( i > 0 ) {
+					Text += ', ';
+				} 
+				//Text += Connection.SourcePos + (Connection.TargetPos > 0 ? '-' + Connection.TargetPos : '');
+				Text += Connection.SourcePos + '-' + Connection.TargetPos;
+			}
+			Text += ')';
+		}
+		return Text;
+	} // function getCouplingText	
+
+// Anzeige der Weichen
+function createSwitchesTable() {	
+	return createTable({
 		id		: 'Weiche',
 		title 	: `${_('Weichen')} (${Weichen.length})`,
 		caption	: _('Weichen'),
@@ -978,43 +1063,15 @@ mit
 		const GleisData		= Gleis.getAttribute('data'); 		// Bitfeld einer Weiche
 		const clsid			= Gleis.getAttribute('clsid');
 		const weichenstellung = Gleis.getAttribute('weichenstellung');
-		const SignalData 	= Gleis.getAttribute('SignalData');
-		const NextSigFn1 	= Gleis.getAttribute('NextSigFn1');
-		const NextSigFn2 	= Gleis.getAttribute('NextSigFn2');
-//		const NextSigFn3 	= Gleis.getAttribute('NextSigFn3');
+//		const SignalData 	= Gleis.getAttribute('SignalData'); // Gekoppeltes Signal
+//		const NextSigFn1 	= Gleis.getAttribute('NextSigFn1'); // Koppelung für Stellung 'Gerade'
+//		const NextSigFn2 	= Gleis.getAttribute('NextSigFn2'); // Koppelung für Stellung 'Abzweig'
+//		const NextSigFn3 	= Gleis.getAttribute('NextSigFn3'); // usw.
 //		const NextSigFn4 	= Gleis.getAttribute('NextSigFn4');
 //		const NextSigFn5 	= Gleis.getAttribute('NextSigFn5');
 
 		const Kollektor		= Gleis.Kollektor;
 		const GleisobjektID	= (Kollektor ? Number(Gleis.Kollektor.getAttribute('id')) : false );
-
-		// Schaltverbindungen
-		let SchaltverbindungText;
-		for (const i in Schaltverbindungen[WeicheID]) {
-			if (SchaltverbindungText) {
-					SchaltverbindungText += '<br>';
-			} else {
-				SchaltverbindungText = '';
-			}
-
-			const Schaltverbindung = Schaltverbindungen[WeicheID][i]
-			if (Schaltverbindung.Target) { // Die Weiche schaltet ein anderes Signal/Weiche
-				SchaltverbindungText += 'Schaltet ' + Schaltverbindung.Target;
-			}
-			if (Schaltverbindung.Source) { // Die Weiche wird von einem anderen Signal geschaltet
-				SchaltverbindungText += 'Wird geschaltet von ' + Schaltverbindung.Source;
-			}
-			SchaltverbindungText += ' (';
-			for (const i in Schaltverbindung.Koppelung) {
-				const K = Schaltverbindung.Koppelung[i];
-				if ( i > 0) {
-					SchaltverbindungText += ', ';
-				} 
-				//SchaltverbindungText += K.SourcePos + (K.TargetPos > 0 ? '-' + K.TargetPos : '');
-				SchaltverbindungText += K.SourcePos + '-' + K.TargetPos;
-			}
-			SchaltverbindungText += ')';
-		}
 
 		fillTable(thead, tbody, [
 
@@ -1039,10 +1096,13 @@ mit
 			, html : true
 			},
 		{ th : _('Weichenstellung'),	td : weichenstellung + ': ' + WeichenstellungText[weichenstellung] },
-		{ th : _('SignalData'),		td : SignalData },
-		{ th : _('Schaltverbindung'),	td : SchaltverbindungText, html : true, },
-		{ th : `NextSigFn1`,		td : NextSigFn1 },
-		{ th : `NextSigFn2`,		td : NextSigFn2 },
+		//{ th : _('SignalData'),	td : SignalData }, // Gekoppeltes Signal
+		//{ th : `NextSigFn1`,		td : NextSigFn1 }, // Koppelung für Stellung 'Gerade'
+		//{ th : `NextSigFn2`,		td : NextSigFn2 }, // Koppelung für Stellung 'Abzweig'
+		//{ th : `NextSigFn3`,		td : NextSigFn3 },  // usw.
+		//{ th : `NextSigFn4`,		td : NextSigFn4 },
+		//{ th : `NextSigFn5`,		td : NextSigFn5 },
+		{ th : _('Schaltverbindung'),	td : getCouplingText( WeicheID ), html : true, }, // Schaltverbindungen
 		{ th : _('GleisData'),		td : (GleisData != 0 ? GleisData + ': ' + GleisDataText[GleisData] : '') },
 		{ th : _('Datei'),			td : File },
 
@@ -1051,16 +1111,47 @@ mit
 		return Weichen.length;
 		}
 	})
-
-	if (Weichen.length > 0) {
-		e(div, 'p', 'SignalData: ' + _('Weiche ist verknüpft mit Signal/Weiche'));
-		e(div, 'p', 'NextSigFn1: ' + _('Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten'));
-		e(div, 'p', 'NextSigFn2: ' + _('Wenn Weiche auf "Abzweig" steht dann verknüpfte ID in angegebene Stellung schalten'));
-	}
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Anzeige der Signale
+}
+	
+// Anzeige der Signale
+		function getSignalName(File) {
+			let Name = '';
+			if (!Signalstellung[File]) {
+				// no name
+			} else if (typeof(Signalstellung[File].Name) === "string") {
+				Name = Signalstellung[File].Name;
+			} else if (typeof(Signalstellung[File].Name) === "object") {
+				Name = Signalstellung[File].Name[EEP_Texts.getLanguage()]
+					|| Signalstellung[File].Name.DE
+					|| Signalstellung[File].Name.EN
+					;
+			} else {
+				// no name
+			}
+			return Name;
+		}
+		function getSignalPositionText(File, Position) {
+			let Text = '';
+			if (!Signalstellung[File]) {
+				// no text
+			} else if (typeof(Signalstellung[File].Pos[Position]) === "string") {
+				Text = Signalstellung[File].Pos[Position];
+			} else if (typeof(Signalstellung[File].Pos[Position]) === "object") {
+				Text = Signalstellung[File].Pos[Position][EEP_Texts.getLanguage()]
+					|| Signalstellung[File].Pos[Position].DE	// primary language
+					|| Signalstellung[File].Pos[Position].EN	// secondary language
+					;
+			} else {
+				// no text
+			}
+			
+			// Default translations
+			if (Text === "Fahrt") 	{ Text = _("Fahrt") };
+			if (Text === "Halt") 	{ Text = _("Halt") };
+			
+			return Text;
+		}
+function createSignalsTable() {	
 	/*
 	<Meldung Position="1687.619" ParaOderAnti="0" fireOnPara="1" fireOnAnti="0" clsid="D180F669-DCCC-42E9-960C-B5305B29F69D" name="ShSig_Licht_EpIV_kl" Key_Id="34" Hofs="300" Vofs="300" LockEd="0">
 		<KontaktZiel>2</KontaktZiel>
@@ -1072,7 +1163,7 @@ mit
 	Achtung: Fahrstrassen werden ebenfalls durch Meldungen realisiert
 	Dabei gilt name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ende einer Fahrstrasse.
 	*/
-	div = createTable({
+	return createTable({
 		id		: 'Signal',
 		title 	: `${_('Signale')} (${Signale.length})`,
 		caption	: _('Signale'),
@@ -1133,44 +1224,6 @@ mit
 					;
 			}
 		}
-
-		function getSignalName(File) {
-			let Name = '';
-			if (!Signalstellung[File]) {
-				// no name
-			} else if (typeof(Signalstellung[File].Name) === "string") {
-				Name = Signalstellung[File].Name;
-			} else if (typeof(Signalstellung[File].Name) === "object") {
-				Name = Signalstellung[File].Name[EEP_Texts.getLanguage()]
-					|| Signalstellung[File].Name.DE
-					|| Signalstellung[File].Name.EN
-					;
-			} else {
-				// no name
-			}
-			return Name;
-		}
-		function getSignalPositionText(File, Position) {
-			let Text = '';
-			if (!Signalstellung[File]) {
-				// no text
-			} else if (typeof(Signalstellung[File].Pos[Position]) === "string") {
-				Text = Signalstellung[File].Pos[Position];
-			} else if (typeof(Signalstellung[File].Pos[Position]) === "object") {
-				Text = Signalstellung[File].Pos[Position][EEP_Texts.getLanguage()]
-					|| Signalstellung[File].Pos[Position].DE	// primary language
-					|| Signalstellung[File].Pos[Position].EN	// secondary language
-					;
-			} else {
-				// no text
-			}
-			
-			// Default translations
-			if (Text === "Fahrt") 	{ Text = _("Fahrt") };
-			if (Text === "Halt") 	{ Text = _("Halt") };
-			
-			return Text;
-		}
 		let SignalstellungText = Stellung;
 		let SignalstellungenText = '';
 		if (Signalstellung[File]) {
@@ -1191,34 +1244,6 @@ mit
 					}
 				}
 			}
-		}
-
-		// Schaltverbindungen
-		let SchaltverbindungText;
-		for (const i in Schaltverbindungen[SignalID]) {
-			if (SchaltverbindungText) {
-					SchaltverbindungText += '<br>';
-			} else {
-				SchaltverbindungText = '';
-			}
-
-			const Schaltverbindung = Schaltverbindungen[SignalID][i]
-			if (Schaltverbindung.Target) { // Das Signal schaltet ein anderes Signal/Weiche
-				SchaltverbindungText += 'Schaltet ' + Schaltverbindung.Target;
-			}
-			if (Schaltverbindung.Source) { // Das Signal wird von einem anderen Signal geschaltet
-				SchaltverbindungText += 'Wird geschaltet von ' + Schaltverbindung.Source;
-			}
-			SchaltverbindungText += ' (';
-			for (const i in Schaltverbindung.Koppelung) {
-				const K = Schaltverbindung.Koppelung[i];
-				if ( i > 0) {
-					SchaltverbindungText += ', ';
-				} 
-				//SchaltverbindungText += K.SourcePos + (K.TargetPos > 0 ? '-' + K.TargetPos : '');
-				SchaltverbindungText += K.SourcePos + '-' + K.TargetPos;
-			}
-			SchaltverbindungText += ')';
 		}
 
 		fillTable(thead, tbody, [
@@ -1245,7 +1270,7 @@ mit
 		{ th : _('Signalstellungen'), 	td : SignalstellungenText, html : true, },
 		//{ th : _('Schaltverbindung'),			td : SignalData, },
 		//{ th : _('Anzahl gekoppelter Stellungen'),	td : Count, },
-		{ th : _('Schaltverbindung'),	td : SchaltverbindungText, html : true, },
+		{ th : _('Schaltverbindung'),	td : getCouplingText( SignalID ), html : true, }, // Schaltverbindungen
 		{ th : _('Kontaktziel'),		td : (KontaktZiel != 0 ? KontaktZiel : ''), },
 		{ th : _('Anzahl Fahrstraßen'),	td : Routes, },
 		{ th : _('Fahrstraßen'),		td : RoutesText, html : true, },
@@ -1259,16 +1284,10 @@ mit
 		return Signale.length;
 		}
 	})
+}
 
-/* not needed anymore
-	if (Signale.length > 0) {
-		e(div, 'p', 'SignalData: ' + _('Signal ist verknüpft mit Signal/Weiche'));
-	}
-*/
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Anzeige der Kontakte
+// Anzeige der Kontakte	
+function createContactsTable() {
 	/*
 	<Kontakt Position="712.3505" ParaOderAnti="1" fireOnPara="0" fireOnAnti="1" Teiler="1" ActTeiler="0" TrainSide="1" Route="0" Route2="0" SetType="0" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="0" Light="2" LastTrainID="26" LastOfs="742.3113" ConnectF="2" ConnectR="2" VolDist="20" zuStellung="2" Wartender="0" AxisPos="0" AxisFilter="" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" SignalData="0" SigNeg="0" LockEd="0" KontaktZiel="2" Wechseln="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>
 	
@@ -1279,7 +1298,7 @@ mit
 	<Kontakt Position="418.1413" ParaOderAnti="1" fireOnPara="0" fireOnAnti="1" Teiler="1" ActTeiler="0" TrainSide="0" Route="0" Route2="0" SetType="5" SetValue="0" Delay="0" ActDelay="0" TrainID="0" TrainID2="7" Light="2" LastTrainID="7" LastOfs="418.1413" ConnectF="2" ConnectR="2" VolDist="650" zuStellung="0" Wartender="0" AxisPos="53" AxisFilter="Ladegeshirr heben/senken" NameFilter="" TrainNewName="" KontaktDist="0" TrainDist="0" LuaFn="" Group="0" AnimID="0" CheckAuto="2" SetAuto="2" TimeFrom="0" TimeTo="0" SignalData="0" SigNeg="0" LockEd="0" clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF"/>	
 
 	*/
-	div = createTable({
+	return createTable({
 		id		: 'Kontakt',
 		title 	: `${_('Kontakte')} (${Kontakte.length})`,
 		caption	: _('Kontakte'),
@@ -1546,11 +1565,11 @@ mit
 		return Kontakte.length;
 		}
 	})
+}
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Anzeige der virtuellen Verbindungen
-	div = createTable({
+// Anzeige der virtuellen Verbindungen
+function createVirtualConnectionsTable() {	
+	return createTable({
 		id		: 'virtualConnections',
 		title 	: `${_('virtualConnections')} (${virtualConnections.length})`,
 		caption	: _('virtualConnections'),
@@ -1581,11 +1600,11 @@ mit
 		return virtualConnections.length;
 		}
 	})
+}
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Anzeige der Zugverbände
-	div = createTable({
+// Anzeige der Zugverbände	
+function createTrainsTable() {
+	return createTable({
 		id		: 'Zugverband',
 		title 	: `${_('Zugverbände')} (${Zugverbaende.size})`,
 		caption	: _('Zugverbände'),
@@ -1639,8 +1658,10 @@ mit
 		return Zugverbaende.size;
 		}
 	})
+}
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+// Anzeige der Depots
+function createDepotsTable() {
 /*
 
 Zeit (Wartender = 0)
@@ -1700,10 +1721,7 @@ SigNeg="0" LockEd="0"
 clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGCR="1" TipBGCG="1" TipBGCB="1" TipFGCR="7.843138E-03" TipFGCG="7.843138E-03" TipFGCB="7.843138E-03" TipShow="1"/>
 
 */
-	// Anzeige der Depots
-	if (Depots.length > 0) {	// Hide empty table
-
-	div = createTable({
+	return createTable({
 		id		: 'Depot',
 		title 	: `${_('Depots')} (${Depots.length})`,
 		caption	: _('Depots'),
@@ -1751,9 +1769,11 @@ clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGC
 		return Depots.length;
 		}
 	})
+}
 
 	// Anzeige der Zugverbände in Depots
-	div = createTable({
+function createDepotTrainsTable() {	
+	return createTable({
 		id		: 'DepotZugverbaende',
 		title 	: `${_('Zugverbände in Depots')}`, // (${Depots.length})`,
 		caption	: _('Zugverbände in Depots'),
@@ -1838,11 +1858,52 @@ clsid="5E9A3049-D465-4602-A285-6A9774DCF1BF" TipTxt="Signal 33 zufällig" TipBGC
 		return Zugverbaende.size;
 		}
 	})
+}
 
-	} // Depots.length > 0
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+// Anzeige der Rollmaterialien
+	function getMovableAxisText(Path, AxisNr) {
+		let Text = '';
+		
+		const File = Path.substring( Path.lastIndexOf(`\\`) + 1, Path.length - 4 );
+		
+		if (!MovableAxis[File]) {
+			// no text
+			Text = '(' + AxisNr + ')';
 
-	// Anzeige der Rollmaterialien
+		} else if (typeof(MovableAxis[File].MovAxis[AxisNr]) === "string") {
+			Text += MovableAxis[File].MovAxis[AxisNr] + ' (' + AxisNr + ')';
+
+		} else if (typeof(MovableAxis[File].MovAxis[AxisNr]) === "object") {
+			Text += (   MovableAxis[File].MovAxis[AxisNr][EEP_Texts.getLanguage()]
+				     || MovableAxis[File].MovAxis[AxisNr].DE	// primary language
+				     || MovableAxis[File].MovAxis[AxisNr].EN	// secondary language
+				    ) + " (" + AxisNr + ')'
+				;
+
+		} else {
+			// no text
+			Text = '(' + AxisNr + ')';
+
+		}
+
+		return Text;
+	}
+	
+	function getIcon(Path) {
+		const File = Path.substring( Path.lastIndexOf(`\\`) + 1, Path.length - 4 );
+		if (MovableAxis[File] && MovableAxis[File].Icon) {
+			const iconID = MovableAxis[File].Icon;
+			if (iconID) {
+				const Icon = Icons[iconID];
+				if (Icon) {
+					return `<img src="${IconServer}${Icon.src}" title="${Icon.DE}" width="24" height="24">`
+				}
+			}
+		}
+		return '';
+	}
+
+function createVehiclesTable() {
 	/*
 <Rollmaterial 
 x	clsid="16095510-0EAB-46AF-B294-CBB6D3516007" 	-> mit Antrieb
@@ -1911,53 +1972,7 @@ x	RollIdx="3"
     </AxisPreset>
 </Rollmaterial>
 */			
-
-	function getMovableAxisText(Path, AxisNr) {
-		let Text = '';
-		
-		const File = Path.substring( Path.lastIndexOf(`\\`) + 1, Path.length - 4 );
-		
-		if (!MovableAxis[File]) {
-			// no text
-			Text = '(' + AxisNr + ')';
-
-		} else if (typeof(MovableAxis[File].MovAxis[AxisNr]) === "string") {
-			Text += MovableAxis[File].MovAxis[AxisNr] + ' (' + AxisNr + ')';
-
-		} else if (typeof(MovableAxis[File].MovAxis[AxisNr]) === "object") {
-			Text += (   MovableAxis[File].MovAxis[AxisNr][EEP_Texts.getLanguage()]
-				     || MovableAxis[File].MovAxis[AxisNr].DE	// primary language
-				     || MovableAxis[File].MovAxis[AxisNr].EN	// secondary language
-				    ) + " (" + AxisNr + ')'
-				;
-
-		} else {
-			// no text
-			Text = '(' + AxisNr + ')';
-
-		}
-
-		return Text;
-	}
-	
-	function getIcon(Path) {
-		const File = Path.substring( Path.lastIndexOf(`\\`) + 1, Path.length - 4 );
-		if (MovableAxis[File] && MovableAxis[File].Icon) {
-			const iconID = MovableAxis[File].Icon;
-			if (iconID) {
-				const Icon = Icons[iconID];
-				if (Icon) {
-					return `<img src="${IconServer}${Icon.src}" title="${Icon.DE}" width="24" height="24">`
-				}
-			}
-		}
-		return '';
-	}
-
-	const clsidPropelled 	= "16095510-0EAB-46AF-B294-CBB6D3516007";
-	const clsidNotPropelled	= "7B0D0A3A-0882-44D6-B3E7-45D933A70F74";
-
-	div = createTable({
+	return createTable({
 		id		: 'Rollmaterial',
 		title 	: `${_('Rollmaterialien')} (${Rollmaterialien.length})`,
 		caption	: _('Rollmaterialien'),
@@ -2050,11 +2065,11 @@ x	RollIdx="3"
 		return Rollmaterialien.length;
 		}
 	})
+}
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Anzeige der Gleisstile
-	div = createTable({
+// Anzeige der Gleisstile
+function createTrackTypeTable() {	
+	return createTable({
 		id		: 'Gleisstil',
 		title 	: `${_('Gleisstile')} (${Gleisstile.length})`,
 		caption	: _('Gleisstile'),
@@ -2073,11 +2088,11 @@ x	RollIdx="3"
 		return Gleisstile.length;
 		}
 	})
+}
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Anzeige der Gleisobjekte
-	div = createTable({
+// Anzeige der Gleisobjekte
+function createTrackObjectsTable() {
+	return createTable({
 		id		: 'Gleisobjekt',
 		title 	: `${_('Gleisobjekte')} (${Gleisobjekte.length})`,
 		caption	: _('Gleisobjekte'),
@@ -2145,11 +2160,11 @@ x	RollIdx="3"
 		return Gleisobjekte.length;
 		}
 	})
+}
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Anzeige der Kameras
-	div = createTable({
+// Anzeige der Kameras
+function createCamerasTable() {
+	return createTable({
 		id		: 'Kamera',
 		title 	: `${_('Kameras')} (${Kameras.length})`,
 		caption	: _('Kameras'),
@@ -2186,11 +2201,11 @@ x	RollIdx="3"
 		return Kameras.length;
 		}
 	})
+}
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Anzeige der GBS
-	div = createTable({
+// Anzeige der GBS
+function createGBSTable() {
+	return createTable({
 		id		: 'GBS',
 		title 	: `${_('Stellpulte')} (${GBS_table.length})`,
 		caption	: _('Stellpulte'),
@@ -2223,14 +2238,7 @@ x	RollIdx="3"
 		return GBS_table.length;
 		}
 	})
-
-	showGBS( GBS_table, div );
-	
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-	// Allow to sort all tables by clicking on the header
-	prepareSort();
-	
+}
 
 // Show graphic for GBS
 // requires TrackSystemText
@@ -2458,10 +2466,10 @@ function showGBS( GBS_table, div ) {
 			text_tag.setAttribute('transform',  transform );
 		}
 	}	
-} 
+} // function showGBS
 	
-	
-}
+} // function process_node
+
 
 function orderByID(a,b) {
 	// Sort by number ascending

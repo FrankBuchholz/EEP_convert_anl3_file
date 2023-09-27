@@ -468,6 +468,16 @@ info : {
 		EN : `Number of coupled positions`,
 		FR : `Nombre de positions couplées`,
 	},
+	'Schaltet' : {
+		DE : `Schaltet`, 
+		EN : `Switches`, 
+		FR : `Commute`, 
+	},
+	'Wird geschaltet von' : {
+		DE : `Wird geschaltet von`, 
+		EN : `Is switched by`, 
+		FR : `Est commuté par`, 
+	},
 	Kamera : {
 		DE : `Kamera`, 
 		EN : `Camera`, 
@@ -1259,18 +1269,17 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Visibility of the filters`,
 		FR : `Visibilité des filtres`,
 	},
+/* not needed anymore
 	'Weiche ist verknüpft mit Signal/Weiche' : {	// SignalData
 		DE : `Weiche ist verknüpft mit Signal/Weiche`,
 		EN : `Switch is linked to signal/Switch`,
 		FR : `L'aiguillage est lié au signal ou à l'aiguillage`,
 	},
-/* not needed anymore
 	'Signal ist verknüpft mit Signal/Weiche' : {	// SignalData
 		DE : `Signal ist verknüpft mit Signal/Weiche`,
 		EN : `Signal is linked to signal/Switch`,
 		FR : `Le signal est lié au signal ou à l'aiguillage`,
 	},
-*/
 	'Wenn Weiche auf "Durchfahrt" steht dann verknüpfte ID in angegebene Stellung schalten' : {	// NextSigFn1
 		DE : `Wenn die Weiche auf "Durchfahrt" steht, dann verknüpfte ID in angegebene Stellung schalten`,
 		EN : `If the switch is in position "Main line", then switch the linked ID to the given position`,
@@ -1281,6 +1290,7 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `If the switch is in position "Diverging line", then switch the linked ID to the given position`,
 		FR : `Si l'aiguillage se trouve en positon "Embranchement", alors commuter l'ID connectée en la position indiquée`,
 	},
+*/
 	Fahrt: {	// Signals
 		DE: `Fahrt`,
 		EN: `Go`,		// `Clear`, `Open` 
