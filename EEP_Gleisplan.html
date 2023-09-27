@@ -690,7 +690,10 @@ function prepareGleissysteme(sutrackp) {
 	global.Gleisobjekte		= {};
 	global.Routen			= {};
 	global.Sounds			= {};
-
+	
+	// Schaltverbindungen zwischen Signalen und/oder Weichen
+	global.Couplings 		= {}; 	// SignalData, Schaltverbindung zu einem anderen Signal bzw. Weiche
+	
 	// <Options RouteItems="5" SndId_0="6" SndName_0="ZIEGEN.WAV" SoundItems="1" RouteId_0="1" RouteName_0="Nahverkehr" RouteId_1="2" RouteName_1="Schnellzug" RouteId_2="3" RouteName_2="Gueter" RouteId_3="4" RouteName_3="Nebenbahn" RouteId_4="5" RouteName_4="Sonderzug"/>
 	const Options = sutrackp.getElementsByTagName("Options")[0];
 	const RouteItems = +Options.getAttribute("RouteItems");
@@ -753,6 +756,9 @@ function prepareGleissysteme(sutrackp) {
 				Gleis.WeicheID = WeicheID;
 				global.Weichen[WeicheID] = Gleis;
 				//console.log("global.Weichen["+WeicheID+"] on "+GleissystemID+"-"+GleisID)
+				
+				// Schaltverbindung zu einem anderen Signal bzw. Weiche
+				collectCouplings( Gleis, WeicheID );				
 			}
 
 			// Weichen mit KontaktZiel
@@ -822,6 +828,10 @@ function prepareGleissysteme(sutrackp) {
 							Color : Color,
 					})
 				}
+
+				// Schaltverbindung zu einem anderen Signal bzw. Weiche
+				const Signal = Meldung.getElementsByTagName('Signal')[0];
+				collectCouplings( Signal, SignalID );
 			}
 
 			// Signale, die nur zur Anzeige dienen und keine Züge beeinflussen sollen werden gerne auf "inaktive" Gleise gesetzt.
@@ -3780,6 +3790,84 @@ function svgAppend(svg_node, obj) {
 
 } // end function createSVG
 
+// Schaltverbindungen zwischen Signalen und/oder Weichen
+	function collectCouplings( Object, SourceID ) {
+		const TargetID = +Object.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
+		if (TargetID) {
+			const Connections = [];
+			// gekoppelte Stellungen für Signale
+			const Count = Object.getAttribute('Count');		// Anzahl der Attribute Fn01, Fn02,...
+			if (Count) {
+				for (let i = 1; i <= Count; i++) {
+					const SourcePos = i;
+					const TargetPos = Object.getAttribute('Fn' + i.toString().padStart(2, '0'));	// gekoppelte Stellung
+					if (TargetPos && TargetPos != 0) {
+						Connections.push({ SourcePos : SourcePos, TargetPos : +TargetPos, });
+					}
+				}
+			}
+			// Gekoppelte Stellungen für Weichen 
+			for (let i = 1; i <= 5; i++) { // Attribute NextSigFn1 (gerade), NextSigFn2 (Abzweig), NextSigFn3, NextSigFn4, NextSigFn5
+				const SourcePos = i;
+				const TargetPos = Object.getAttribute('NextSigFn' + i);	// gekoppelte Stellung
+				if (TargetPos && TargetPos != 0) {
+					Connections.push({ SourcePos : SourcePos, TargetPos : +TargetPos, });
+				}
+			}			
+
+			if (!global.Couplings[SourceID]) {
+				global.Couplings[SourceID] = [];
+			}
+			global.Couplings[SourceID].push({ TargetID : TargetID, Connections : Connections, });
+
+			if (!global.Couplings[TargetID]) {
+				global.Couplings[TargetID] = [];
+			}
+			global.Couplings[TargetID].push({ SourceID : SourceID, Connections : Connections, });
+		}
+	} // function collectCouplings
+
+	function getCouplingText( SourceID ) {
+		let Text = '';
+		for (const i in global.Couplings[SourceID]) {
+			//if (Text) {
+					Text += '<br>';
+			//} else {
+			//	Text = '';
+			//}
+
+			const Coupling = global.Couplings[SourceID][i]
+			let ID;
+			let GleissystemID;
+			let GleisID;
+			if (Coupling.TargetID) { // Signal/Weiche schaltet ein anderes Signal/Weiche
+				ID = Coupling.TargetID;
+				Text += _('Schaltet') + ' ';
+			}	
+			if (Coupling.SourceID) { // Signal/Weiche wird von einem anderen Signal/Weiche geschaltet
+				ID = Coupling.SourceID;
+				Text += _('Wird geschaltet von') + ' ';			
+			}
+			const Weiche = global.Weichen[ID];
+			if (Weiche) {
+				Text += _('Weiche') + ' ' + ID;
+			} else { // Signal
+				Text += _('Signal') + ' ' + ID;
+			}
+			Text += ' (';
+			for (const i in Coupling.Connections) {
+				const Connection = Coupling.Connections[i];
+				if ( i > 0 ) {
+					Text += ', ';
+				} 
+				//Text += Connection.SourcePos + (Connection.TargetPos > 0 ? '-' + Connection.TargetPos : '');
+				Text += Connection.SourcePos + '-' + Connection.TargetPos;
+			}
+			Text += ')';
+		}
+		return Text;
+	} // function getCouplingText	
+
 /* Not used anymore
 function svgAppendTextPath(svg_node, obj) {
 	const svgNS 	= "http://www.w3.org/2000/svg";
@@ -5755,6 +5843,16 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 														// 18: DKW (Weichen und zentrale Gleise)
 														// 16: Zentrale Strecken einer Straßen-T-Kreuzung
 														// 20: Weichen einer Straßen-T-Kreuzung
+														
+	const SignalData = Gleis.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal
+	let cnt = 0;
+	for (let i = 1; i <= 5; i++) { // Attribute NextSigFn1 (Gerade), NextSigFn2 (Abzweig), NextSigFn3 (KoAbzweig), NextSigFn4, NextSigFn5
+		const SourcePos = i;
+		const TargetPos = Gleis.getAttribute('NextSigFn' + i);	// gekoppelte Stellung
+		if (TargetPos && TargetPos != 0) {
+			cnt += 1; // Anzahl tatsächlich gekoppelter Stellungen
+		}
+	}			
 
 	// Kurzform in msg-Element
 	//msg(`Weiche ${WeicheID} auf ${TrackSystemText(GleissystemID)} ${GleisID}`);
@@ -5787,6 +5885,10 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 			+ `<br>${_('Weichenstellung')}: ${WeichenstellungText[weichenstellung]}`
 			+ `<br>${_('Stil')}: ${stil}`
 			+ (gsbname != null ? `<br>${_('Datei')}: ${gsbname}` : "")
+//			+ (SignalData != null 
+//				? `<br>${_('Schaltverbindung')}: ${SignalData}, ${_('Anzahl gekoppelter Stellungen')}: ${cnt}` 
+//				: "")
+			+ getCouplingText( WeicheID ) // Schaltverbindungen
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
 			+ connectionText
 			+ objectToHTML(Gleis)
@@ -5804,12 +5906,22 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 
 	const KontaktZiel 	= Meldung.getElementsByTagName("KontaktZiel")[0].textContent;
 
-	const Stellung		= Meldung.getElementsByTagName("Signal")[0].getAttribute("stellung");
-	const SignalData	= Meldung.getElementsByTagName('Signal')[0].getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
-	const Count			= Meldung.getElementsByTagName('Signal')[0].getAttribute('Count');		// Anzahl gekoppelter Stellungen Fn01, Fn02,...
+	const Signal		= Meldung.getElementsByTagName("Signal")[0];
+	const Stellung		= Signal.getAttribute("stellung");
 
- 	const Distanz		= Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100; // Abstand zwischen Vor- und Hauptsignal
- 	const StopAt		= Meldung.getElementsByTagName("Signal")[0].getAttribute("StopAt") / 100; // Halteabstand
+	const SignalData	= Signal.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
+	const Count			= Signal.getAttribute('Count');		// Anzahl gekoppelter Stellungen Fn01, Fn02,...
+	let cnt = 0;
+	for (let i = 1; i <= Count; i++) {
+		const SourcePos = i;
+		const TargetPos = Signal.getAttribute('Fn' + i.toString().padStart(2, '0'));	// gekoppelte Stellung
+		if (TargetPos && TargetPos != 0) {
+			cnt += 1; // Anzahl tatsächlich gekoppelter Stellungen
+		}
+	}
+
+ 	const Distanz		= Signal.getAttribute("wirkungsdistanz") / 100; // Abstand zwischen Vor- und Hauptsignal
+ 	const StopAt		= Signal.getAttribute("StopAt") / 100; // Halteabstand
 
 	// Vor- / Hauptsignal
 	let signalType      = "";
@@ -5948,9 +6060,10 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			+ (Distanz !=0 ? `<br>${(signalType == "pre" ? _('Distanz zum Hauptsignal') :  _('Distanz zum Vorsignal'))}: ${Distanz.toFixed(0)}m` : "")
 			+ (StopAt != 0 ? `<br>${_('Halteabstand')}: ${StopAt.toFixed(0)}m`: "")
 			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
-			+ (SignalData != null 
-				? `<br>${_('Schaltverbindung')}: ${SignalData}, ${_('Anzahl gekoppelter Stellungen')}: ${Count}` 
-				: "")
+			//+ (SignalData != null 
+			//	? `<br>${_('Schaltverbindung')}: ${SignalData}, ${_('Anzahl gekoppelter Stellungen')}: ${cnt}` 
+			//	: "")
+			+ getCouplingText( SignalID ) // Schaltverbindungen
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
 			+ (Routes ? `<br>${_('Fahrstraßen')}: ${Routes}` : "")
 			+ (RoutesText !== "" ? RoutesText : "")
