@@ -2550,8 +2550,14 @@ const Signalstellung = {
   "Schranke2_SM2" : { 
  	Name : {DE : "Eisenbahnschranke 2", }, 
  	Pos : { 
- 		1 : {DE : "Fahrt", }, 
- 		2 : {DE : "Halt", }, 
+       1 : {DE : "Fahrt", EN : "Open", FR : "Voie libre", },
+       2 : {DE : "Halt", EN : "Close", FR : "Arrêt", },	
+ 	}},
+  "Schranke3_SM2" : { 
+ 	Name : {DE : "Eisenbahnschranke 3", }, 
+ 	Pos : { 
+       1 : {DE : "Fahrt", EN : "Open", FR : "Voie libre", },
+       2 : {DE : "Halt", EN : "Close", FR : "Arrêt", },	
  	}},
   "Sign_Counter_SM2" : {
      Name : {DE : "Signal - Zähler (0-98)", EN : "Signal - counter (0-98)", FR : "Signal - compteur (0-98)", },
