@@ -3850,9 +3850,14 @@ function svgAppend(svg_node, obj) {
 			}
 			const Weiche = global.Weichen[ID];
 			if (Weiche) {
-				Text += _('Weiche') + ' ' + ID;
-			} else { // Signal
-				Text += _('Signal') + ' ' + ID;
+				Text += _('Weiche') + ' ' 
+					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Weiche.mEnd}]);">${ID}<\/a>`
+				
+			}
+			const Meldung = global.Meldungen[ID];
+			if (Meldung) {
+				Text += _('Signal') + ' ' 
+					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${ID}<\/a>` 
 			}
 			Text += ' (';
 			for (const i in Coupling.Connections) {
