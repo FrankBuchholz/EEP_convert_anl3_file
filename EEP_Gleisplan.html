@@ -2690,7 +2690,7 @@ if (near > far) { //###
 
 		if (Key_Id) {
 		
-			Q = matrix2quarternion(mMatrix);
+			Q = matrix2quarternion(mMatrix);	// No example for flipped text on 191227_T_T_Fahrstr16.anl3
 			if (    Q.axis == 'W' 
 				||  (Q.axis == 'Y' && Q.tr != -1.0)
 				||  Q.axis == 'Z'
@@ -2709,7 +2709,7 @@ if (near > far) { //###
 			if (GleisData == 20 || GleisData == 21) { Code = "T-W"; }
 			svgAppend(svgGleisGroup, {
 				svg_tag			: `text`,
-				id				: `W${Key_Id + f}`,
+				id				: `W${Key_Id}`,
 				text			: `${Code}${Key_Id}`,
 				dy				: `1em`, 		// Shift text below the track
 				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
@@ -2719,8 +2719,8 @@ if (near > far) { //###
 				y				: (near > far ? 0 : -DeltaY),	//###
 				transform 		: matrixToTransform(mMatrix)
 								  + (near > far ? "" : svgRotate)	//###
-								  + ` scale(1 -1)`
-								  //+ flipText // needs recalculation
+								  //+ ` scale(1 -1)`
+								  + flipText
 								  ,
 			});
 		}
@@ -3212,7 +3212,7 @@ if (near > far) { //###
 			if (KontaktTypText != "") {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
-					text				:  KontaktTypText + f,
+					text				:  KontaktTypText,
 					"dy"				: `-2.3`, 													// Shift text above the symbol
 					transform 			: matrixToTransform(Kontakt.mPos)
 											+ ` rotate(${ParaOderAnti*180 + (1-fireOnPara)*180})`	// Rotate text to the side of the symbol
