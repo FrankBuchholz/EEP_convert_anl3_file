@@ -278,6 +278,87 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 <script type="text/javascript" src="js/matrix.js"></script> <!-- Matrix operations optimized for this program -->
 <script type="text/javascript" src="js/bezier_curve_arc_length.js"></script> <!-- getArcLength of Bezier Curve -->
 <script type="text/javascript" src="js/convexhull.js"></script> <!-- Convex hull algorithm --> 
+<script type="text/javascript"> // Quarternion
+"use strict";
+		
+function matrix2quarternion(Matrix) {
+	// Translate matrix into quarternion
+	// https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+	let S, w, x, y, z, axis;
+
+	// Name the fields of the matrix
+	const [ DirX, DirY, DirZ, d0, 
+			NorX, NorY, NorZ, n0, 
+			BinX, BinY, BinZ, b0, 
+			PosX, PosY, PosZ, scale ] = Matrix;
+	
+	// Trace = sum of diagonal elements
+	const tr = DirX + NorY + BinZ;
+
+	if (tr >= 0.0) { 
+		axis = 'W';
+		S = Math.sqrt(1.0 + DirX + NorY + BinZ) * 2; // S=4*w 
+		w = 0.25 * S;
+		x = (BinY - NorZ) / S;
+		y = (DirZ - BinX) / S; 
+		z = (NorX - DirY) / S;
+	// identify which major diagonal element has the greatest value
+	} else if ((DirX > NorY) && (DirX > BinZ)) { 
+		axis = 'X';
+		S = Math.sqrt(1.0 + DirX - NorY - BinZ) * 2; // S=4*x 
+		w = (BinY - NorZ) / S;
+		x = 0.25 * S;
+		y = (DirY + NorX) / S; 
+		z = (DirZ + BinX) / S; 
+	} else if (NorY > BinZ) { 
+		axis = 'Y';
+		S = Math.sqrt(1.0 - DirX + NorY - BinZ) * 2; // S=4*y
+		w = (DirZ - BinX) / S;
+		x = (DirY + NorX) / S; 
+		y = 0.25 * S;
+		z = (NorZ + BinY) / S; 
+	} else { 
+		axis = 'Z';
+		S = Math.sqrt(1.0 - DirX - NorY + BinZ) * 2; // S=4*z
+		w = (NorX - DirY) / S;
+		x = (DirZ + BinX) / S;
+		y = (NorZ + BinY) / S;
+		z = 0.25 * S;
+	}			
+	const norm = Math.sqrt(w*w + x*x + y*y + z*z);
+
+/* not used yet
+	// Angel
+	const a = Math.acos( (tr-1)/2 );
+	const b = 2 * Math.atan2( Math.sqrt(x*x + y*y + z*z), w );
+	
+	// Convert a quaternion into euler angles (roll, pitch, yaw)
+	// roll is rotation around x in radians (counterclockwise)
+	let t1, t2;
+	t1 =      + 2.0 * (w*x + y*z);
+	t2 = +1.0 - 2.0 * (x*x + y*y);
+	const roll_x = Math.atan2(t1, t2);
+	// pitch is rotation around y in radians (counterclockwise)
+	t1 = Math.max(-1.0, Math.min(+1.0, + 2.0 * (w*y - z*x) ));
+	const pitch_y = Math.asin(t1);
+	// yaw is rotation around z in radians (counterclockwise)
+	t1 =      + 2.0 * (w*z + x*y);
+	t2 = +1.0 - 2.0 * (y*y + z*z);
+	const yaw_z = Math.atan2(t1, t2);
+*/
+
+	// Return result as object
+	return {
+		tr: 	tr,
+		axis: 	axis,
+		w: 		w,
+		x: 		x,
+		y: 		y,
+		z: 		z,
+		norm: 	norm,
+	};
+}
+</script>
 
 <script type="text/javascript"> // Load and process file
 "use strict";
@@ -1594,7 +1675,7 @@ console.log('wrong order Frame2 Bin - Dir - Nor for '
 				}
 
 				//  	   0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15
-				mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];
+				mMatrix = [DirX, DirY, DirZ, 0,    NorX, NorY, NorZ, 0,    BinX, BinY, BinZ, 0,    PosX, PosY, PosZ, 1 ];	// replace Frame with Frame2
 
 			} else if (Line) {
 				CurveType 	= 'Line';
@@ -1644,7 +1725,7 @@ return nodeList;
 
 				mMatrix = [
 							mMatrix,
-							[DirX2, DirY2, DirZ2, 0, NorX2, NorY2, NorZ2, 0, BinX2, BinY2, BinZ2, 0, PosX2, PosY2, PosZ2, 1 ],  // 321 354 ok
+							[DirX2, DirY2, DirZ2, 0, NorX2, NorY2, NorZ2, 0, BinX2, BinY2, BinZ2, 0, PosX2, PosY2, PosZ2, 1 ],
 						  ].reduce(matrix.multiply);
 
 
@@ -1670,7 +1751,8 @@ return nodeList;
 				const CenterZ2 = +Nor.getAttribute("dz");
 
 				const Radius = Math.sqrt(CenterX2*CenterX2 + CenterY2*CenterY2 + CenterZ2*CenterZ2)	// The curve radius is the length of the second vector
-								 * (DirX2 >= 0 ? 1 : -1) * (CenterY2 >= 0 ? 1 : -1);				// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
+								 //* (DirX2 >= 0 ? 1 : -1) * (CenterY2 >= 0 ? 1 : -1);				// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
+								 ;
 				Kruemmung = 1 / Radius;
 				
 				// Rotate with tangent of circle defined by DirX, DirY
@@ -2594,6 +2676,7 @@ if (near > far) { //###
 					matrix.translate(DeltaX, DeltaY, DeltaZ),
 				].reduce(matrix.multiply);
 		}
+
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
 		// Swap mPos and mEnd if near > far //### I guess that's incomplete
@@ -2603,14 +2686,30 @@ if (near > far) { //###
 			Gleis.mPos = tempPos;
 		}
 
+		let Q, flipText, f;
+
 		if (Key_Id) {
+		
+			Q = matrix2quarternion(mMatrix);
+			if (    Q.axis == 'W' 
+				||  (Q.axis == 'Y' && Q.tr != -1.0)
+				||  Q.axis == 'Z'
+				||  Winkel == 0 
+				||  CurveType == "EEPCurve") {
+				f = "";
+				flipText = ` scale(1 -1)`;
+			} else { // flip text mainly in case of axis = 'X' or 'Z'
+				f = ' flip';
+				flipText = ` scale(-1 -1) translate(${-2*(near > far ? 0 :  DeltaX)} ${0})`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+			}
+		
 			// Show text of Weiche at the end of the track
 			let Code = "W";
 			if (GleisData == 18 || GleisData == 19) { Code = "DWK"; }
 			if (GleisData == 20 || GleisData == 21) { Code = "T-W"; }
 			svgAppend(svgGleisGroup, {
 				svg_tag			: `text`,
-				id				: `W${Key_Id}`,
+				id				: `W${Key_Id + f}`,
 				text			: `${Code}${Key_Id}`,
 				dy				: `1em`, 		// Shift text below the track
 				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
@@ -2620,7 +2719,9 @@ if (near > far) { //###
 				y				: (near > far ? 0 : -DeltaY),	//###
 				transform 		: matrixToTransform(mMatrix)
 								  + (near > far ? "" : svgRotate)	//###
-								  + ` scale(1 -1)`,
+								  + ` scale(1 -1)`
+								  //+ flipText // needs recalculation
+								  ,
 			});
 		}
 
@@ -2668,12 +2769,51 @@ if (near > far) { //###
 					matrix.translate(DeltaX, DeltaY, DeltaZ),
 				].reduce(matrix.multiply);
 		}
+		
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
+		Q = matrix2quarternion(Gleis.mMid);
+		if (    Q.axis == 'W' 
+			||  (Q.axis == 'Y' && Q.tr != -1.0)
+			||  Q.axis == 'Z'
+			||  Winkel == 0 
+			||  CurveType == "EEPCurve") {
+			f = "";
+			flipText = ` scale(1 -1)`;
+		} else { // flip text mainly in case of axis = 'X' or 'Z'
+			f = ' flip';
+			flipText = ` scale(-1 -1) translate(${-2*DeltaX} ${0})`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+		}
+
+		/*			
+		if ( 
+			GleissystemID == 1 && GleisID == 299 
+		||	GleissystemID == 1 && GleisID == 414 
+		) { debugger; }
+		*/
+		if (CurveType == "Arc") {
+			console.log( 
+				  "\t" 			+ CurveType 
+				+ "\t" 			+ GleissystemID + "\t" + GleisID
+				+ "\tWinkel°\t"	+ ( Winkel*180/Math.PI )
+				+ "\tArcFlag\t" + ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
+				+ "\taxis\t" 	+ Q.axis
+				+ "\tDelta\t" 	+ DeltaX + "\t" + DeltaY
+				//+ "\tmMatrix\t" + DirX + "\t" + DirY + "\t" + DirZ + "\t" + d0
+				//+ "\t"          + NorX + "\t" + NorY + "\t" + NorZ + "\t" + n0
+				//+ "\t"          + BinX + "\t" + BinY + "\t" + BinZ + "\t" + b0
+				//+ "\t"          + PosX + "\t" + PosY + "\t" + PosZ + "\t" + scale
+				+ "\t"          + flipText
+				+ "\ttrace\t"	+ Q.tr
+				+ "\tQ\t"		+ Q.qw + "\t" + Q.qx + "\t" + Q.qy + "\t" + Q.qz 
+				+ "\tnorm\t"	+ Q.norm
+			);
+		}
+		
 		// show GleisID in the middle above the track (left-adjusted)
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${GleisID}`,
+			text				: `${GleisID}`, // + ' ' + axis + f}`,
 			dx					: `-0.5em`, 	// Shift text left to move it a little bit towards the center
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `GleisID`,
@@ -2682,7 +2822,8 @@ if (near > far) { //###
 			transform 			: matrixToTransform(mMatrix)
 			//transform 			: matrixToTransform(Gleis.mMid) // Bug: does not work for Rotator yet
 								  + svgRotate
-								  + ` scale(1 -1)`,
+								  //+ ` scale(1 -1)`
+ 								  + flipText,
 		});
 		// show CurveType in the middle above the track (right-adjusted)
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
@@ -2697,7 +2838,8 @@ if (near > far) { //###
 			transform 			: matrixToTransform(mMatrix)
 			//transform 			: matrixToTransform(Gleis.mMid) // Bug: does not work for Rotator yet
 								  + svgRotate
-								  + ` scale(1 -1)`,
+								  //+ ` scale(1 -1)`
+ 								  + flipText,
 		});
 		}
 		// show Gleisstil in the middle below the track (right-adjusted)
@@ -2711,7 +2853,8 @@ if (near > far) { //###
 			y					: -DeltaY,
 			transform 			: matrixToTransform(mMatrix)
 								  + svgRotate
-								  + ` scale(1 -1)`,
+								  //+ ` scale(1 -1)`
+ 								  + flipText,
 		});
 		// show Hoehe in the middle below the track (left-adjusted)
 		svgAppend(svgGleisGroup, {
@@ -2724,7 +2867,8 @@ if (near > far) { //###
 			y					: -DeltaY,
 			transform 			: matrixToTransform(mMatrix)
 								  + svgRotate
-								  + ` scale(1 -1)`,
+								  //+ ` scale(1 -1)`
+ 								  + flipText,
 		});
 
 		if (global.__showCircles__) {	// debugging feature
@@ -2900,6 +3044,19 @@ if (near > far) { //###
 										,
 			});
 
+			Q = matrix2quarternion(Meldung.mPos);
+			if (    Q.axis == 'W' 
+				||  (Q.axis == 'Y' && Q.tr != -1.0)
+				||  Q.axis == 'Z'
+				||  Winkel == 0 
+				||  CurveType == "EEPCurve") {
+				f = "";
+				flipText = ` scale(1 -1)`;
+			} else { // flip text mainly in case of axis = 'X' or 'Z'
+				f = ' flip';
+				flipText = ` scale(-1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+			}
+
 			// Show text of Signal / Fahrstraße
 			if (signalType !== "pre") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
@@ -2914,7 +3071,9 @@ if (near > far) { //###
 										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``),
 				"dy"				: `-2.3`, 									// Shift text above the symbol
 				transform 			: matrixToTransform(Meldung.mPos)
-										+ ` scale(1 -1)`,
+										//+ ` scale(1 -1)`
+										+ flipText
+										,
 			});
 			} // do not show any text for pre-signals
 
@@ -3036,14 +3195,30 @@ if (near > far) { //###
 				const Ziel = global.KontaktZiele[KontaktZiel];
 				KontaktTypText += (Ziel ? `${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `?${KontaktZiel}`);
 			}
+			
+			Q = matrix2quarternion(Kontakt.mPos);
+			if (    Q.axis == 'W' 
+				||  (Q.axis == 'Y' && Q.tr != -1.0)
+				||  Q.axis == 'Z'
+				||  Winkel == 0 
+				||  CurveType == "EEPCurve") {
+				f = "";
+				flipText = ` scale(1 -1)`;
+			} else { // flip text mainly in case of axis = 'X' or 'Z'
+				f = ' flip';
+				flipText = ` scale(-1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+			}
+			
 			if (KontaktTypText != "") {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
-					text				:  KontaktTypText,
+					text				:  KontaktTypText + f,
 					"dy"				: `-2.3`, 													// Shift text above the symbol
 					transform 			: matrixToTransform(Kontakt.mPos)
 											+ ` rotate(${ParaOderAnti*180 + (1-fireOnPara)*180})`	// Rotate text to the side of the symbol
-											+ ` scale(1 -1)`,
+											//+ ` scale(1 -1)`
+											+ flipText
+											,
 				});
 			}
 
@@ -3852,7 +4027,6 @@ function svgAppend(svg_node, obj) {
 			if (Weiche) {
 				Text += _('Weiche') + ' ' 
 					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Weiche.mEnd}]);">${ID}<\/a>`
-				
 			}
 			const Meldung = global.Meldungen[ID];
 			if (Meldung) {
@@ -5794,6 +5968,42 @@ function showGleisInfo(GleissystemID, GleisID) {
 			gsbname
 	);
 
+	let quarternionText = "";
+	const Q = matrix2quarternion(Gleis.mMid);
+	{
+		const a = Math.acos( (Q.tr-1)/2 );
+		const b = 2 * Math.atan2( Math.sqrt(Q.x*Q.x + Q.y*Q.y + Q.z*Q.z), Q.w );
+		
+        /*
+        Convert a quaternion into euler angles (roll, pitch, yaw)
+        roll is rotation around x in radians (counterclockwise)
+        pitch is rotation around y in radians (counterclockwise)
+        yaw is rotation around z in radians (counterclockwise)
+        */
+		let t1, t2;
+        t1 =      + 2.0 * (Q.w*Q.x + Q.y*Q.z);
+        t2 = +1.0 - 2.0 * (Q.x*Q.x + Q.y*Q.y);
+        const roll_x = Math.atan2(t1, t2);
+     
+        t1 = Math.max(-1.0, Math.min(+1.0, + 2.0 * (Q.w*Q.y - Q.z*Q.x) ));
+        const pitch_y = Math.asin(t1);
+     
+        t1 =      + 2.0 * (Q.w*Q.z + Q.x*Q.y);
+        t2 = +1.0 - 2.0 * (Q.y*Q.y + Q.z*Q.z);
+        const yaw_z = Math.atan2(t1, t2);
+
+		quarternionText = 'Quarternion axis ' + Q.axis 
+			+ ' trace ' 	+ Q.tr.toFixed(4) 
+			+ ' Q ' 		+ Q.w.toFixed(4) + ' ' + Q.x.toFixed(4) + ' ' + Q.y.toFixed(4) + ' ' + Q.z.toFixed(4)
+			+ ' norm ' 		+ Q.norm.toFixed(4)
+			//+ ' a° ' 		+ (a 		* 180/Math.PI).toFixed(1)
+			//+ ' b° ' 		+ (b 		* 180/Math.PI).toFixed(1)
+			//+ ' roll° ' 	+ (roll_x 	* 180/Math.PI).toFixed(1)
+			//+ ' pitch° ' 	+ (pitch_y 	* 180/Math.PI).toFixed(1)
+			//+ ' yaw° ' 		+ (yaw_z 	* 180/Math.PI).toFixed(1)
+			;
+	}
+
 	// Ausführlich im Info Popup
 	const posX = 12, posY = 13, posZ = 14;
 
@@ -5826,6 +6036,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ `<br>${_('Höhe')}: ${Gleis.mPos[posZ].toFixed(2)}m`
 			+ (Gleis.CurveType === 'classic' || Gleis.CurveType === 'EEPCurve' ? "" : `<br>${_('Kurventyp')}: ${Gleis.CurveType}`)
 			+ connectionText
+			+ `<br>` + quarternionText
 			+ objectToHTML(Gleis)
 	});
 }
