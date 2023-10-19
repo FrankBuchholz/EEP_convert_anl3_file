@@ -327,26 +327,6 @@ function matrix2quarternion(Matrix) {
 	}			
 	const norm = Math.sqrt(w*w + x*x + y*y + z*z);
 
-/* not used yet
-	// Angel
-	const a = Math.acos( (tr-1)/2 );
-	const b = 2 * Math.atan2( Math.sqrt(x*x + y*y + z*z), w );
-	
-	// Convert a quaternion into euler angles (roll, pitch, yaw)
-	// roll is rotation around x in radians (counterclockwise)
-	let t1, t2;
-	t1 =      + 2.0 * (w*x + y*z);
-	t2 = +1.0 - 2.0 * (x*x + y*y);
-	const roll_x = Math.atan2(t1, t2);
-	// pitch is rotation around y in radians (counterclockwise)
-	t1 = Math.max(-1.0, Math.min(+1.0, + 2.0 * (w*y - z*x) ));
-	const pitch_y = Math.asin(t1);
-	// yaw is rotation around z in radians (counterclockwise)
-	t1 =      + 2.0 * (w*z + x*y);
-	t2 = +1.0 - 2.0 * (y*y + z*z);
-	const yaw_z = Math.atan2(t1, t2);
-*/
-
 	// Return result as object
 	return {
 		tr: 	tr,
@@ -356,7 +336,43 @@ function matrix2quarternion(Matrix) {
 		y: 		y,
 		z: 		z,
 		norm: 	norm,
+		//roll_x	// calculated by function quarternion2angles
+		//pitch_y
+		//yaw_z
 	};
+}
+
+function quarternion2angles(Q) {
+	// Convert a quaternion into euler angles (roll, pitch, yaw)
+
+	const tr = Q.tr;
+	const w  = Q.w;
+	const x  = Q.x;
+	const y  = Q.y;
+	const z  = Q.z;
+
+	const a = Math.acos( (tr - 1) / 2 );
+	const b = 2 * Math.atan2( Math.sqrt(x*x + y*y + z*z), w );
+	
+	// roll is rotation around x in radians (counterclockwise)
+	let t1, t2;
+	t1 =      + 2.0 * (w*x + y*z);
+	t2 = +1.0 - 2.0 * (x*x + y*y);
+	const roll_x = Math.atan2(t1, t2);
+	
+	// pitch is rotation around y in radians (counterclockwise)
+	t1 = Math.max(-1.0, Math.min(+1.0, + 2.0 * (w*y - z*x) ));
+	const pitch_y = Math.asin(t1);
+
+	// yaw is rotation around z in radians (counterclockwise)
+	t1 =      + 2.0 * (w*z + x*y);
+	t2 = +1.0 - 2.0 * (y*y + z*z);
+	const yaw_z = Math.atan2(t1, t2);
+	
+	// Extend the object
+	Q.roll_x  = roll_x;
+	Q.pitch_y = pitch_y;
+	Q.yaw_z   = yaw_z;
 }
 </script>
 
@@ -1881,7 +1897,7 @@ Eisenbahn 3	Arc	Länge: 70m	Anfang: 1									near="0"        far="70.18061"
 
 				const posX = 12, posY = 13, posZ = 14; // Index in mMatrix
 
-				const Winkel 	= Kruemmung * Laenge;
+				const Winkel 	= Kruemmung * Laenge;	// Winkel = Laenge / Radius
 				const DeltaX	= Math.sin(Winkel) * Radius;
 				const DeltaY 	= (1 - Math.cos(Winkel)) * Radius;
 				const DeltaZ	= 0;
@@ -1926,7 +1942,7 @@ console.log("Helix Vergleich\t" + TrackSystemText(GleissystemID) + " " + GleisID
 											];
 
 				}
-
+/*
 console.log( 
       "\t" + CurveType 
 	+ "\t" + GleisID
@@ -1937,6 +1953,7 @@ console.log(
 	+ "\tHeight\t" + b // Height
 	+ "\tr\t" + r // Math.sqrt(a*a + b*b) 
 )
+*/
 
 				Gleis.Helix = {	// Store Helix parameters
 					a: 		a,
@@ -2179,10 +2196,12 @@ Arc 	215	x	1467.390	y	-1822.741	z	12.384
 					//&& PosX == 0 && PosY == 0 && PosZ == 0 // some Cubic show non-zero values
 				) {
 					if (pX != 0 || pY != 0 || pZ != 0) {
+/*
 console.log( TrackSystemText(GleissystemID) + "-" + GleisID 
 	+ "\tCubic Pos=0"
 	+ "\t" + pX + "\t" + pY
 )
+*/
 						mMatrix = [
 								mMatrix,
 								matrix.translate(pX, pY, pZ),
@@ -2686,21 +2705,21 @@ if (near > far) { //###
 			Gleis.mPos = tempPos;
 		}
 
-		let Q, flipText, f;
+		let Q, flipText, flip;
 
 		if (Key_Id) {
 		
-			Q = matrix2quarternion(mMatrix);	// No example for flipped text on 191227_T_T_Fahrstr16.anl3
-			if (    Q.axis == 'W' 
-				||  (Q.axis == 'Y' && Q.tr != -1.0)
-				||  Q.axis == 'Z'
-				||  Winkel == 0 
-				||  CurveType == "EEPCurve") {
-				f = "";
+			Q = matrix2quarternion(mMatrix);	// No example for flipped text for switches on 191227_T_T_Fahrstr16.anl3
+			if (    Q.axis == 'X'
+				||  Q.axis == 'Y'
+				||  matrix.det3x3(mMatrix) < 0.0
+				) {
+				flip = ' flip';
+				flipText = ` scale(-1 -1)` // see https://www.mediaevent.de/tutorial/svg-transform.html
+						 + ` translate(${-2*(near > far ? 0 :  DeltaX)} ${0})`;
+			} else { 
+				flip = "";
 				flipText = ` scale(1 -1)`;
-			} else { // flip text mainly in case of axis = 'X' or 'Z'
-				f = ' flip';
-				flipText = ` scale(-1 -1) translate(${-2*(near > far ? 0 :  DeltaX)} ${0})`; // see https://www.mediaevent.de/tutorial/svg-transform.html
 			}
 		
 			// Show text of Weiche at the end of the track
@@ -2709,7 +2728,7 @@ if (near > far) { //###
 			if (GleisData == 20 || GleisData == 21) { Code = "T-W"; }
 			svgAppend(svgGleisGroup, {
 				svg_tag			: `text`,
-				id				: `W${Key_Id}`,
+				id				: `W${Key_Id}`, // + flip
 				text			: `${Code}${Key_Id}`,
 				dy				: `1em`, 		// Shift text below the track
 				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
@@ -2719,9 +2738,7 @@ if (near > far) { //###
 				y				: (near > far ? 0 : -DeltaY),	//###
 				transform 		: matrixToTransform(mMatrix)
 								  + (near > far ? "" : svgRotate)	//###
-								  //+ ` scale(1 -1)`
-								  + flipText
-								  ,
+								  + flipText,
 			});
 		}
 
@@ -2773,47 +2790,46 @@ if (near > far) { //###
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
 		Q = matrix2quarternion(Gleis.mMid);
-		if (    Q.axis == 'W' 
-			||  (Q.axis == 'Y' && Q.tr != -1.0)
-			||  Q.axis == 'Z'
-			||  Winkel == 0 
-			||  CurveType == "EEPCurve") {
-			f = "";
+		if (    Q.axis == 'X'
+			||  Q.axis == 'Y'
+			||  matrix.det3x3(Gleis.mMid) < 0.0
+			) {
+			//flip = ' flip';
+			flipText = ` scale(-1 -1)` // see https://www.mediaevent.de/tutorial/svg-transform.html
+					 + ` translate(${-2*DeltaX} ${0})`;
+		} else { 
+			flip = "";
 			flipText = ` scale(1 -1)`;
-		} else { // flip text mainly in case of axis = 'X' or 'Z'
-			f = ' flip';
-			flipText = ` scale(-1 -1) translate(${-2*DeltaX} ${0})`; // see https://www.mediaevent.de/tutorial/svg-transform.html
 		}
 
-		/*			
-		if ( 
-			GleissystemID == 1 && GleisID == 299 
-		||	GleissystemID == 1 && GleisID == 414 
-		) { debugger; }
-		*/
-		if (CurveType == "Arc") {
-			console.log( 
-				  "\t" 			+ CurveType 
-				+ "\t" 			+ GleissystemID + "\t" + GleisID
-				+ "\tWinkel°\t"	+ ( Winkel*180/Math.PI )
-				+ "\tArcFlag\t" + ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
-				+ "\taxis\t" 	+ Q.axis
-				+ "\tDelta\t" 	+ DeltaX + "\t" + DeltaY
-				//+ "\tmMatrix\t" + DirX + "\t" + DirY + "\t" + DirZ + "\t" + d0
-				//+ "\t"          + NorX + "\t" + NorY + "\t" + NorZ + "\t" + n0
-				//+ "\t"          + BinX + "\t" + BinY + "\t" + BinZ + "\t" + b0
-				//+ "\t"          + PosX + "\t" + PosY + "\t" + PosZ + "\t" + scale
-				+ "\t"          + flipText
-				+ "\ttrace\t"	+ Q.tr
-				+ "\tQ\t"		+ Q.qw + "\t" + Q.qx + "\t" + Q.qy + "\t" + Q.qz 
-				+ "\tnorm\t"	+ Q.norm
-			);
-		}
+/*			
+if (CurveType == "Arc") {
+	console.log( 
+		  "\t" 			+ CurveType 
+		+ "\t" 			+ GleissystemID + "\t" + GleisID
+		+ "\tWinkel°\t"	+ ( Winkel*180/Math.PI )
+		+ "\tArcFlag\t" + ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
+		+ "\taxis\t" 	+ Q.axis
+		+ "\tDelta\t" 	+ DeltaX + "\t" + DeltaY
+		//+ "\tmMatrix\t" + DirX + "\t" + DirY + "\t" + DirZ + "\t" + d0
+		//+ "\t"          + NorX + "\t" + NorY + "\t" + NorZ + "\t" + n0
+		//+ "\t"          + BinX + "\t" + BinY + "\t" + BinZ + "\t" + b0
+		//+ "\t"          + PosX + "\t" + PosY + "\t" + PosZ + "\t" + scale
+		+ "\t"          + flipText
+		+ "\ttrace\t"	+ Q.tr
+		+ "\tQ\t"		+ Q.w + "\t" + Q.x + "\t" + Q.y + "\t" + Q.z 
+		+ "\tnorm\t"	+ Q.norm
+		+ "\tdet3x3\t"	+ matrix.det3x3(Gleis.mMid)
+		+ "\tdet\t"		+ matrix.det(Gleis.mMid)
+		
+	);
+}
+*/
 		
 		// show GleisID in the middle above the track (left-adjusted)
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${GleisID}`, // + ' ' + axis + f}`,
+			text				: `${GleisID}`,
 			dx					: `-0.5em`, 	// Shift text left to move it a little bit towards the center
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `GleisID`,
@@ -2822,14 +2838,13 @@ if (near > far) { //###
 			transform 			: matrixToTransform(mMatrix)
 			//transform 			: matrixToTransform(Gleis.mMid) // Bug: does not work for Rotator yet
 								  + svgRotate
-								  //+ ` scale(1 -1)`
  								  + flipText,
 		});
 		// show CurveType in the middle above the track (right-adjusted)
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${CurveType}`,
+			text				: `${CurveType}`, // + flip
 			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `CurveType`,
@@ -3045,16 +3060,15 @@ if (near > far) { //###
 			});
 
 			Q = matrix2quarternion(Meldung.mPos);
-			if (    Q.axis == 'W' 
-				||  (Q.axis == 'Y' && Q.tr != -1.0)
-				||  Q.axis == 'Z'
-				||  Winkel == 0 
-				||  CurveType == "EEPCurve") {
-				f = "";
-				flipText = ` scale(1 -1)`;
-			} else { // flip text mainly in case of axis = 'X' or 'Z'
-				f = ' flip';
+			if (    Q.axis == 'X'
+				||  Q.axis == 'Y'
+				||  matrix.det3x3(Meldung.mPos) < 0.0
+				) {
+				flip = ' flip';
 				flipText = ` scale(-1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+			} else { 
+				flip = "";
+				flipText = ` scale(1 -1)`;
 			}
 
 			// Show text of Signal / Fahrstraße
@@ -3068,12 +3082,10 @@ if (near > far) { //###
 										: 						  	  'S'
 									  )
 										+ SignalID
-										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``),
+										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``), // + flip
 				"dy"				: `-2.3`, 									// Shift text above the symbol
 				transform 			: matrixToTransform(Meldung.mPos)
-										//+ ` scale(1 -1)`
-										+ flipText
-										,
+										+ flipText,
 			});
 			} // do not show any text for pre-signals
 
@@ -3197,28 +3209,25 @@ if (near > far) { //###
 			}
 			
 			Q = matrix2quarternion(Kontakt.mPos);
-			if (    Q.axis == 'W' 
-				||  (Q.axis == 'Y' && Q.tr != -1.0)
-				||  Q.axis == 'Z'
-				||  Winkel == 0 
-				||  CurveType == "EEPCurve") {
-				f = "";
-				flipText = ` scale(1 -1)`;
-			} else { // flip text mainly in case of axis = 'X' or 'Z'
-				f = ' flip';
+			if (    Q.axis == 'X'
+				||  Q.axis == 'Y'
+				||  matrix.det3x3(Kontakt.mPos) < 0.0
+				) {
+				flip = ' flip';
 				flipText = ` scale(-1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+			} else { 
+				flip = "";
+				flipText = ` scale(1 -1)`;
 			}
 			
 			if (KontaktTypText != "") {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
-					text				:  KontaktTypText,
+					text				:  KontaktTypText, // + flip
 					"dy"				: `-2.3`, 													// Shift text above the symbol
 					transform 			: matrixToTransform(Kontakt.mPos)
 											+ ` rotate(${ParaOderAnti*180 + (1-fireOnPara)*180})`	// Rotate text to the side of the symbol
-											//+ ` scale(1 -1)`
-											+ flipText
-											,
+											+ flipText,
 				});
 			}
 
@@ -5968,41 +5977,21 @@ function showGleisInfo(GleissystemID, GleisID) {
 			gsbname
 	);
 
-	let quarternionText = "";
-	const Q = matrix2quarternion(Gleis.mMid);
-	{
-		const a = Math.acos( (Q.tr-1)/2 );
-		const b = 2 * Math.atan2( Math.sqrt(Q.x*Q.x + Q.y*Q.y + Q.z*Q.z), Q.w );
-		
-        /*
-        Convert a quaternion into euler angles (roll, pitch, yaw)
-        roll is rotation around x in radians (counterclockwise)
-        pitch is rotation around y in radians (counterclockwise)
-        yaw is rotation around z in radians (counterclockwise)
-        */
-		let t1, t2;
-        t1 =      + 2.0 * (Q.w*Q.x + Q.y*Q.z);
-        t2 = +1.0 - 2.0 * (Q.x*Q.x + Q.y*Q.y);
-        const roll_x = Math.atan2(t1, t2);
-     
-        t1 = Math.max(-1.0, Math.min(+1.0, + 2.0 * (Q.w*Q.y - Q.z*Q.x) ));
-        const pitch_y = Math.asin(t1);
-     
-        t1 =      + 2.0 * (Q.w*Q.z + Q.x*Q.y);
-        t2 = +1.0 - 2.0 * (Q.y*Q.y + Q.z*Q.z);
-        const yaw_z = Math.atan2(t1, t2);
-
-		quarternionText = 'Quarternion axis ' + Q.axis 
-			+ ' trace ' 	+ Q.tr.toFixed(4) 
-			+ ' Q ' 		+ Q.w.toFixed(4) + ' ' + Q.x.toFixed(4) + ' ' + Q.y.toFixed(4) + ' ' + Q.z.toFixed(4)
-			+ ' norm ' 		+ Q.norm.toFixed(4)
-			//+ ' a° ' 		+ (a 		* 180/Math.PI).toFixed(1)
-			//+ ' b° ' 		+ (b 		* 180/Math.PI).toFixed(1)
-			//+ ' roll° ' 	+ (roll_x 	* 180/Math.PI).toFixed(1)
-			//+ ' pitch° ' 	+ (pitch_y 	* 180/Math.PI).toFixed(1)
-			//+ ' yaw° ' 		+ (yaw_z 	* 180/Math.PI).toFixed(1)
+	const Q = matrix2quarternion(Gleis.mPos);
+	quarternion2angles(Q); // Add euler angles to the object
+	const quarternionText = 'Quarternion: axis ' + Q.axis 
+			+ ', trace ' 	+ Q.tr.toFixed(4) 
+			+ ', w ' 		+ Q.w.toFixed(4) 
+			+ ', x ' 		+ Q.x.toFixed(4) 
+			+ ', y ' 		+ Q.y.toFixed(4) 
+			+ ', z ' 		+ Q.z.toFixed(4)
+			+ ', norm ' 	+ Q.norm.toFixed(4)
+			+ ', det ' 		+ matrix.det3x3(Gleis.mMid).toFixed(4)
+			//+ ' det4x4'	+ matrix.det(Gleis.mMid).toFixed(4)
+			+ ', roll ' 	+ (Q.roll_x 	* 180/Math.PI).toFixed(1) + '°'
+			+ ', pitch ' 	+ (Q.pitch_y 	* 180/Math.PI).toFixed(1) + '°'
+			+ ', yaw ' 		+ (Q.yaw_z 		* 180/Math.PI).toFixed(1) + '°'
 			;
-	}
 
 	// Ausführlich im Info Popup
 	const posX = 12, posY = 13, posZ = 14;
