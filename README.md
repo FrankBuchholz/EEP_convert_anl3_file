@@ -143,4 +143,4 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 
 # Impressum
 
-(c) Frank Buchholz, 2022
+(c) Frank Buchholz, 2019
