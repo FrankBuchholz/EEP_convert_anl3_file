@@ -98,4 +98,100 @@ matrix.det = function (A) { // Determinant of the 4x4 matrix
 	return det;
 }
 
+matrix.quarternion = function (A) {
+	// Translate matrix into quarternion
+	// https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+	let S, w, x, y, z, axis;
+
+	// Name the fields of the matrix
+	const [ DirX, DirY, DirZ, d0, 
+			NorX, NorY, NorZ, n0, 
+			BinX, BinY, BinZ, b0, 
+			PosX, PosY, PosZ, scale ] = A;
+	
+	// Trace = sum of diagonal elements
+	const tr = DirX + NorY + BinZ;
+
+	if (tr >= 0.0) { 
+		axis = 'W';
+		S = Math.sqrt(1.0 + DirX + NorY + BinZ) * 2; // S=4*w 
+		w = 0.25 * S;
+		x = (BinY - NorZ) / S;
+		y = (DirZ - BinX) / S; 
+		z = (NorX - DirY) / S;
+	// identify which major diagonal element has the greatest value
+	} else if ((DirX > NorY) && (DirX > BinZ)) { 
+		axis = 'X';
+		S = Math.sqrt(1.0 + DirX - NorY - BinZ) * 2; // S=4*x 
+		w = (BinY - NorZ) / S;
+		x = 0.25 * S;
+		y = (DirY + NorX) / S; 
+		z = (DirZ + BinX) / S; 
+	} else if (NorY > BinZ) { 
+		axis = 'Y';
+		S = Math.sqrt(1.0 - DirX + NorY - BinZ) * 2; // S=4*y
+		w = (DirZ - BinX) / S;
+		x = (DirY + NorX) / S; 
+		y = 0.25 * S;
+		z = (NorZ + BinY) / S; 
+	} else { 
+		axis = 'Z';
+		S = Math.sqrt(1.0 - DirX - NorY + BinZ) * 2; // S=4*z
+		w = (NorX - DirY) / S;
+		x = (DirZ + BinX) / S;
+		y = (NorZ + BinY) / S;
+		z = 0.25 * S;
+	}			
+	const norm = Math.sqrt(w*w + x*x + y*y + z*z);
+
+	// Return result as object
+	return {
+		tr: 	tr,
+		axis: 	axis,
+		w: 		w,
+		x: 		x,
+		y: 		y,
+		z: 		z,
+		norm: 	norm,
+	};
+}
+
+matrix.euler_angles = function (obj) {
+	// Calculate the euler angles (roll, pitch, yaw) for a quaternion object
+	
+	let Q;
+	if (obj.tr) { 	// The object is a quarternion
+		Q = obj; 
+	} else {		// The object is a rotation matix
+		Q = matrix2quarternion(obj);
+	}
+
+	const tr = Q.tr;
+	const w  = Q.w;
+	const x  = Q.x;
+	const y  = Q.y;
+	const z  = Q.z;
+
+	const a = Math.acos( (tr - 1) / 2 );
+	const b = 2 * Math.atan2( Math.sqrt(x*x + y*y + z*z), w );
+	
+	// roll is rotation around x in radians (counterclockwise)
+	let t1, t2;
+	t1 =      + 2.0 * (w*x + y*z);
+	t2 = +1.0 - 2.0 * (x*x + y*y);
+	const roll_x = Math.atan2(t1, t2);
+	
+	// pitch is rotation around y in radians (counterclockwise)
+	t1 = Math.max(-1.0, Math.min(+1.0, + 2.0 * (w*y - z*x) ));
+	const pitch_y = Math.asin(t1);
+
+	// yaw is rotation around z in radians (counterclockwise)
+	t1 =      + 2.0 * (w*z + x*y);
+	t2 = +1.0 - 2.0 * (y*y + z*z);
+	const yaw_z = Math.atan2(t1, t2);
+	
+	// Return result as vector
+	return [ roll_x, pitch_y, yaw_z ];
+}
+
 })(this); // end module

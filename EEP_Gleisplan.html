@@ -278,103 +278,6 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 <script type="text/javascript" src="js/matrix.js"></script> <!-- Matrix operations optimized for this program -->
 <script type="text/javascript" src="js/bezier_curve_arc_length.js"></script> <!-- getArcLength of Bezier Curve -->
 <script type="text/javascript" src="js/convexhull.js"></script> <!-- Convex hull algorithm --> 
-<script type="text/javascript"> // Quarternion
-"use strict";
-		
-function matrix2quarternion(Matrix) {
-	// Translate matrix into quarternion
-	// https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
-	let S, w, x, y, z, axis;
-
-	// Name the fields of the matrix
-	const [ DirX, DirY, DirZ, d0, 
-			NorX, NorY, NorZ, n0, 
-			BinX, BinY, BinZ, b0, 
-			PosX, PosY, PosZ, scale ] = Matrix;
-	
-	// Trace = sum of diagonal elements
-	const tr = DirX + NorY + BinZ;
-
-	if (tr >= 0.0) { 
-		axis = 'W';
-		S = Math.sqrt(1.0 + DirX + NorY + BinZ) * 2; // S=4*w 
-		w = 0.25 * S;
-		x = (BinY - NorZ) / S;
-		y = (DirZ - BinX) / S; 
-		z = (NorX - DirY) / S;
-	// identify which major diagonal element has the greatest value
-	} else if ((DirX > NorY) && (DirX > BinZ)) { 
-		axis = 'X';
-		S = Math.sqrt(1.0 + DirX - NorY - BinZ) * 2; // S=4*x 
-		w = (BinY - NorZ) / S;
-		x = 0.25 * S;
-		y = (DirY + NorX) / S; 
-		z = (DirZ + BinX) / S; 
-	} else if (NorY > BinZ) { 
-		axis = 'Y';
-		S = Math.sqrt(1.0 - DirX + NorY - BinZ) * 2; // S=4*y
-		w = (DirZ - BinX) / S;
-		x = (DirY + NorX) / S; 
-		y = 0.25 * S;
-		z = (NorZ + BinY) / S; 
-	} else { 
-		axis = 'Z';
-		S = Math.sqrt(1.0 - DirX - NorY + BinZ) * 2; // S=4*z
-		w = (NorX - DirY) / S;
-		x = (DirZ + BinX) / S;
-		y = (NorZ + BinY) / S;
-		z = 0.25 * S;
-	}			
-	const norm = Math.sqrt(w*w + x*x + y*y + z*z);
-
-	// Return result as object
-	return {
-		tr: 	tr,
-		axis: 	axis,
-		w: 		w,
-		x: 		x,
-		y: 		y,
-		z: 		z,
-		norm: 	norm,
-		//roll_x	// calculated by function quarternion2angles
-		//pitch_y
-		//yaw_z
-	};
-}
-
-function quarternion2angles(Q) {
-	// Convert a quaternion into euler angles (roll, pitch, yaw)
-
-	const tr = Q.tr;
-	const w  = Q.w;
-	const x  = Q.x;
-	const y  = Q.y;
-	const z  = Q.z;
-
-	const a = Math.acos( (tr - 1) / 2 );
-	const b = 2 * Math.atan2( Math.sqrt(x*x + y*y + z*z), w );
-	
-	// roll is rotation around x in radians (counterclockwise)
-	let t1, t2;
-	t1 =      + 2.0 * (w*x + y*z);
-	t2 = +1.0 - 2.0 * (x*x + y*y);
-	const roll_x = Math.atan2(t1, t2);
-	
-	// pitch is rotation around y in radians (counterclockwise)
-	t1 = Math.max(-1.0, Math.min(+1.0, + 2.0 * (w*y - z*x) ));
-	const pitch_y = Math.asin(t1);
-
-	// yaw is rotation around z in radians (counterclockwise)
-	t1 =      + 2.0 * (w*z + x*y);
-	t2 = +1.0 - 2.0 * (y*y + z*z);
-	const yaw_z = Math.atan2(t1, t2);
-	
-	// Extend the object
-	Q.roll_x  = roll_x;
-	Q.pitch_y = pitch_y;
-	Q.yaw_z   = yaw_z;
-}
-</script>
 
 <script type="text/javascript"> // Load and process file
 "use strict";
@@ -2709,7 +2612,8 @@ if (near > far) { //###
 
 		if (Key_Id) {
 		
-			Q = matrix2quarternion(mMatrix);	// No example for flipped text for switches on 191227_T_T_Fahrstr16.anl3
+			// Flip mirrored texts
+			Q = matrix.quarternion(mMatrix);	// No example for flipped text for switches on 191227_T_T_Fahrstr16.anl3
 			if (    Q.axis == 'X'
 				||  Q.axis == 'Y'
 				||  matrix.det3x3(mMatrix) < 0.0
@@ -2728,7 +2632,7 @@ if (near > far) { //###
 			if (GleisData == 20 || GleisData == 21) { Code = "T-W"; }
 			svgAppend(svgGleisGroup, {
 				svg_tag			: `text`,
-				id				: `W${Key_Id}`, // + flip
+				id				: `W${Key_Id + flip}`, // + flip
 				text			: `${Code}${Key_Id}`,
 				dy				: `1em`, 		// Shift text below the track
 				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
@@ -2789,14 +2693,15 @@ if (near > far) { //###
 		
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
-		Q = matrix2quarternion(Gleis.mMid);
+		// Flip mirrored texts
+		Q = matrix.quarternion(Gleis.mMid);
 		if (    Q.axis == 'X'
 			||  Q.axis == 'Y'
 			||  matrix.det3x3(Gleis.mMid) < 0.0
 			) {
-			//flip = ' flip';
-			flipText = ` scale(-1 -1)` // see https://www.mediaevent.de/tutorial/svg-transform.html
-					 + ` translate(${-2*DeltaX} ${0})`;
+			
+			flip = ' flip';
+			flipText = `rotate(180 ${DeltaX} ${DeltaY}) scale(-1 -1) translate(${-2*DeltaX} ${0})`; // see https://www.mediaevent.de/tutorial/svg-transform.html
 		} else { 
 			flip = "";
 			flipText = ` scale(1 -1)`;
@@ -2844,7 +2749,7 @@ if (CurveType == "Arc") {
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${CurveType}`, // + flip
+			text				: `${CurveType + flip}`, // + flip
 			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `CurveType`,
@@ -2853,7 +2758,6 @@ if (CurveType == "Arc") {
 			transform 			: matrixToTransform(mMatrix)
 			//transform 			: matrixToTransform(Gleis.mMid) // Bug: does not work for Rotator yet
 								  + svgRotate
-								  //+ ` scale(1 -1)`
  								  + flipText,
 		});
 		}
@@ -2868,7 +2772,6 @@ if (CurveType == "Arc") {
 			y					: -DeltaY,
 			transform 			: matrixToTransform(mMatrix)
 								  + svgRotate
-								  //+ ` scale(1 -1)`
  								  + flipText,
 		});
 		// show Hoehe in the middle below the track (left-adjusted)
@@ -2882,7 +2785,6 @@ if (CurveType == "Arc") {
 			y					: -DeltaY,
 			transform 			: matrixToTransform(mMatrix)
 								  + svgRotate
-								  //+ ` scale(1 -1)`
  								  + flipText,
 		});
 
@@ -3045,6 +2947,17 @@ if (CurveType == "Arc") {
 				});
 			}
 
+			// Flip mirrored symbols and texts
+			Q = matrix.quarternion(Meldung.mPos);
+			if (    Q.axis == 'X'
+				||  Q.axis == 'Y'
+				||  matrix.det3x3(Meldung.mPos) < 0.0
+				) {
+				flipText = ` scale(1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+			} else { 
+				flipText = ""; //` scale(1 1)`;
+			}
+
 			// Show symbol for Signal / Fahrstraße
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `use`,
@@ -3055,22 +2968,23 @@ if (CurveType == "Arc") {
 										: 							  "#SymbolSignal"
 									  ),
 				transform 			: matrixToTransform(Meldung.mPos)
-										+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position
+										+ flipText
+ 										+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position
 										,
 			});
-
-			Q = matrix2quarternion(Meldung.mPos);
+			
+			// Flip mirrored texts
 			if (    Q.axis == 'X'
 				||  Q.axis == 'Y'
 				||  matrix.det3x3(Meldung.mPos) < 0.0
 				) {
 				flip = ' flip';
-				flipText = ` scale(-1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+				flipText = ""; //` scale(1 1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
 			} else { 
 				flip = "";
 				flipText = ` scale(1 -1)`;
 			}
-
+			
 			// Show text of Signal / Fahrstraße
 			if (signalType !== "pre") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
@@ -3082,10 +2996,13 @@ if (CurveType == "Arc") {
 										: 						  	  'S'
 									  )
 										+ SignalID
-										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``), // + flip
+										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``)
+										+ flip
+										,
 				"dy"				: `-2.3`, 									// Shift text above the symbol
 				transform 			: matrixToTransform(Meldung.mPos)
-										+ flipText,
+										+ flipText
+										,
 			});
 			} // do not show any text for pre-signals
 
@@ -3169,27 +3086,40 @@ if (CurveType == "Arc") {
 					transform 			: matrixToTransform(Kontakt.mPos),
 				});
 			}
+			
+			// Flip mirrored symbols and texts
+			Q = matrix.quarternion(Kontakt.mPos);
+			if (    Q.axis == 'X'
+				||  Q.axis == 'Y'
+				||  matrix.det3x3(Kontakt.mPos) < 0.0
+				) {
+				flip = ' flip';
+				flipText = ` scale(1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+			} else { 
+				flip = "";
+				flipText = ""; //` scale(1 1)`;
+			}
 
 			// Show symbol for Kontakt
-			if (fireOnPara == 1) {
-				svgAppend(svgKontaktGroup, {
-					svg_tag				: `use`,
-					"href"				: `#SymbolKontakt`,
-					transform 			: matrixToTransform(Kontakt.mPos)
-											+ (ParaOderAnti ? ` rotate(${ParaOderAnti*180})` : "")
-											+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
-											,
-				});
-			}
-			if (fireOnAnti == 1) {
-				svgAppend(svgKontaktGroup, {
-					svg_tag				: `use`,
-					"href"				: `#SymbolKontakt`,
-					transform 			: matrixToTransform(Kontakt.mPos)
-											+ (1-ParaOderAnti ? ` rotate(${(1-ParaOderAnti)*180})` : "")
-											+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
-											,
-				});
+			svgAppend(svgKontaktGroup, {
+				svg_tag				: `use`,
+				"href"				: `#SymbolKontakt`,
+				transform 			: matrixToTransform(Kontakt.mPos)
+										+ (ParaOderAnti == fireOnPara ? ` rotate(180)` :"")		// Rotate symbol to the side of the symbol
+										+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
+										+ flipText,
+			});
+
+			// Flip mirrored texts
+			if (    Q.axis == 'X'
+				||  Q.axis == 'Y'
+				||  matrix.det3x3(Kontakt.mPos) < 0.0
+				) {
+				flip = ' flip';
+				flipText = ` scale(1 1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
+			} else { 
+				flip = "";
+				flipText = ` scale(1 -1)`;
 			}
 
 			// Show text of Kontakt
@@ -3208,25 +3138,13 @@ if (CurveType == "Arc") {
 				KontaktTypText += (Ziel ? `${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `?${KontaktZiel}`);
 			}
 			
-			Q = matrix2quarternion(Kontakt.mPos);
-			if (    Q.axis == 'X'
-				||  Q.axis == 'Y'
-				||  matrix.det3x3(Kontakt.mPos) < 0.0
-				) {
-				flip = ' flip';
-				flipText = ` scale(-1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
-			} else { 
-				flip = "";
-				flipText = ` scale(1 -1)`;
-			}
-			
 			if (KontaktTypText != "") {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
-					text				:  KontaktTypText, // + flip
+					text				:  KontaktTypText + flip, // + flip
 					"dy"				: `-2.3`, 													// Shift text above the symbol
 					transform 			: matrixToTransform(Kontakt.mPos)
-											+ ` rotate(${ParaOderAnti*180 + (1-fireOnPara)*180})`	// Rotate text to the side of the symbol
+											+ (ParaOderAnti == fireOnPara ? ` rotate(180)` :"")		// Rotate text to the side of the symbol
 											+ flipText,
 				});
 			}
@@ -5977,8 +5895,8 @@ function showGleisInfo(GleissystemID, GleisID) {
 			gsbname
 	);
 
-	const Q = matrix2quarternion(Gleis.mPos);
-	quarternion2angles(Q); // Add euler angles to the object
+	const Q = matrix.quarternion(Gleis.mPos);					// Calculate quarternion
+	const [roll_x, pitch_y, yaw_z] = matrix.euler_angles(Q); 	// Calculate euler angles
 	const quarternionText = 'Quarternion: axis ' + Q.axis 
 			+ ', trace ' 	+ Q.tr.toFixed(4) 
 			+ ', w ' 		+ Q.w.toFixed(4) 
@@ -5988,9 +5906,9 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ ', norm ' 	+ Q.norm.toFixed(4)
 			+ ', det ' 		+ matrix.det3x3(Gleis.mMid).toFixed(4)
 			//+ ' det4x4'	+ matrix.det(Gleis.mMid).toFixed(4)
-			+ ', roll ' 	+ (Q.roll_x 	* 180/Math.PI).toFixed(1) + '°'
-			+ ', pitch ' 	+ (Q.pitch_y 	* 180/Math.PI).toFixed(1) + '°'
-			+ ', yaw ' 		+ (Q.yaw_z 		* 180/Math.PI).toFixed(1) + '°'
+			+ ', roll ' 	+ (roll_x 	* 180/Math.PI).toFixed(1) + '°'
+			+ ', pitch ' 	+ (pitch_y 	* 180/Math.PI).toFixed(1) + '°'
+			+ ', yaw ' 		+ (yaw_z 	* 180/Math.PI).toFixed(1) + '°'
 			;
 
 	// Ausführlich im Info Popup
