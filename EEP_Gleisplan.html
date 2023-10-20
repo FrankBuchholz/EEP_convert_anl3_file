@@ -2632,7 +2632,7 @@ if (near > far) { //###
 			if (GleisData == 20 || GleisData == 21) { Code = "T-W"; }
 			svgAppend(svgGleisGroup, {
 				svg_tag			: `text`,
-				id				: `W${Key_Id + flip}`, // + flip
+				id				: `W${Key_Id}`, // + flip
 				text			: `${Code}${Key_Id}`,
 				dy				: `1em`, 		// Shift text below the track
 				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
@@ -2749,7 +2749,7 @@ if (CurveType == "Arc") {
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${CurveType + flip}`, // + flip
+			text				: `${CurveType}`, // + flip
 			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `CurveType`,
@@ -2997,7 +2997,7 @@ if (CurveType == "Arc") {
 									  )
 										+ SignalID
 										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``)
-										+ flip
+										//+ flip
 										,
 				"dy"				: `-2.3`, 									// Shift text above the symbol
 				transform 			: matrixToTransform(Meldung.mPos)
@@ -3141,7 +3141,7 @@ if (CurveType == "Arc") {
 			if (KontaktTypText != "") {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
-					text				:  KontaktTypText + flip, // + flip
+					text				:  KontaktTypText, // + flip
 					"dy"				: `-2.3`, 													// Shift text above the symbol
 					transform 			: matrixToTransform(Kontakt.mPos)
 											+ (ParaOderAnti == fireOnPara ? ` rotate(180)` :"")		// Rotate text to the side of the symbol
