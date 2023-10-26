@@ -81,7 +81,7 @@ matrix.multiply = function (A, B) {	// Matrix multiplication
 	return product;
 }
 
-matrix.det3x3 = function (A) { // Determinant of the upper left 3x3 sub matrix
+matrix.det3x3 = function (A) { // Determinant of the upper left 3x3 sub matrix (= det if a14 = a24 = a34 = 0 and a44 = 1)
 	const [ a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, a41, a42, a43, a44 ] = A;
 	const det = 
 			      (a11 * a22 * a33) + (a21 * a32 * a13) + (a31 * a12 * a23) - (a13 * a22 * a31) - (a23 * a32 * a11) - (a33 * a12 * a21);
@@ -163,7 +163,7 @@ matrix.euler_angles = function (obj) {
 	if (obj.tr) { 	// The object is a quarternion
 		Q = obj; 
 	} else {		// The object is a rotation matix
-		Q = matrix2quarternion(obj);
+		Q = matrix.quarternion(obj);
 	}
 
 	const tr = Q.tr;
@@ -192,6 +192,38 @@ matrix.euler_angles = function (obj) {
 	
 	// Return result as vector
 	return [ roll_x, pitch_y, yaw_z ];
+}
+
+matrix.isFlipped = function (A) {
+	// Name the fields of the matrix
+	const [ DirX, DirY, DirZ, d0, 
+			NorX, NorY, NorZ, n0, 
+			BinX, BinY, BinZ, b0, 
+			PosX, PosY, PosZ, scale ] = A;
+	
+	// Trace = sum of diagonal elements
+	const tr = DirX + NorY + BinZ;
+
+	if (tr >= 0.0) { 
+		// axis = 'W';
+		
+	} else if ((DirX > NorY) && (DirX > BinZ)) { 
+		//axis = 'X';
+		return true;	// is flipped
+		
+	} else if (NorY > BinZ) { 
+		// axis = 'Y';
+		return true;	// is flipped
+		
+	} else { 
+		// axis = 'Z';
+	}			
+	
+	if (matrix.det3x3(A) < 0) {
+		return true; 	// is flipped
+	} else {
+		return false;
+	}
 }
 
 })(this); // end module
