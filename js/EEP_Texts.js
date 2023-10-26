@@ -428,6 +428,16 @@ info : {
 		EN : `Predefined lines`,		// Pre-set routes
 		FR : `Parcours prédéfini`,		// Itinéraires prédéfini
 	},
+	'zeigen' : { // Fahrstaßen werden in entsprechender Farbe angezeigt
+		DE : `an`,
+		EN : `on`,
+		FR : `on`,
+	},
+	'verstecken' : { // Fahrstaßen werden nicht mehr in entsprechender Farbe angezeigt
+		DE : `aus`,
+		EN : `off`,
+		FR : `off`,
+	},
 	Route : { // 'Fahrstraßen' und 'Routen' sind in EEP verschiedene Objekte
 		DE : `Route`, 
 		EN : `Route`,

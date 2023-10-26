@@ -165,6 +165,7 @@ Zoom-in, -out, -reset<br>
 Auswahl der anzuzeigenden Gleissysteme<br>
 Auswahl der anzuzeigenden Informationen (GleisID, Kurventyp, Gleisstil, Höhe, Weichen, Signale, Kontakte, Marker, Gleisobjekte, Kamera, Rahmen)<br>
 Auswahl der anzuzeigenden Gleise (aktive/inaktive Gleise mit/ohne Rollmaterialien, sichtbare/unsichtbare Gleise, virtuelle Verbindungen)<br>
+Anzeige der Fahrstraßen (alle bzw. von bestimmten Start-Signalen oder zu bestimmten Ende-Signalen)<br>
 Aktuelle Darstellung als Bild (png/jpg/svg) speichern<br>
 Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positionieren<br>
 Die Positionierung ist auch über das <a href="EEP_Inventar.html" target="_blank">Inventar</a>-Programm möglich!<br>
@@ -180,6 +181,7 @@ Zoom-in, -out, -reset<br>
 Choose displayed track systems<br>
 Choose displayed information (TrackID, curve type, track style, height, switches, signals, contacts, marker, track objects, cameras, border)<br>
 Choose displayed tracks (active/inactive tracks with/without rolling stocks, visible/invisible tracks, virtual connections)<br>
+Display of predefined lines (all or from certain start signals or to certain end signals)<br>
 Store current view as picture (png/jpg/svg)<br>
 Position track plan at specific track, respective track of a signal or switch<br>
 You can use the <a href="EEP_Inventar.html" target="_blank">inventory</a> program as well to position the view!<br>
@@ -195,6 +197,7 @@ Zoom-in, -out, -reset<br>
 Sélection des systèmes de voies<br>
 Sélection des informations à visualiser (ID voie, variante de voie, style de voie, hauteur, aiguillages, signaux, contacts,marqueurs,objets de voie, caméras, cadre)<br>
 Sélection des voies à visualiser (voies actives/inactives. avec/sansmatériels roulants, connexion virtuelle)<br>
+Affichage des parcours prédéfini (tous ou à partir de certains signaux de démarrage ou vers certains signaux de fin)<br>
 Mémoriser l‘image actuelle au format (png/jpg/svg)<br>
 Concentrer la vue sur une voie déterminée, resp. sur la voie d‘un signal ou d‘un aiguillage<br>
 Le postionnement est également possible par le programme <a href="EEP_Inventar.html" target="_blank">Inventaire</a>!<br>
@@ -570,6 +573,7 @@ unsichtbar = [			// unsichtbare Gleisstile
 34,		// \Gleisstile\Sonstiges\Wasserweg_unsichtbar.3dm
 36,		// \Gleisstile\Strassen\unsichtbar.3dm
 562,	// Gleis
+1309, 	// \Gleisstile\Gleise\Unsichtbar_LW1.3dm
 1346,	// Gleis
 2052,	// \Gleisstile\Gleise\Unsichtbares_Gleis_m_OL_UB3.3dm
 3425, 	// \Gleisstile\Strassen\1Spur_unsichtbar_AS3.3dm
@@ -819,14 +823,16 @@ function prepareGleissysteme(sutrackp) {
 				for (const Route of RouteList) {
 					const Target 	= Route.getAttribute('Target');
 					const Color 	= Route.getAttribute('Color');
-
+					
 					if (!global.EndRouteSignals[Target]) {
-						global.EndRouteSignals[Target] = []
+						global.EndRouteSignals[Target] = [];
 					}
 					global.EndRouteSignals[Target].push({
+							GleissystemID : GleissystemID,
 							StartSignal : SignalID,
 							Color : Color,
-					})
+							Route : Route,
+					});
 				}
 
 				// Schaltverbindung zu einem anderen Signal bzw. Weiche
@@ -1650,6 +1656,7 @@ return nodeList;
 
 			} else if (Arc) {
 				CurveType 	= 'Arc';
+// if (GleissystemID == 1 && GleisID == 726) debugger; // TT-Anlage wrong end point, more errors in ZZA_Demo 
 
 				// relative position of center point of the Arc
 				const Pos 	= Arc.getElementsByTagName("VectorBundle2")[0].getElementsByTagName("Position")[0];
@@ -1670,7 +1677,7 @@ return nodeList;
 				const CenterZ2 = +Nor.getAttribute("dz");
 
 				const Radius = Math.sqrt(CenterX2*CenterX2 + CenterY2*CenterY2 + CenterZ2*CenterZ2)	// The curve radius is the length of the second vector
-								 //* (DirX2 >= 0 ? 1 : -1) * (CenterY2 >= 0 ? 1 : -1);				// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
+								 * (DirX2 >= 0 ? 1 : -1) * (CenterY2 >= 0 ? 1 : -1);				// Adjustment according to quadrant (1, 3 counter clockwise; 2, 4 clock wise)
 								 ;
 				Kruemmung = 1 / Radius;
 				
@@ -2613,16 +2620,10 @@ if (near > far) { //###
 		if (Key_Id) {
 		
 			// Flip mirrored texts
-			Q = matrix.quarternion(mMatrix);	// No example for flipped text for switches on 191227_T_T_Fahrstr16.anl3
-			if (    Q.axis == 'X'
-				||  Q.axis == 'Y'
-				||  matrix.det3x3(mMatrix) < 0.0
-				) {
-				flip = ' flip';
-				flipText = ` scale(-1 -1)` // see https://www.mediaevent.de/tutorial/svg-transform.html
+			if (matrix.isFlipped(mMatrix)) {
+				flipText = ` scale(-1 -1)`
 						 + ` translate(${-2*(near > far ? 0 :  DeltaX)} ${0})`;
-			} else { 
-				flip = "";
+			} else {
 				flipText = ` scale(1 -1)`;
 			}
 		
@@ -2632,7 +2633,7 @@ if (near > far) { //###
 			if (GleisData == 20 || GleisData == 21) { Code = "T-W"; }
 			svgAppend(svgGleisGroup, {
 				svg_tag			: `text`,
-				id				: `W${Key_Id}`, // + flip
+				id				: `W${Key_Id}`,
 				text			: `${Code}${Key_Id}`,
 				dy				: `1em`, 		// Shift text below the track
 				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
@@ -2694,25 +2695,21 @@ if (near > far) { //###
 		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
 		// Flip mirrored texts
-		Q = matrix.quarternion(Gleis.mMid);
-		if (    Q.axis == 'X'
-			||  Q.axis == 'Y'
-			||  matrix.det3x3(Gleis.mMid) < 0.0
-			) {
-			
-			flip = ' flip';
-			flipText = `rotate(180 ${DeltaX} ${DeltaY}) scale(-1 -1) translate(${-2*DeltaX} ${0})`; // see https://www.mediaevent.de/tutorial/svg-transform.html
-		} else { 
-			flip = "";
+		if (matrix.isFlipped(Gleis.mMid)) {
+			flipText = `rotate(180 ${DeltaX} ${DeltaY}) scale(-1 -1) translate(${-2*DeltaX} ${0})`;
+		} else {
 			flipText = ` scale(1 -1)`;
 		}
-
-/*			
+			
 if (CurveType == "Arc") {
+	Q = matrix.quarternion(Gleis.mMid);
 	console.log( 
 		  "\t" 			+ CurveType 
 		+ "\t" 			+ GleissystemID + "\t" + GleisID
+		+ "\tLaenge\t"	+ Laenge
 		+ "\tWinkel°\t"	+ ( Winkel*180/Math.PI )
+		+ "\tKruemmung\t"	+ Kruemmung
+		+ "\tRadius\t"	+ (1 / Kruemmung)
 		+ "\tArcFlag\t" + ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
 		+ "\taxis\t" 	+ Q.axis
 		+ "\tDelta\t" 	+ DeltaX + "\t" + DeltaY
@@ -2726,10 +2723,9 @@ if (CurveType == "Arc") {
 		+ "\tnorm\t"	+ Q.norm
 		+ "\tdet3x3\t"	+ matrix.det3x3(Gleis.mMid)
 		+ "\tdet\t"		+ matrix.det(Gleis.mMid)
-		
 	);
 }
-*/
+
 		
 		// show GleisID in the middle above the track (left-adjusted)
 		svgAppend(svgGleisGroup, {
@@ -2749,7 +2745,7 @@ if (CurveType == "Arc") {
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${CurveType}`, // + flip
+			text				: `${CurveType}`,
 			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `CurveType`,
@@ -2931,10 +2927,17 @@ if (CurveType == "Arc") {
 					),
 				].reduce(matrix.multiply);
 
+			const SignalCode = (  signalType === "FStart" 	? "S"
+								: signalType === "FZiel" 	? "S"
+								: signalType === "pre" 		? "P"
+								: signalType === "StopAt" 	? "H"
+								: 							  "S"
+							   );
+
 			// Group node for Signal (Multiple groups for pre signal, stop position and main signal?)
 			const svgSignalGroup = svgAppend(svgGleisGroup, {
 				svg_tag	: `g`,
-				id		: `S${SignalID}`,
+				id		: `${SignalCode}${SignalID}`,
 				class	: `Signal`,
 			});
 
@@ -2948,16 +2951,12 @@ if (CurveType == "Arc") {
 			}
 
 			// Flip mirrored symbols and texts
-			Q = matrix.quarternion(Meldung.mPos);
-			if (    Q.axis == 'X'
-				||  Q.axis == 'Y'
-				||  matrix.det3x3(Meldung.mPos) < 0.0
-				) {
-				flipText = ` scale(1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
-			} else { 
+			if (matrix.isFlipped(Meldung.mPos)) {
+				flipText = ` scale(1 -1)`;
+			} else {
 				flipText = ""; //` scale(1 1)`;
 			}
-
+		
 			// Show symbol for Signal / Fahrstraße
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `use`,
@@ -2974,17 +2973,11 @@ if (CurveType == "Arc") {
 			});
 			
 			// Flip mirrored texts
-			if (    Q.axis == 'X'
-				||  Q.axis == 'Y'
-				||  matrix.det3x3(Meldung.mPos) < 0.0
-				) {
-				flip = ' flip';
-				flipText = ""; //` scale(1 1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
-			} else { 
-				flip = "";
+			if (matrix.isFlipped(Meldung.mPos)) {
+				flipText = ""; //` scale(1 1)`;
+			} else {
 				flipText = ` scale(1 -1)`;
-			}
-			
+			}			
 			// Show text of Signal / Fahrstraße
 			if (signalType !== "pre") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
@@ -2997,7 +2990,6 @@ if (CurveType == "Arc") {
 									  )
 										+ SignalID
 										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``)
-										//+ flip
 										,
 				"dy"				: `-2.3`, 									// Shift text above the symbol
 				transform 			: matrixToTransform(Meldung.mPos)
@@ -3088,18 +3080,12 @@ if (CurveType == "Arc") {
 			}
 			
 			// Flip mirrored symbols and texts
-			Q = matrix.quarternion(Kontakt.mPos);
-			if (    Q.axis == 'X'
-				||  Q.axis == 'Y'
-				||  matrix.det3x3(Kontakt.mPos) < 0.0
-				) {
-				flip = ' flip';
-				flipText = ` scale(1 -1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
-			} else { 
-				flip = "";
+			if (matrix.isFlipped(Kontakt.mPos)) {
+				flipText = ` scale(1 -1)`;
+			} else {
 				flipText = ""; //` scale(1 1)`;
 			}
-
+			
 			// Show symbol for Kontakt
 			svgAppend(svgKontaktGroup, {
 				svg_tag				: `use`,
@@ -3111,17 +3097,11 @@ if (CurveType == "Arc") {
 			});
 
 			// Flip mirrored texts
-			if (    Q.axis == 'X'
-				||  Q.axis == 'Y'
-				||  matrix.det3x3(Kontakt.mPos) < 0.0
-				) {
-				flip = ' flip';
-				flipText = ` scale(1 1)`; // see https://www.mediaevent.de/tutorial/svg-transform.html
-			} else { 
-				flip = "";
+			if (matrix.isFlipped(Kontakt.mPos)) {
+				flipText = ""; ` scale(1 1)`;
+			} else {
 				flipText = ` scale(1 -1)`;
 			}
-
 			// Show text of Kontakt
 			let KontaktTypText = getKontaktIcon(GleissystemID, SetType, SetValue);
 			if (SetType === 1280 && Wartender != 0) {	// Einfahrt Depot, Depot-ID = Wartender
@@ -3141,7 +3121,7 @@ if (CurveType == "Arc") {
 			if (KontaktTypText != "") {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
-					text				:  KontaktTypText, // + flip
+					text				:  KontaktTypText,
 					"dy"				: `-2.3`, 													// Shift text above the symbol
 					transform 			: matrixToTransform(Kontakt.mPos)
 											+ (ParaOderAnti == fireOnPara ? ` rotate(180)` :"")		// Rotate text to the side of the symbol
@@ -4132,13 +4112,14 @@ input[type="number"]#jpgQuality {
 /* ]]> */
 </style>
 
-<header class="group">
-<h3 id="filename"></h3>
+<header class="group"> <!-- show the filename in the left control block to save some space --> 
+<!-- <h3 id="filename"></h3> -->
 </header>
 
 <nav id="controls"> <!-- controls -->
 
 <article class="group no-select"> <!-- Buttons, line and font size -->
+<strong><big id="filename"></big></strong><br> <!-- h3 would add extra space -->
 <button id="swap"><span lang="de">Tauschen</span><span lang="en">Swap</span><span lang="fr">Échanger</span></button>
 <!--<input type="number" name="sizePNG" id="sizePNG" value="3000" min="1"> -->
 <button id="savePNG" class="svgControl"><span lang="de">Export</span><span lang="en">Export</span><span lang="fr">Exp.</span> PNG/JPG/SVG</button>
@@ -4310,7 +4291,20 @@ It does not work if I put span elements inside of the options.
 	<div class="item hidden" id="CheckboxKamera"><label>		<!-- only visible if there are elements of that type -->
 	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)"><span lang="de">Kameras</span><span lang="en">Cameras</span><span lang="fr">Caméras</span></label></div>
 	<div class="item"><label>
-	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('.general', this.checked)"><span lang="de">Rahmen</span><span lang="en">Frame</span><span lang="fr">Cadre</span></label></div>
+	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('.general', this.checked)"><span lang="de">Rahmen</span><span lang="en">Frame</span><span lang="fr">Cadre</span></label>,</div>
+
+	<div class="item">
+		<label>
+			<span lang="de">Fahrstraßen</span><span lang="en">Predefined lines</span><span lang="fr">Parcour prédéfini</span>
+			<button id="FSon" onclick="javascript:showRoutes(false, false, true);">
+				<span lang="de">an</span><span lang="en">on</span><span lang="fr">off</span>
+			</button>
+			<button id="FSoff" onclick="javascript:showRoutes(false, false, false);">
+				<span lang="de">aus</span><span lang="en">on</span><span lang="fr">off</span>
+			</button>
+		</label>
+	</div>							 
+						 
 </fieldset>
 </article>
 
@@ -4622,6 +4616,42 @@ text.text-anchor-end {
 	stroke-opacity: 0.5;
 }
 
+/* Fahrstraßen 
+Es werden 8 verschiedenen Farben angezeigt (siehe Variable ColorText). 
+Einschränkungen:
+Die Gleise mit dem Start-Signal und dem Ende-Signal müssten eigentlich geteilt und nur teilweise gefärbt werden.
+Die Marker werden weggelassen da sie separat eingefärbt werden müssten.
+Weichen sind bereits Teil eines Gleises.
+*/
+svg {
+  --FS0-color: rgb(180 180 180);	/* grau */
+  --FS1-color: rgb(220   0   0);	/* rot */
+  --FS2-color: rgb(  0 220   0);	/* grün */
+  --FS3-color: rgb(  0   0 220);	/* blau */
+  --FS4-color: rgb(220 220   0);	/* gelb */
+  --FS5-color: rgb(220   0 220);	/* pink */
+  --FS6-color: rgb(  0 180 220);	/* hellblau */
+  --FS7-color: rgb(220 110   0);	/* orange */
+}
+.FS0, .FS1, .FS2, .FS3, .FS4, .FS5, .FS6, .FS7 {
+	marker-start: none;
+	marker-end: none;
+}
+.FS0 > path, .FS1 > path, .FS2 > path, .FS3 > path, .FS4 > path, .FS5 > path, .FS6 > path, .FS7 > path {
+	stroke-width: calc(var(--normal-stroke-width) * 1.8);
+	stroke-opacity: 0.8;	/* This way we see marklers at the end of the tracks */
+	stroke-linecap: round;
+	/* filter: url(#blur);  Neither #blur, #dilate, #neon or #sofGlow look well, #glow is much too slow */
+}
+.FS0 > path, .FS0.Signal { stroke: var(--FS0-color); } .FS0 > text { fill: var(--FS0-color); }
+.FS1 > path, .FS1.Signal { stroke: var(--FS1-color); } .FS1 > text { fill: var(--FS1-color); }
+.FS2 > path, .FS2.Signal { stroke: var(--FS2-color); } .FS2 > text { fill: var(--FS2-color); }
+.FS3 > path, .FS3.Signal { stroke: var(--FS3-color); } .FS3 > text { fill: var(--FS3-color); }
+.FS4 > path, .FS4.Signal { stroke: var(--FS4-color); } .FS4 > text { fill: var(--FS4-color); }
+.FS5 > path, .FS5.Signal { stroke: var(--FS5-color); } .FS5 > text { fill: var(--FS5-color); }
+.FS6 > path, .FS6.Signal { stroke: var(--FS6-color); } .FS6 > text { fill: var(--FS6-color); }
+.FS7 > path, .FS7.Signal { stroke: var(--FS7-color); } .FS7 > text { fill: var(--FS7-color); }
+
 /* versteckte Elemente */
 
 .hidden, .hiddenZ {
@@ -4643,6 +4673,66 @@ text.text-anchor-end {
 		<feMorphology operator="dilate" radius="2" />
 		<feGaussianBlur stdDeviation="1" />
 	</filter>
+
+	<!-- https://codepen.io/dipscom/pen/mVYjPw -->
+	<filter id="neon">
+		<feFlood flood-color="rgb(0,255,0)" flood-opacity="0.5" in="SourceGraphic" />
+		<feComposite operator="in" in2="SourceGraphic" />
+		<feGaussianBlur stdDeviation="10" />
+		<feComponentTransfer result="glow1">
+			<feFuncA type="linear" slope="4" intercept="0" />
+		</feComponentTransfer>
+		<feMerge>
+			<feMergeNode in="glow1" />
+			<feMergeNode in="SourceGraphic" />
+		</feMerge>
+	</filter>
+  
+	<!-- https://codepen.io/dipscom/pen/mVYjPw -->
+	<filter id="sofGlow" height="300%" width="300%" x="-75%" y="-75%">
+		<!-- Thicken out the original shape -->
+		<feMorphology operator="dilate" radius="4" in="SourceAlpha" result="thicken" />
+		<!-- Use a gaussian blur to create the soft blurriness of the glow -->
+		<feGaussianBlur in="thicken" stdDeviation="10" result="blurred" />
+		<!-- Change the colour -->
+		<feFlood flood-color="rgb(0,0,255)" result="glowColor" />
+		<!-- Color in the glows -->
+		<feComposite in="glowColor" in2="blurred" operator="in" result="softGlow_colored" />
+		<!--	Layer the effects together -->
+		<feMerge>
+			<feMergeNode in="softGlow_colored"/>
+			<feMergeNode in="SourceGraphic"/>
+		</feMerge>
+	</filter>
+
+	<!-- https://stackoverflow.com/questions/54112231/is-it-possible-to-create-a-glow-effect-in-svg --> 
+    <filter id="glow" filterUnits="userSpaceOnUse"
+            x="-10%" y="-10%" width="120%" height="120%">
+       <!-- blur the text at different levels-->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur5"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur10"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur20"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="30" result="blur30"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="50" result="blur50"/>
+      <!-- merge all the blurs except for the first one -->
+      <feMerge result="blur-merged">
+        <feMergeNode in="blur10"/>
+        <feMergeNode in="blur20"/>
+        <feMergeNode in="blur30"/>
+        <feMergeNode in="blur50"/>
+      </feMerge>
+      <!-- recolour the merged blurs red-->
+      <feColorMatrix result="red-blur" in="blur-merged" type="matrix"
+                     values="1 0 0 0 0
+                             0 0.06 0 0 0
+                             0 0 0.44 0 0
+                             0 0 0 1 0" />
+      <feMerge>
+        <feMergeNode in="red-blur"/>       <!-- largest blurs coloured red -->
+        <feMergeNode in="blur5"/>          <!-- smallest blur left white -->
+        <feMergeNode in="SourceGraphic"/>  <!-- original white text -->
+      </feMerge>
+    </filter>
 
 	<!-- Use of symbols requires translate(-10 0) to move the origin M 0 0 to the correct position -->
 	<!-- <path d="M 0 0 L 4 3 A 12 12  0 0 1  -4 3 z" /> --> <!-- Kreissegment -->
@@ -5556,6 +5646,7 @@ api.changefontSize = changefontSize;
 api.msg = msg;
 api.toggleElements = toggleElements;
 api.toggleMarker = toggleMarker;
+api.showRoutes = showRoutes;
 
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
@@ -5740,6 +5831,86 @@ function changeHeightRange(valueLow, valueHigh) {
 		}
 	}
 }
+
+function showRoutes(GleissystemID, SignalID, flag) {
+	// No GleissystemID, SignalID: show/hide all
+	if (!GleissystemID || !SignalID) {
+		for (const ID in global.EndRouteSignals) {
+			const EndRouteSignal = global.EndRouteSignals[ID]
+			for (const EndRoute of EndRouteSignal) {
+				showRoute(EndRoute.GleissystemID, EndRoute.StartSignal, EndRoute.Route, flag);			
+			}
+		}
+		return;
+	}
+
+	// SignalID is a start signal: Show the routes from this start signal
+	const Meldung	= global.Meldungen[SignalID];
+	const RouteList = Meldung.getElementsByTagName("Route");
+	if (RouteList && RouteList.length > 0) {	// It's a start signal 
+		for (const Route of RouteList) {
+			showRoute(GleissystemID, SignalID, Route, flag);
+		}
+		return;
+	}
+	
+	// SignalID is an end signal: Show the routes to this end signal
+	const EndRouteSignal = global.EndRouteSignals[SignalID];
+	if (EndRouteSignal) {
+		for (const EndRoute of EndRouteSignal) {
+			showRoute(GleissystemID, EndRoute.StartSignal, EndRoute.Route, flag);			
+		}
+		return;
+	}
+}
+
+function setClassById(ID, c, f) {
+	const o = document.getElementById(ID);
+	if (o) {
+		if (f) {
+			o.classList.add(c);
+		} else {
+			o.classList.remove(c);
+		}
+	}
+}
+
+function showRoute(GleissystemID, SignalID, Route, flag) {
+
+	const TargetID	= Route.getAttribute("Target");	// Target signal
+	//const Start	= Route.getAttribute("Start");	// Position of the start signal on the track
+	//const Stop	= Route.getAttribute("Stop");	// Position of the end signal on the track
+	const Color		= Route.getAttribute("Color");
+	
+	const FSclass = "FS" + Color % 8;
+	setClassById( `S${SignalID}`, FSclass, flag);	// Start signal
+	setClassById( `S${TargetID}`, FSclass, flag);	// End signal
+			
+	const Tracks = Route.getElementsByTagName("Tracks")[0];
+	let Table	 = Tracks.getElementsByTagName("Table")[0];
+	let Count	 = Table.getAttribute("Count");
+	for (let i = 0; i < Count; i++) {
+		const TrackID	= Table.getAttribute("e" + i);
+		setClassById( `G${GleissystemID}-${TrackID}`, FSclass, flag);	// Track
+	}
+
+	const Signals	= Route.getElementsByTagName("OpenSignal")[0]; // Let's assume that attribute CloseSignal contains the same signals
+	Table 			= Signals.getElementsByTagName("Table")[0];
+	Count 			= Table.getAttribute("Count");
+	for (let i = 0; i < Count; i++) {
+		const ID	= Table.getAttribute("e" + i);
+		
+		// Is ID a signal or a switch?
+		if (global.Meldungen[ID]) {
+			setClassById( `S${ID}`, FSclass, flag);	// Signal
+			setClassById( `P${ID}`, FSclass, flag);	// Pre signal
+			setClassById( `H${ID}`, FSclass, flag);	// Halt line of signal
+		} else { // if (global.Weichen[ID])
+			setClassById( `W${ID}`, FSclass, flag);	// Switch
+		}
+	}
+}	
+
 })(this); // end module
 </script>
 
@@ -6059,7 +6230,7 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	}
 
 	// Fahrstraßen
-	const Routes		= Meldung.getAttribute("Routes");
+	const RoutesCount	= Meldung.getAttribute("Routes");
 	const RouteList	 	= Meldung.getElementsByTagName("Route");
 
 		function getSignalName(File) {
@@ -6078,6 +6249,7 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 			}
 			return Name;
 		}
+		
 		function getSignalPositionText(File, Position) {
 			let Text = '';
 			if (!Signalstellung[File]) {
@@ -6099,6 +6271,7 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 
 			return Text;
 		}
+		
 	let SignalTypeText;
 	let SignalstellungText = "";	// Die Bedeutung der Signalstellung für Fahrstraßen ist noch unklar
 	if (File === "system\\Route_SignalS.3ds") {
@@ -6117,7 +6290,13 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 		} else {
 			// 2nd try: Get texts (case insensitive file name)
 			for (const SignalFile in Signalstellung) {
-console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(SignalFile.toLowerCase()) + ' == ' + typeof(File.toLowerCase()));
+console.log(
+	'SignalFile.toLowerCase() == File.toLowerCase()' 
+	+ ' : ' 
+	+ typeof(SignalFile.toLowerCase()) 
+	+ ' == ' 
+	+ typeof(File.toLowerCase())
+);
 				if (SignalFile.toLowerCase() === File.toLowerCase()) {
 					SignalstellungText = getSignalPositionText(SignalFile, Stellung);
 				}
@@ -6146,29 +6325,34 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 	let RoutesText = "";
 	// Details für Start-Signale
 	for (const Route of RouteList) {
-		const Target 	= Route.getAttribute("Target");
+		const TargetID 	= Route.getAttribute("Target");
 		const Color 	= Route.getAttribute("Color");
 
 		RoutesText 	+= `<br>${_('Zielsignal')}: `
-					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${global.Meldungen[Target].mPos}]);">`
-					+ Target
+					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${global.Meldungen[TargetID].mPos}]);">`
+					+ TargetID
 					+ `<\/a>, `
 					+ `<span style="color:${ColorText[Color%8].color};">${_('Farbe')}: ${Color} ${ColorText[Color%8].name}<\/span>`;
 	}
+	
 	// Details für Ende-Signale
 	const EndRouteSignal = global.EndRouteSignals[SignalID];
 	if (EndRouteSignal) {
 		RoutesText 	+= `<br>`
-		for (const Route of EndRouteSignal) {
+		for (const EndRoute of EndRouteSignal) {
 			RoutesText +=
 					_('Startsignal') + ': ' 
-					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${global.Meldungen[Route.StartSignal].mPos}]);">`
-					+ Route.StartSignal
+					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${global.Meldungen[EndRoute.StartSignal].mPos}]);">`
+					+ EndRoute.StartSignal
 					+ `<\/a>, `
-					+ ', ' + '<span style="color:' + ColorText[Route.Color%8].color + ';">' + _('Farbe') + ': ' + Route.Color + ' ' + ColorText[Route.Color%8].name + '</span><br>'
+					+ ', ' + '<span style="color:' + ColorText[EndRoute.Color%8].color + ';">' + _('Farbe') + ': ' + EndRoute.Color + ' ' + ColorText[EndRoute.Color%8].name + '</span><br>'
 					;
 		}
 	}
+
+	// Show color of all routes directly
+	//showRoutes(GleissystemID, SignalID, true);
+	
 	showInfoWindow({
 		code: "Signal " + SignalID + signalType,
 		title: `${SignalTypeText} ${SignalID}`,
@@ -6188,8 +6372,12 @@ console.log('SignalFile.toLowerCase() == File.toLowerCase()' + ' : ' + typeof(Si
 			//	: "")
 			+ getCouplingText( SignalID ) // Schaltverbindungen
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
-			+ (Routes ? `<br>${_('Fahrstraßen')}: ${Routes}` : "")
-			+ (RoutesText !== "" ? RoutesText : "")
+			//+ (RoutesCount ? `<br>${_('Fahrstraßen')}: ${RoutesCount}` : "")
+			+ (RoutesText !== "" ? `<br>${_('Fahrstraßen')}`
+							 + ` <button onclick="javascript:showRoutes(${GleissystemID}, ${SignalID}, true);">${_('zeigen')}<\/button>` 
+							 + ` <button onclick="javascript:showRoutes(${GleissystemID}, ${SignalID}, false);">${_('verstecken')}<\/button>` 
+							 + RoutesText
+						   : "")
 			+ (TipTxt && TipTxt !== "" ? `<br>${_('TipTxt')}: ${TipTxt}` : "")
 			+ objectToHTML(Meldung)
 		});
