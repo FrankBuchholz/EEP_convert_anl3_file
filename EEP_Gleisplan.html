@@ -1609,7 +1609,7 @@ console.log('wrong order Frame2 Bin - Dir - Nor for '
 				/* The line geometry is partly stored in <Gleis><Frame> as well as in
 				<Line><VectorBundle><Position> 		Position of parameter s=0
 				<Line><VectorBundle><Vector>   		.. and tangent of the line.
-				<Line><Vector>						Up direction (always 0 0 1?)
+				<Line><Vector>						Up direction [0 0 1] respective [0 0 -1]
 				*/
 
 				const Position	= Line.getElementsByTagName("VectorBundle")[0].getElementsByTagName("Position")[0];
@@ -1639,14 +1639,59 @@ return nodeList;
 				const NorY2		= DirX2;  							// cos(a)
 				const NorZ2		= 0;								// ?
 
-				const BinX2		= +UpDirection.getAttribute("dx");
-				const BinY2		= +UpDirection.getAttribute("dy");
-				const BinZ2		= +UpDirection.getAttribute("dz");
+				const BinX2		= 0; //+UpDirection.getAttribute("dx");	// Flipped texts on ZZA_Diorama for Line with UpDirection = [ 0 0 -1]
+				const BinY2		= 0; //+UpDirection.getAttribute("dy");
+				const BinZ2		= 1; //+UpDirection.getAttribute("dz");
 
-// Special tracks
-//if (GleissystemID == "3" && GleisID == "349") debugger;	// <Interval near="99.99991" far="0"/>
-//if (GleissystemID == "3" && GleisID == "354") debugger;	// <Interval near="40.00005" far="0"/>; ist: 1728 -1805 soll: 1730 -1812 diff: +2 -7
-//if (GleissystemID == "3" && GleisID == "362") debugger;	// <Interval near="59.9999" far="0"/>
+/* Special tracks of ZZA_Diorama
+
+Flipped texts:
+<Gleis GleisID="1" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="5603" gsbname="\Gleisstile\Gleise\3DVersion\UIC60_Schienen_Eisenbahn.3dm" LockEd="0">
+<Frame>
+	<Position x="14.28571" y="0" z="0"/>
+	<Vector dx="1" dy="0" dz="0"/>
+	<Vector dx="0" dy="1" dz="0"/>
+	<Vector dx="0" dy="0" dz="1"/>
+</Frame>
+<Interval near="0" far="50"/>
+<Curve>
+	<Line>
+		<VectorBundle>
+			<Position x="-990" y="238.5" z="-100"/>
+			<Vector dx="1" dy="1.592085E-09" dz="2.656702E-16"/>
+		</VectorBundle>
+		<Vector dx="1.264857E-16" dy="8.742278E-08" dz="-1"/>
+	</Line>
+</Curve>
+
+Texts are ok:
+
+<Gleis GleisID="6" clsid="2E25C8E2-ADCD-469A-942E-7484556FF932" data="0" scale="1" ElectSideS="0" ElectSideE="0" stil="5603" gsbname="\Gleisstile\Gleise\3DVersion\UIC60_Schienen_Eisenbahn.3dm" LockEd="0">
+<Frame>
+	<Position x="-925.7143" y="243" z="-100"/>
+	<Vector dx="-1" dy="1.509958E-07" dz="0"/>
+	<Vector dx="-1.509958E-07" dy="-1" dz="-8.742278E-08"/>
+	<Vector dx="-1.320047E-14" dy="-8.742278E-08" dz="1"/>
+</Frame>
+<Interval near="0" far="50"/>
+<Curve>
+	<Line>
+		<VectorBundle>
+			<Position x="0" y="0" z="0"/>
+			<Vector dx="1" dy="0" dz="0"/>
+		</VectorBundle>
+		<Vector dx="0" dy="0" dz="1"/>
+	</Line>
+</Curve>
+*/
+
+/*
+console.log(
+	CurveType
+	+ "\t" + GleissystemID + "-" + GleisID
+	+ "\t" + BinX2.toFixed(1) + "\t" + BinY2.toFixed(1) + "\t" + BinZ2.toFixed(1)
+);
+*/
 
 				mMatrix = [
 							mMatrix,
@@ -2615,7 +2660,7 @@ if (near > far) { //###
 			Gleis.mPos = tempPos;
 		}
 
-		let Q, flipText, flip;
+		let Q, flipText, flipInfo = "";
 
 		if (Key_Id) {
 		
@@ -2696,13 +2741,21 @@ if (near > far) { //###
 
 		// Flip mirrored texts
 		if (matrix.isFlipped(Gleis.mMid)) {
+			//flipInfo = " flip";
 			flipText = `rotate(180 ${DeltaX} ${DeltaY}) scale(-1 -1) translate(${-2*DeltaX} ${0})`;
 		} else {
 			flipText = ` scale(1 -1)`;
 		}
 			
-if (CurveType == "Arc") {
-	Q = matrix.quarternion(Gleis.mMid);
+
+if (false) {
+Q = matrix.quarternion(Gleis.mMid);
+flipInfo += " " + Q.axis + matrix.det3x3(Gleis.mMid).toFixed(1);
+if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
+	const [ DirX, DirY, DirZ, d0, 
+		NorX, NorY, NorZ, n0, 
+		BinX, BinY, BinZ, b0, 
+		PosX, PosY, PosZ, scale ] = Gleis.mMid;
 	console.log( 
 		  "\t" 			+ CurveType 
 		+ "\t" 			+ GleissystemID + "\t" + GleisID
@@ -2713,10 +2766,11 @@ if (CurveType == "Arc") {
 		+ "\tArcFlag\t" + ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
 		+ "\taxis\t" 	+ Q.axis
 		+ "\tDelta\t" 	+ DeltaX + "\t" + DeltaY
-		//+ "\tmMatrix\t" + DirX + "\t" + DirY + "\t" + DirZ + "\t" + d0
-		//+ "\t"          + NorX + "\t" + NorY + "\t" + NorZ + "\t" + n0
-		//+ "\t"          + BinX + "\t" + BinY + "\t" + BinZ + "\t" + b0
-		//+ "\t"          + PosX + "\t" + PosY + "\t" + PosZ + "\t" + scale
+		+ "\tmMatrix\t" + DirX + "\t" + DirY + "\t" + DirZ + "\t" + d0
+		+ "\t"          + NorX + "\t" + NorY + "\t" + NorZ + "\t" + n0
+		+ "\t"          + BinX + "\t" + BinY + "\t" + BinZ + "\t" + b0
+		+ "\t"          + PosX + "\t" + PosY + "\t" + PosZ + "\t" + scale
+		+ "\t"          + f
 		+ "\t"          + flipText
 		+ "\ttrace\t"	+ Q.tr
 		+ "\tQ\t"		+ Q.w + "\t" + Q.x + "\t" + Q.y + "\t" + Q.z 
@@ -2724,6 +2778,7 @@ if (CurveType == "Arc") {
 		+ "\tdet3x3\t"	+ matrix.det3x3(Gleis.mMid)
 		+ "\tdet\t"		+ matrix.det(Gleis.mMid)
 	);
+}
 }
 
 		
@@ -2745,7 +2800,7 @@ if (CurveType == "Arc") {
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${CurveType}`,
+			text				: `${CurveType}` + flipInfo,
 			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `CurveType`,
