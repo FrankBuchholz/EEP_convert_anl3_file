@@ -203,27 +203,25 @@ matrix.isFlipped = function (A) {
 	
 	// Trace = sum of diagonal elements
 	const tr = DirX + NorY + BinZ;
+	const det = matrix.det3x3(A);
+	let axis;
 
 	if (tr >= 0.0) { 
-		// axis = 'W';
+		axis = 'W';
+		return det < 0;
 		
 	} else if ((DirX > NorY) && (DirX > BinZ)) { 
-		//axis = 'X';
-		return true;	// is flipped
+		axis = 'X';
+		return det >= 0;
 		
 	} else if (NorY > BinZ) { 
-		// axis = 'Y';
-		return true;	// is flipped
+		axis = 'Y';
+		return det >= 0; 
 		
 	} else { 
-		// axis = 'Z';
+		axis = 'Z';
+		return det < 0; 
 	}			
-	
-	if (matrix.det3x3(A) < 0) {
-		return true; 	// is flipped
-	} else {
-		return false;
-	}
 }
 
 })(this); // end module
