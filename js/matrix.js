@@ -3,6 +3,9 @@
 // <script type="text/javascript" src="https://unpkg.com/rematrix"></script> <!-- latest version -->
 // <script type="text/javascript" src="https://unpkg.com/rematrix@0.4.1/dist/rematrix.min.js"></script> <!-- version 0.4.1 -->
 
+// Quaternions
+// https://github.com/rawify/Quaternion.js
+
 // Matrix operations optimized for this program
 "use strict";
 /* Interface
@@ -158,6 +161,7 @@ matrix.quarternion = function (A) {
 
 matrix.euler_angles = function (obj) {
 	// Calculate the euler angles (roll, pitch, yaw) for a quaternion object
+	// Source:  https://computergraphics.stackexchange.com/questions/8195/how-to-convert-euler-angles-to-quaternions-and-get-the-same-euler-angles-back-fr
 	
 	let Q;
 	if (obj.tr) { 	// The object is a quarternion
@@ -165,7 +169,7 @@ matrix.euler_angles = function (obj) {
 	} else {		// The object is a rotation matix
 		Q = matrix.quarternion(obj);
 	}
-
+	  
 	const tr = Q.tr;
 	const w  = Q.w;
 	const x  = Q.x;
