@@ -2642,16 +2642,16 @@ if (near > far) { //###
 
 		}
 
-		if (false && Gleis.Helix) {
+		// Calculate end of track
+		if (Gleis.Helix) {
 			Gleis.mEnd = Gleis.Helix.mEnd;
 		} else {
 			Gleis.mEnd = [
 					mMatrix,
 					matrix.translate(DeltaX, DeltaY, DeltaZ),
+					matrix.rotateZ(Winkel),
 				].reduce(matrix.multiply);
 		}
-
-		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
 		// Swap mPos and mEnd if near > far //### I guess that's incomplete
 		if (near > far) {
@@ -2663,15 +2663,12 @@ if (near > far) { //###
 		let Q, flipText, flipInfo = "";
 
 		if (Key_Id) {
-		
 			// Flip mirrored texts
-			if (matrix.isFlipped(mMatrix)) {
-				flipText = ` scale(-1 -1)`
-						 + ` translate(${-2*(near > far ? 0 :  DeltaX)} ${0})`;
+			if (matrix.isFlipped(Gleis.mEnd)) {
+				flipText = ``;
 			} else {
 				flipText = ` scale(1 -1)`;
-			}
-		
+			}		
 			// Show text of Weiche at the end of the track
 			let Code = "W";
 			if (GleisData == 18 || GleisData == 19) { Code = "DWK"; }
@@ -2682,12 +2679,7 @@ if (near > far) { //###
 				text			: `${Code}${Key_Id}`,
 				dy				: `1em`, 		// Shift text below the track
 				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
-				//x				: DeltaX,
-				//y				: -DeltaY,
-				x				: (near > far ? 0 :  DeltaX),	//###
-				y				: (near > far ? 0 : -DeltaY),	//###
-				transform 		: matrixToTransform(mMatrix)
-								  + (near > far ? "" : svgRotate)	//###
+				transform 		: matrixToTransform(Gleis.mEnd)
 								  + flipText,
 			});
 		}
