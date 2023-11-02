@@ -2457,7 +2457,7 @@ if (near > far) { //###
 		+ " for " + TrackSystemText(GleissystemID) + " " + GleisID
 );}
 
-		let Winkel, DeltaX, DeltaY, DeltaZ, svgRotate;
+		let Winkel, DeltaX, DeltaY, DeltaZ;
 		const posX = 12, posY = 13, posZ = 14; // Index in mMatrix
 
 		// Log defect data
@@ -2660,12 +2660,12 @@ if (near > far) { //###
 			Gleis.mPos = tempPos;
 		}
 
-		let Q, flipText, flipInfo = "";
+		let flipText, flipInfo = "";
 
 		if (Key_Id) {
 			// Flip mirrored texts
 			if (matrix.isFlipped(Gleis.mEnd)) {
-				flipText = ``;
+				flipText = ``; //` scale(1 1)`;
 			} else {
 				flipText = ` scale(1 -1)`;
 			}		
@@ -2688,7 +2688,6 @@ if (near > far) { //###
 		if (Gleis.BezierPoints) { // CurveType: Cubic, Spline, PolygonalChain
 
 			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierPoint(Gleis.BezierPoints, Laenge / 2, near, far) 
-			svgRotate	= ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${-DeltaY})`;	// svg: mirrored y-coordinate
 
 		} else if (CurveType === 'Clothoid') {
 			let points, svgPath;
@@ -2720,30 +2719,37 @@ if (near > far) { //###
 			DeltaZ			= 0;
 		}
 
-		if (false && Gleis.Helix) {
+		if (Gleis.Helix) {
 			Gleis.mMid = Gleis.Helix.mMid;
 		} else {
 			Gleis.mMid = [
 					mMatrix,
 					matrix.translate(DeltaX, DeltaY, DeltaZ),
+					matrix.rotateZ(Winkel),
 				].reduce(matrix.multiply);
 		}
-		
-		svgRotate	= (Winkel != 0 ? ` rotate(${Winkel*180/Math.PI} ${DeltaX} ${DeltaY})` : "");
 
 		// Flip mirrored texts
 		if (matrix.isFlipped(Gleis.mMid)) {
 			//flipInfo = " flip";
-			flipText = `rotate(180 ${DeltaX} ${DeltaY}) scale(-1 -1) translate(${-2*DeltaX} ${0})`;
+			flipText = ``;	//` scale(1 1)`;
 		} else {
 			flipText = ` scale(1 -1)`;
 		}
-			
+
+		// Rotate text to upper left (works fine except for some Helix tracks)
+		const [ roll_x, pitch_y, yaw_z ] = matrix.euler_angles(Gleis.mMid);
+		//flipInfo += " " + (yaw_z*180/Math.PI).toFixed(1) + "°";
+		if (   (yaw_z < -Math.PI/2 + (flipText == `` ? -0.01 : +0.01)) 
+			|| (yaw_z >  Math.PI/2 + (flipText == `` ? -0.01 : +0.01)) ) {
+			//flipInfo += ` rotate`;
+			flipText += ` rotate(180)`;
+		}
 
 if (false) {
-Q = matrix.quarternion(Gleis.mMid);
-flipInfo += " " + Q.axis + matrix.det3x3(Gleis.mMid).toFixed(1);
-if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
+const Q = matrix.quarternion(Gleis.mMid);
+
+if (CurveType == "Helix" ) {
 	const [ DirX, DirY, DirZ, d0, 
 		NorX, NorY, NorZ, n0, 
 		BinX, BinY, BinZ, b0, 
@@ -2752,16 +2758,19 @@ if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
 		  "\t" 			+ CurveType 
 		+ "\t" 			+ GleissystemID + "\t" + GleisID
 		+ "\tLaenge\t"	+ Laenge
-		+ "\tWinkel°\t"	+ ( Winkel*180/Math.PI )
-		+ "\tKruemmung\t"	+ Kruemmung
-		+ "\tRadius\t"	+ (1 / Kruemmung)
+		+ "\tWinkel°\t"	+ ( Winkel  *180/Math.PI ) + "°"
+		+ "\troll°\t"	+ ( roll_x  *180/Math.PI ) + "°"
+		+ "\tpitch°\t"	+ ( pitch_y *180/Math.PI ) + "°"
+		+ "\tyaw°\t"	+ ( yaw_z   *180/Math.PI ) + "°"
+		//+ "\tKruemmung\t"	+ Kruemmung
+		//+ "\tRadius\t"	+ (1 / Kruemmung)
 		+ "\tArcFlag\t" + ( Winkel <= Math.PI && Winkel >= -Math.PI ? 0 : 1)
 		+ "\taxis\t" 	+ Q.axis
-		+ "\tDelta\t" 	+ DeltaX + "\t" + DeltaY
-		+ "\tmMatrix\t" + DirX + "\t" + DirY + "\t" + DirZ + "\t" + d0
-		+ "\t"          + NorX + "\t" + NorY + "\t" + NorZ + "\t" + n0
-		+ "\t"          + BinX + "\t" + BinY + "\t" + BinZ + "\t" + b0
-		+ "\t"          + PosX + "\t" + PosY + "\t" + PosZ + "\t" + scale
+		//+ "\tDelta\t" 	+ DeltaX + "\t" + DeltaY
+		//+ "\tmMatrix\t" + DirX + "\t" + DirY + "\t" + DirZ + "\t" + d0
+		//+ "\t"          + NorX + "\t" + NorY + "\t" + NorZ + "\t" + n0
+		//+ "\t"          + BinX + "\t" + BinY + "\t" + BinZ + "\t" + b0
+		//+ "\t"          + PosX + "\t" + PosY + "\t" + PosZ + "\t" + scale
 		+ "\t"          + flipInfo
 		+ "\t"          + flipText
 		+ "\ttrace\t"	+ Q.tr
@@ -2773,34 +2782,25 @@ if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
 }
 }
 
-		
 		// show GleisID in the middle above the track (left-adjusted)
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${GleisID}`,
+			text				: `${GleisID}` + flipInfo,
 			dx					: `-0.5em`, 	// Shift text left to move it a little bit towards the center
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `GleisID`,
-			x					: DeltaX,
-			y					: -DeltaY,
-			transform 			: matrixToTransform(mMatrix)
-			//transform 			: matrixToTransform(Gleis.mMid) // Bug: does not work for Rotator yet
-								  + svgRotate
+			transform 			: matrixToTransform(Gleis.mMid) 
  								  + flipText,
 		});
 		// show CurveType in the middle above the track (right-adjusted)
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
 		svgAppend(svgGleisGroup, {
 			svg_tag				: `text`,
-			text				: `${CurveType}` + flipInfo,
+			text				: `${CurveType}`,
 			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `CurveType`,
-			x					: DeltaX,
-			y					: -DeltaY,
-			transform 			: matrixToTransform(mMatrix)
-			//transform 			: matrixToTransform(Gleis.mMid) // Bug: does not work for Rotator yet
-								  + svgRotate
+			transform 			: matrixToTransform(Gleis.mMid)
  								  + flipText,
 		});
 		}
@@ -2811,10 +2811,7 @@ if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
 			dx					: `-0.1em`, 	// Shift text left a little bit
 			dy					: `1em`, 		// Shift text below the track
 			"class"				: `Stil`,
-			x					: DeltaX,
-			y					: -DeltaY,
-			transform 			: matrixToTransform(mMatrix)
-								  + svgRotate
+			transform 			: matrixToTransform(Gleis.mMid)
  								  + flipText,
 		});
 		// show Hoehe in the middle below the track (left-adjusted)
@@ -2824,10 +2821,7 @@ if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
 			dx					: `+0.1em`, 	// Shift text right a little bit
 			dy					: `1em`, 		// Shift text below the track
 			"class"				: `Hoehe`,
-			x					: DeltaX,
-			y					: -DeltaY,
-			transform 			: matrixToTransform(mMatrix)
-								  + svgRotate
+			transform 			: matrixToTransform(Gleis.mMid)
  								  + flipText,
 		});
 
@@ -2997,11 +2991,11 @@ if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
 				});
 			}
 
-			// Flip mirrored symbols and texts
+			// Flip mirrored symbols (for some reasons it' the other way around than for texts)
 			if (matrix.isFlipped(Meldung.mPos)) {
 				flipText = ` scale(1 -1)`;
 			} else {
-				flipText = ""; //` scale(1 1)`;
+				flipText = ``; //` scale(1 1)`;
 			}
 		
 			// Show symbol for Signal / Fahrstraße
@@ -3014,14 +3008,13 @@ if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
 										: 							  "#SymbolSignal"
 									  ),
 				transform 			: matrixToTransform(Meldung.mPos)
-										+ flipText
  										+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position
-										,
+										+ flipText,
 			});
 			
 			// Flip mirrored texts
 			if (matrix.isFlipped(Meldung.mPos)) {
-				flipText = ""; //` scale(1 1)`;
+				flipText = ``; //` scale(1 1)`;
 			} else {
 				flipText = ` scale(1 -1)`;
 			}			
@@ -3040,8 +3033,7 @@ if (CurveType == "Arc" || CurveType == "Helix" || CurveType == "Line") {
 										,
 				"dy"				: `-2.3`, 									// Shift text above the symbol
 				transform 			: matrixToTransform(Meldung.mPos)
-										+ flipText
-										,
+										+ flipText,
 			});
 			} // do not show any text for pre-signals
 
