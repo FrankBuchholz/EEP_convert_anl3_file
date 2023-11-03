@@ -2782,47 +2782,54 @@ if (CurveType == "Helix" ) {
 }
 }
 
+		// Group for all texts in the middle of the track
+		const svgGleisMid = svgAppend(svgGleisGroup, {
+			svg_tag	: `g`,
+			transform 			: matrixToTransform(Gleis.mMid) 
+								  + flipText,
+		});
+		
 		// show GleisID in the middle above the track (left-adjusted)
-		svgAppend(svgGleisGroup, {
+		svgAppend(svgGleisMid, {
 			svg_tag				: `text`,
 			text				: `${GleisID}` + flipInfo,
 			dx					: `-0.5em`, 	// Shift text left to move it a little bit towards the center
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `GleisID`,
-			transform 			: matrixToTransform(Gleis.mMid) 
- 								  + flipText,
+			//transform			: matrixToTransform(Gleis.mMid) 
+ 			//					  + flipText,
 		});
 		// show CurveType in the middle above the track (right-adjusted)
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
-		svgAppend(svgGleisGroup, {
+		svgAppend(svgGleisMid, {
 			svg_tag				: `text`,
 			text				: `${CurveType}`,
 			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
 			dy					: `-0.1em`, 	// Shift text up
 			"class"				: `CurveType`,
-			transform 			: matrixToTransform(Gleis.mMid)
- 								  + flipText,
+			//transform			: matrixToTransform(Gleis.mMid) 
+ 			//					  + flipText,
 		});
 		}
 		// show Gleisstil in the middle below the track (right-adjusted)
-		svgAppend(svgGleisGroup, {
+		svgAppend(svgGleisMid, {
 			svg_tag				: `text`,
 			text				: `${stil}`,
 			dx					: `-0.1em`, 	// Shift text left a little bit
 			dy					: `1em`, 		// Shift text below the track
 			"class"				: `Stil`,
-			transform 			: matrixToTransform(Gleis.mMid)
- 								  + flipText,
+			//transform			: matrixToTransform(Gleis.mMid) 
+ 			//					  + flipText,
 		});
 		// show Hoehe in the middle below the track (left-adjusted)
-		svgAppend(svgGleisGroup, {
+		svgAppend(svgGleisMid, {
 			svg_tag				: `text`,
 			text				: `[${mMatrix[posZ].toFixed(2)}m]`,
 			dx					: `+0.1em`, 	// Shift text right a little bit
 			dy					: `1em`, 		// Shift text below the track
 			"class"				: `Hoehe`,
-			transform 			: matrixToTransform(Gleis.mMid)
- 								  + flipText,
+			//transform			: matrixToTransform(Gleis.mMid) 
+ 			//					  + flipText,
 		});
 
 		if (global.__showCircles__) {	// debugging feature
@@ -2977,9 +2984,10 @@ if (CurveType == "Helix" ) {
 
 			// Group node for Signal (Multiple groups for pre signal, stop position and main signal?)
 			const svgSignalGroup = svgAppend(svgGleisGroup, {
-				svg_tag	: `g`,
-				id		: `${SignalCode}${SignalID}`,
-				class	: `Signal`,
+				svg_tag		: `g`,
+				id			: `${SignalCode}${SignalID}`,
+				class		: `Signal`,
+				transform	: matrixToTransform(Meldung.mPos),
 			});
 
 			if (global.__showCircles__) {	// debugging feature
@@ -2987,7 +2995,7 @@ if (CurveType == "Helix" ) {
 				svgAppend(svgSignalGroup, {
 					svg_tag				: `circle`,
 					r					: 1,
-					transform 			: matrixToTransform(Meldung.mPos),
+					//transform			: matrixToTransform(Meldung.mPos),
 				});
 			}
 
@@ -3007,17 +3015,19 @@ if (CurveType == "Helix" ) {
 										: signalType === "StopAt" 	? "#SymbolStopAt"
 										: 							  "#SymbolSignal"
 									  ),
-				transform 			: matrixToTransform(Meldung.mPos)
- 										+ ` translate(-10 0)` // required to move the origin of the symbol to the Signal position
+				transform 			: //matrixToTransform(Meldung.mPos)
+ 										//+ 
+										` translate(-10 0)` // required to move the origin of the symbol to the Signal position
 										+ flipText,
 			});
 			
 			// Flip mirrored texts
 			if (matrix.isFlipped(Meldung.mPos)) {
-				flipText = ``; //` scale(1 1)`;
+				flipText = ` scale(1 1)`; // noop
 			} else {
 				flipText = ` scale(1 -1)`;
-			}			
+			}
+			
 			// Show text of Signal / Fahrstraße
 			if (signalType !== "pre") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
@@ -3032,8 +3042,9 @@ if (CurveType == "Helix" ) {
 										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``)
 										,
 				"dy"				: `-2.3`, 									// Shift text above the symbol
-				transform 			: matrixToTransform(Meldung.mPos)
-										+ flipText,
+				transform 			: //matrixToTransform(Meldung.mPos)
+										//+ 
+										flipText,
 			});
 			} // do not show any text for pre-signals
 
@@ -3097,51 +3108,12 @@ if (CurveType == "Helix" ) {
 					mMatrix,
 					matrix.translate(DeltaX, DeltaY, DeltaZ),
 					matrix.rotateZ(
-						  Winkel					// Rotate to tangent of track
-						//+ ParaOderAnti*Math.PI 	// Rotate text to the side of the symbol
+						Winkel									// Rotate to tangent of track
+						+ (ParaOderAnti == 1 ? Math.PI : 0) 	// Rotate text to the side of the symbol
 					),
 				].reduce(matrix.multiply);
-
-			// Group node for Kontakt
-			const svgKontaktGroup = svgAppend(svgGleisGroup, {
-				svg_tag	: `g`,
-				id		: `K${KontaktID}`,
-				class	: `Kontakt`,
-			});
-
-			if (global.__showCircles__) {
-				// Show circle at Point
-				svgAppend(svgKontaktGroup, {
-					svg_tag				: `circle`,
-					r					: 2,
-					transform 			: matrixToTransform(Kontakt.mPos),
-				});
-			}
-			
-			// Flip mirrored symbols and texts
-			if (matrix.isFlipped(Kontakt.mPos)) {
-				flipText = ` scale(1 -1)`;
-			} else {
-				flipText = ""; //` scale(1 1)`;
-			}
-			
-			// Show symbol for Kontakt
-			svgAppend(svgKontaktGroup, {
-				svg_tag				: `use`,
-				"href"				: `#SymbolKontakt`,
-				transform 			: matrixToTransform(Kontakt.mPos)
-										+ (ParaOderAnti == fireOnPara ? ` rotate(180)` :"")		// Rotate symbol to the side of the symbol
-										+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
-										+ flipText,
-			});
-
-			// Flip mirrored texts
-			if (matrix.isFlipped(Kontakt.mPos)) {
-				flipText = ""; ` scale(1 1)`;
-			} else {
-				flipText = ` scale(1 -1)`;
-			}
-			// Show text of Kontakt
+				
+			// Show text of Kontakt 
 			let KontaktTypText = getKontaktIcon(GleissystemID, SetType, SetValue);
 			if (SetType === 1280 && Wartender != 0) {	// Einfahrt Depot, Depot-ID = Wartender
 				KontaktTypText = Wartender + KontaktTypText;
@@ -3156,14 +3128,71 @@ if (CurveType == "Helix" ) {
 				const Ziel = global.KontaktZiele[KontaktZiel];
 				KontaktTypText += (Ziel ? `${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `?${KontaktZiel}`);
 			}
+
+			// Group node for Kontakt
+			const svgKontaktGroup = svgAppend(svgGleisGroup, {
+				svg_tag		: `g`,
+				id			: `K${KontaktID}`,
+				class		: `Kontakt`,
+				transform	: matrixToTransform(Kontakt.mPos),
+			});
+
+			if (global.__showCircles__) {
+				// Show circle at Point
+				svgAppend(svgKontaktGroup, {
+					svg_tag				: `circle`,
+					r					: 2,
+					//transform 			: matrixToTransform(Kontakt.mPos),
+				});
+			}
 			
+			// Flip mirrored symbols
+			if (matrix.isFlipped(Kontakt.mPos)) {
+				flipText = ` scale(1 -1)`;
+			} else {
+				flipText = ""; //` scale(1 1)`;
+			}
+			
+			// Show symbols for Kontakt
+			if (fireOnPara == 1) {
+				svgAppend(svgKontaktGroup, {
+					svg_tag				: `use`,
+					"href"				: `#SymbolKontakt`,
+					transform 			: //matrixToTransform(Kontakt.mPos)
+											(ParaOderAnti !== fireOnPara ? ` rotate(180)` :"")		// Rotate symbol to the side of the symbol
+											+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
+											+ flipText,
+				});
+			}
+			
+			if (fireOnAnti == 1) {
+				svgAppend(svgKontaktGroup, {
+					svg_tag				: `use`,
+					"href"				: `#SymbolKontakt`,
+					transform 			: //matrixToTransform(Kontakt.mPos)
+											//+ 
+											(ParaOderAnti == fireOnAnti ? ` rotate(180)` :"")		// Rotate symbol to the side of the symbol
+											+ ` translate(-10 0)` // required to move the origin of the symbol to the Kontakt position
+											+ flipText,
+				});
+			}
+
+			// Flip mirrored texts
+			if (matrix.isFlipped(Kontakt.mPos)) {
+				flipText = ` scale(1 1)`; // noop
+			} else {
+				flipText = ` scale(1 -1)`;
+			}
+			
+			// Show text on one side only
 			if (KontaktTypText != "") {
 				svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
 					text				:  KontaktTypText,
 					"dy"				: `-2.3`, 													// Shift text above the symbol
-					transform 			: matrixToTransform(Kontakt.mPos)
-											+ (ParaOderAnti == fireOnPara ? ` rotate(180)` :"")		// Rotate text to the side of the symbol
+					transform 			: //matrixToTransform(Kontakt.mPos)
+											//+ 
+											(ParaOderAnti !== fireOnPara ? ` rotate(180)` :"")		// Rotate text to the side of the symbol
 											+ flipText,
 				});
 			}
