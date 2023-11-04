@@ -108,7 +108,7 @@ function process_node(sutrackp) {
 	const GebaeudesammlungText = { 		// GebaeudesammlungID
 		1 : _('Eisenbahn'),
 		2 : _('Strassenbahn'),
-		3 : _('Gleisobjekte Straßen'),
+		3 : _('Strasse'),
 		4 : _('Immobilien'),
 		5 : _('Landschaftselemente'),
 		6 : _('Sonstiges'),			//  (Wasserwege)
@@ -2110,7 +2110,7 @@ function createTrackObjectsTable() {
 
 		const Gleise	= Gleisobjekt.Kollektor.getElementsByTagName("Gleis");
 
-		const GebaudesammlungID = Gleisobjekt.Kollektor.GebaudesammlungID || '';
+		const GebaudesammlungID = Gleisobjekt.Kollektor.GebaudesammlungID;
 		const ImmoIdx			= Gleisobjekt.Kollektor.ImmoIdx || '';
 		const File				= Gleisobjekt.Kollektor.gsbname || '';
 
@@ -2143,15 +2143,14 @@ function createTrackObjectsTable() {
 		fillTable(thead, tbody, [
 
 		{ th : _('Gleisobjekt'),	td :
-			`<span id="Gleisobjekt_${Gleisobjekt.ID}">${Gleisobjekt.ID}<\/span>`
+			`<a id="Gleisobjekt_${Gleisobjekt.ID}" href="javascript:void(0);" onclick="javascript:postGleisobjektMessage(${Gleisobjekt.ID});">${Gleisobjekt.ID}<\/a>`
 			, html : true },
 		{ th : _('Anzahl Gleise'),	td : Gleise.length				},
 		{ th : _('Gleise'),			td : GleiseText, html : true	},
 		{ th : `x (m)`,				td : PosX.toFixed(0) 			},
 		{ th : `y (m)`,				td : PosY.toFixed(0) 			},
 		{ th : _('Immobilie'),		td :
-			//GebaeudesammlungText[GebaudesammlungID] + ' ' +
-			ImmoIdx
+			(GebaudesammlungID ? GebaeudesammlungText[GebaudesammlungID] + ' ' : '') + ImmoIdx
 			},
 		{ th : _('Datei'),			td : File		},
 
@@ -3504,6 +3503,16 @@ function postKameraMessage(KameraID) {	// Kamera
 	EEPchannel.postMessage({
 		command:		"showCamera",
 		KameraID: 		KameraID,
+		shiftDown:		global.shiftDown,
+		strgDown:		global.strgDown,
+		altDown:		global.altDown,
+	});
+}
+
+function postGleisobjektMessage(GleisobjektID) {	// Gleisobjekt
+	EEPchannel.postMessage({
+		command:		"showTrackObject",
+		GleisobjektID: 	GleisobjektID,
 		shiftDown:		global.shiftDown,
 		strgDown:		global.strgDown,
 		altDown:		global.altDown,

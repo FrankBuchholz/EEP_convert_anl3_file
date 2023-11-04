@@ -545,7 +545,7 @@ WeichenstellungText = {
 GebaeudesammlungText = {		// GebaeudesammlungID : Text,
 	1 : _('Eisenbahn'),
 	2 : _('Strassenbahn'),
-	3 : _('Gleisobjekte Straßen'),
+	3 : _('Straße'),
 	4 : _('Immobilien'),
 	5 : _('Landschaftselemente'),
 	6 : _('Sonstiges'),			//  (Wasserwege)
@@ -1242,6 +1242,8 @@ function prepareGleissysteme(sutrackp) {
 
 		const Dreibein 	= Kollektor.getElementsByTagName("Dreibein")[0];
 		const Vektor 	= Dreibein.getElementsByTagName("Vektor")[0];
+		const PosX 		= +Vektor.getAttribute("x") / 100;
+		const PosY 		= +Vektor.getAttribute("y") / 100;
 		const PosZ 		= +Vektor.getAttribute("z") / 100;
 
 		const Kollektors = Kollektor.getElementsByTagName("Gleis");
@@ -1255,6 +1257,8 @@ function prepareGleissysteme(sutrackp) {
 				countGleisobjekte += 1;
 				Gleisobjekte[KollektorID] = {
 					GleissystemID 	: GleissystemID,
+					PosX 			: PosX,
+					PosY 			: PosY,
 					PosZ 			: PosZ,
 					Gleise 			: [],
 				};
@@ -1288,7 +1292,7 @@ function prepareGleissysteme(sutrackp) {
 	if (countGleisobjekte > 0) { //# How to identity empty objects?
 		for (const Gebaeudesammlung of sutrackp.getElementsByTagName("Gebaeudesammlung")) {
 			const GebaudesammlungID = Gebaeudesammlung.getAttribute("GebaudesammlungID");
-			for (const Immobile of sutrackp.getElementsByTagName("Immobile")) {
+			for (const Immobile of Gebaeudesammlung.getElementsByTagName("Immobile")) {
 				const KollektorID 	= Immobile.getAttribute("kollektorID");
 				if (KollektorID) {
 					const ImmoIdx 	= Immobile.getAttribute("ImmoIdx");
@@ -5235,6 +5239,7 @@ EEPchannel.onmessage = function(ev) {
 	const ID			= ev.data.ID;				// Signal oder Weiche
 	const KontaktID		= ev.data.KontaktID;		// Kontakt
 	const KameraID		= ev.data.KameraID;			// Kamera
+	const GleisobjektID	= ev.data.GleisobjektID;	// Gleisobjekt
 	const GBSID			= ev.data.GBSID;			// GBS
 	global.shiftDown 	= ev.data.shiftDown;		// Status of keys
 	global.strgDown 	= ev.data.strgDown;
@@ -5288,6 +5293,20 @@ EEPchannel.onmessage = function(ev) {
 		centerPosition(Kamera.mPos);
 
 		showKameraInfo(KameraID);
+		return true;
+
+	} else if (command === "showTrackObject" && GleisobjektID) {	// Gleisobjekt
+
+		const Gleisobjekt = global.Gleisobjekte[GleisobjektID];
+		if (!Gleisobjekt) {
+			//msg(`Gleisobjekt ${GleisobjektID} existiert nicht`);
+			msg('TrackObjectNotExists', GleisobjektID);
+			return false;
+		}
+
+		centerPosition([Gleisobjekt.PosX, Gleisobjekt.PosY, Gleisobjekt.PosZ]);
+
+		showGleisobjektInfo(GleisobjektID);
 		return true;
 
 	} else if (command === "showGBS" && GBSID) {	// GBS
@@ -5408,10 +5427,20 @@ function centerPosition(Position) {
 	const width 	= panZoom.getSizes().width;
 	const height	= panZoom.getSizes().height;
 	const realZoom	= panZoom.getSizes().realZoom;
-
-	const posX = 12, posY = 13, posZ = 14;
-	const panX 		= width/2	- Position[posX] * realZoom;
-	const panY 		= height/2	- (-Position[posY]) * realZoom;	// svg: mirrored y-coordinate
+	
+	let PosX, PosY, PosZ;
+	if (Position.length == 16) { 	// Matrix
+		PosX = Position[12];
+		PosY = Position[13];
+		PosZ = Position[14];
+	} else {						// Vector
+		PosX = Position[0];
+		PosY = Position[1];
+		PosZ = Position[2];
+	}
+		
+	const panX 		= width/2	-   PosX  * realZoom;
+	const panY 		= height/2	- (-PosY) * realZoom;	// svg: mirrored y-coordinate
 
 	panZoom.pan({x: panX, y: panY});
 }
@@ -5656,7 +5685,7 @@ if (false) {
 		const GleisobjektCode 	= event.target.parentElement.id;
 		const GleisobjektID 	= GleisobjektCode.substring(2);
 
-		// No popup for Gleisobjekt yet
+		showGleisobjektInfo(GleisobjektID);	
 	}
 }
 
@@ -6058,6 +6087,7 @@ api.getKontaktText = getKontaktText;
 api.objectToHTML = objectToHTML;
 api.showGleisInfo = showGleisInfo;
 api.showKameraInfo = showKameraInfo;
+api.showGleisobjektInfo = showGleisobjektInfo;
 api.showKontaktInfo = showKontaktInfo;
 api.showSignalInfo = showSignalInfo;
 api.showVirtualConnectionInfo = showVirtualConnectionInfo;
@@ -6909,6 +6939,23 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			+ `<br>` + (Kamera.Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6
 			+ objectToHTML(Kamera)
 	});
+}
+
+function showGleisobjektInfo(GleisobjektID) {
+	const Gleisobjekt = global.Gleisobjekte[GleisobjektID];
+	if (!Gleisobjekt) { return; }
+	
+	showInfoWindow({
+		code: "Gleisobjekt " + GleisobjektID,
+		title: `${_('Gleisobjekt')} ${GleisobjektID}`,
+		content:
+			`<i>${_('Position')}: `
+			+ `(<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleisobjekt.PosX},${Gleisobjekt.PosY},${Gleisobjekt.PosZ}])">`
+			+ `${Gleisobjekt.PosX.toFixed(0)}m, ${Gleisobjekt.PosY.toFixed(0)}m`
+			+ `<\/a>)<\/i>`
+			+ `<br>${_('Immobilie')}: ${GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] || '-'} ${Gleisobjekt.ImmoIdx || ''}`
+			+ `<br>${_('Datei')}: ${Gleisobjekt.gsbname || '-'}`
+		});
 }
 })(this); // end module
 </script>
