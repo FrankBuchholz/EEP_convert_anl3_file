@@ -5570,9 +5570,17 @@ event.target.parentElement.classList.contains("virtual")	true
 event.target.classList[0]									undefined	
 event.target.parentElement.id								V4
 event.target.id												V4-1
+
+Texts for tracks have an additional group element.
 */
 
-	if (event.target.parentElement.classList.contains("Signal")) {			// Signal (Vorsignal oder Hauptsignal)
+if (false) {
+	console.log( "target "               + event.target.id                             + " : " + event.target.classList.toString() );
+	console.log( "target.parent "        + event.target.parentElement.id               + " : " + event.target.parentElement.classList.toString() );
+	console.log( "target.parent.parent " + event.target.parentElement.parentElement.id + " : " + event.target.parentElement.parentElement.classList.toString() );
+}
+
+	if (event.target.parentElement.classList.contains("Signal")) {			// Signal (Vorsignal oder Hauptsignal oder Haltelinie)
 		const SignalCode 		= event.target.parentElement.id;
 		const SignalID 			= Number(SignalCode.substring(1));
 
@@ -5622,13 +5630,33 @@ event.target.id												V4-1
 		// Issue: Name is not an unique key
 		showKameraInfo(KameraID);
 
-	} else if (!event.target.parentElement.classList.contains("general")) { // Gleis (hopefully)
+	} else if (    event.target.classList.contains("GleisID")				// Gleis text
+				|| event.target.classList.contains("CurveType")
+				|| event.target.classList.contains("Stil")
+				|| event.target.classList.contains("Hoehe")
+			  ) {
+		const GleisCode 		= event.target.parentElement.parentElement.id;
+		const GleisTextArray 	= GleisCode.substring(1).split("-");
+		const GleissystemID 	= GleisTextArray[0];
+		const GleisID 			= GleisTextArray[1];
+
+		showGleisInfo(GleissystemID, GleisID);
+
+	} else if (    event.target.parentElement.classList.contains("active") // Gleis path
+				|| event.target.parentElement.classList.contains("inactive")
+			  ) {
 		const GleisCode 		= event.target.parentElement.id;
 		const GleisTextArray 	= GleisCode.substring(1).split("-");
 		const GleissystemID 	= GleisTextArray[0];
 		const GleisID 			= GleisTextArray[1];
 
 		showGleisInfo(GleissystemID, GleisID);
+
+	} else if (event.target.parentElement.parentElement.classList.contains("Gleisobjekt")) {	// Gleisobjekt
+		const GleisobjektCode 	= event.target.parentElement.id;
+		const GleisobjektID 	= GleisobjektCode.substring(2);
+
+		// No popup for Gleisobjekt yet
 	}
 }
 
