@@ -66,6 +66,11 @@ msg : {
 		EN : `The camera $1 does not exist`, 
 		FR : `La caméra n'existe pas`, 
 	},
+	TrackObjectNotExists : {
+		DE : `Das Gleisobjekt $1 existiert nicht`, 
+		EN : `The track object $1 does not exist`, 
+		FR : `L'objet de la voie n'existe pas`, 
+	},
 	Positioning : {
 		DE : `Positionierung auf $1 $2`, 
 		EN : `Positioning on $1 $2`, 
@@ -237,6 +242,11 @@ info : {
 		DE : `Immobilien`, 
 		EN : `Real estates`, 
 		FR : `Immobilier`, 
+	},
+	Gebaeudesammlung : {
+		DE : `Gebäudesammlung`, 
+		EN : `Building collection`, 
+		FR : `Collection de bâtiments`, 
 	},
 	Stil : {	// Gleisstil, attribute: stil
 		DE : `Gleisstil`, 
