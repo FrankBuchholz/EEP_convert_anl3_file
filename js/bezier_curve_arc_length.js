@@ -115,8 +115,8 @@ function getDerivative(derivative, t, vs) {
 function B(xs, ys, t) {
   var xbase = getDerivative(1, t, xs);
   var ybase = getDerivative(1, t, ys);
-  var combined = xbase * xbase + ybase * ybase;
-  return Math.sqrt(combined);
+  //var combined = xbase * xbase + ybase * ybase;
+  return Math.hypot(xbase, ybase);
 }
 
 function getArcLength(xs, ys, t, n) {

@@ -88,6 +88,11 @@ function loadFile(file) {
 
 <script type="text/javascript"> // process_node
 "use strict";
+function escapeHtml(str) {
+	return String(str).replace(/[&<>"']/g, c => ({
+		'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+	}[c]));
+}
 function process_node(sutrackp) {
 //console.log(sutrackp.nodeName);
 
@@ -477,7 +482,7 @@ mit
 				});
 
 				// Schaltverbindung zu einem anderen Signal bzw. Weiche
-				collectCouplings( Gleis, +WeicheID );
+				collectCouplings( Gleis, Number(WeicheID) );
 			}
 
 			// Weichen mit KontaktZiel
@@ -1277,7 +1282,7 @@ function createSignalsTable() {
 		{ th : _('Anzahl wartender Zugverbände'), td : countTrains, },
 		{ th : _('Datei'),				td : File, },
 		{ th : _('Name'),				td : getSignalName(File), },
-		{ th : _('TipTxt'),				td : (TipTxt ? TipTxt : '') },
+		{ th : _('TipTxt'),				td : (TipTxt ? escapeHtml(TipTxt) : '') },
 
 		]) })
 
@@ -1544,8 +1549,8 @@ function createContactsTable() {
 		{ th : _('für Route'),			td : (RouteID != 0 ? RouteID + ': ' + Routen[RouteID] : '') },
 		{ th : _('für Zug'),			td : (TrainID  != 0 ? TrainID  + ': ' + (Zugverband  ? Zugverband.Name  : 'nicht vorhanden') : '') },
 		{ th : _('auf Zug'),			td : (TrainID2 != 0 ? TrainID2 + ': ' + (Zugverband2 ? Zugverband2.Name : 'nicht vorhanden') : '') },
-		{ th : _('Zug-Filter'),			td : NameFilter },
-		{ th : _('Neuer Zugname'),		td : TrainNewName },
+		{ th : _('Zug-Filter'),			td : escapeHtml(NameFilter) },
+		{ th : _('Neuer Zugname'),		td : escapeHtml(TrainNewName) },
 		{ th : _('zu Stellung'),		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) },
 		{ th : _('SignalData'),			td : (SignalData != 0 ? `ID=${SignalDataID} Stellung=${SignalDataStellung}` : '') },
 		{ th : _('AxisPos'),			td : (AxisPos && AxisPos != 0
@@ -1557,8 +1562,8 @@ function createContactsTable() {
 											  ) 
 											},
 //		{ th : _('Achsenfilter'),		td : (AxisFilter ? AxisFilter : '') },
-		{ th : _('LuaFn'),				td : (LuaFn ? LuaFn : '') },
-		{ th : _('TipTxt'),				td : (TipTxt ? TipTxt : '') },
+		{ th : _('LuaFn'),				td : (LuaFn ? escapeHtml(LuaFn) : '') },
+		{ th : _('TipTxt'),				td : (TipTxt ? escapeHtml(TipTxt) : '') },
 
 		]) })
 
@@ -2921,7 +2926,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	}
 
 	.grey {
-		fill: rgb(180, 180, 180);		/* green */ 
+		fill: rgb(180, 180, 180);		/* grey */ 
 	}
 	
 	.IDtext {
@@ -3306,8 +3311,8 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 			<use href="#Track_NW"/>
 			<use href="#Track_SW"/>
 			<use href="#LED_O"      class="block1"/>
-			<use href="#LED_NW"     class="block""/>
-			<use href="#LED_SW"     class="block§"/>
+			<use href="#LED_NW"     class="block2"/>
+			<use href="#LED_SW"     class="block3"/>
 	</symbol>
 	
 	<symbol id="Tile_22" viewBox="-50 -50 100 100">
