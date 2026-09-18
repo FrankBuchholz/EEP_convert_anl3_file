@@ -145,7 +145,7 @@ matrix.quarternion = function (A) {
 		y = (NorZ + BinY) / S;
 		z = 0.25 * S;
 	}			
-	const norm = Math.sqrt(w*w + x*x + y*y + z*z);
+	const norm = Math.hypot(w, x, y, z);
 
 	// Return result as object
 	return {
@@ -177,7 +177,7 @@ matrix.euler_angles = function (obj) {
 	const z  = Q.z;
 
 	const a = Math.acos( (tr - 1) / 2 );
-	const b = 2 * Math.atan2( Math.sqrt(x*x + y*y + z*z), w );
+	const b = 2 * Math.atan2( Math.hypot(x, y, z), w );
 	
 	// roll is rotation around x in radians (counterclockwise)
 	let t1, t2;

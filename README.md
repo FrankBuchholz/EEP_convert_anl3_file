@@ -81,6 +81,8 @@ Der Filter wird über dynamische Anpassung der CSS-Klassen von SVG-Gruppenelemen
 
 Die Interaktion mit dem Inventar-Programm erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
 
+In 2026 wurden mit Hilfe der Claude AI meherer Korrekturen und Performance-Verbesserungen erarbeitet.
+
 ### Abhängigkeiten
 
 Das Programm verwendet die GitHub-Bibliotheken [`svg-pan-zoom`](https://github.com/ariutta/svg-pan-zoom), [`toolwindow`](https://github.com/fluffynuts/toolwindow) und [`rematrix`](https://github.com/jlmakes/rematrix).
