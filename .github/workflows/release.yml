@@ -16,7 +16,7 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v7
 
     - name: Build
       run: zip -r ./dist/EEP_convert_anl3_file.zip EEP_Gleisplan.html EEP_Inventar.html EEP_Signale.html js/ css/

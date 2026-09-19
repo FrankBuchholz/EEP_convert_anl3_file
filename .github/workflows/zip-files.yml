@@ -1,5 +1,8 @@
 name: Archive files action
 
+permissions:
+  contents: write
+
 on:
   push:
     paths-ignore:
@@ -18,14 +21,14 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v7
 
     - name: Build
       run: zip -r ./dist/EEP_convert_anl3_file.zip EEP_Gleisplan.html EEP_Inventar.html EEP_Signale.html js/ css/
 
     - name: Upload artifact # The artifact shows up at the action log
       if: ${{ success() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v7
       with:
         path: ${{ github.workspace }}/dist
         
