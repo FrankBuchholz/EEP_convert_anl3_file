@@ -388,7 +388,8 @@ function loadFile(file) {
 			document.getElementById("main").classList.remove("hidden");
 
 			// Show file name
-			const filename = file.name.substring(0, file.name.length -1 -1 -3);
+			//const filename = file.name.substring(0, file.name.length -1 -1 -3); // remove last 5 characters (".anl3") from file name
+			const filename = file.name.replace(/\.anl3$/i, ""); // Claude AI: remove last 5 characters (".anl3") from file name, case insensitive
 			document.getElementById("filename").textContent = filename;
 			document.getElementById("svgTitle").textContent = filename;
 
@@ -537,17 +538,21 @@ global.Gleisart = { 					// clsid
 
 // GleisData
 global.GleisDataText = {
-	1	: _('Oberleitung'),
-	2	: _('Weichenlaterne verstecken'),
-	3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),
-	4	: _('Weichenlaterne rechts'),
-	5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),
-	8	: _('Weichenlaterne links'),
-	9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),
-	16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),
-	18	: _('Doppelkreuzungsweiche'),
-	19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),
-	20	: _('Straßen-T-Kreuzung'),
+	1	: _('Oberleitung'),											// 1
+	2	: _('Weichenlaterne verstecken'),							// 2
+	3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),	// 1 + 2 
+	4	: _('Weichenlaterne rechts'),								// 4
+	5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),		// 1 + 4
+	8	: _('Weichenlaterne links'),								// 8
+	9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),		// 1 + 8
+	16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),		//
+	18	: _('Doppelkreuzungsweiche'),								// 
+	19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 
+	20	: _('Straßen-T-Kreuzung'),									// 
+	64	: _('special'),																	//         64 ?
+	65	: _('Oberleitung') + ', ' + _('Spezial'),										// 1 +     64 ?
+	69	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts') + ', ' + _('Spezial'),	// 1 + 4 + 64 ?
+	73	: _('Oberleitung') + ', ' + _('Weichenlaterne links')  + ', ' + _('Spezial'),	// 1 + 8 + 64 ?
 };
 
 // Weichenstellung
@@ -782,7 +787,8 @@ function prepareGleissysteme(sutrackp) {
 			}
 
 			// Weichen mit KontaktZiel
-			const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0];
+			//const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0];
+			const KontaktZielEntry = Array.from(Gleis.children).find(el => el.tagName === "KontaktZiel");
 			if (KontaktZielEntry) {
 				const KontaktZiel 	= KontaktZielEntry.textContent;
 				if (KontaktZiel != null && KontaktZiel != 0) {
@@ -819,7 +825,8 @@ function prepareGleissysteme(sutrackp) {
 				}
 				
 				// Signale mit KontaktZiel
-				const KontaktZielEntry 	= Meldung.getElementsByTagName("KontaktZiel")[0];
+				//const KontaktZielEntry 	= Meldung.getElementsByTagName("KontaktZiel")[0];
+				const KontaktZielEntry = Array.from(Gleis.children).find(el => el.tagName === "KontaktZiel");
 				if (KontaktZielEntry) {
 					const KontaktZiel 	= KontaktZielEntry.textContent;
 					if (KontaktZiel != null && KontaktZiel != 0) {
@@ -948,16 +955,7 @@ function prepareGleissysteme(sutrackp) {
 
 				// Now we can follow the tracks to find the position of the main signal on the track
 				let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
-				let Laenge, near, far;	//###
-				if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-					const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-					near			= +Interval.getAttribute("near");
-					far 			= +Interval.getAttribute("far");
-					Laenge	= Math.abs( far - near );
-				} else {  /* EEP 15 */
-					const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-					Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
-				}
+				let { near, far, Laenge } = getGleisInterval(Gleis);
 
 				// Do we find the main signal on the same track?
 				Position = Position + Distanz * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
@@ -1024,16 +1022,7 @@ function prepareGleissysteme(sutrackp) {
 						break;
 					}
 
-					let Laenge;
-					if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-						const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-						const near		= +Interval.getAttribute("near");
-						const far 		= +Interval.getAttribute("far");
-						Laenge	= Math.abs( far - near );
-					} else {  /* EEP 15 */
-						const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-						Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
-					}
+					let { near, far, Laenge } = getGleisInterval(Gleis);
 
 					if (Position <= Laenge) {
 						// The main signal is on the this track
@@ -1063,16 +1052,7 @@ function prepareGleissysteme(sutrackp) {
 					let Position		= entry.Meldung.getAttribute("Position") / 100; 	// Wert zwischen 0 und Gleis.Laenge
 					let ParaOderAnti 	= entry.Meldung.getAttribute("ParaOderAnti"); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 					let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
-					let Laenge, near, far;	//###
-					if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-						const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-						near			= +Interval.getAttribute("near");
-						far 			= +Interval.getAttribute("far");
-						Laenge	= Math.abs( far - near );
-					} else {  /* EEP 15 */
-						const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-						Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
-					}
+					let { near, far, Laenge } = getGleisInterval(Gleis);
 					// Do we find the stop position on the same track?
 					Position = Position + (Distanz - StopAt) * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
 					if (Position >= 0 && Position <= Laenge) {
@@ -1138,16 +1118,7 @@ function prepareGleissysteme(sutrackp) {
 							break;
 						}
 
-						let Laenge;
-						if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-							const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-							const near		= +Interval.getAttribute("near");
-							const far 		= +Interval.getAttribute("far");
-							Laenge	= Math.abs( far - near );
-						} else {  /* EEP 15 */
-							const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-							Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
-						}
+						let { near, far, Laenge } = getGleisInterval(Gleis);
 
 						if (Position <= Laenge) {
 							// The main signal is on the this track
@@ -1428,18 +1399,17 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 															// 16: Zentrale Strecken einer Straßen-T-Kreuzung
 															// 20: Weichen einer Straßen-T-Kreuzung
 
-		let CurveType, Laenge, Kruemmung, mMatrix;
+		const { near, far, Laenge } = getGleisInterval(Gleis); // Charakteristik.Laenge bzw. Interval.far - Interval.near
+
+		let CurveType, Kruemmung, mMatrix;
 		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
-		let near, far;	//###
 
 		if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 
 			// Common attributes
 			const Curve 	= Gleis.getElementsByTagName("Curve")[0];
 
-			const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-			near 			= +Interval.getAttribute("near");	//###
-			far 			= +Interval.getAttribute("far");	//###
+			
 			const Frame		= Gleis.getElementsByTagName("Frame")[0];
 			const FramePos	= Frame.getElementsByTagName("Position")[0];
 			const FrameVectors = Frame.getElementsByTagName("Vector");
@@ -1468,8 +1438,6 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 );}
 			const FrameNor	= FrameVectors[(swap ? 2 : 1)];
 			const FrameBin	= FrameVectors[(swap ? 1 : 2)];
-
-			Laenge	= Math.abs( far - near );
 
 			// Depending on CurveType some adjustments will be done later
 			PosX	= +FramePos.getAttribute("x");
@@ -2335,6 +2303,7 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 			} else if (RotatorChain) {
 				CurveType 	= 'RotatorChain';
 				console.log(`RotatorChain not supported yet: ${TrackSystemText(GleissystemID)} ${GleisID}`);
+				Gleis.mPos = Gleis.mMid = Gleis.mEnd = mMatrix; // hack to avoid errors in later code
 				continue;
 
 			} else if (PolygonalChain) {
@@ -2392,6 +2361,7 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 			} else { // curve not supported yet
 				CurveType 	= 'others';
 				console.log(`other curve type not supported yet:  ${TrackSystemText(GleissystemID)} ${GleisID}`);
+				Gleis.mPos = Gleis.mMid = Gleis.mEnd = mMatrix; // hack to avoid errors in later code
 				continue;
 			}
 
@@ -2404,9 +2374,6 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 			const FrameNor	= Dreibein.getElementsByTagName("Vektor")[2];
 			const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
 
-			Laenge 		= +Charakteristik.getAttribute("Laenge") / 100;
-			near		= 0;		//###
-			far			= Laenge;	//###
 			Kruemmung	= +Charakteristik.getAttribute("Kruemmung") * 100;
 
 			PosX		= +FramePos.getAttribute("x") / 100;
@@ -2430,12 +2397,11 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 		} /* EEP 15 */
 
 /*
-const Interval = Gleis.getElementsByTagName("Interval")[0];
-if (0 != +Interval.getAttribute("near")) {
-console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}`
-+ ' ' + Interval.getAttribute("near")
-+ ' ' + Interval.getAttribute("far")
-);
+if (near != 0) {
+	console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}`
+	+ ' ' + near
+	+ ' ' + far
+	);
 }
 */
 		/*
@@ -2861,7 +2827,7 @@ if (near > far) { //###
 			flipText += ` rotate(180)`;
 		}
 
-if (false) {
+if (false) { // Experiment for using quarternions
 const Q = matrix.quarternion(Gleis.mMid);
 
 if (CurveType == "Helix" ) {
@@ -3781,6 +3747,26 @@ function createSVGforRahmen(SVGfragment) {
 		cy		:  `0`,
 		r		:  `1`,
 	});
+}
+
+// Claude AI: near/far/Laenge werden pro Gleis an mehreren Stellen erneut aus dem DOM gelesen (Haupt-Rendering, Vorsignal->Hauptsignal-Suche, StopAt-Suche). Bei jedem Zugriff wird erneut 
+// getElementsByTagName("Interval") bzw. "Charakteristik" durchsucht. Für große Anlagen mit tausenden Gleisen und langen Signal-Suchketten summiert sich das spürbar.
+// Fix: Ergebnis einmalig am Gleis-Objekt selbst zwischenspeichern (DOM-Elemente erlauben beliebige zusätzliche Eigenschaften, wie es der Code an anderer Stelle bereits mit 
+// Gleis.CurveType, Gleis.mPos usw. tut).
+function getGleisInterval(Gleis) {
+	if (Gleis.near === undefined) {	// Erstzugriff: einmalig berechnen und cachen
+		if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
+			const Interval = Gleis.getElementsByTagName("Interval")[0];
+			Gleis.near = +Interval.getAttribute("near");
+			Gleis.far  = +Interval.getAttribute("far");
+		} else {  /* EEP 15 */
+			const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
+			Gleis.near = 0;
+			Gleis.far  = +Charakteristik.getAttribute("Laenge") / 100;
+		}
+		Gleis.Laenge = Math.abs(Gleis.far - Gleis.near);
+	}
+	return { near: Gleis.near, far: Gleis.far, Laenge: Gleis.Laenge };
 }
 
 // Generate matrix command for svg
@@ -5227,7 +5213,7 @@ svg {
 <!-- <script type="text/javascript" src="svg-pan-zoom/dist/svg-pan-zoom.js"></script> -->
 <!-- remote library on GitHub pages -->
 <!--<script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script> -->
-<script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.js"></script>
+<script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <!-- Not possible: "Cross-Origin Read Blocking (CORB) blocked cross-origin response with MIME type text/plain."
 See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
 <!-- <script type="text/javascript" src="https://raw.githubusercontent.com/bumbu/svg-pan-zoom/master/dist/svg-pan-zoom.js"></script>		-->
@@ -5938,7 +5924,7 @@ event.target.id												V4-1
 Texts for tracks have an additional group element.
 */
 
-if (false) {
+if (false) { // Experiment for testing targets
 	console.log( "target "               + event.target.id                             + " : " + event.target.classList.toString() );
 	console.log( "target.parent "        + event.target.parentElement.id               + " : " + event.target.parentElement.classList.toString() );
 	console.log( "target.parent.parent " + event.target.parentElement.parentElement.id + " : " + event.target.parentElement.parentElement.classList.toString() );
@@ -6524,7 +6510,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 	if (KollektorID) {
 		const Gleisobjekt = global.Gleisobjekte[KollektorID];
 
-		GleisobjektText = "<br>" + _('Gleisobjekt') + ": " + Gleisobjekt.gsbname
+		GleisobjektText = "<br>" + _('Gleisobjekt') + ": " + escapeHtml(Gleisobjekt.gsbname)
 			+ "<br>" + _('Immobilie') + ": " + global.GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + " " + Gleisobjekt.ImmoIdx;
 	}
 
@@ -6537,7 +6523,9 @@ function showGleisInfo(GleissystemID, GleisID) {
 
 	const Q = matrix.quarternion(Gleis.mPos);					// Calculate quarternion
 	const [roll_x, pitch_y, yaw_z] = matrix.euler_angles(Q); 	// Calculate euler angles
-	const quarternionText = 'Quarternion: axis ' + Q.axis 
+	const quarternionText = (global.altDown 
+		?   `<br>` 
+			+ 'Quarternion: axis ' + Q.axis 
 			+ ', trace ' 	+ Q.tr.toFixed(4) 
 			+ ', w ' 		+ Q.w.toFixed(4) 
 			+ ', x ' 		+ Q.x.toFixed(4) 
@@ -6548,8 +6536,9 @@ function showGleisInfo(GleissystemID, GleisID) {
 			//+ ' det4x4'	+ matrix.det(Gleis.mMid).toFixed(4)
 			+ ', roll ' 	+ (roll_x 	* 180/Math.PI).toFixed(1) + '°'
 			+ ', pitch ' 	+ (pitch_y 	* 180/Math.PI).toFixed(1) + '°'
-			+ ', yaw ' 		+ (yaw_z 	* 180/Math.PI).toFixed(1) + '°'
-			;
+			+ ', yaw ' 		+ (yaw_z 	* 180/Math.PI).toFixed(1) + '°' 
+		: ""
+	);
 
 	// Ausführlich im Info Popup
 	const posX = 12, posY = 13, posZ = 14;
@@ -6575,15 +6564,21 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ `<br>${_('Mitte')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[posX].toFixed(0)}m, ${Gleis.mMid[posY].toFixed(0)}m<\/a>)`
 			+ `<br>${_('Ende')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}])">${Gleis.mEnd[posX].toFixed(0)}m, ${Gleis.mEnd[posY].toFixed(0)}m<\/a>)`
 			+ `<br>${_('Gleisart')}: ${global.Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
-			+ (GleisData != 0 ? `<br>${global.GleisDataText[GleisData]}` : "")
+			+ (GleisData != 0 
+				? `<br>${(global.GleisDataText[GleisData] 
+							? global.GleisDataText[GleisData] 
+							: _('GleisData') + ": " + GleisData
+					)} ` 
+				: ""
+			  )
 			+ `<br>${_('Stil')}: ${stil}`
-			+ (gsbname != null ? `<br>${_('Datei')}: ${gsbname}` : "")
+			+ (gsbname != null ? `<br>${_('Datei')}: ${escapeHtml(gsbname)}` : "")
 			+ GleisobjektText
 			+ `<br>${_('Länge')}: ${Gleis.Laenge.toFixed(0)}m`
 			+ `<br>${_('Höhe')}: ${Gleis.mPos[posZ].toFixed(2)}m`
 			+ (Gleis.CurveType === 'classic' || Gleis.CurveType === 'EEPCurve' ? "" : `<br>${_('Kurventyp')}: ${Gleis.CurveType}`)
 			+ connectionText
-			+ `<br>` + quarternionText
+			+ quarternionText
 			+ objectToHTML(Gleis)
 	});
 }
@@ -6644,10 +6639,16 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}]);">${TrackSystemText(GleissystemID)} ${GleisID}<\/a>`
 				+ `<\/i>`
 			+ `<br>${_('Gleisart')}: ${global.Gleisart[clsid]}`
-			+ (GleisData   != 0 ? `<br>` + global.GleisDataText[GleisData] : "")
+			+ (GleisData != 0 
+				? `<br>${(global.GleisDataText[GleisData] 
+							? global.GleisDataText[GleisData] 
+							: _('GleisData') + ": " + GleisData
+					)} ` 
+				: ""
+			  )
 			+ `<br>${_('Weichenstellung')}: ${global.WeichenstellungText[weichenstellung]}`
 			+ `<br>${_('Stil')}: ${stil}`
-			+ (gsbname != null ? `<br>${_('Datei')}: ${gsbname}` : "")
+			+ (gsbname != null ? `<br>${_('Datei')}: ${escapeHtml(gsbname)}` : "")
 //			+ (SignalData != null 
 //				? `<br>${_('Schaltverbindung')}: ${SignalData}, ${_('Anzahl gekoppelter Stellungen')}: ${cnt}` 
 //				: "")
@@ -6774,7 +6775,7 @@ console.log(
 	}
 
 	// Kurzform in msg-Element
-	msg("", `${SignalTypeText} ${SignalID} ${File} ${_('auf')} ${TrackSystemText(GleissystemID)} ${GleisID}`
+	msg("", `${SignalTypeText} ${SignalID} ${escapeHtml(File)} ${_('auf')} ${TrackSystemText(GleissystemID)} ${GleisID}`
 		+ `, ${_('Signalstellung')} ${Stellung} ${SignalstellungText}`
 		+ (KontaktZiel != null && KontaktZiel != 0 ? `, ${_('Kontaktziel')}=${KontaktZiel}` : ""));
 
@@ -6830,7 +6831,7 @@ console.log(
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${TrackSystemText(GleissystemID)} ${GleisID}`
 				+ ` +${Position.toFixed(1)}m<\/a><\/i>`
 			//+ `<br>${(signalType ? signalType : "")}`
-			+ `<br>${_('Name')}: ${File}`
+			+ `<br>${_('Name')}: ${escapeHtml(File)}`
 			+ (Signalstellung[File] && File !== getSignalName(File) ? `<br>${getSignalName(File)}` : "")
 			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
 			+ (Distanz !=0 ? `<br>${(signalType == "pre" ? _('Distanz zum Hauptsignal') :  _('Distanz zum Vorsignal'))}: ${Distanz.toFixed(0)}m` : "")
@@ -6992,13 +6993,13 @@ console.log('Kamera'
 
 			Text = ""		// <Kamera Icon> <Start Kamera> [<Perspektive>] / <Ende Kamera> nach <t> Sek. [<Perspektive>]
 				+ (StartKamera
-					? `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${StartKamera.mPos}])">${StartKamera.Name}<\/a>`
+					? `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${StartKamera.mPos}])">${escapeHtml(StartKamera.Name)}<\/a>`
 					: "" )
 				+ (StartPerspektive > 0
 					? ` [${Perspektive[StartPerspektive]}]`
 					: "" )
 				+ (EndeKamera
-					? ` / <a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${EndeKamera.mPos}])">${EndeKamera.Name}<\/a> ${_('nach')} ${SetValue} ${_('Sekunden')}`
+					? ` / <a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${EndeKamera.mPos}])">${escapeHtml(EndeKamera.Name)}<\/a> ${_('nach')} ${SetValue} ${_('Sekunden')}`
 					: "" )
 				+ (EndePerspektive > 0
 					? ` [${Perspektive[EndePerspektive]}]`
@@ -7271,8 +7272,8 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 	// Ausführlich im Info Popup
 	showInfoWindow({
 		code: "Kamera " + KameraID + " " + Kamera.Name,
-		title: '📷 ' + Kamera.Name, // 📷 \u1F4F7
-		content: //`<b>${Kamera.Name}<\/b><br>` +
+		title: '📷 ' + escapeHtml(Kamera.Name), // 📷 \u1F4F7
+		content: //`<b>${escapeHtml(Kamera.Name)}<\/b><br>` +
 			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m<\/a>)`
 			+ `<br>${_('Höhe')}: ${PosZ.toFixed(0)}m`
 			+ `<br>${_('Blickrichtung')}: ` 		 + angle( -angleZ )			// svg: mirrored y-coordinate
@@ -7297,7 +7298,7 @@ function showGleisobjektInfo(GleisobjektID) {
 			+ `${Gleisobjekt.PosX.toFixed(0)}m, ${Gleisobjekt.PosY.toFixed(0)}m`
 			+ `<\/a>)<\/i>`
 			+ `<br>${_('Immobilie')}: ${global.GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] || '-'} ${Gleisobjekt.ImmoIdx || ''}`
-			+ `<br>${_('Datei')}: ${Gleisobjekt.gsbname || '-'}`
+			+ `<br>${_('Datei')}: ${escapeHtml(Gleisobjekt.gsbname) || '-'}`
 		});
 }
 })(this); // end module
