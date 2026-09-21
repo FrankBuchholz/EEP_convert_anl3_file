@@ -487,10 +487,11 @@ mit
 			}
 
 			// Weichen mit KontaktZiel
-			const KontaktZielEntry 	= Gleis.getElementsByTagName('KontaktZiel')[0];
+			//const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0]; // Die könnte auch Kontaktziele von Meldungen finden
+			const KontaktZielEntry = Array.from(Gleis.children).find(el => el.tagName === "KontaktZiel");			
 			if (KontaktZielEntry) {
 				const KontaktZiel 	= KontaktZielEntry.textContent;
-				if (KontaktZiel != null && KontaktZiel != 0) {
+				if (KontaktZiel != "" && KontaktZiel != 0) {
 					const WeicheID = Gleis.getAttribute('Key_Id');
 					KontaktZiele[KontaktZiel] = {
 						Typ				: _('Weiche'),
