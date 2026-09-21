@@ -199,6 +199,14 @@ matrix.euler_angles = function (obj) {
 }
 
 matrix.isFlipped = function (A) {
+	// Claude AI: det3x3(A) ist die Determinante des Dir/Nor/Bin-Anteils der Matrix. Das ist mathematisch der korrekte Reflexions-Test: 
+	// Eine reine Rotation (rechtshändiges Orthonormalsystem) hat det = +1; jede ungerade Anzahl Spiegelungen (z. B. die 
+	// globale Y-Spiegelung an einer Stelle im Frame-Aufbau) macht daraus det = -1.
+	const det = matrix.det3x3(A);
+	//return det < 0;
+	
+	// Allerdings klappt das bei etlichen Beispielen nicht Deshalb wird hier zusätzlich die Spur (Summe der Diagonalelemente) betrachtet.
+
 	// Name the fields of the matrix
 	const [ DirX, DirY, DirZ, d0, 
 			NorX, NorY, NorZ, n0, 
@@ -207,7 +215,7 @@ matrix.isFlipped = function (A) {
 	
 	// Trace = sum of diagonal elements
 	const tr = DirX + NorY + BinZ;
-	const det = matrix.det3x3(A);
+
 	let axis;
 
 	if (tr >= 0.0) { 
@@ -220,11 +228,11 @@ matrix.isFlipped = function (A) {
 		
 	} else if (NorY > BinZ) { 
 		axis = 'Y';
-		return det >= 0; 
+		return det >= 0;
 		
 	} else { 
 		axis = 'Z';
-		return det < 0; 
+		return det < 0;
 	}			
 }
 

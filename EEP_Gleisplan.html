@@ -388,7 +388,8 @@ function loadFile(file) {
 			document.getElementById("main").classList.remove("hidden");
 
 			// Show file name
-			const filename = file.name.substring(0, file.name.length -1 -1 -3);
+			//const filename = file.name.substring(0, file.name.length -1 -1 -3); // remove last 5 characters (".anl3") from file name
+			const filename = file.name.replace(/\.anl3$/i, ""); // Claude AI: remove last 5 characters (".anl3") from file name, case insensitive
 			document.getElementById("filename").textContent = filename;
 			document.getElementById("svgTitle").textContent = filename;
 
@@ -537,17 +538,21 @@ global.Gleisart = { 					// clsid
 
 // GleisData
 global.GleisDataText = {
-	1	: _('Oberleitung'),
-	2	: _('Weichenlaterne verstecken'),
-	3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),
-	4	: _('Weichenlaterne rechts'),
-	5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),
-	8	: _('Weichenlaterne links'),
-	9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),
-	16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),
-	18	: _('Doppelkreuzungsweiche'),
-	19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),
-	20	: _('Straßen-T-Kreuzung'),
+	1	: _('Oberleitung'),											// 1
+	2	: _('Weichenlaterne verstecken'),							// 2
+	3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),	// 1 + 2 
+	4	: _('Weichenlaterne rechts'),								// 4
+	5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),		// 1 + 4
+	8	: _('Weichenlaterne links'),								// 8
+	9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),		// 1 + 8
+	16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),		//
+	18	: _('Doppelkreuzungsweiche'),								// 
+	19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 
+	20	: _('Straßen-T-Kreuzung'),									// 
+	64	: _('special'),																	//         64 ?
+	65	: _('Oberleitung') + ', ' + _('Spezial'),										// 1 +     64 ?
+	69	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts') + ', ' + _('Spezial'),	// 1 + 4 + 64 ?
+	73	: _('Oberleitung') + ', ' + _('Weichenlaterne links')  + ', ' + _('Spezial'),	// 1 + 8 + 64 ?
 };
 
 // Weichenstellung
@@ -782,10 +787,11 @@ function prepareGleissysteme(sutrackp) {
 			}
 
 			// Weichen mit KontaktZiel
-			const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0];
+			//const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0]; // Die könnte auch Kontaktziele von Meldungen finden
+			const KontaktZielEntry = Array.from(Gleis.children).find(el => el.tagName === "KontaktZiel");
 			if (KontaktZielEntry) {
 				const KontaktZiel 	= KontaktZielEntry.textContent;
-				if (KontaktZiel != null && KontaktZiel != 0) {
+				if (KontaktZiel != "" && KontaktZiel != 0) {
 					global.KontaktZiele[KontaktZiel] = {
 						Typ				: _('Weiche'),	// 1st letter is used to show an svg text.
 						ID				: WeicheID,
@@ -948,16 +954,7 @@ function prepareGleissysteme(sutrackp) {
 
 				// Now we can follow the tracks to find the position of the main signal on the track
 				let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
-				let Laenge, near, far;	//###
-				if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-					const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-					near			= +Interval.getAttribute("near");
-					far 			= +Interval.getAttribute("far");
-					Laenge	= Math.abs( far - near );
-				} else {  /* EEP 15 */
-					const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-					Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
-				}
+				let { near, far, Laenge } = getGleisInterval(Gleis);
 
 				// Do we find the main signal on the same track?
 				Position = Position + Distanz * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
@@ -1024,16 +1021,7 @@ function prepareGleissysteme(sutrackp) {
 						break;
 					}
 
-					let Laenge;
-					if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-						const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-						const near		= +Interval.getAttribute("near");
-						const far 		= +Interval.getAttribute("far");
-						Laenge	= Math.abs( far - near );
-					} else {  /* EEP 15 */
-						const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-						Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
-					}
+					let { near, far, Laenge } = getGleisInterval(Gleis);
 
 					if (Position <= Laenge) {
 						// The main signal is on the this track
@@ -1063,16 +1051,7 @@ function prepareGleissysteme(sutrackp) {
 					let Position		= entry.Meldung.getAttribute("Position") / 100; 	// Wert zwischen 0 und Gleis.Laenge
 					let ParaOderAnti 	= entry.Meldung.getAttribute("ParaOderAnti"); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
 					let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
-					let Laenge, near, far;	//###
-					if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-						const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-						near			= +Interval.getAttribute("near");
-						far 			= +Interval.getAttribute("far");
-						Laenge	= Math.abs( far - near );
-					} else {  /* EEP 15 */
-						const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-						Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
-					}
+					let { near, far, Laenge } = getGleisInterval(Gleis);
 					// Do we find the stop position on the same track?
 					Position = Position + (Distanz - StopAt) * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
 					if (Position >= 0 && Position <= Laenge) {
@@ -1138,16 +1117,7 @@ function prepareGleissysteme(sutrackp) {
 							break;
 						}
 
-						let Laenge;
-						if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-							const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-							const near		= +Interval.getAttribute("near");
-							const far 		= +Interval.getAttribute("far");
-							Laenge	= Math.abs( far - near );
-						} else {  /* EEP 15 */
-							const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-							Laenge	= +Charakteristik.getAttribute("Laenge") / 100;
-						}
+						let { near, far, Laenge } = getGleisInterval(Gleis);
 
 						if (Position <= Laenge) {
 							// The main signal is on the this track
@@ -1428,18 +1398,17 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 															// 16: Zentrale Strecken einer Straßen-T-Kreuzung
 															// 20: Weichen einer Straßen-T-Kreuzung
 
-		let CurveType, Laenge, Kruemmung, mMatrix;
+		const { near, far, Laenge } = getGleisInterval(Gleis); // Charakteristik.Laenge bzw. Interval.far - Interval.near
+
+		let CurveType, Kruemmung, mMatrix;
 		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
-		let near, far;	//###
 
 		if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
 
 			// Common attributes
 			const Curve 	= Gleis.getElementsByTagName("Curve")[0];
 
-			const Interval 	= Gleis.getElementsByTagName("Interval")[0];
-			near 			= +Interval.getAttribute("near");	//###
-			far 			= +Interval.getAttribute("far");	//###
+			
 			const Frame		= Gleis.getElementsByTagName("Frame")[0];
 			const FramePos	= Frame.getElementsByTagName("Position")[0];
 			const FrameVectors = Frame.getElementsByTagName("Vector");
@@ -1468,8 +1437,6 @@ if (swap) { console.log('Swap frame vektor Nor<->Bin for '
 );}
 			const FrameNor	= FrameVectors[(swap ? 2 : 1)];
 			const FrameBin	= FrameVectors[(swap ? 1 : 2)];
-
-			Laenge	= Math.abs( far - near );
 
 			// Depending on CurveType some adjustments will be done later
 			PosX	= +FramePos.getAttribute("x");
@@ -2019,7 +1986,7 @@ if ( 1 === 1
 				const Radius = a;
 				Kruemmung 	= 1 / Radius;	// nur noch informativ, nicht mehr fürs Rendering (siehe unten)
 
-				/* Fix: Die bisherige "einfacher Arc vs. Cubic"-Entscheidung (dDiff) verglich
+				/* Claude AI: Fix: Die bisherige "einfacher Arc vs. Cubic"-Entscheidung (dDiff) verglich
 				die Endpunkte fehlerhaft (d2 addierte die Achsdifferenzen statt sie zu quadrieren)
 				und berücksichtigte damit den 3D-Effekt der Kippung von
 				mFrame/mVectorBundle2/mOrientation nicht korrekt - siehe GleisID 575, wo der
@@ -2294,36 +2261,6 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 				Kruemmung = +Rotator.getAttribute("a");
 				const KruemmungZ = +Rotator.getAttribute("b");
 
-				// Optimierung mit Claude AI
-/*
-				// Entscheidungskriterium: einfacher Arc-Endpunkt vs. exakter Endpunkt
-				const exact = calcRotatorCurve(Kruemmung, KruemmungZ, near, far);
-				const exactEnd = exact[exact.length-1][3]; // B4 des letzten Segments
-
-				let dDiff;
-				if (Math.abs(Kruemmung) > 0.0001) {
-					const WinkelSimple = Kruemmung * Laenge;
-					const RadiusSimple = 1 / Kruemmung;
-					const simpleEnd = [
-						Math.sin(WinkelSimple) * RadiusSimple,
-						(1 - Math.cos(WinkelSimple)) * RadiusSimple,
-					];
-					dDiff = Math.hypot(simpleEnd[0]-exactEnd[0], simpleEnd[1]-exactEnd[1]);
-					console.log(`Rotator ${TrackSystemText(GleissystemID)} ${GleisID} has non-zero Kruemmung=${Kruemmung} with endpoint difference: ${dDiff.toFixed(2)}`);
-
-				} else {
-					dDiff = Math.hypot(Laenge-exactEnd[0], 0.0-exactEnd[1]);;
-
-					console.log(`Rotator ${TrackSystemText(GleissystemID)} ${GleisID} has no Kruemmung=${Kruemmung} with endpoint difference: ${dDiff.toFixed(2)}`);
-				}
-
-				if (dDiff > 1) {
-					// Exakte, segmentierte Darstellung verwenden
-					Gleis.BezierPoints = exact;
-				} else {
-					// sonst: bisheriges Verhalten (einfacher Arc mit Kruemmung=a) beibehalten	
-				}
-*/
 				// Claude AI: Die bisherige Entscheidung "einfacher Arc vs. exakte Kurve" verglich simpleEnd und exactEnd NUR in der lokalen (x,y)-Ebene (dDiff).
 				// Der lokale z-Anteil (Wirkung von KruemmungZ/b) ging in diesen Vergleich nicht ein. Bei stark gekipptem Frame (Bin-Vektor mit
 				// nennenswerten x/y-Komponenten) kann aber bereits ein kleiner lokaler z-Unterschied von wenigen Metern nach der Projektion über
@@ -2335,6 +2272,7 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 			} else if (RotatorChain) {
 				CurveType 	= 'RotatorChain';
 				console.log(`RotatorChain not supported yet: ${TrackSystemText(GleissystemID)} ${GleisID}`);
+				Gleis.mPos = Gleis.mMid = Gleis.mEnd = mMatrix; // hack to avoid errors in later code
 				continue;
 
 			} else if (PolygonalChain) {
@@ -2392,6 +2330,7 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 			} else { // curve not supported yet
 				CurveType 	= 'others';
 				console.log(`other curve type not supported yet:  ${TrackSystemText(GleissystemID)} ${GleisID}`);
+				Gleis.mPos = Gleis.mMid = Gleis.mEnd = mMatrix; // hack to avoid errors in later code
 				continue;
 			}
 
@@ -2404,9 +2343,6 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 			const FrameNor	= Dreibein.getElementsByTagName("Vektor")[2];
 			const FrameBin	= Dreibein.getElementsByTagName("Vektor")[3];
 
-			Laenge 		= +Charakteristik.getAttribute("Laenge") / 100;
-			near		= 0;		//###
-			far			= Laenge;	//###
 			Kruemmung	= +Charakteristik.getAttribute("Kruemmung") * 100;
 
 			PosX		= +FramePos.getAttribute("x") / 100;
@@ -2430,44 +2366,13 @@ console.log( TrackSystemText(GleissystemID) + "-" + GleisID
 		} /* EEP 15 */
 
 /*
-const Interval = Gleis.getElementsByTagName("Interval")[0];
-if (0 != +Interval.getAttribute("near")) {
-console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}`
-+ ' ' + Interval.getAttribute("near")
-+ ' ' + Interval.getAttribute("far")
-);
+if (near != 0) {
+	console.log(`near != 0 ${TrackSystemText(GleissystemID)} ${GleisID} ${CurveType}`
+	+ ' ' + near
+	+ ' ' + far
+	);
 }
 */
-		/*
-		2D transformation matrix			3D transformation matrix
-		matrix2D( a, b, c, d,  x, y ) = 	matrix3d( a, b, 0, 0,  c, d, 0, 0,  0, 0, 1, 0,  x, y, 0, 1 ).
-
-		matrix.format
-		[ a, b, 0, 0,
-		  c, d, 0, 0,
-		  0, 0, 1, 0,
-		  x, y, 0, 1  ]
-
-		matrix.identity
-		[ 1, 0, 0, 0,
-		  0, 1, 0, 0,
-		  0, 0, 1, 0,
-		  0, 0, 0, 1 ]
-
-		matrix.rotateZ
-		[ cos a, 	sin a,	0, 0,
-		  -sin a, 	cos a, 	0, 0,
-		  0, 		0, 		1, 0,
-		  0, 		0, 		0, 1]
-
-		matrix.translate
-		[ 1,  0,  0,  0,
-		  0,  1,  0,  0,
-		  0,  0,  1,  0,
-		  dx, dy, dz, 1 ]
-
-		*/
-
 
 /* //###
 Modellbahn_Landbrücken
@@ -2569,56 +2474,6 @@ if (near > far) { //###
 		// Calculate end point and create svg curve
 		const KRUEMMUNG_EPSILON = 0.0001;
 		if (Gleis.BezierPoints) { // SVG for tracks for CurveType: Cubic, Spline, PolygonalChain, Rotator
-/*
-			// Create svg curve
-			let d = "";
-			for (let I = 0; I < Gleis.BezierPoints.length; I++) {
-				const Index = (near > far ? Gleis.BezierPoints.length - 1 - I : I);	// reverse / normal
-				const BezierPoints = Gleis.BezierPoints[Index];
-
-				// BezierPoints = [ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z], arcLength ];
-				const B1X = BezierPoints[0][0];
-				const B1Y = BezierPoints[0][1];
-				const B1Z = BezierPoints[0][2];
-				const B2X = BezierPoints[1][0];
-				const B2Y = BezierPoints[1][1];
-				const B2Z = BezierPoints[1][2];
-				const B3X = BezierPoints[2][0];
-				const B3Y = BezierPoints[2][1];
-				const B3Z = BezierPoints[2][2];
-				const B4X = BezierPoints[3][0];
-				const B4Y = BezierPoints[3][1];
-				const B4Z = BezierPoints[3][2];
-				//const arcLength = BezierPoints[4];
-				
-				if (d === "") {
-					// The svg command "M x0 y0 C x1 y1 x2 y2 x3 y3" uses the coordinates of the bezier points of the first cubic segment.
-					d += (near > far  //###
-							? `M ${B4X} ${B4Y} C ${B3X} ${B3Y} ${B2X} ${B2Y} ${B1X} ${B1Y}`	// reverse
-							: `M ${B1X} ${B1Y} C ${B2X} ${B2Y} ${B3X} ${B3Y} ${B4X} ${B4Y}`	// normal
-						)
-				} else {
-					// We can chain the following segments using the short command "S x2 y2 x3 y3".
-					d += (near > far  //###
-							? ` S ${B2X} ${B2Y} ${B1X} ${B1Y}`								// reverse
-							: ` S ${B3X} ${B3Y} ${B4X} ${B4Y}`								// normal
-						)
-				}
-				
-			}
-			
-			svgAppend(svgGleisGroup, {
-				svg_tag				: `path`,
-				//class				: `stil-${stil}`,
-				d 					: d,
-				transform 			: matrixToTransform(mMatrix)
-			});
-
-			// Calculate end point
-			const t 	= (near > far ? 0 : 1);
-			const Index = (near > far ? 0 : Gleis.BezierPoints.length - 1);
-			[DeltaX, DeltaY, DeltaZ, Winkel] = calcBezierCurve(Gleis.BezierPoints[Index], t);
-*/
 			// Claude AI: Create svg curve
 			// Die Kontrollpunkte werden jetzt vollständig über mMatrix (inkl. Bin) projiziert, 
 			// statt lokale (x,y) zu verwenden + 2D-only matrixToTransform() auf den <path>.
@@ -2861,7 +2716,7 @@ if (near > far) { //###
 			flipText += ` rotate(180)`;
 		}
 
-if (false) {
+if (false) { // Experiment for using quarternions
 const Q = matrix.quarternion(Gleis.mMid);
 
 if (CurveType == "Helix" ) {
@@ -2950,38 +2805,16 @@ if (CurveType == "Helix" ) {
 		if (global.__showCircles__) {	// debugging feature
 			if (Gleis.BezierPoints) { // Debugging for CurveType: Cubic, Spline, PolygonalChain, Rotator
 				for (const BezierPoints of Gleis.BezierPoints) {
-/*
-					svgAppend(svgGleisGroup, {
-						svg_tag				: `circle`,
-						r					: 0.2,
-						transform			: `${matrixToTransform(mMatrix)} translate(${BezierPoints[0][0]} ${BezierPoints[0][1]})`
-					});
-					svgAppend(svgGleisGroup, {
-						svg_tag				: `circle`,
-						r					: 0.4,
-						transform			: `${matrixToTransform(mMatrix)} translate(${BezierPoints[1][0]} ${BezierPoints[1][1]})`
-					});
-					svgAppend(svgGleisGroup, {
-						svg_tag				: `circle`,
-						r					: 0.8,
-						transform			: `${matrixToTransform(mMatrix)} translate(${BezierPoints[2][0]} ${BezierPoints[2][1]})`
-					});
-					svgAppend(svgGleisGroup, {
-						svg_tag				: `circle`,
-						r					: 1.2,
-						transform			: `${matrixToTransform(mMatrix)} translate(${BezierPoints[3][0]} ${BezierPoints[3][1]})`
-					});
-*/
 					// Claude AI
-						const [p0x, p0y] = projectPoint(mMatrix, BezierPoints[0]);
-						const [p1x, p1y] = projectPoint(mMatrix, BezierPoints[1]);
-						const [p2x, p2y] = projectPoint(mMatrix, BezierPoints[2]);
-						const [p3x, p3y] = projectPoint(mMatrix, BezierPoints[3]);
+					const [p0x, p0y] = projectPoint(mMatrix, BezierPoints[0]);
+					const [p1x, p1y] = projectPoint(mMatrix, BezierPoints[1]);
+					const [p2x, p2y] = projectPoint(mMatrix, BezierPoints[2]);
+					const [p3x, p3y] = projectPoint(mMatrix, BezierPoints[3]);
 
-						svgAppend(svgGleisGroup, { svg_tag: `circle`, r: 0.2, transform: `translate(${p0x} ${p0y})` });
-						svgAppend(svgGleisGroup, { svg_tag: `circle`, r: 0.4, transform: `translate(${p1x} ${p1y})` });
-						svgAppend(svgGleisGroup, { svg_tag: `circle`, r: 0.8, transform: `translate(${p2x} ${p2y})` });
-						svgAppend(svgGleisGroup, { svg_tag: `circle`, r: 1.2, transform: `translate(${p3x} ${p3y})` });
+					svgAppend(svgGleisGroup, { svg_tag: `circle`, r: 0.2, transform: `translate(${p0x} ${p0y})` });
+					svgAppend(svgGleisGroup, { svg_tag: `circle`, r: 0.4, transform: `translate(${p1x} ${p1y})` });
+					svgAppend(svgGleisGroup, { svg_tag: `circle`, r: 0.8, transform: `translate(${p2x} ${p2y})` });
+					svgAppend(svgGleisGroup, { svg_tag: `circle`, r: 1.2, transform: `translate(${p3x} ${p3y})` });
 				}
 			}
 
@@ -3781,6 +3614,26 @@ function createSVGforRahmen(SVGfragment) {
 		cy		:  `0`,
 		r		:  `1`,
 	});
+}
+
+// Claude AI: near/far/Laenge werden pro Gleis an mehreren Stellen erneut aus dem DOM gelesen (Haupt-Rendering, Vorsignal->Hauptsignal-Suche, StopAt-Suche). Bei jedem Zugriff wird erneut 
+// getElementsByTagName("Interval") bzw. "Charakteristik" durchsucht. Für große Anlagen mit tausenden Gleisen und langen Signal-Suchketten summiert sich das spürbar.
+// Fix: Ergebnis einmalig am Gleis-Objekt selbst zwischenspeichern (DOM-Elemente erlauben beliebige zusätzliche Eigenschaften, wie es der Code an anderer Stelle bereits mit 
+// Gleis.CurveType, Gleis.mPos usw. tut).
+function getGleisInterval(Gleis) {
+	if (Gleis.near === undefined) {	// Erstzugriff: einmalig berechnen und cachen
+		if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
+			const Interval = Gleis.getElementsByTagName("Interval")[0];
+			Gleis.near = +Interval.getAttribute("near");
+			Gleis.far  = +Interval.getAttribute("far");
+		} else {  /* EEP 15 */
+			const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
+			Gleis.near = 0;
+			Gleis.far  = +Charakteristik.getAttribute("Laenge") / 100;
+		}
+		Gleis.Laenge = Math.abs(Gleis.far - Gleis.near);
+	}
+	return { near: Gleis.near, far: Gleis.far, Laenge: Gleis.Laenge };
 }
 
 // Generate matrix command for svg
@@ -5227,7 +5080,7 @@ svg {
 <!-- <script type="text/javascript" src="svg-pan-zoom/dist/svg-pan-zoom.js"></script> -->
 <!-- remote library on GitHub pages -->
 <!--<script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script> -->
-<script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.js"></script>
+<script type="text/javascript" src="node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
 <!-- Not possible: "Cross-Origin Read Blocking (CORB) blocked cross-origin response with MIME type text/plain."
 See https://www.chromestatus.com/feature/5629709824032768 for more details. -->
 <!-- <script type="text/javascript" src="https://raw.githubusercontent.com/bumbu/svg-pan-zoom/master/dist/svg-pan-zoom.js"></script>		-->
@@ -5938,7 +5791,7 @@ event.target.id												V4-1
 Texts for tracks have an additional group element.
 */
 
-if (false) {
+if (false) { // Experiment for testing targets
 	console.log( "target "               + event.target.id                             + " : " + event.target.classList.toString() );
 	console.log( "target.parent "        + event.target.parentElement.id               + " : " + event.target.parentElement.classList.toString() );
 	console.log( "target.parent.parent " + event.target.parentElement.parentElement.id + " : " + event.target.parentElement.parentElement.classList.toString() );
@@ -6524,7 +6377,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 	if (KollektorID) {
 		const Gleisobjekt = global.Gleisobjekte[KollektorID];
 
-		GleisobjektText = "<br>" + _('Gleisobjekt') + ": " + Gleisobjekt.gsbname
+		GleisobjektText = "<br>" + _('Gleisobjekt') + ": " + escapeHtml(Gleisobjekt.gsbname)
 			+ "<br>" + _('Immobilie') + ": " + global.GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] + " " + Gleisobjekt.ImmoIdx;
 	}
 
@@ -6537,7 +6390,9 @@ function showGleisInfo(GleissystemID, GleisID) {
 
 	const Q = matrix.quarternion(Gleis.mPos);					// Calculate quarternion
 	const [roll_x, pitch_y, yaw_z] = matrix.euler_angles(Q); 	// Calculate euler angles
-	const quarternionText = 'Quarternion: axis ' + Q.axis 
+	const quarternionText = (global.altDown 
+		?   `<br>` 
+			+ 'Quarternion: axis ' + Q.axis 
 			+ ', trace ' 	+ Q.tr.toFixed(4) 
 			+ ', w ' 		+ Q.w.toFixed(4) 
 			+ ', x ' 		+ Q.x.toFixed(4) 
@@ -6548,8 +6403,9 @@ function showGleisInfo(GleissystemID, GleisID) {
 			//+ ' det4x4'	+ matrix.det(Gleis.mMid).toFixed(4)
 			+ ', roll ' 	+ (roll_x 	* 180/Math.PI).toFixed(1) + '°'
 			+ ', pitch ' 	+ (pitch_y 	* 180/Math.PI).toFixed(1) + '°'
-			+ ', yaw ' 		+ (yaw_z 	* 180/Math.PI).toFixed(1) + '°'
-			;
+			+ ', yaw ' 		+ (yaw_z 	* 180/Math.PI).toFixed(1) + '°' 
+		: ""
+	);
 
 	// Ausführlich im Info Popup
 	const posX = 12, posY = 13, posZ = 14;
@@ -6575,15 +6431,21 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ `<br>${_('Mitte')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mMid}])">${Gleis.mMid[posX].toFixed(0)}m, ${Gleis.mMid[posY].toFixed(0)}m<\/a>)`
 			+ `<br>${_('Ende')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}])">${Gleis.mEnd[posX].toFixed(0)}m, ${Gleis.mEnd[posY].toFixed(0)}m<\/a>)`
 			+ `<br>${_('Gleisart')}: ${global.Gleisart[clsid]}` + (Key_Id != null ? " " + Key_Id : "" )
-			+ (GleisData != 0 ? `<br>${global.GleisDataText[GleisData]}` : "")
+			+ (GleisData != 0 
+				? `<br>${(global.GleisDataText[GleisData] 
+							? global.GleisDataText[GleisData] 
+							: _('GleisData') + ": " + GleisData
+					)} ` 
+				: ""
+			  )
 			+ `<br>${_('Stil')}: ${stil}`
-			+ (gsbname != null ? `<br>${_('Datei')}: ${gsbname}` : "")
+			+ (gsbname != null ? `<br>${_('Datei')}: ${escapeHtml(gsbname)}` : "")
 			+ GleisobjektText
 			+ `<br>${_('Länge')}: ${Gleis.Laenge.toFixed(0)}m`
 			+ `<br>${_('Höhe')}: ${Gleis.mPos[posZ].toFixed(2)}m`
 			+ (Gleis.CurveType === 'classic' || Gleis.CurveType === 'EEPCurve' ? "" : `<br>${_('Kurventyp')}: ${Gleis.CurveType}`)
 			+ connectionText
-			+ `<br>` + quarternionText
+			+ quarternionText
 			+ objectToHTML(Gleis)
 	});
 }
@@ -6644,10 +6506,16 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Gleis.mEnd}]);">${TrackSystemText(GleissystemID)} ${GleisID}<\/a>`
 				+ `<\/i>`
 			+ `<br>${_('Gleisart')}: ${global.Gleisart[clsid]}`
-			+ (GleisData   != 0 ? `<br>` + global.GleisDataText[GleisData] : "")
+			+ (GleisData != 0 
+				? `<br>${(global.GleisDataText[GleisData] 
+							? global.GleisDataText[GleisData] 
+							: _('GleisData') + ": " + GleisData
+					)} ` 
+				: ""
+			  )
 			+ `<br>${_('Weichenstellung')}: ${global.WeichenstellungText[weichenstellung]}`
 			+ `<br>${_('Stil')}: ${stil}`
-			+ (gsbname != null ? `<br>${_('Datei')}: ${gsbname}` : "")
+			+ (gsbname != null ? `<br>${_('Datei')}: ${escapeHtml(gsbname)}` : "")
 //			+ (SignalData != null 
 //				? `<br>${_('Schaltverbindung')}: ${SignalData}, ${_('Anzahl gekoppelter Stellungen')}: ${cnt}` 
 //				: "")
@@ -6774,7 +6642,7 @@ console.log(
 	}
 
 	// Kurzform in msg-Element
-	msg("", `${SignalTypeText} ${SignalID} ${File} ${_('auf')} ${TrackSystemText(GleissystemID)} ${GleisID}`
+	msg("", `${SignalTypeText} ${SignalID} ${escapeHtml(File)} ${_('auf')} ${TrackSystemText(GleissystemID)} ${GleisID}`
 		+ `, ${_('Signalstellung')} ${Stellung} ${SignalstellungText}`
 		+ (KontaktZiel != null && KontaktZiel != 0 ? `, ${_('Kontaktziel')}=${KontaktZiel}` : ""));
 
@@ -6830,7 +6698,7 @@ console.log(
 				+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${TrackSystemText(GleissystemID)} ${GleisID}`
 				+ ` +${Position.toFixed(1)}m<\/a><\/i>`
 			//+ `<br>${(signalType ? signalType : "")}`
-			+ `<br>${_('Name')}: ${File}`
+			+ `<br>${_('Name')}: ${escapeHtml(File)}`
 			+ (Signalstellung[File] && File !== getSignalName(File) ? `<br>${getSignalName(File)}` : "")
 			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
 			+ (Distanz !=0 ? `<br>${(signalType == "pre" ? _('Distanz zum Hauptsignal') :  _('Distanz zum Vorsignal'))}: ${Distanz.toFixed(0)}m` : "")
@@ -6992,13 +6860,13 @@ console.log('Kamera'
 
 			Text = ""		// <Kamera Icon> <Start Kamera> [<Perspektive>] / <Ende Kamera> nach <t> Sek. [<Perspektive>]
 				+ (StartKamera
-					? `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${StartKamera.mPos}])">${StartKamera.Name}<\/a>`
+					? `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${StartKamera.mPos}])">${escapeHtml(StartKamera.Name)}<\/a>`
 					: "" )
 				+ (StartPerspektive > 0
 					? ` [${Perspektive[StartPerspektive]}]`
 					: "" )
 				+ (EndeKamera
-					? ` / <a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${EndeKamera.mPos}])">${EndeKamera.Name}<\/a> ${_('nach')} ${SetValue} ${_('Sekunden')}`
+					? ` / <a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${EndeKamera.mPos}])">${escapeHtml(EndeKamera.Name)}<\/a> ${_('nach')} ${SetValue} ${_('Sekunden')}`
 					: "" )
 				+ (EndePerspektive > 0
 					? ` [${Perspektive[EndePerspektive]}]`
@@ -7271,8 +7139,8 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 	// Ausführlich im Info Popup
 	showInfoWindow({
 		code: "Kamera " + KameraID + " " + Kamera.Name,
-		title: '📷 ' + Kamera.Name, // 📷 \u1F4F7
-		content: //`<b>${Kamera.Name}<\/b><br>` +
+		title: '📷 ' + escapeHtml(Kamera.Name), // 📷 \u1F4F7
+		content: //`<b>${escapeHtml(Kamera.Name)}<\/b><br>` +
 			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m<\/a>)`
 			+ `<br>${_('Höhe')}: ${PosZ.toFixed(0)}m`
 			+ `<br>${_('Blickrichtung')}: ` 		 + angle( -angleZ )			// svg: mirrored y-coordinate
@@ -7297,7 +7165,7 @@ function showGleisobjektInfo(GleisobjektID) {
 			+ `${Gleisobjekt.PosX.toFixed(0)}m, ${Gleisobjekt.PosY.toFixed(0)}m`
 			+ `<\/a>)<\/i>`
 			+ `<br>${_('Immobilie')}: ${global.GebaeudesammlungText[Gleisobjekt.GebaudesammlungID] || '-'} ${Gleisobjekt.ImmoIdx || ''}`
-			+ `<br>${_('Datei')}: ${Gleisobjekt.gsbname || '-'}`
+			+ `<br>${_('Datei')}: ${escapeHtml(Gleisobjekt.gsbname) || '-'}`
 		});
 }
 })(this); // end module

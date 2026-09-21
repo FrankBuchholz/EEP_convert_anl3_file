@@ -149,13 +149,14 @@ function process_node(sutrackp) {
 		5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),		// 1 + 4
 		8	: _('Weichenlaterne links'),								// 8
 		9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),		// 1 + 8
-		16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),		// special
-		18	: _('Doppelkreuzungsweiche'),								// special
-		19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 1 + special
-		20	: _('Straßen-T-Kreuzung'),									// special
-//		65	: _('special'),												// 1 +     64 ?
-//		69	: _('special'),												// 1 + 4 + 64 ?
-//		73	: _('special'),												// 1 + 8 + 64 ?
+		16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),		// 
+		18	: _('Doppelkreuzungsweiche'),								// 
+		19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 1
+		20	: _('Straßen-T-Kreuzung'),									// 
+		64	: _('special'),																	// 64 ?
+		65	: _('Oberleitung') + ', ' + _('Spezial'),										// 1 +     64 ?
+		69	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts') + ', ' + _('Spezial'),	// 1 + 4 + 64 ?
+		73	: _('Oberleitung') + ', ' + _('Weichenlaterne links')  + ', ' + _('Spezial'),	// 1 + 8 + 64 ?
 	};
 
 	// Weichenstellung
@@ -486,10 +487,11 @@ mit
 			}
 
 			// Weichen mit KontaktZiel
-			const KontaktZielEntry 	= Gleis.getElementsByTagName('KontaktZiel')[0];
+			//const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0]; // Die könnte auch Kontaktziele von Meldungen finden
+			const KontaktZielEntry = Array.from(Gleis.children).find(el => el.tagName === "KontaktZiel");			
 			if (KontaktZielEntry) {
 				const KontaktZiel 	= KontaktZielEntry.textContent;
-				if (KontaktZiel != null && KontaktZiel != 0) {
+				if (KontaktZiel != "" && KontaktZiel != 0) {
 					const WeicheID = Gleis.getAttribute('Key_Id');
 					KontaktZiele[KontaktZiel] = {
 						Typ				: _('Weiche'),
@@ -1108,7 +1110,7 @@ function createSwitchesTable() {
 		//{ th : `NextSigFn4`,		td : NextSigFn4 },
 		//{ th : `NextSigFn5`,		td : NextSigFn5 },
 		{ th : _('Schaltverbindung'),	td : getCouplingText( WeicheID ), html : true, }, // Schaltverbindungen
-		{ th : _('GleisData'),		td : (GleisData != 0 ? GleisData + ': ' + GleisDataText[GleisData] : '') },
+		{ th : _('GleisData'),		td : (GleisData != 0 ? `${(GleisDataText[GleisData] ? GleisDataText[GleisData] :  GleisData )} ` : "" ) },
 		{ th : _('Datei'),			td : File },
 
 		]) })
