@@ -81,7 +81,7 @@ Der Filter wird über dynamische Anpassung der CSS-Klassen von SVG-Gruppenelemen
 
 Die Interaktion mit dem Inventar-Programm erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
 
-In 2026 wurden mit Hilfe der Claude AI meherer Korrekturen und Performance-Verbesserungen erarbeitet.
+In 2026 wurden mit Hilfe der Claude AI mehrere Korrekturen und Performance-Verbesserungen erarbeitet.
 
 ### Abhängigkeiten
 
@@ -148,6 +148,8 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 Anzeige des aktuellen Zustand zu Zügen und Signal- und Weichenstellungen sowie Uhrzeit und Wetter einer laufenden EEP-Anlage im Browser. Die Daten kommen aus einem Lua-Modul in EEP, das sie regelmäßig als JSON-Datei ausgibt.
 
 Weiterhin sendet die Bridge die Daten über den aktiven Browser an das Gleisplan-Programm. Hier werden die Züge, Signal- und Weichenstellungen dynamisch dargestellt.
+
+Dieses Programm sowie das dazugehörige Lua-Modul und die Erweiterung des Gleisplan-Programmes wurde in 2026 mit Claude AI erstellt.
 
 ### Aufruf
 
