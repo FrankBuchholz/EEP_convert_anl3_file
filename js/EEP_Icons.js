@@ -1,5 +1,6 @@
 /* EEP Modell-Icons
 https://wiki.eepshopping.de/index.php?title=Modellicons
+https://wiki.eepshopping.de/index.php?title=Bilder
 
 URL: https://wiki.eepshopping.de/images/2/22/012.gif
 Size: 32x32
@@ -161,6 +162,7 @@ const Icons = {
   [152] : { src : "/images/5/56/152.gif", id : 152, DE : `Zeigt im 3D-Editor das Modell der dynamischen Kamera`, },
   [153] : { src : "/images/d/da/153.gif", id : 153, DE : `Zeigt im 3D-Editor das Modell der mobilen Kamera`, },
   [154] : { src : "/images/0/04/154.gif", id : 154, DE : `Informationsmodell mit der Möglichkeit zur Anzeige eines Textes in 3D`, },
+  // Die folgenden Icons gibt es nicht - sie standen nur zeitweise auf der Website.
   [155] : { src : "/images/e/e1/155.gif", id : 155, DE : `animierte Vögel (Wasser, schwimmend)`, },
   [156] : { src : "/images/6/6a/156.gif", id : 156, DE : `animierte Vögel (Luft, fliegend)`, },
   [157] : { src : "/images/a/a0/157.gif", id : 157, DE : `Fische und andere Wassertiere (schwimmend)`, },
@@ -176,6 +178,7 @@ const Icons = {
   [167] : { src : "/images/4/48/167.gif", id : 167, DE : `Felsformationen (Gruppen) als Landschaftselemente`, },
   [168] : { src : "/images/f/f6/168.gif", id : 168, DE : `Omegas von Trend`, },
   [169] : { src : "/images/e/e6/169.gif", id : 169, DE : `Omegas von Trend`, },
-  [159] : { src : "/images/6/60/159.gif", id : 170, DE : `intern`, },
+  [170] : { src : "/images/d/de/170.gif", id : 170, DE : `intern`, },
+  [171] : { src : "/images/d/de/171.gif", id : 171, DE : `Straßenbahnsignal?`, },
   [172] : { src : "/images/f/f7/172.gif", id : 172, DE : `Rangiersignale`, },
 }

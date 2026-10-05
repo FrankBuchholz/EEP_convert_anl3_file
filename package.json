@@ -51,14 +51,14 @@
 	"bugs": "https://github.com/FrankBuchholz/EEP_convert_anl3_file/issues",
 	"main": "EEP_Gleisplan.html",
 	"@comment dependencies": [
-		"EEP_Gleisplan.html requires svg-pan-zoom, rematrix, toolwindow",
-		"EEP_Inventar.html requires tablefilter"
+		"EEP_Gleisplan.html requires svg-pan-zoom and toolwindow",
+		"EEP_Inventar.html requires tablefilter",
+		"EEP_Gleisplan_ce.html requires socket.io-client"
 	],
 	"dependencies": {
-		"rematrix": ">=0.4.1",
-		"svg-pan-zoom": ">=3.6.0",
-		"tablefilter": ">=0.6.97",
-		"toolwindow": ">=1.0.25"
+		"svg-pan-zoom": "^3.6.2",
+		"tablefilter": "^0.7.2",
+		"toolwindow": "^1.0.25"
 	},
 	"browserslist": [
 		"last 2 Chrome versions",

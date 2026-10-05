@@ -2997,7 +2997,7 @@ const MovableAxis = {
     MovAxis : {
       1 : {DE : "Fahrgäste_Tz9005T", EN : "Passengers_Tz9005T", FR : "Passagers_Tz9005T", axis : 11, },
   }},
-  "EVB-BR654-602-1-AG3" : {
+  "EVB-BR654-602-1-AG3" : { // duplicate, see below, but with diffenent entries for MovAxis 3 and 4
     Name : {DE : "EVB-BR654-602-1-AG3", EN : "EVB-BR654-602-1-AG3", FR : "EVB-BR654-602-1-AG3", },
     Icon : 133,
     MovAxis : {
@@ -3012,7 +3012,7 @@ const MovableAxis = {
       9 : {DE : "SonnenSchutz_654-602", EN : "sunCover_654-602", FR : "Roller store soleil_654-602", axis : 39, },
       10 : {DE : "SWischer_654-602", EN : "Wipers_654-602", FR : "essuie-glace_654-602", axis : 40, },
   }},
-  "EVB-BR654-601-3N-AG3" : {
+  "EVB-BR654-601-3N-AG3" : { // duplicate, see below, but with diffenent entries for MovAxis 2 and 3
     Name : {DE : "EVB-BR654-601-3n-AG3", EN : "EVB-BR654-601-3n-AG3", FR : "EVB-BR654-601-3n-AG3", },
     Icon : 133,
     MovAxis : {
@@ -3125,7 +3125,7 @@ const MovableAxis = {
 
   // unpacked EEP 17
 
-  "EVB-BR654-601-3N-AG3" : {
+  "EVB-BR654-601-3N-AG3" : { // duplicate, see above, but with diffenent entries for MovAxis 2 and 3
     Name : {DE : "EVB-BR654-601-3n-AG3", EN : "EVB-BR654-601-3n-AG3", FR : "EVB-BR654-601-3n-AG3", },
     Icon : 133,
     MovAxis : {
@@ -3167,7 +3167,7 @@ const MovableAxis = {
       8 : {DE : "SonnenSchutz_654-101n", EN : "sunCover_654-101n", FR : "Roller store soleil_654-101n", axis : 38, },
       9 : {DE : "SWischer_654-101n", EN : "Wipers_654-101n", FR : "essuie-glace_654-101n", axis : 39, },
   }},
-  "EVB-BR654-602-1-AG3" : {
+  "EVB-BR654-602-1-AG3" : { // duplicate, see above, but with diffenent entries for MovAxis 3 and 4
     Name : {DE : "EVB-BR654-602-1-AG3", EN : "EVB-BR654-602-1-AG3", FR : "EVB-BR654-602-1-AG3", },
     Icon : 133,
     MovAxis : {

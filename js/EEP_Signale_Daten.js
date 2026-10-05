@@ -466,15 +466,6 @@ const Signalstellung = {
       4 : {DE : "Fahrt mit 40km/h", EN : "Max. speed 40km/h", FR : "Vit.max. 40km/h", },
       5 : {DE : "Sh1 - Rangierfahrt", EN : "Sh1 - Danger except shunting", FR : "Sh1 - Arrêt sauf manoeuvre", },
    }},
-  "HpSig_A_V60_69_V8" : {
-     Name : {DE : "HpSig_A_V60_69_V8", EN : "HpSig_A_V60_69_V8", FR : "HpSig_A_V60_69_V8", },
-     Pos : {
-      1 : {DE : "Halt", EN : "Danger", FR : "Arrêt", },
-      2 : {DE : "Fahrt", EN : "Clear", FR : "Voie libre", },
-      3 : {DE : "Fahrt mit 60km/h", EN : "Max. speed 60km/h", FR : "Vit. max. 60km/h", },
-      4 : {DE : "Fahrt mit 40km/h", EN : "Max. speed 40km/h", FR : "Vit. max. 40km/h", },
-      5 : {DE : "Sh1 - Rangierfahrt", EN : "Sh1 - Danger except shunting", FR : "Sh1 - Arrêt sauf manoeuvre", },
-   }},
   "HpSig_A_V60_80_69_V8" : {
      Name : {DE : "HpSig_A_V60_80_69_V8", EN : "HpSig_A_V60_80_69_V8", FR : "HpSig_A_V60_80_69_V8", },
      Icon : 97,
@@ -933,21 +924,6 @@ const Signalstellung = {
        6 : {DE : "Fahrt mit 40km/h - Fahrt erwarten", EN : "Max. speed 40km/h, next clear", FR : "Vit. max. 40km/h, suiv. voie libre", },
        7 : {DE : "Fahrt mit 40km/h - Fahrt mit 40km/h erwarten", EN : "Max. speed 40km/h, next max. speed 40km/h", FR : "Vit. max. 40km/h, suiv. vit. max. 40km/h", },
    }},  
-  "HpSig_E_V40_Vs_V20_30_69_V8" : {
-     Name : {DE : "HpSig_E_V40_Vs_V20_30_69_V8", EN : "HpSig_E_V40_Vs_V20_30_69_V8", FR : "HpSig_E_V40_Vs_V20_30_69_V8", },
-     Pos : {
-       1 : {DE : "Halt", },
-       2 : {DE : "Fahrt dann Halt", },
-       3 : {DE : "Fahrt dann Fahrt", },
-       4 : {DE : "Fahrt dann Fahrt mit 40km/h", },
-       5 : {DE : "Fahrt dann Fahrt mit 30km/h", },
-       6 : {DE : "Fahrt dann Fahrt mit 20km/h", },
-       7 : {DE : "Fahrt mit 40km/h dann Halt", },
-       8 : {DE : "Fahrt mit 40km/h dann Fahrt", },
-       9 : {DE : "Fahrt mit 40km/h dann Fahrt mit 40km/h", },
-       10 : {DE : "Fahrt mit 40km/h dann Fahrt mit 30km/h", },
-       11 : {DE : "Fahrt mit 40km/h dann Fahrt mit 20km/h", },
-   }},
   "HpSig_E_V40_Vs_V100_69_V8" : {
      Name : {DE : "HpSig_E_V40_Vs_V100_69_V8", EN : "HpSig_E_V40_Vs_V100_69_V8", FR : "HpSig_E_V40_Vs_V100_69_V8", },
      Icon : 97,
