@@ -22,7 +22,7 @@ jobs:
       run: zip -r ./dist/EEP_convert_anl3_file.zip EEP_Gleisplan.html EEP_Inventar.html EEP_Export_Bridge.html EEP_Export_Bridge.md EEP_Signale.html EEP_blockControl.html js/ css/ Lua/ images/ README.md
 
     - name: Create release
-      uses: actions/github-script@v6
+      uses: actions/github-script@v9
       with:
         script: |
           try {
