@@ -85,7 +85,7 @@ In 2026 wurden mit Hilfe der Claude AI meherer Korrekturen und Performance-Verbe
 
 ### Abhängigkeiten
 
-Das Programm verwendet die GitHub-Bibliotheken [`svg-pan-zoom`](https://github.com/ariutta/svg-pan-zoom), [`toolwindow`](https://github.com/fluffynuts/toolwindow) und [`rematrix`](https://github.com/jlmakes/rematrix).
+Das Programm verwendet die GitHub-Bibliotheken [`svg-pan-zoom`](https://github.com/ariutta/svg-pan-zoom) und [`toolwindow`](https://github.com/fluffynuts/toolwindow).
 
 ---
 
@@ -140,6 +140,22 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 ### Aufruf
 
 [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html "EEP_Signale.html")
+
+---
+
+## Programm: EEP_Export_Bridge.html
+
+Anzeige des aktuellen Zustand zu Zügen und Signal- und Weichenstellungen sowie Uhrzeit und Wetter einer laufenden EEP-Anlage im Browser. Die Daten kommen aus einem Lua-Modul in EEP, das sie regelmäßig als JSON-Datei ausgibt.
+
+Weiterhin sendet die Bridge die Daten über den aktiven Browser an das Gleisplan-Programm. Hier werden die Züge, Signal- und Weichenstellungen dynamisch dargestellt.
+
+### Aufruf
+
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_EEP_Export_Bridge.html "EEP_Export_Bridge.html")
+
+### Dokumenation
+
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.md](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_EEP_Export_Bridge.md "EEP_Export_Bridge.md")
 
 ---
 

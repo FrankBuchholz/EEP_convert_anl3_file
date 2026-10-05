@@ -173,11 +173,6 @@ info : {
 		EN : `Control-desk`, 
 		FR : `Pupitre de commande`, 
 	},
-	Kamera : {
-		DE : `Kamera`, 
-		EN : `Camera`, 
-		FR : `Caméra`, 
-	},
 	Hintergrund : {
 		DE : `Hintergrund`, 
 		EN : `Background`, 
@@ -522,11 +517,6 @@ info : {
 		DE : `unbekannt`, 
 		EN : `unknown`, 
 		FR : `inconnu`, 
-	},
-	Umschalter : {
-		DE : `Umschalter`, 
-		EN : `Changeover switch`, 
-		FR : `Commutateur`, 
 	},
 	Kameratyp : {
 		DE : `Kameratyp`, 
