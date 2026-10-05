@@ -24,7 +24,7 @@ jobs:
       uses: actions/checkout@v7
 
     - name: Build
-      run: zip -r ./dist/EEP_convert_anl3_file.zip EEP_Gleisplan.html EEP_Inventar.html EEP_Signale.html js/ css/
+      run: zip -r ./dist/EEP_convert_anl3_file.zip EEP_Gleisplan.html EEP_Inventar.html EEP_Export_Bridge.html EEP_Export_Bridge.md EEP_Signale.html EEP_blockControl.html js/ css/ Lua/ images/ README.md
 
     - name: Upload artifact # The artifact shows up at the action log
       if: ${{ success() }}
@@ -37,5 +37,5 @@ jobs:
         git config --local user.email "action@github.com"   # dummy 
         git config --local user.name "GitHub Action"        # or use ${{ github.actor }}
         git add dist/EEP_convert_anl3_file.zip
-        git commit -m "Update dist/EEP_convert_anl3_file.zip"
+        git commit -m "Update dist/EEP_convert_anl3_file.zip [skip ci]"
         git push
