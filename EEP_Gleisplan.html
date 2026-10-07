@@ -107,6 +107,15 @@ button {
 <span lang="fr">Sélectionnez un réseau EEP (nom_du_réseau.anl3) ou utilisez la fonction glisser-déposer.</span>
 </label>
 	<input type="file" id="fileinput" accept=".anl3" onchange="loadFile(this.files && this.files[0])" />
+	<br>
+	<label for="urlinput">
+	<span lang="de">oder URL einer EEP-Anlage-Datei (.anl3):</span>
+	<span lang="en">or URL of an EEP file (.anl3):</span>
+	<span lang="fr">ou URL d'un réseau EEP (.anl3):</span>
+	</label>
+	<input type="text" id="urlinput" size="40" value="" />
+	<button type="button" id="btnUrl"><span lang="de">URL laden</span><span lang="en">Load URL</span><span lang="fr">Charger l'URL</span></button>
+	<span id="urlStatus"></span>
 	<!-- An extra button is not necessary -->
 	<!-- <input type="button" id="btnLoad" value="Load" onclick="loadFile();"> -->
 </form>
@@ -314,9 +323,46 @@ public api:
 (function(api) {
 // public api
 api.loadFile = loadFile;
+api.loadUrl = loadUrl;
 // public data
 const global = {}; // Collection of all global variables
 api.global = global;
+
+// Anlage-Datei einmalig von einer URL laden (relativ oder absolut) und wie eine ausgewählte Datei verarbeiten
+function loadUrl(url) {
+	url = (url || "").trim();
+	const status = document.getElementById("urlStatus");
+	if (!url) { status.textContent = "URL?"; return; }
+	try { localStorage.setItem("anl3Url", url); } catch (e) {}
+	status.textContent = "...";
+	fetch(url, {cache: "no-store"})
+		.then(function(r) {
+			if (!r.ok) { throw new Error("HTTP " + r.status); }
+			return r.blob();
+		})
+		.then(function(blob) {
+			let name = "";
+			try { name = decodeURIComponent(new URL(url, document.baseURI).pathname.split("/").pop()); } catch (e) {}
+			if (!name) { name = "anlage.anl3"; }
+			status.textContent = "";
+			loadFile(new File([blob], name));
+		})
+		.catch(function(err) {
+			status.textContent = "Fehler: " + err.message;	// z.B. CORS, file:// oder falsche URL
+		});
+}
+
+(function initUrlInput() {
+	const input = document.getElementById("urlinput");
+	let last = "";
+	try { last = localStorage.getItem("anl3Url") || ""; } catch (e) {}
+	input.value = last;
+	document.getElementById("btnUrl").addEventListener("click", function() { loadUrl(input.value); });
+	input.addEventListener("keydown", function(ev) { if (ev.key === "Enter") { loadUrl(input.value); } });
+	// Aufruf mit ?url=... lädt die Datei automatisch
+	const param = new URLSearchParams(window.location.search).get("url");
+	if (param) { input.value = param; loadUrl(param); }
+})();
 
 function loadFile(file) {
 	let fr;	// upvalue for function processFile
@@ -8008,11 +8054,19 @@ function draw(d){
 			}
 			s0 += (vehicle.length || 0);
 			if (a !== b && (a.x !== b.x || a.y !== b.y)) {
+				// Linie zur Anzeige des Fahrzeuges
 				//el(liveTrain, "polyline", {	points: a.x + "," + (-a.y) + " " + b.x + "," + (-b.y),
 				el(liveTrain, "line", {	x1: a.x, y1: (-a.y), x2: b.x, y2: (-b.y),
 					fill: "none",
 					stroke: (hasGears ? GEARS_COLOR : TRAIN_COLOR),
 					style: "stroke-width:calc(var(--normal-stroke-width)*" + (hasGears ? 4 : 3) + ");stroke-linecap:round" // or butt
+				});
+				// Unsichtbarer Bereich, um den Klick-Event abzufangen (mit einem um den Faktor 8 verbreiterten Bereich)
+				el(liveTrain, "line", { x1: a.x, y1: (-a.y), x2: b.x, y2: (-b.y),
+					stroke: "transparent", fill: "none",
+					"pointer-events": "stroke", 
+					"data-train": trainName, "data-vehicle": vehicle.name,
+					style: "stroke-width:calc(var(--normal-stroke-width)*8);stroke-linecap:round;cursor:pointer"
 				});
 			}
 		});
@@ -8026,14 +8080,21 @@ function draw(d){
 				r: (hasGears ? 1.0 : 0.5),
 				fill: (hasGears ? GEARS_COLOR : TRAIN_COLOR),
 				stroke: (hasGears ? "rgb(90,40,0)" : "none"),
+				"pointer-events": "all", 
+				"data-train": trainName, "data-vehicle": vehicle.name,
 				style: "stroke-width:calc(var(--normal-stroke-width)*1.0)"
 			});
+			// Beschreibung des Fahrzeuges
 			el(liveTrain, "text", {
 				x: vehicle.position.x,
-				y: -vehicle.position.y + 3.5,
-				fill: TRAIN_COLOR
-			}).textContent = `l=${vehicle.length}`;
-		});
+				y: -vehicle.position.y + 3.0,
+				fill: TRAIN_COLOR,
+				"pointer-events": "visiblePainted", 
+				"data-train": trainName , "data-vehicle": vehicle.name
+			}).textContent = 
+				//`${_('Modelltyp')}: ${(vehicle.modelType >= 1 && vehicle.modelType <= 15) ? _('modelType_' + vehicle.modelType) : (vehicle.modelType ?? "–")}, ${_('Länge')}=${vehicle.length}m`;		
+				`${(vehicle.modelType >= 1 && vehicle.modelType <= 15) ? _('modelType_' + vehicle.modelType) : (vehicle.modelType ?? "–")}, ${vehicle.length}m`;		
+			});
 
 		// Zugspitze = Anfang des ersten Fahrzeugs
 		const tip = vehicles[0].position;
@@ -8043,17 +8104,91 @@ function draw(d){
 			r: 1.0,
 			fill: TRAIN_COLOR,
 			stroke: "rgb(90,40,0)",
+			"pointer-events": "all", 
+			"data-train": trainName, // "data-vehicle": vehicle.name,
 			style: "stroke-width:calc(var(--normal-stroke-width)*1.0)"
 		});
 
-		// Zeichne Name des Zugverbandes
+		// Name des Zugverbandes
 		el(liveTrain, "text", {
 			x: tip.x,
-			y: -tip.y - 3.5,
-			fill: TRAIN_COLOR
+			y: -tip.y - 3.0,
+			fill: TRAIN_COLOR,
+			"pointer-events": "visiblePainted", 
+			"data-train": trainName //, "data-vehicle": vehicle.name
 		}).textContent = trainName;
 	}
 }
+
+// ---- Info-Popup für Züge und Fahrzeuge ---------------------------------------
+const escH = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num  = (n, d = 1) => (typeof n === "number" ? n.toFixed(d) : "–");
+// Übersetzter Text zu modelType (1-15), sonst der Rohwert
+const modelTypeText = t => (t >= 1 && t <= 15) ? _('modelType_' + t) : (t != null ? escH(t) : "–");
+const couplingText = t => (t >= 1 && t <= 3) ? _('coupling_' + t) : (t != null ? escH(t) : "–");
+
+function sysText(id){
+	try { return TrackSystemText(String(id)) || ("Gleissystem " + id); } catch (e) { return "Gleissystem " + id; }
+}
+function posLink(p){
+	if (!p) return "–";
+	return `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${+p.x},${+p.y},${+p.z || 0}]);">${num(p.x, 0)}m, ${num(p.y, 0)}m</a>`;
+}
+function trackLink(k){
+	if (!k) return "–";
+	return `<a href="javascript:void(0);" onclick="javascript:showGleisInfo('${Number(k.system)}','${Number(k.id)}');">${escH(sysText(k.system))} ${escH(k.id)}</a> @ ${num(k.position, 0)}m`;
+}
+
+function showTrainInfo(name, withVehicles, highlightVehicle){
+	const t = cur && cur.trains && cur.trains[name];
+	if (!t) return;
+	const active = cur.global && cur.global.activeTrain === name;
+	//console.log(t);
+
+	let html = `${_('Geschwindigkeit')}: ${num(t.speed)} km/h (${_('Sollgeschwindigkeit')} ${num(t.targetSpeed)} km/h)`
+		+ `<br>${_('Länge')}: ${num(t.length)}m, ${_('Fahrzeuge')}: ${t.vehicleCount != null ? t.vehicleCount : (t.vehicles || []).length}`
+		+ (t.route ? `<br>${_('Route')}: ${escH(t.route)}` : "")
+		+ (active ? `<br><b>${_('aktiverZugverband')}</b>` : "")
+		+ `<br><i>${_('Position')}: ${posLink(t.position)} ${_('auf')} ${_('Gleis')} ${trackLink(t.track)}</i>`
+		+ `<i>, ${_('Höhe')} ${num(t.position && t.position.z, 2)}m</i>`
+		;
+
+	if (withVehicles) {
+		html += `<br><br><b>${_('Fahrzeuge')}</b>`;
+		(t.vehicles || []).forEach((vn, i) => {
+			const v = cur.rollingstock && cur.rollingstock[vn];
+			if (!v || v.exists === false) { html += `<br>${i+1}. ${escH(vn)} (nicht vorhanden)`; return; }
+			//console.log(v);
+			
+			const line = `${i+1}. ${escH(vn)}${v.gears > 0 ? ` (${_('angetrieben')})` : ""}`;
+			html += `<br>`+ (vn === highlightVehicle ? "<b>"+line+"</b>" : line)
+				+ `<br>&nbsp;&nbsp;${_('Modelltyp')}: ${modelTypeText(v.modelType)}`
+				+ `<br>&nbsp;&nbsp;${_('Länge')}: ${num(v.length, 2)}m, ${_('Ausrichtung')}: ${v.forward ? " →" : " ←"}`
+				+ `<br>&nbsp;&nbsp;${_('Kupplung')}: ${_('vorne')} ${couplingText(v.couplingFront)}, ${_('hinten')} ${couplingText(v.couplingRear)}`
+				+ `<br>&nbsp;&nbsp;<i>${_('Position')}: ${posLink(v.position)} ${_('auf')} ${_('Gleis')} ${trackLink(v.track)}</i>`
+				+ `<i>, ${_('Höhe')} ${num(v.position && v.position.z, 2)}m</i>`
+				;
+		});
+	}
+
+	msg("", `${_('Zugverband')} ${name}`);
+	showInfoWindow({
+		code:  "Zugverband " + name,
+		title: `${_('Zugverband')} ${escH(name)}`,
+		content: html
+	});
+}
+
+// Ein Listener für alle Züge (die Ebene wird bei jedem Datensatz neu aufgebaut)
+document.getElementById("sutrackpSVG").addEventListener("click", ev => {
+	const target = ev.target.closest && ev.target.closest("[data-train]");
+	if (!target) return;
+	
+	global.shiftDown = ev.shiftKey;     // showInfoWindow wertet global.shiftDown aus
+	global.altDown   = ev.altKey;
+	showTrainInfo(target.getAttribute("data-train"), ev.altKey, target.getAttribute("data-vehicle"));
+	ev.stopPropagation();               // verhindert die Gleis-Auswertung in showElement()
+});
 
 // BroadcastChannel EEP_LIVE
 let pendingData = null;   // Daten, die vor dem Laden der Anlage-Datei eintrafen
