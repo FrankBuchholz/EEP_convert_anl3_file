@@ -335,7 +335,12 @@ function loadUrl(url) {
 	if (!url) { status.textContent = "URL?"; return; }
 	try { localStorage.setItem("anl3Url", url); } catch (e) {}
 	status.textContent = "...";
-	fetch(url, {cache: "no-store"})
+	fetch(url, {
+			cache: "no-store",
+			method: 'GET',
+			// Zwingend erforderlich für PNA (Private Network Access) im Browser:
+			targetAddressSpace: 'private'
+		})
 		.then(function(r) {
 			if (!r.ok) { throw new Error("HTTP " + r.status); }
 			return r.blob();
