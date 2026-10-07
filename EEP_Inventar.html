@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -40,6 +40,43 @@ https://www.tablefilter.com/data-types.html
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script type="text/javascript"> // Load file
 "use strict";
+// Anlage-Datei einmalig von einer URL laden (relativ oder absolut) und wie eine ausgewählte Datei verarbeiten
+function loadUrl(url) {
+	url = (url || "").trim();
+	const status = document.getElementById("urlStatus");
+	if (!url) { status.textContent = "URL?"; return; }
+	try { localStorage.setItem("anl3Url", url); } catch (e) {}
+	status.textContent = "...";
+	fetch(url, {cache: "no-store"})
+		.then(function(r) {
+			if (!r.ok) { throw new Error("HTTP " + r.status); }
+			return r.blob();
+		})
+		.then(function(blob) {
+			let name = "";
+			try { name = decodeURIComponent(new URL(url, document.baseURI).pathname.split("/").pop()); } catch (e) {}
+			if (!name) { name = "anlage.anl3"; }
+			status.textContent = "";
+			loadFile(new File([blob], name));
+		})
+		.catch(function(err) {
+			status.textContent = "Fehler: " + err.message;	// z.B. CORS, file:// oder falsche URL
+		});
+}
+
+// Das Skript steht im <head>, daher erst nach dem Aufbau der Seite die Elemente anbinden
+document.addEventListener("DOMContentLoaded", function() {
+	const input = document.getElementById("urlinput");
+	let last = "";
+	try { last = localStorage.getItem("anl3Url") || ""; } catch (e) {}
+	input.value = last;
+	document.getElementById("btnUrl").addEventListener("click", function() { loadUrl(input.value); });
+	input.addEventListener("keydown", function(ev) { if (ev.key === "Enter") { loadUrl(input.value); } });
+	// Aufruf mit ?url=... lädt die Datei automatisch
+	const param = new URLSearchParams(window.location.search).get("url");
+	if (param) { input.value = param; loadUrl(param); }
+});
+
 function loadFile(file) {
 	let fr;	// upvalue for function processFile
 	if (typeof window.FileReader !== 'function') {
@@ -1902,9 +1939,7 @@ function createDepotTrainsTable() {
 			const iconID = MovableAxis[File].Icon;
 			if (iconID) {
 				const Icon = Icons[iconID];
-				if (Icon) {
-					return `<img src="${IconServer}${Icon.src}" title="${Icon.DE}" width="24" height="24">`
-				}
+				return (Icon ? `<img src="${IconServer}${Icon.src}" title="${Icon.DE}" width="24" height="24">` : iconID);
 			}
 		}
 		return '';
@@ -2780,6 +2815,15 @@ button {
 <span lang="fr">Sélectionnez un réseau EEP (nom_du_réseau.anl3) ou utilisez la fonction glisser-déposer.</span>
 </label>
 	<input type='file' id='fileinput' accept='.anl3' onchange='loadFile(this.files && this.files[0])' />
+	<br>
+	<label for="urlinput">
+	<span lang="de">oder URL einer EEP-Anlage-Datei (.anl3):</span>
+	<span lang="en">or URL of an EEP file (.anl3):</span>
+	<span lang="fr">ou URL d'un réseau EEP (.anl3):</span>
+	</label>
+	<input type="text" id="urlinput" size="40" value="" />
+	<button type="button" id="btnUrl"><span lang="de">URL laden</span><span lang="en">Load URL</span><span lang="fr">Charger l'URL</span></button>
+	<span id="urlStatus"></span>
 	<!-- An extra button is not neccessary -->
 	<!-- <input type='button' id='btnLoad' value='Load' onclick='loadFile();'> -->
 </form>

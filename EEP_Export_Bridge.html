@@ -1,119 +1,34 @@
 <!DOCTYPE html>
 <html lang="de">
-<!-- https://www.w3.org/International/questions/qa-html-language-declarations -->
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<META http-equiv="Content-Script-Type" content="text/javascript">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EEP Export Bridge</title>
-<meta name="description" content="Anzeige des aktuellen Zustand zu Zügen und Signal- und Weichenstellungen sowie Uhrzeit und Wetter einer laufenden EEP-Anlage im Browser. Die Daten kommen aus einem Lua-Modul in EEP, das sie regelmäßig als JSON-Datei ausgibt. Weiterhin sendet die Bridge die Daten über den aktiven Browser an das Gleisplan-Programm. Hier werden die Züge, Signal- und Weichenstellungen dynamisch dargestellt.">
-<meta name="author" content="Frank Buchholz">
-<meta name="keywords" content="EEP,.anl3,Gleisplan" />
-<meta name="language" content="de" />
-<!-- <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon"> -->
-<link rel="icon" href="images/favicon.ico" type="image/x-icon">
-
 <style>
-:root{
-	--bg:#f5f5f5;
-	--fg:#111;
-	--card:#fff;
-	--line:#d0d7de;
-	--acc:#4682b4
-}
-@media(prefers-color-scheme:dark){
-	:root{
-		--bg:#1b1f23;
-		--fg:#e6e6e6;
-		--card:#24292e;
-		--line:#3a4048
-	}
-}
+:root{--bg:#f5f5f5;--fg:#111;--card:#fff;--line:#d0d7de;--acc:#4682b4}
+@media(prefers-color-scheme:dark){:root{--bg:#1b1f23;--fg:#e6e6e6;--card:#24292e;--line:#3a4048}}
 *{box-sizing:border-box}
-body{
-	margin:0;
-	font:14px/1.4 system-ui,Arial,sans-serif;
-	background:var(--bg);
-	color:var(--fg)
-}
-header{
-	background:var(--acc);
-	color:#fff;
-	padding:8px 14px;
-	display:flex;
-	flex-wrap:wrap;
-	gap:10px;
-	align-items:center
-}
-header h1{
-	font-size:17px;
-	margin:0 10px 0 0
-}
-main{
-	padding:12px;
-	display:grid;
-	gap:12px;
-	grid-template-columns:repeat(auto-fit,minmax(340px,1fr))
-}
-section{
-	background:var(--card);
-	border:1px solid var(--line);
-	border-radius:6px;
-	padding:10px;
-	overflow-x:auto
-}
-section.medium{grid-column: span 2}	 
+body{margin:0;font:14px/1.4 system-ui,Arial,sans-serif;background:var(--bg);color:var(--fg)}
+header{background:var(--acc);color:#fff;padding:8px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+header h1{font-size:17px;margin:0 10px 0 0}
+main{padding:12px;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+section{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto}
 section.wide{grid-column:1/-1}
-h2{
-	font-size:14px;
-	margin:0 0 6px
-}
-table{
-	border-collapse:collapse;
-	width:100%
-}
-th,td{
-	text-align:left;
-	padding:3px 8px 3px 0;
-	border-bottom:1px solid var(--line);
-	white-space:nowrap
-}
+h2{font-size:14px;margin:0 0 6px}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:3px 8px 3px 0;border-bottom:1px solid var(--line);white-space:nowrap}
 button,input,select{font:inherit}
 button{cursor:pointer}
-.chip{
-	display:inline-block;
-	padding:0 7px;
-	border-radius:9px;
-	color:#fff;
-	font-size:12px
-}
-.g{background:#1a9a1a}
-.r{background:#d22}
-.o{background:#e08000}
-.p{background:#9a2fc0}
-.b{background:#1565c0}
-.x{background:#808080}
+.chip{display:inline-block;padding:0 7px;border-radius:9px;color:#fff;font-size:12px}
+.g{background:#1a9a1a}.r{background:#d22}.o{background:#e08000}.p{background:#9a2fc0}.b{background:#1565c0}.x{background:#808080}
 tr.act td{font-weight:600}
-#st{
-	font-size:12px;
-	opacity:.9
-}
+#st{font-size:12px;opacity:.9}
 .err{color:#ffd0d0}
-pre{
-	background:rgba(127,127,127,.12);
-	padding:8px;
-	max-height:220px;
-	overflow:auto;
-	font-size:12px
-}
+pre{background:rgba(127,127,127,.12);padding:8px;max-height:220px;overflow:auto;font-size:12px}
 small{opacity:.75}
 </style>
-
 </head>
-
 <body>
-
 <header>
   <h1>EEP Export Bridge</h1>
   <button id="bLast" hidden></button>
@@ -128,10 +43,9 @@ small{opacity:.75}
 </header>
 
 <main>
-  <section class="medium"><h2>Zeit &amp; Wetter</h2><div id="gl">–</div></section>
-  <section class="wide"><h2>Züge <small>Folgen: 
-	<select id="follow"><option value="">– kein Zug –</option></select>
-	</small></h2><div id="trains"></div></section>
+  <section><h2>Zeit &amp; Wetter</h2><div id="gl">–</div></section>
+  <section class="wide"><h2>Züge <small>
+    Folgen: <select id="follow"><option value="">– kein Zug –</option></select></small></h2><div id="trains"></div></section>
   <section><h2>Signale <small id="sigNote"></small></h2><div id="sigs"></div></section>
   <section><h2>Weichen</h2><div id="sws"></div></section>
   <section class="wide"><h2>Rollmaterial</h2><div id="rs"></div></section>
@@ -140,8 +54,7 @@ small{opacity:.75}
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
-const live = new BroadcastChannel("EEP_LIVE");
-const cmd = new BroadcastChannel("EEP");
+const live = new BroadcastChannel("EEP_LIVE"), cmd = new BroadcastChannel("EEP");
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const p2 = n => String(n).padStart(2, "0");
 let data = null, handle = null, timer = null, lastStamp = null, received = 0, trainKey = "";
@@ -152,10 +65,7 @@ const LS = "eepBridge";
 const lsLoad = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } };
 const lsSave = o => { try { localStorage.setItem(LS, JSON.stringify(Object.assign(lsLoad(), o))); } catch (e) {} };
 const idb = () => new Promise((res, rej) => { const r = indexedDB.open("eepBridge", 1);
-  r.onupgradeneeded = () => r.result.createObjectStore("h"); 
-	r.onsuccess = () => res(r.result); 
-	r.onerror = () => rej(r.error); 
-});
+  r.onupgradeneeded = () => r.result.createObjectStore("h"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 const idbSet = async (k, v) => { const db = await idb(); return new Promise((res, rej) => { const t = db.transaction("h", "readwrite");
   t.objectStore("h").put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); };
 const idbGet = async k => { const db = await idb(); return new Promise((res, rej) => { const r = db.transaction("h").objectStore("h").get(k);
@@ -176,31 +86,21 @@ $("send").onchange = () => { lsSave({send: $("send").checked}); if ($("send").ch
 
 // ---- Darstellung -----------------------------------------------------------
 const SWTXT = {1:["Durchfahrt","b"], 2:["Abzweig","o"], 3:["KoAbzweig","p"]};
-const swChip = s => { 
-	const [t, c] = SWTXT[s] || ["Stellung " + s, "x"]; 
-	return `<span class="chip ${c}">${t}</span>`; 
-};
+const swChip = s => { const [t, c] = SWTXT[s] || ["Stellung " + s, "x"]; return `<span class="chip ${c}">${t}</span>`; };
 // (c) Ohne Info aus dem Gleisplan: neutral grau
 function sigChip(id, s) {
   const p = sigInfo && sigInfo[id] && sigInfo[id].pos[s];
-  if (!p) { return `<span class="chip x">Stellung ${esc(s)}</span>`; }
+  if (!p) return `<span class="chip x">Stellung ${esc(s)}</span>`;
   const c = {halt:"r", fahrt:"g", warn:"o"}[p.cls] || "x";
   return `<span class="chip ${c}">${esc(s)}: ${esc(p.text || "?")}</span>`;
 }
 const byNum = (a, b) => Number(a) - Number(b);
 const list = x => x ? Object.values(x) : [];
 const fmt = (n, d = 1) => (typeof n === "number" ? n.toFixed(d) : "–");
-
-function status(msg, err) { 
-	const s = $("st"); 
-	s.textContent = msg; 
-	s.className = err ? "err" : ""; 
-}
+function status(msg, err) { const s = $("st"); s.textContent = msg; s.className = err ? "err" : ""; }
 
 // ---- (b) Nur bei geändertem meta.exportedAtEepTime neu darstellen -----------
 function ingest(text) {
-	//if (text === lastText) return; // Kurzform														
- 
   let d;
   try { d = JSON.parse(text); } catch (e) { return status("Ungültiges JSON: " + e.message, true); }
   if (!d.global || !d.trains) return status("Kein EEP-Export (global/trains fehlen)", true);
@@ -210,19 +110,17 @@ function ingest(text) {
   lastStamp = stamp; data = d; received = Date.now();
   render(); askSignals(); push(); centerFollow();
 }
-
 function push() { if (data && $("send").checked) live.postMessage({type: "data", data: data}); }
 function centerFollow() {
-  const train = data && data.trains[$("follow").value];
-  if (train && train.position && $("send").checked) live.postMessage({type: "center", x: train.position.x, y: train.position.y});
+  const t = data && data.trains[$("follow").value];
+  if (t && t.position && $("send").checked) live.postMessage({type: "center", x: t.position.x, y: t.position.y});
 }
 // (c) Signalstellungen vom Gleisplan erfragen
 function askSignals(force) {
   if (!data) return;
   const ids = Object.keys(data.signals || {}).sort(byNum), key = ids.join(",");
   if (!force && sigInfo && key === askedKey) return;
-  askedKey = key; 
-	live.postMessage({type: "signalQuery", ids: ids});
+  askedKey = key; live.postMessage({type: "signalQuery", ids: ids});
 }
 live.onmessage = ev => {
   const m = ev.data;
@@ -231,40 +129,20 @@ live.onmessage = ev => {
 };
 
 function render() {
-  const g = data.global;
-	const tm = g.time || {};
-	const w = g.weather || {};
-  $("gl").innerHTML = `<b>${p2(tm.hour)}:${p2(tm.minute)}:${p2(tm.second)}</b> EEP-Zeit`
-			+` · EEP ${esc(g.eepVersion)}`
-			+`<br>`
-			+`Wolken ${w.cloudsIntensity}%`
-			+` · Nebel ${w.fog}%`
-			+` · Regen ${w.rain}%`
-			+` · Schnee ${w.snow}%`
-			+` · Hagel ${w.hail}%`
-			+` · Wind ${w.wind}%`
-			+`<br>`
-			+`<small>Aktiver Zug: ${esc(g.activeTrain || "–")}</small>`;
+  const g = data.global, tm = g.time || {}, w = g.weather || {};
+  $("gl").innerHTML = `<b>${p2(tm.hour)}:${p2(tm.minute)}:${p2(tm.second)}</b> EEP-Zeit · EEP ${esc(g.eepVersion)}<br>
+    Wolken ${w.cloudsIntensity}% · Nebel ${w.fog}% · Regen ${w.rain}% · Schnee ${w.snow}% · Hagel ${w.hail}% · Wind ${w.wind}<br>
+    <small>Aktiver Zug: ${esc(g.activeTrain || "–")}</small>`;
 
-  // Züge
   const names = Object.keys(data.trains);
   let h = "<table><tr><th>Zug</th><th>km/h</th><th>Soll</th><th>Wagen</th><th>Länge</th><th>Route</th><th>Gleis</th><th></th></tr>";
   for (const n of names) {
-    const train = data.trains[n];
-		const track = train.track || {};
-    h += `<tr class="${n === g.activeTrain ? "act" : ""}">`
-			+`<td>${esc(n)}</td>`
-			+`<td>${fmt(train.speed)}</td>`
-			+`<td>${fmt(train.targetSpeed)}</td>`
-			+`<td>${train.vehicleCount}</td>`
-			+`<td>${fmt(train.length)} m</td>`
-			+`<td>${esc(train.route || "")}</td>`
-			+`<td>${track.system}-${track.id} @ ${fmt(track.position, 0)} m</td>`
-			+`<td>`
-				+`<button data-a="center" data-n="${esc(n)}">Zeige</button>`
-				+`<button data-a="track" data-s="${track.system}" data-i="${track.id}">Gleis-Info</button>`
-			+`</td>`
-			+`</tr>`;
+    const t = data.trains[n], k = t.track || {};
+    h += `<tr class="${n === g.activeTrain ? "act" : ""}"><td>${esc(n)}</td><td>${fmt(t.speed)}</td><td>${fmt(t.targetSpeed)}</td>
+      <td>${t.vehicleCount}</td><td>${fmt(t.length)} m</td><td>${esc(t.route || "")}</td>
+      <td>${k.system}-${k.id} @ ${fmt(k.position, 0)} m</td>
+      <td><button data-a="center" data-n="${esc(n)}">Zeige</button>
+          <button data-a="track" data-gs="${k.system}" data-gi="${k.id}">Gleis-Info</button></td></tr>`;
   }
   $("trains").innerHTML = h + "</table>";
   const key = names.join("|");
@@ -274,43 +152,28 @@ function render() {
     $("follow").value = names.includes(cur) ? cur : "";
   }
 
-  // Signale
-  $("sigNote").textContent = sigInfo ? "(Farben aus Gleisplan)" : "(neutral – Gleisplan-Erweiterung nicht verbunden)";
+  $("sigNote").textContent = sigInfo ? "(Farben aus Gleisplan)" : "(neutral – Gleisplan nicht verbunden)";
   h = "<table><tr><th>ID</th><th>Stellung</th><th>Züge</th><th></th></tr>";
   for (const id of Object.keys(data.signals || {}).sort(byNum)) {
     const s = data.signals[id], tr = list(s.trains);
-    h += `<tr>`
-			+`<td>${id}</td>`
-			+`<td>${sigChip(id, s.state)}</td>`
-			+`<td>${tr.length ? esc(tr.join(", ")) : ""}</td>`
-			+`<td><button data-a="showSignal" data-i="${id}">Zeige</button></td>`
-			+`</tr>`;
+    h += `<tr><td>${id}</td><td>${sigChip(id, s.state)}</td><td>${tr.length ? esc(tr.join(", ")) : ""}</td>
+      <td><button data-a="id" data-i="${id}">Zeige</button></td></tr>`;
   }
   $("sigs").innerHTML = h + "</table>";
 
-  // Weichen
   h = "<table><tr><th>ID</th><th>Stellung</th><th></th></tr>";
   for (const id of Object.keys(data.switches || {}).sort(byNum)) {
-    h += `<tr>`
-			+`<td>${id}</td>`
-			+`<td>${swChip(data.switches[id].state)}</td>`
-			+`<td><button data-a="showSwitch" data-i="${id}">Zeige</button></td>`
-			+`</tr>`;
+    h += `<tr><td>${id}</td><td>${swChip(data.switches[id].state)}</td>
+      <td><button data-a="id" data-i="${id}">Zeige</button></td></tr>`;
   }
   $("sws").innerHTML = h + "</table>";
 
-  // Rollmaterial
-  h = `<table><tr><th>Name</th><th>Zug</th><th>Länge</th><th>Gleis</th><th>Position (x, y, z)</th><th>Kupplung v/h</th></tr>`;
+  h = "<table><tr><th>Name</th><th>Zug</th><th>Länge</th><th>Gleis</th><th>Position (x, y, z)</th><th>Kupplung v/h</th></tr>";
   for (const n of Object.keys(data.rollingstock || {})) {
     const r = data.rollingstock[n], k = r.track || {}, p = r.position || {};
-    h += `<tr>`
-			+`<td>${esc(n)}${r.gears > 0 ? " (angetrieben)" : ""}</td>`
-			+`<td>${esc(r.train || "")}</td>`
-			+`<td>${fmt(r.length, 2)} m</td>`
-			+`<td>${k.system}-${k.id} @ ${fmt(k.position, 1)}${k.direction === 1 ? " →" : " ←"}</td>`
-			+`<td>${fmt(p.x)}, ${fmt(p.y)}, ${fmt(p.z, 2)}</td>`
-			+`<td>${r.couplingFront}/${r.couplingRear}</td>`
-			+`</tr>`;
+    h += `<tr><td>${esc(n)}${r.gears > 0 ? " (Lok)" : ""}</td><td>${esc(r.train || "")}</td><td>${fmt(r.length, 2)} m</td>
+      <td>${k.system}-${k.id} @ ${fmt(k.position, 1)}${k.direction === 1 ? " →" : " ←"}</td>
+      <td>${fmt(p.x)}, ${fmt(p.y)}, ${fmt(p.z, 2)}</td><td>${r.couplingFront}/${r.couplingRear}</td></tr>`;
   }
   $("rs").innerHTML = h + "</table>";
 }
@@ -319,56 +182,35 @@ setInterval(() => {
   if (data) status(`Export von EEP-Zeit ${p2(data.global.time.hour)}:${p2(data.global.time.minute)}:${p2(data.global.time.second)}, letzte Änderung vor ${Math.round((Date.now() - received) / 1000)} s`);
 }, 1000);
 
-// Buttons in den Tabellen				
 document.body.addEventListener("click", ev => {
-  const b = ev.target.closest("button[data-a]"); 
-	if (!b) return;
-
+  const b = ev.target.closest("button[data-a]"); if (!b) return;
   const a = b.dataset.a;
-	
   if (a === "center") {
-    const train = data.trains[b.dataset.n];
-    if (train && train.position) {
-			// Zug verfolgen
-			live.postMessage({type: "center", x: train.position.x, y: train.position.y});
-		}
-		
+    const t = data.trains[b.dataset.n];
+    if (t && t.position) live.postMessage({type: "center", x: t.position.x, y: t.position.y});
   } else if (a === "track") {
-		cmd.postMessage({command: "showTrack", GleissystemID: b.dataset.s, GleisID: b.dataset.i});
-		// Evt. besser: das live-Modul prüft, ob der Gleisplan geladen wurde und das Objekt existiert
-    //live.postMessage({type: "showTrack", GleissystemID: b.dataset.s, GleisID: b.dataset.i});
-		
-  } else if (a === "showSignal") {
-    cmd.postMessage({command: "showID", ID: b.dataset.i});
-		
-  } else if (a === "showSwitch") {
-    cmd.postMessage({command: "showID", ID: b.dataset.i});
+    live.postMessage({type: "showTrack", GleissystemID: Number(b.dataset.gs), GleisID: Number(b.dataset.gi)});
+  } else if (a === "id") {
+    cmd.postMessage({command: "showID", ID: Number(b.dataset.i)});
   }
 });
 
 // ---- Datenquellen ------------------------------------------------------------
 let pollFn = null;
 function startPoll(fn) {
-  clearInterval(timer); 
-	pollFn = fn; 
-	lastStamp = null;
+  clearInterval(timer); pollFn = fn; lastStamp = null;
   const run = () => fn().catch(e => status("Fehler: " + e.message, true));
-  run(); 
-	timer = setInterval(run, Math.max(500, $("iv").value * 1000));
+  run(); timer = setInterval(run, Math.max(500, $("iv").value * 1000));
 }
 function useHandle(h) {
   handle = h; lsSave({src: "file", file: h.name}); showLast();
   idbSet("file", h).catch(() => {});
   startPoll(async () => ingest(await (await handle.getFile()).text()));
 }
-
-// Datei live verfolgen
 $("bFile").onclick = async () => {
   if (!window.showOpenFilePicker) return status("Live-Lesen von Dateien braucht Chrome/Edge – alternativ URL oder einmaliges Laden", true);
   try { useHandle((await showOpenFilePicker({id: "eep-export", types: [{accept: {"application/json": [".json"]}}]}))[0]); } catch (e) {}
 };
-
-// URL abfragen
 $("bUrl").onclick = () => {
   lsSave({src: "url", url: $("url").value}); showLast();
   startPoll(async () => {
@@ -377,8 +219,6 @@ $("bUrl").onclick = () => {
     ingest(await r.text());
   });
 };
-
-// Datei einmalig öffnen
 $("bLast").onclick = async () => {
   const s = lsLoad();
   if (s.src === "url") { $("url").value = s.url; return $("bUrl").click(); }
@@ -393,18 +233,16 @@ async function once(f) {
   ingest(await f.text());
 }
 $("fOnce").onchange = e => { if (e.target.files[0]) once(e.target.files[0]); };
-
 document.addEventListener("dragover", e => e.preventDefault());
 document.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer.files[0]) once(e.dataTransfer.files[0]); });
 
-// Gleisplan öffnen
 $("bPlan").onclick = () => window.open("EEP_Gleisplan.html", "EEP_Gleisplan");
-
-// Zug im Gleisplan verfolgen
 $("follow").onchange = centerFollow;
 
+// Aufruf mit ?url=... traegt die URL ein und startet die Abfrage automatisch (Vorrang vor "Zuletzt")
+{ const param = new URLSearchParams(window.location.search).get("url");
+  if (param) { $("url").value = param; $("bUrl").click(); } }
+
 </script>
-
 </body>
-
 </html>

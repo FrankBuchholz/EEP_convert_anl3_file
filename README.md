@@ -41,7 +41,10 @@ Gleisplan auf bestimmtes Gleis, bzw. das Gleis eines Signals oder Weiche positio
 Die Positionierung ist auch über das Inventar-Programm möglich!  
 Einstellung der Linienbreite und der Schriftgröße  
 Auswahl der Gleise mit minimalem und maximalen Höhenfilter  
-Farben der Gleissysteme anpassen
+Farben der Gleissysteme anpassen  
+Anzeige der Fahrstraßen (alle bzw. von bestimmten Start-Signalen oder zu bestimmten Ende-Signalen)  
+Laden der Anlage-Datei per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Gleisplan.html?url=<Adresse der .anl3-Datei>`)  
+Live-Anzeige von Zügen sowie Signal- und Weichenstellungen einer laufenden EEP-Anlage (siehe Programm `EEP_Export_Bridge.html`)
 
 ### Tipp zum Export als svg
 
@@ -79,7 +82,9 @@ Die interaktive Einstellung der Linien- und Textbreite wird über dynamische Anp
 Der doppelte Schieberegler für den Höhenfilter basiert auf [multirange](https://leaverou.github.io/multirange/).  
 Der Filter wird über dynamische Anpassung der CSS-Klassen von SVG-Gruppenelemente realisiert.
 
-Die Interaktion mit dem Inventar-Programm erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
+Die Interaktion mit dem Inventar-Programm und der Export Bridge erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
+
+Das Laden der Anlage-Datei von einer URL erfolgt mit `fetch`. Bei einer URL auf einem anderen Server muss dieser CORS-Zugriffe erlauben; `file://` funktioniert nicht.
 
 In 2026 wurden mit Hilfe der Claude AI mehrere Korrekturen und Performance-Verbesserungen erarbeitet.
 
@@ -149,15 +154,17 @@ Anzeige des aktuellen Zustand zu Zügen und Signal- und Weichenstellungen sowie 
 
 Weiterhin sendet die Bridge die Daten über den aktiven Browser an das Gleisplan-Programm. Hier werden die Züge, Signal- und Weichenstellungen dynamisch dargestellt.
 
+Das Lua-Modul `EepExport.lua` wird in der Minimalversion nur geladen und in `EEPMain()` mit `EepExport.run()` aufgerufen. Signale, Weichen, Depots, Züge und Rollmaterial werden automatisch erkannt, die EEP-Rückruffunktionen automatisch erweitert. Die Datei `eep_export.json` entsteht im Anlagenordner.
+
 Dieses Programm sowie das dazugehörige Lua-Modul und die Erweiterung des Gleisplan-Programmes wurde in 2026 mit Claude AI erstellt.
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_EEP_Export_Bridge.html "EEP_Export_Bridge.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html "EEP_Export_Bridge.html")
 
-### Dokumenation
+### Dokumentation
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.md](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_EEP_Export_Bridge.md "EEP_Export_Bridge.md")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.md](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.md "EEP_Export_Bridge.md")
 
 ---
 

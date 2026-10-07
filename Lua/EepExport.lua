@@ -21,6 +21,11 @@
 ---     (z.B. nach Umbenennung durch Kuppeln). Von Hand angemeldete bleiben immer erhalten.
 --- Voraussetzung: Signale/Depots wurden per addSignals()/addTrainyards() angemeldet.
 ---
+--- Automatischer Start: Beim ersten Aufruf von run() (aus EEPMain) passiert ohne weiteres Zutun:
+---   * Die EEP-Rueckruffunktionen werden erweitert (siehe installCallbacks()), ausser config.installCallbacks = false.
+---   * Wurden keine Signale bzw. Weichen angemeldet, wird 1..discoverMax danach durchsucht.
+---     Wurden keine Depots angemeldet, wird 1..discoverDepotMax (Standard 10) durchsucht.
+---
 --- Speichern der Anlage: Der Export pausiert, sobald EEP EEPOnBeforeSaveAnl() aufruft, und
 --- wird durch EEPOnSaveAnl(Pfad) wieder freigegeben. Dabei merkt sich das Modul den Speicherpfad
 --- (Ausgabe als global.plant.path). Dafuer installCallbacks() aufrufen oder die Handler
@@ -35,7 +40,7 @@ package.path = EEPGetAnlPath() .. "\\?.lua;" .. package.path
 --- Lade Modul EepExport
 local EepExport = require("EepExport")
 
---- Optional: Konfiguration
+--- Optional: Konfiguration (nicht erforderlich)
 EepExport.configure({ 
   --outputFile       = nil,    -- Vollstaendiger Pfad der Ausgabedatei; Standard: <Anlagenpfad>\eep_export.json
   --interval         = 5,      -- Export-Intervall in EEP-Sekunden (0 = nur manuell per M.export()), Standard: 5
@@ -43,13 +48,16 @@ EepExport.configure({
   --global           = true,   -- Zeit, Jahreszeit, Wetter, Kamera exportieren, Standard: true
   --discoverMax      = 1000,   -- Bereich 1..discoverMax wird beim ersten Lauf automatisch auf vorhandene Objekte
                                -- geprueft (nil oder 0 = keine automatische Erkennung), Standard: 1000
+  --discoverDepotMax = 10,     -- Obergrenze der automatischen Depot-Suche, Standard: 10
   --autoTrains       = true,   -- Zuege automatisch ueber Signale und Depots einsammeln, Standard: true
   --autoRollingstock = true,   -- Rollmaterial automatisch aus den Fahrzeuglisten bekannter Zuege einsammeln, Standard: true
   --scanInterval     = 2,      -- Abstand der automatischen Suche in EEP-Sekunden, Standard: 2
+  --installCallbacks = true,   -- EEP-Rueckruffunktionen automatisch erweitern, Standard: true
   debug              = true,   -- Debug, Standard: false
 })
 
---- Auswahl der zu exportierenden Daten wie Signale oder Weichen 
+--- Optional: Auswahl der zu exportierenden Daten. Ohne Auswahl werden beim ersten run() automatisch
+--- Signale und Weichen (1..discoverMax) und Depots (1..discoverDepotMax) gesucht.
 EepExport.addSignals()                         -- ohne Eingabe: alle Signale 1..discoverMax suchen
 EepExport.addSwitches({ 1, 2, 3 })             -- Einzelwert oder Liste: nur existierende werden aufgenommen 
 EepExport.addTrainyards(EepExport.range(1, 5)) -- Bereich angeben
@@ -82,22 +90,25 @@ function EEPMain()
   --- In EEPMain() aufrufen. Exportiert automatisch im eingestellten Intervall (EEP-Zeit in Sekunden). 
   --- Alternativ: EepExport.export() mit unbedingter Ausführung in jedem Zyklus (also 5 Mal je Sekunde)
   EepExport.run()
-  --- Anzeige der letzten fehlermeldung
+  --- Anzeige der letzten Fehlermeldung (EepExport.lastError wird bei jedem Fehler gesetzt, nach erfolgreichem Export geloescht)
   if EepExport.lastError then print(EepExport.lastError) end
   
   return 1
 end
 
---- Optional: erkennt Zuege auch ueber Signalhalt, Depot-Ein-/Ausfahrt, Kuppeln und Trennen.
---- Die folgenden Funktionen werden dazu erweitert:
+--- Die Rueckruffunktionen werden beim ersten run() automatisch erweitert (Abschalten: installCallbacks = false):
 --- EEPOnTrainStoppedOnSignal, 
 --- EEPOnTrainEnterTrainyard, EEPOnTrainExitTrainyard, 
---- EEPOnTrainCoupling, EEPOnTrainLooseCoupling
---- Außerdem werden die Funktionen EEPOnBeforeSaveAnl und EEPOnSaveAnl erweitert.
-EepExport.installCallbacks()
+--- EEPOnTrainCoupling, EEPOnTrainLooseCoupling,
+--- EEPOnBeforeSaveAnl, EEPOnSaveAnl.
+--- Eigene Funktionen gleichen Namens bleiben erhalten und werden nach den Handlern aufgerufen.
+--- Manuell (z.B. bei abgeschaltetem Automatismus) weiterhin moeglich: EepExport.installCallbacks()
 ------------------------------------------------------------------------------------------------]]
 
 local M = {}
+
+--- Letzte Fehlermeldung (nil, wenn der letzte Export bzw. Lauf fehlerfrei war).
+M.lastError = nil
 
 -- ---------------------------------------------------------------------------------------------
 -- Konfiguration
@@ -108,11 +119,13 @@ local config = {
   pretty           = false, -- true = eingerueckte, lesbare JSON-Ausgabe
   global           = true,  -- Zeit, Jahreszeit, Wetter, Kamera exportieren
   discoverMax      = 1000,  -- Obergrenze der ID-Suche, wenn add...() ohne Eingabe aufgerufen wird
+  discoverDepotMax = 10,    -- Obergrenze der ID-Suche fuer virtuelle Depots (nil oder 0 = keine Depot-Suche)
   autoTrains       = true,  -- Zuege automatisch ueber Signale und Depots einsammeln
   autoRollingstock = true,  -- Rollmaterial automatisch aus den Fahrzeuglisten bekannter Zuege einsammeln
   scanInterval     = 2,     -- Abstand der automatischen Suche in EEP-Sekunden
   saveTimeout      = 60,    -- Sicherheitsnetz: Export-Pause endet nach so vielen realen Sekunden von selbst,
                             -- falls EEPOnSaveAnl nie kommt (0 = kein Timeout)
+  installCallbacks = true,  -- EEP-Rueckruffunktionen beim ersten run() automatisch erweitern
   debug            = false, -- Debugging-Information anzeigen
 }
 
@@ -134,7 +147,8 @@ local registry = {
 local pending = {}      -- noch nicht ausgewertete add...()-Aufrufe
 local lastExport = nil
 local lastScan   = nil       
-local lastError  = nil
+local initialized = false  -- automatische Initialisierung (Callbacks, Suche) bereits erfolgt
+local callbacksInstalled = false
 local paused      = false  -- Export pausiert, solange die Anlage gespeichert wird
 local pausedSince = nil    -- reale Zeit (os.time) des Pausenbeginns
 local savedPath   = nil    -- zuletzt in EEPOnSaveAnl gemeldeter Speicherpfad (inkl. Dateiname) 
@@ -311,7 +325,7 @@ end
 local categories = {
   signals       = { list = registry.signals,       exists = existsSignal,                         normalize = toId,      scan = true },
   switches      = { list = registry.switches,      exists = existsSwitch,                         normalize = toId,      scan = true },
-  depots        = { list = registry.depots,        exists = existsDepot,                          normalize = toId,      scan = true },
+  depots        = { list = registry.depots,        exists = existsDepot,                          normalize = toId,      scan = true, scanMaxKey = "discoverDepotMax" },
   railTracks    = { list = registry.railTracks,    exists = registrar(EEPRegisterRailTrack),      normalize = toId,      scan = true },
   roadTracks    = { list = registry.roadTracks,    exists = registrar(EEPRegisterRoadTrack),      normalize = toId,      scan = true },
   tramTracks    = { list = registry.tramTracks,    exists = registrar(EEPRegisterTramTrack),      normalize = toId,      scan = true },
@@ -353,7 +367,8 @@ local function process(cat, input, scan, auto)
 
   if scan then
     if cat.scan then
-      for id = 1, (config.discoverMax or 0) do consider(id) end
+      local max = config[cat.scanMaxKey or "discoverMax"] or 0
+      for id = 1, max do consider(id) end
     end
   elseif type(input) == "table" then
     for _, value in ipairs(input) do consider(value) end
@@ -452,7 +467,7 @@ local function pruneAuto(key)
   for i = #cat.list, 1, -1 do
     local value = cat.list[i]
     if set[value] and not cat.exists(value) then
-      if config.debug then print("EepExport auto removal: %s %s", key, value) end
+      if config.debug then print(string.format("EepExport auto removal: %s %s", key, value)) end
 
       table.remove(cat.list, i)
       set[value] = nil
@@ -548,6 +563,9 @@ end
 --- des Hauptskripts bleiben erhalten und werden danach aufgerufen. Deshalb erst NACH deren
 --- Definition aufrufen (am Ende des Skripts); sonst ueberschreibt die spaetere Definition den Handler.
 function M.installCallbacks()
+  if callbacksInstalled then return end
+  callbacksInstalled = true
+
   local function chain(name, handler)
     local previous = _G[name]
     _G[name] = function(...)
@@ -563,6 +581,31 @@ function M.installCallbacks()
   chain("EEPOnTrainLooseCoupling",   M.onTrainLooseCoupling)
   chain("EEPOnBeforeSaveAnl",        M.onBeforeSaveAnl)
   chain("EEPOnSaveAnl",              M.onSaveAnl)
+end
+
+--- Automatische Initialisierung beim ersten run(): Callbacks erweitern und, falls nichts angemeldet
+--- wurde, Signale/Weichen (1..discoverMax) bzw. Depots (1..discoverDepotMax) suchen.
+local function hasPending(key)
+  for _, job in ipairs(pending) do
+    if job.key == key then return true end
+  end
+  return false
+end
+
+local function autoInit()
+  if initialized then return end
+  initialized = true
+
+  if config.installCallbacks then M.installCallbacks() end
+
+  local function discoverIfEmpty(key, max)
+    if (max or 0) > 0 and #categories[key].list == 0 and not hasPending(key) then
+      queue(key, nil)
+    end
+  end
+  discoverIfEmpty("signals",  config.discoverMax)
+  discoverIfEmpty("switches", config.discoverMax)
+  discoverIfEmpty("depots",   config.discoverDepotMax)
 end
 
 -- ---------------------------------------------------------------------------------------------
@@ -750,33 +793,71 @@ local function collectRollingstock(name)
   local okR, rx, ry, rz = try(EEPRollingstockGetRotation, name) -- verfügbar ab EEP 18.1 Plugin 1
   if okR then r.rotation = { x = rx, y = ry, z = rz } end
   
+  -- Abstand (in Meter) zum Anfang des Gleisstücks, auf dem sich das Fahrzeug befindet.
+  -- Ausrichtung relativ zur Fahrtrichtung des Gleisstücks, auf dem sich das Fahrzeug befindet:
+  --   1 = in Fahrtrichtung,
+  --   0 = entgegen der Fahrtrichtung.
+  -- Systemnummer des Gleises, auf dem das Fahrzeug unterwegs ist:
+  --   1 = Bahngleise,
+  --   2 = Straße,
+  --   3 = Straßenbahngleise,
+  --   4 = sonstige Splines / Wasserwege
   local okT, trackId, pos, dir, system = try(EEPRollingstockGetTrack, name)
   if okT then r.track = { id = trackId, position = pos, direction = dir, system = system } end
   
+  -- Länge des Fahrzeugs von Kupplung zu Kupplung in Meter
   local okL, len = try(EEPRollingstockGetLength, name)
   if okL then r.length = len end
   
-    local okM, gears = try(EEPRollingstockGetMotor, name)
+  -- Anzahl der Getriebegänge, die das Fahrzeug besitzt. Nicht motorisierte Fahrzeuge haben 0 Gänge.
+  local okM, gears = try(EEPRollingstockGetMotor, name)
   if okM then r.gears = gears end
   
+  -- ModelType DE / EN
+  -- 1 = Tenderlok / tank locomotive
+  -- 2 = Schlepptenderlok / tender locomotive
+  -- 3 = Tender / tender
+  -- 4 = Elektrolok / electric locomotive
+  -- 5 = Diesellok / diesel locomotive
+  -- 6 = Triebwagen / railcar
+  -- 7 = U- oder S-Bahn / communter train
+  -- 8 = Straßenbahn / tram
+  -- 9 = Güterwaggon / freight waggons
+  -- 10 = Personenwaggon / person transport
+  -- 11 = Luftfahrzeug / aero vehicles
+  -- 12 = Maschine (z.B. Kran) / machines (e.g. cranes)
+  -- 13 = Wasserfahrzeug / ships
+  -- 14 = LKW / trucks
+  -- 15 = PKW / cars
   local okY, mtype = try(EEPRollingstockGetModelType, name)
   if okY then r.modelType = mtype end
   
+  -- zurückgelegte Strecke des Rollmaterials seit dem Einsetzen in EEP
   local okKm, mileage = try(EEPRollingstockGetMileage, name)
   if okKm then r.mileage = mileage end
   
+  -- true, wenn wenn das angegebene Fahrzeug vorwärts ausgerichtet ist, sonst false
   local okO, forward = try(EEPRollingstockGetOrientation, name)
   if okO then r.forward = forward end
   
+  -- Stellung der Kupplung
+  -- 1 = Kupplung scharf / active
+  -- 2 = Abstoßen / inactive
+  -- 3 = Gekuppelt / coupled
   local okF, cf = try(EEPRollingstockGetCouplingFront, name)
   if okF then r.couplingFront = cf end
   
   local okB, cr = try(EEPRollingstockGetCouplingRear, name)
   if okB then r.couplingRear = cr end
   
+  -- true, wenn der Rauch an-, oder false, wenn der Rauch ausgeschaltet ist
   local okS, smoke = try(EEPRollingstockGetSmoke, name)
   if okS then r.smoke = smoke end
   
+  -- Status des Hakens
+  -- 0 = ausgeschaltet,
+  -- 1 = eingeschaltet
+  -- 3 = Ladegut am Haken
   local okH, hook = try(EEPRollingstockGetHook, name)
   if okH then r.hook = hook end
   
@@ -915,74 +996,82 @@ function M.export()
     return false, "Export pausiert (Anlage wird gespeichert)"
   end
 
+  -- Setzt M.lastError und liefert false, Fehlermeldung
+  local function fail(message, path)
+    M.lastError = message
+    if config.debug then
+      print(string.format(
+        "EepExport.export um %02d:%02d:%02d%s, %s",
+        EEPTimeH, EEPTimeM, EEPTimeS,
+        path and (", file " .. path) or "",
+        message
+      ))
+    end
+    return false, message
+  end
+
   local s0 = os.clock()
 
-  -- Aktuelle Daten sammelm
+  -- Aktuelle Daten sammeln
   local okCollect, data = pcall(M.collect)
   if not okCollect then
-    lastError = tostring(data)
-    
-    if config.debug then 
-      print(string.format(
-        "EepExport.export um %02d:%02d:%02d, %s", 
-        EEPTimeH, EEPTimeM, EEPTimeS,
-        lastError
-      )) 
-    end
-    return false, lastError
+    return fail("EepExport.export: Daten sammeln fehlgeschlagen: " .. tostring(data))
   end
-  
+
   local s1 = os.clock()
-  
+
   -- Umwandlung der Daten in JSON
-  local json = M.toJson(data, config.pretty)
+  local okJson, json = pcall(M.toJson, data, config.pretty)
+  if not okJson then
+    return fail("EepExport.export: JSON-Erzeugung fehlgeschlagen: " .. tostring(json))
+  end
 
   local s2 = os.clock()
-  
+
   -- Datei schreiben
   local path = outputPath()
   local file, err, errnum = io.open(path, "w") -- w write, a append
   if not file then
-    lastError = "EepExport.export: Datei nicht schreibbar: " .. tostring (err) .. tostring(errnum)
-    
-    if config.debug then 
-      print(string.format(
-        "EepExport.export um %02d:%02d:%02d, file %s, %s", 
-        EEPTimeH, EEPTimeM, EEPTimeS,
-        path,
-        lastError
-      )) 
-    end
-    return false, lastError
+    return fail("EepExport.export: Datei nicht schreibbar: " .. tostring(err) .. " " .. tostring(errnum), path)
   end
-  file:write(json)
+  local okWrite, writeErr = file:write(json)
   file:close()
+  if not okWrite then
+    return fail("EepExport.export: Schreiben fehlgeschlagen: " .. tostring(writeErr), path)
+  end
 
   local s3 = os.clock()
-  
-  if config.debug then 
+
+  if config.debug then
     print(string.format(
-      "EepExport.export um %02d:%02d:%02d, file %s, collect %.1f ms, json %.1f ms length %d, write %.1f ms", 
+      "EepExport.export um %02d:%02d:%02d, file %s, collect %.1f ms, json %.1f ms length %d, write %.1f ms",
       EEPTimeH, EEPTimeM, EEPTimeS,
-      path, 
+      path,
       (s1 - s0) * 1000,        -- collect
       (s2 - s1) * 1000, #json, -- json
-      (s3 - s2) * 1000         -- write 
-    )) 
+      (s3 - s2) * 1000         -- write
+    ))
   end
-  
-  lastError = nil
+
+  M.lastError = nil
   lastExport = EEPTime
   return true, path
 end
 
 --- In EEPMain() aufrufen. Exportiert automatisch im eingestellten Intervall (EEP-Zeit).
 function M.run()
-  M.resolve()
-  
-  if lastScan == nil or EEPTime < lastScan or EEPTime - lastScan >= (config.scanInterval or 2) then
-    lastScan = EEPTime
-    scanForTrains()
+  local okPrepare, prepareErr = pcall(function()
+    autoInit()
+    M.resolve()
+
+    if lastScan == nil or EEPTime < lastScan or EEPTime - lastScan >= (config.scanInterval or 2) then
+      lastScan = EEPTime
+      scanForTrains()
+    end
+  end)
+  if not okPrepare then
+    M.lastError = "EepExport.run: Suche nach Objekten fehlgeschlagen: " .. tostring(prepareErr)
+    if config.debug then print(M.lastError) end
   end
   
   if not config.interval or config.interval <= 0 then return end
@@ -998,7 +1087,5 @@ function M.run()
   end
 end
 
---- Liefert die letzte Fehlermeldung (oder nil).
-M.lastError = lastError
 
 return M

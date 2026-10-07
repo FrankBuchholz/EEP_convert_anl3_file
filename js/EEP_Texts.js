@@ -323,6 +323,86 @@ info : {
 		EN : `Height`, 
 		FR : `Hauteur`, 
 	},
+	Modelltyp : {
+		DE : `Modelltyp`, 
+		EN : `Model type`, 
+		FR : `Type de modèle`, 
+	},
+	modelType_1 : {
+		DE : `Tenderlok`, 
+		EN : `Tank locomotive`, 
+		FR : `Locomotive-tender`, 
+	},
+	modelType_2 : {
+		DE : `Schlepptenderlok`, 
+		EN : `Tender locomotive`, 
+		FR : `Locomotive à tender séparé`, 
+	},
+	modelType_3 : {
+		DE : `Tender`, 
+		EN : `Tender`, 
+		FR : `Tender`, 
+	},
+	modelType_4 : {
+		DE : `Elektrolok`, 
+		EN : `Electric locomotive`, 
+		FR : `Locomotive électrique`, 
+	},
+	modelType_5 : {
+		DE : `Diesellok`, 
+		EN : `Diesel locomotive`, 
+		FR : `Locomotive diesel`, 
+	},
+	modelType_6 : {
+		DE : `Triebwagen`, 
+		EN : `Railcar`, 
+		FR : `Autorail`, 
+	},
+	modelType_7 : {
+		DE : `U- oder S-Bahn`, 
+		EN : `Commuter train`, 
+		FR : `Métro ou train de banlieue`, 
+	},
+	modelType_8 : {
+		DE : `Straßenbahn`, 
+		EN : `Tram`, 
+		FR : `Tramway`, 
+	},
+	modelType_9 : {
+		DE : `Güterwaggon`, 
+		EN : `Freight wagon`, 
+		FR : `Wagon de marchandises`, 
+	},
+	modelType_10 : {
+		DE : `Personenwaggon`, 
+		EN : `Passenger wagon`, 
+		FR : `Voiture voyageurs`, 
+	},
+	modelType_11 : {
+		DE : `Luftfahrzeug`, 
+		EN : `Aircraft`, 
+		FR : `Aéronef`, 
+	},
+	modelType_12 : {
+		DE : `Maschine (z.B. Kran)`, 
+		EN : `Machine (e.g. crane)`, 
+		FR : `Machine (p. ex. grue)`, 
+	},
+	modelType_13 : {
+		DE : `Wasserfahrzeug`, 
+		EN : `Ship`, 
+		FR : `Bateau`, 
+	},
+	modelType_14 : {
+		DE : `LKW`, 
+		EN : `Truck`, 
+		FR : `Camion`, 
+	},
+	modelType_15 : {
+		DE : `PKW`, 
+		EN : `Car`, 
+		FR : `Voiture`, 
+	},
 	Kurventyp : {
 		DE : `Kurventyp`, 
 		EN : `Curve type`, 
@@ -801,6 +881,16 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Vehicle`, 
 		FR : `Véhicule`, 
 	},
+	'Fahrzeuge' : {
+		DE : `Fahrzeuge`, 
+		EN : `Vehicles`, 
+		FR : `Véhicules`, 
+	},
+	'angetrieben' : {
+		DE : `angetrieben`, 
+		EN : `driven`, 
+		FR : `entraîné`, 
+	},
 	'Geschwindigkeit' : {				// IDC_STATIC_SETSPEED	
 		DE : `Geschwindigkeit`, 
 		EN : `Speed`, 
@@ -1139,10 +1229,15 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Train set`,
 		FR : `Convoi ferroviaire`,
 	},
+	aktiverZugverband : {
+		DE : `aktiver Zugverband`,
+		EN : `Active train set`,
+		FR : `Convoi ferroviaire actif`,
+	},
 	'Zugverbände' : {
 		DE : `Zugverbände`,
 		EN : `Train sets`,
-		FR : `Convois ferroviaires`,
+		FR : `Convois ferroviaires `,
 	},
 	'Ausrichtung' : {
 		DE : `Ausrichtung`,
@@ -1163,6 +1258,36 @@ Seule la section sélectionnée est exportée.<\/dd>
 		DE : `Automatik`,
 		EN : `Automatic`,
 		FR : `Automatique`,
+	},
+	Kupplung : {
+		DE : `Kupplung`,
+		EN : `Clutch`,
+		FR : `Embrayage`,
+	},
+	coupling_1 : {
+		DE : `scharf`,
+		EN : `active`,
+		FR : `engagé`,
+	},
+	coupling_2 : {
+		DE : `abstoßen`,
+		EN : `inactive`,
+		FR : `désengagé`,
+	},
+	coupling_3 : {
+		DE : `gekuppelt`,
+		EN : `coupled`,
+		FR : `embrayé`,
+	},
+	vorne : {
+		DE : `vorne`,
+		EN : `front`,
+		FR : `avant`,
+	},
+	hinten : {
+		DE : `hinten`,
+		EN : `rear`,
+		FR : `arrière`,
 	},
 	'Rollmaterialien' : {
 		DE : `Rollmaterialien`,
