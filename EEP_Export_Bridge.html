@@ -214,7 +214,13 @@ $("bFile").onclick = async () => {
 $("bUrl").onclick = () => {
   lsSave({src: "url", url: $("url").value}); showLast();
   startPoll(async () => {
-    const u = $("url").value, r = await fetch(u + (/\?/.test(u) ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
+    const u = $("url").value;
+		const r = await fetch(u + (/\?/.test(u) ? "&" : "?") + "t=" + Date.now(), {
+			cache: "no-store",
+			method: 'GET',
+			// Zwingend erforderlich für PNA (Private Network Access) im Browser:
+			targetAddressSpace: 'private'
+		});
     if (!r.ok) throw new Error("HTTP " + r.status);
     ingest(await r.text());
   });
