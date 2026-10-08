@@ -353,7 +353,7 @@ function loadUrl(url) {
 			loadFile(new File([blob], name));
 		})
 		.catch(function(err) {
-			status.textContent = "Fehler: " + err.message;	// z.B. CORS, file:// oder falsche URL
+			status.textContent = _('Fehler') + ": " + err.message;	// z.B. CORS, file:// oder falsche URL
 		});
 }
 
@@ -372,7 +372,7 @@ function loadUrl(url) {
 function loadFile(file) {
 	let fr;	// upvalue for function processFile
 	if (typeof window.FileReader !== "function") {
-		bodyAppend("p", _("err", "001")); // The file API isn't supported on this browser yet.
+		bodyAppend("p", EEP_Texts.getText("err", "001")); // The file API isn't supported on this browser yet.
 		return;
 	}
 
@@ -505,7 +505,7 @@ function loadFile(file) {
 			document.getElementById("loading").innerHTML =
 				EEP_Texts.getText("err", "003") // Fehler beim Lesen der Datei
 				+ `:<br>${err.name}: "${err.message}"`
-				+ EEP_Texts.getText("err", "003a") // in line
+				+ " " + EEP_Texts.getText("err", "003a") + " " // in line
 				+ `${err.lineNumber}<br><pre>${err.stack}` + "</pre>";
 			console.log(err);
 		});
@@ -600,7 +600,7 @@ global.GleisDataText = {
 	18	: _('Doppelkreuzungsweiche'),								// 
 	19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 
 	20	: _('Straßen-T-Kreuzung'),									// 
-	64	: _('special'),																	//         64 ?
+	64	: _('Spezial'),																	//         64 ?
 	65	: _('Oberleitung') + ', ' + _('Spezial'),										// 1 +     64 ?
 	69	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts') + ', ' + _('Spezial'),	// 1 + 4 + 64 ?
 	73	: _('Oberleitung') + ', ' + _('Weichenlaterne links')  + ', ' + _('Spezial'),	// 1 + 8 + 64 ?
@@ -617,7 +617,7 @@ global.WeichenstellungText = {
 global.GebaeudesammlungText = {		// GebaeudesammlungID : Text,
 	1 : _('Eisenbahn'),
 	2 : _('Strassenbahn'),
-	3 : _('Straße'),
+	3 : _('Strasse'),
 	4 : _('Immobilien'),
 	5 : _('Landschaftselemente'),
 	6 : _('Sonstiges'),			//  (Wasserwege)
@@ -844,7 +844,8 @@ function prepareGleissysteme(sutrackp) {
 				const KontaktZiel 	= KontaktZielEntry.textContent;
 				if (KontaktZiel != "" && KontaktZiel != 0) {
 					global.KontaktZiele[KontaktZiel] = {
-						Typ				: _('Weiche'),	// 1st letter is used to show an svg text.
+						Typ				: _('Weiche'),
+						Code				: 'W',	// 1st letter is used to show an svg text.
 						ID				: WeicheID,
 						GleissystemID 	: GleissystemID,
 						GleisID			: GleisID,
@@ -881,7 +882,8 @@ function prepareGleissysteme(sutrackp) {
 					const KontaktZiel 	= KontaktZielEntry.textContent;
 					if (KontaktZiel != null && KontaktZiel != 0) {
 						global.KontaktZiele[KontaktZiel] = {
-							Typ 			: _('Signal'),	// 1st letter is used to show an svg text.
+							Typ 			: _('Signal'),
+						Code				: 'S',	// 1st letter is used to show an svg text.
 							ID				: SignalID,
 							GleissystemID 	: GleissystemID,
 							GleisID			: GleisID,
@@ -2767,8 +2769,8 @@ if (near > far) { //###
 			flipText += ` rotate(180)`;
 		}
 
-if (false) { // Experiment for using quarternions
-const Q = matrix.quarternion(Gleis.mMid);
+if (false) { // Experiment for using quaternions
+const Q = matrix.quaternion(Gleis.mMid);
 
 if (CurveType == "Helix" ) {
 	const [ DirX, DirY, DirZ, d0, 
@@ -3041,8 +3043,8 @@ if (CurveType == "Helix" ) {
 			if (signalType !== "pre") { // do not show any text for pre-signals or stop points
 			svgAppend(svgSignalGroup, {
 				svg_tag				: `text`,
-				text				: (	  signalType === "FStart"	? 'Fs' // ### Translation needed
-										: signalType === "FZiel"	? 'Fz'
+				text				: (	  signalType === "FStart"	? _('FStartKurz')
+										: signalType === "FZiel"	? _('FZielKurz')
 										: signalType === "pre" 		? 'S'
 										: signalType === "StopAt" 	? 'H'
 										: 						  	  'S'
@@ -3133,7 +3135,7 @@ if (CurveType == "Helix" ) {
 			}
 			if (KontaktZiel > 0 ) {
 				const Ziel = global.KontaktZiele[KontaktZiel];
-				KontaktTypText += (Ziel ? `${Ziel.Typ.substr(0, 1)}${Ziel.ID}` : `?${KontaktZiel}`);
+				KontaktTypText += (Ziel ? `${Ziel.Code}${Ziel.ID}` : `?${KontaktZiel}`);
 			}
 
 			// Group node for Kontakt
@@ -4520,7 +4522,7 @@ It does not work if I put span elements inside of the options.
 	<option value="2">Tram</option>
 	<option value="3">Routière</option>
 	<option value="4">Navigable</option>
-	<option value="5">Control routes</option>
+	<option value="5">Itinéraires de contrôle</option>
 	<option value="6">GBS</option>
 	<option value="I">Signal/Aiguillage</option>
 <!--
@@ -4579,7 +4581,7 @@ It does not work if I put span elements inside of the options.
 	<div class="item"><label>	<!-- Hoehe -->
 	<input type="checkbox" name="Hoehe" 		checked autocomplete="off" onchange="toggleElements('.Hoehe', this.checked)"><span lang="de">Höhe</span><span lang="en">Height</span><span lang="fr">Hauteur</span></label></div>
 	<div class="item"><label>	<!-- WeicheText -->
-	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)"><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aguillages</span></label></div>
+	<input type="checkbox" name="WeicheText" 	checked autocomplete="off" onchange="toggleElements('.WeicheText', this.checked)"><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aiguillages</span></label></div>
 	<div class="item"><label>	<!-- Signal -->
 	<input type="checkbox" name="Signal" 		checked autocomplete="off" onchange="toggleElements('.Signal', this.checked)"><span lang="de">Signale</span><span lang="en">Signals</span><span lang="fr">Signaux</span></label></div>
 	<div class="item"><label>	<!-- Kontakt -->
@@ -4605,12 +4607,12 @@ It does not work if I put span elements inside of the options.
 
 	<div class="item">
 		<label>
-			<span lang="de">Fahrstraßen</span><span lang="en">Predefined lines</span><span lang="fr">Parcour prédéfini</span>
+			<span lang="de">Fahrstraßen</span><span lang="en">Predefined lines</span><span lang="fr">Parcours prédéfini</span>
 			<button id="FSon" onclick="javascript:showRoutes(false, false, true);">
-				<span lang="de">an</span><span lang="en">on</span><span lang="fr">off</span>
+				<span lang="de">an</span><span lang="en">on</span><span lang="fr">afficher</span>
 			</button>
 			<button id="FSoff" onclick="javascript:showRoutes(false, false, false);">
-				<span lang="de">aus</span><span lang="en">on</span><span lang="fr">off</span>
+				<span lang="de">aus</span><span lang="en">off</span><span lang="fr">masquer</span>
 			</button>
 		</label>
 	</div>							 
@@ -5557,7 +5559,7 @@ EEPchannel.onmessage = function(ev) {
 		const Gleissystem = global.Gleissysteme[GleissystemID];
 		if (!Gleissystem) {
 			//msg(`Gleissystem ${GleissystemID} ${TrackSystemText(GleissystemID)} existiert nicht`);
-			msg('TrackSystemNotExists', GleissystemID, TrackSystemText(GleissystemID));
+			msg('TrackSystemNotExists', GleissystemID);
 			return false;
 		}
 		const Gleis = Gleissystem[GleisID];
@@ -5613,7 +5615,7 @@ function centerItem() {
 		const Gleissystem = global.Gleissysteme[GleissystemID];
 		if (!Gleissystem) {
 			//msg(`Gleissystem ${GleissystemID} ${TrackSystemText(GleissystemID)} existiert nicht`);
-			msg('TrackSystemNotExists', GleissystemID, TrackSystemText(GleissystemID));
+			msg('TrackSystemNotExists', GleissystemID);
 			return false;
 		}
 		const Gleis = Gleissystem[GleisID];
@@ -6439,11 +6441,11 @@ function showGleisInfo(GleissystemID, GleisID) {
 			gsbname
 	);
 
-	const Q = matrix.quarternion(Gleis.mPos);					// Calculate quarternion
+	const Q = matrix.quaternion(Gleis.mPos);					// Calculate quaternion
 	const [roll_x, pitch_y, yaw_z] = matrix.euler_angles(Q); 	// Calculate euler angles
-	const quarternionText = (global.altDown 
+	const quaternionText = (global.altDown 
 		?   `<br>` 
-			+ 'Quarternion: axis ' + Q.axis 
+			+ 'Quaternion: axis ' + Q.axis 
 			+ ', trace ' 	+ Q.tr.toFixed(4) 
 			+ ', w ' 		+ Q.w.toFixed(4) 
 			+ ', x ' 		+ Q.x.toFixed(4) 
@@ -6496,7 +6498,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ `<br>${_('Höhe')}: ${Gleis.mPos[posZ].toFixed(2)}m`
 			+ (Gleis.CurveType === 'classic' || Gleis.CurveType === 'EEPCurve' ? "" : `<br>${_('Kurventyp')}: ${Gleis.CurveType}`)
 			+ connectionText
-			+ quarternionText
+			+ quaternionText
 			+ objectToHTML(Gleis)
 	});
 }
@@ -7195,7 +7197,7 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			  `${_('Position')}: (<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Kamera.mPos}])">${PosX.toFixed(0)}m, ${PosY.toFixed(0)}m<\/a>)`
 			+ `<br>${_('Höhe')}: ${PosZ.toFixed(0)}m`
 			+ `<br>${_('Blickrichtung')}: ` 		 + angle( -angleZ )			// svg: mirrored y-coordinate
-			+ " " + ['W', 'WNW', 'NW', 'NNW', 'N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W',][Math.floor(8+0.5+angleZ/Math.PI*8)] 
+			+ " " + ['W', 'WNW', 'NW', 'NNW', 'N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W',].map(c => _('dir_' + c))[Math.floor(8+0.5+angleZ/Math.PI*8)] 
 			+ `<br>${_('Neigung')}: ` 				 + angle( angleY )			// Neigung Y
 			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : "")	// Neigung X
 			+ `<br>` + (Kamera.Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6
@@ -8162,7 +8164,7 @@ function showTrainInfo(name, withVehicles, highlightVehicle){
 		html += `<br><br><b>${_('Fahrzeuge')}</b>`;
 		(t.vehicles || []).forEach((vn, i) => {
 			const v = cur.rollingstock && cur.rollingstock[vn];
-			if (!v || v.exists === false) { html += `<br>${i+1}. ${escH(vn)} (nicht vorhanden)`; return; }
+			if (!v || v.exists === false) { html += `<br>${i+1}. ${escH(vn)} (${_('nicht vorhanden')})`; return; }
 			//console.log(v);
 			
 			const line = `${i+1}. ${escH(vn)}${v.gears > 0 ? ` (${_('angetrieben')})` : ""}`;

@@ -65,7 +65,7 @@ function loadUrl(url) {
 			loadFile(new File([blob], name));
 		})
 		.catch(function(err) {
-			status.textContent = "Fehler: " + err.message;	// z.B. CORS, file:// oder falsche URL
+			status.textContent = _('Fehler') + ": " + err.message;	// z.B. CORS, file:// oder falsche URL
 		});
 }
 
@@ -195,7 +195,7 @@ function process_node(sutrackp) {
 		18	: _('Doppelkreuzungsweiche'),								// 
 		19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 1
 		20	: _('Straßen-T-Kreuzung'),									// 
-		64	: _('special'),																	// 64 ?
+		64	: _('Spezial'),																	// 64 ?
 		65	: _('Oberleitung') + ', ' + _('Spezial'),										// 1 +     64 ?
 		69	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts') + ', ' + _('Spezial'),	// 1 + 4 + 64 ?
 		73	: _('Oberleitung') + ', ' + _('Weichenlaterne links')  + ', ' + _('Spezial'),	// 1 + 8 + 64 ?
@@ -1490,7 +1490,7 @@ function createContactsTable() {
 					? ` [${Perspektive[StartPerspektive]}]`
 					: '' )
 				+ (EndeKameraID > 0
-					? ` / <a href="javascript:void(0);" onclick="javascript:postKameraMessage(${EndeKameraID});">${KameraNamen[EndeKameraID]}<\/a> ${('nach')} ${SetValue} ${('Sekunden')}`
+					? ` / <a href="javascript:void(0);" onclick="javascript:postKameraMessage(${EndeKameraID});">${KameraNamen[EndeKameraID]}<\/a> ${_('nach')} ${SetValue} ${_('Sekunden')}`
 					: '' )
 				+ (EndePerspektive > 0
 					? ` [${Perspektive[EndePerspektive]}]`
@@ -1591,8 +1591,8 @@ function createContactsTable() {
 		{ th : _('Zeit abgelaufen'),	td : ActDelay },
 		{ th : _('Zugposition'),		td : (TrainSidetext[TrainSide] ? TrainSidetext[TrainSide] : TrainSide) },
 		{ th : _('für Route'),			td : (RouteID != 0 ? RouteID + ': ' + Routen[RouteID] : '') },
-		{ th : _('für Zug'),			td : (TrainID  != 0 ? TrainID  + ': ' + (Zugverband  ? Zugverband.Name  : 'nicht vorhanden') : '') },
-		{ th : _('auf Zug'),			td : (TrainID2 != 0 ? TrainID2 + ': ' + (Zugverband2 ? Zugverband2.Name : 'nicht vorhanden') : '') },
+		{ th : _('für Zug'),			td : (TrainID  != 0 ? TrainID  + ': ' + (Zugverband  ? Zugverband.Name  : _('nicht vorhanden')) : '') },
+		{ th : _('auf Zug'),			td : (TrainID2 != 0 ? TrainID2 + ': ' + (Zugverband2 ? Zugverband2.Name : _('nicht vorhanden')) : '') },
 		{ th : _('Zug-Filter'),			td : escapeHtml(NameFilter) },
 		{ th : _('Neuer Zugname'),		td : escapeHtml(TrainNewName) },
 		{ th : _('zu Stellung'),		td : (zuStellung > 0 && Wechseln == 0 ? zuStellung : (Wechseln == 1 ? _('Umschalter') : '')) },
@@ -1893,7 +1893,7 @@ function createDepotTrainsTable() {
 			{ th : _('Auto-Auslass'), 			td : AutoAuslass },
 			
 			{ th : _('Status'),					td : '' },
-			{ th : _('Abfahrtzeiten'), 			td : '' },
+			{ th : _('Abfahrtzeit'), 			td : '' },
 			//{ th : _('Zugverband'),			td : '' },
 			{ th : _('Zugverband'),				td : '' },
 			{ th : _('Route'),					td : '' },
@@ -2614,7 +2614,7 @@ function createTable( tab ) {
 		extensions:[					// Extensions load addititional script files
 			{
 				name: 'colsVisibility',
-				description: _('Sichbarkeit der Spalten verwalten'),	// Module description
+				description: _('Sichtbarkeit der Spalten verwalten'),	// Module description
 				enable_hover: true,		// Enable hover behaviour on columns manager button/link
 				btn_text: _('Spalten verstecken') + '&#9660;',	// Button's text, defaults to Columns&#9660;
 				//at_start: [3, 4],		// List of columns indexes to be hidden at initialization
@@ -2896,7 +2896,7 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 <!-- Auswahl der anzuzeigenden Objekte. class=hidden wird für diese Objekte enfernt wenn eine Checkbox aktiv ist -->
 <fieldset class='fieldset'>
 	<div class="item"><label><input type='checkbox' name='Intro' 		checked autocomplete='off' onchange="toggleElements('.Intro', this.checked)"><a href='#divIntro'><span lang="de">Übersicht</span><span lang="en">Overview</span><span lang="fr">Présentation</span></a></label></div>
-	<div class="item"><label><input type='checkbox' name='Weiche' 		checked autocomplete='off' onchange="toggleElements('.Weiche', this.checked)"><a href='#divWeiche'><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aguillages</span></a></label></div>
+	<div class="item"><label><input type='checkbox' name='Weiche' 		checked autocomplete='off' onchange="toggleElements('.Weiche', this.checked)"><a href='#divWeiche'><span lang="de">Weichen</span><span lang="en">Switches</span><span lang="fr">Aiguillages</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Signal' 		checked autocomplete='off' onchange="toggleElements('.Signal', this.checked)"><a href='#divSignal'><span lang="de">Signale</span><span lang="en">Signals</span><span lang="fr">Signaux</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='Kontakt' 		checked autocomplete='off' onchange="toggleElements('.Kontakt', this.checked)"><a href='#divKontakt'><span lang="de">Kontakte</span><span lang="en">Contacts</span><span lang="fr">Contacts</span></a></label></div>
 	<div class="item"><label><input type='checkbox' name='virtualConnections' 	checked autocomplete='off' onchange="toggleElements('.virtualConnections', this.checked)"><a href='#divvirtualConnections'><span lang="de">virtuelle Verbindungen</span><span lang="en">Virtual connections</span><span lang="fr">Connexions virtuelles</span></a></label></div>
