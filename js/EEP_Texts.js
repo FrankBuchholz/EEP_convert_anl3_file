@@ -156,7 +156,7 @@ info : {
 	Steuerstrecken : {
 		DE : `Steuerstrecken`, 
 		EN : `Control routes`, 
-		FR : `Contrôle d'itinéraires`, 
+		FR : `Itinéraires de contrôle`, 
 	},
 	GBS : {
 		DE : `Gleisbildstellpult`, 
@@ -190,7 +190,7 @@ info : {
 	},
 	Prellbock : {	// Gleisart
 		DE : `Prellbock`, 
-		EN : `Track closure`,	// End track
+		EN : `Buffer stop`,	// End track
 		FR : `Butoir`,
 	},
 	Landschaftselemente : {	// Gebäudesammlung
@@ -206,7 +206,7 @@ info : {
 	Icon : {
 		DE : `Icon`, 
 		EN : `Icon`, 
-		FR : `Icon`, 
+		FR : `Icône`, 
 	},
 	Reset : {
 		DE : `Zurücksetzen`, 
@@ -280,12 +280,12 @@ info : {
 	},
 	Abzweig : {	// Weichenstellung
 		DE : `Abzweigung`, 
-		EN : `Junction`, 
+		EN : `Diverging route`, 
 		FR : `Embranchement`, 
 	},
 	KoAbzweig : {	// Weichenstellung
 		DE : `2. Abzweigung`, 
-		EN : `2nd junction`, 
+		EN : `2nd diverging route`, 
 		FR : `2ème branche`, 
 	},
 	Spezial : {	// Weichenstellung
@@ -295,12 +295,12 @@ info : {
 	},
 	EndeAbzweig : {	// track connection
 		DE : `Abzweigung`, 
-		EN : `Junction`, 
+		EN : `Diverging route`, 
 		FR : `Embranchement`, 
 	},
 	EndeKoAbzweig : {	// track connection
 		DE : `2. Abzweigung`, 
-		EN : `2nd junction`, 
+		EN : `2nd diverging route`, 
 		FR : `2ème branche`, 
 	},
 	Gleisart : {	// attribute: clsid
@@ -360,7 +360,7 @@ info : {
 	},
 	modelType_7 : {
 		DE : `U- oder S-Bahn`, 
-		EN : `Commuter train`, 
+		EN : `Metro/suburban train`, 
 		FR : `Métro ou train de banlieue`, 
 	},
 	modelType_8 : {
@@ -480,7 +480,7 @@ info : {
 	},
 	'Halteabstand' : {
 		DE : `Halteabstand`, 
-		EN : `Braking distance`, 
+		EN : `Stopping distance`, 
 		FR : `Distance de freinage`,
 	},
 	Gleisrichtung : {
@@ -506,22 +506,22 @@ info : {
 	'Fahrstraße' : { // 'Fahrstraßen' und 'Routen' sind in EEP verschiedene Objekte
 		DE : `Fahrstraße`, 
 		EN : `Predefined line`,			// Pre-set route
-		FR : `Parcour prédéfini`,		// Itinéraire prédéfini
+		FR : `Parcours prédéfini`,		// Itinéraire prédéfini
 	},
 	'Fahrstraßen' : {
 		DE : `Fahrstraßen`, 
 		EN : `Predefined lines`,		// Pre-set routes
-		FR : `Parcours prédéfini`,		// Itinéraires prédéfini
+		FR : `Parcours prédéfinis`,		// Itinéraires prédéfini
 	},
 	'zeigen' : { // Fahrstaßen werden in entsprechender Farbe angezeigt
 		DE : `an`,
 		EN : `on`,
-		FR : `on`,
+		FR : `afficher`,
 	},
 	'verstecken' : { // Fahrstaßen werden nicht mehr in entsprechender Farbe angezeigt
 		DE : `aus`,
 		EN : `off`,
-		FR : `off`,
+		FR : `masquer`,
 	},
 	Route : { // 'Fahrstraßen' und 'Routen' sind in EEP verschiedene Objekte
 		DE : `Route`, 
@@ -716,7 +716,7 @@ info : {
 	Ein : { // Ein - Aus
 		DE : `Ein`, 
 		EN : `On`,
-		FR : `On`,
+		FR : `Activé`,
 	},
 	Achsenfilter : {
 		DE : `Achsenfilter`,
@@ -757,7 +757,7 @@ info : {
 <dt>JPG<\/dt>
 <dd>Verlustbehaftetes Pixel-Bild in bestimmter Größe und Qualität; ideal für Fotos.<br>
 Qualität (%): $2<br><br>
-Nur Bilder in diesem Format können direkt in das <a $3>EEP-Forum<\/a> hochgeladen werden: <i>Die Bilder dürfen die Dateiendungen jpg, jpeg besitzen und sie dürfen maximal 2 MB groß sein. Die minimale Bildgröße beträgt 800×500 Pixel und die maximale Größe beträgt 1920×1080 Pixel.<\/i> Daher wird die Größe der exportieren Graphik nach Möglichkeit auf diese Werte begrenzt.<\/dd>
+Nur Bilder in diesem Format können direkt in das <a $3>EEP-Forum<\/a> hochgeladen werden: <i>Die Bilder dürfen die Dateiendungen jpg, jpeg besitzen und sie dürfen maximal 2 MB groß sein. Die minimale Bildgröße beträgt 800×500 Pixel und die maximale Größe beträgt 1920×1080 Pixel.<\/i> Daher wird die Größe der exportierten Graphik nach Möglichkeit auf diese Werte begrenzt.<\/dd>
 <dt>SVG<\/dt>
 <dd>Beliebig zoombare, verlustfreie Vektor-Graphik; ideal zur Weiterverarbeitung in anderen Programmen<br>
 Es wird nur der gewählte Ausschnitt exportiert.<\/dd>
@@ -767,9 +767,9 @@ Es wird nur der gewählte Ausschnitt exportiert.<\/dd>
 <p>Select the size $1 and the desired data format:<\/p>
 <dl>
 <dt>PNG<\/dt>
-<dd>Loss-free pixel graphic format; ideal for computergraphic<\/dd>
+<dd>Loss-free pixel graphic format; ideal for computer graphics<\/dd>
 <dt>JPG<\/dt>
-<dd>Pixel-picture with quality-loss; ideal for fotos.<br>
+<dd>Pixel-picture with quality-loss; ideal for photos.<br>
 Quality (%): $2<br><br>
 Only pictures of this format may be directly uploaded to the <a $3>EEP-Forum<\/a>: <i>The file must have the extension .jpg or .jpeg and their size must remain under 2 MB. The minimal picture size is 800×500 Pixel up to 1920×1080 pixels.<\/i> The size of the exported graphics will be reduced to fulfil these limitations.<\/dd>
 <dt>SVG<\/dt>
@@ -959,7 +959,7 @@ Seule la section sélectionnée est exportée.<\/dd>
 	'Zugverbände in Depots' : {
 		DE : `Zugverbände in Depots`, 
 		EN : `Train sets in depots`, 
-		FR : `Convoi ferroviaires dans les dépôts`, 
+		FR : `Convois ferroviaires dans les dépôts`, 
 	},
 	'Status' : {
 		DE : `Status`, 
@@ -969,7 +969,7 @@ Seule la section sélectionnée est exportée.<\/dd>
 	'Anzahl Zugverbände' : {
 		DE : `Anzahl Zugverbände`, 
 		EN : `Number of train sets`, 
-		FR : `Nombre de convoi ferroviaire`, 
+		FR : `Nombre de convois ferroviaires`, 
 	},
 	'Einfahrt Depot' : {
 		DE : `Einfahrt Depot`, 
@@ -983,8 +983,8 @@ Seule la section sélectionnée est exportée.<\/dd>
 	},
 	'Auto-Auslass' : {
 		DE : `Auto-Auslass`, 
-		EN : `Auto outlet`, 
-		FR : `Prise automatique`, 
+		EN : `Automatic release`, 
+		FR : `Sortie automatique`, 
 	},
 	'Auto-Zeit nach' : {
 		DE : `Auto-Zeit nach`, 
@@ -993,8 +993,8 @@ Seule la section sélectionnée est exportée.<\/dd>
 	},
 	'Zufall' : {
 		DE : `Zufall`, 
-		EN : `Chance`, 
-		FR : `Coïncidence`, 
+		EN : `Random`, 
+		FR : `Aléatoire`, 
 	},
 	'Abfahrtzeit' : {
 		DE : `Abfahrtzeit`, 
@@ -1123,8 +1123,8 @@ Seule la section sélectionnée est exportée.<\/dd>
 	},
 	'Schluss' : {
 		DE : `Schluss`, 
-		EN : `End`, 
-		FR : `Fin`, 
+		EN : `Rear`, 
+		FR : `Queue`, 
 	},
 	virtuell : {	// Gleisverbindung
 		DE : `virtuell`, 
@@ -1161,12 +1161,12 @@ Seule la section sélectionnée est exportée.<\/dd>
 	},
 	'Anzahl Signalstellungen' : {
 		DE : `Anzahl Signalstellungen`,
-		EN : `Number of signals`,
-		FR : `Nombre de signaux`,
+		EN : `Number of signal positions`,
+		FR : `Nombre de positions du signal`,
 	},
 	'Anzahl Fahrstraßen' : {
 		DE : `Anzahl Fahrstraßen`,
-		EN : `Number of driveways`,
+		EN : `Number of predefined lines`,
 		FR : `Nombre d'itinéraires`,
 	},
 	'Anzahl wartender Zugverbände' : {
@@ -1210,7 +1210,7 @@ Seule la section sélectionnée est exportée.<\/dd>
 		FR : `Info-texte`,
 	},
 	virtualConnection : {
-		DE : `Virtuelle Verbindung zwischen `, 
+		DE : `Virtuelle Verbindung zwischen`, 
 		EN : `Virtual connection between`, 
 		FR : `Connexion virtuelle entre`, 
 	},
@@ -1237,17 +1237,12 @@ Seule la section sélectionnée est exportée.<\/dd>
 	'Zugverbände' : {
 		DE : `Zugverbände`,
 		EN : `Train sets`,
-		FR : `Convois ferroviaires `,
+		FR : `Convois ferroviaires`,
 	},
 	'Ausrichtung' : {
 		DE : `Ausrichtung`,
 		EN : `Orientation`,
 		FR : `Orientation`,
-	},
-	Geschwindigkeit : {
-		DE : `Geschwindigkeit`,
-		EN : `Speed`,
-		FR : `Vitesse`,
 	},
 	Sollgeschwindigkeit : {
 		DE : `Sollgeschwindigkeit`,
@@ -1261,8 +1256,8 @@ Seule la section sélectionnée est exportée.<\/dd>
 	},
 	Kupplung : {
 		DE : `Kupplung`,
-		EN : `Clutch`,
-		FR : `Embrayage`,
+		EN : `Coupling`,
+		FR : `Attelage`,
 	},
 	coupling_1 : {
 		DE : `scharf`,
@@ -1277,7 +1272,7 @@ Seule la section sélectionnée est exportée.<\/dd>
 	coupling_3 : {
 		DE : `gekuppelt`,
 		EN : `coupled`,
-		FR : `embrayé`,
+		FR : `attelé`,
 	},
 	vorne : {
 		DE : `vorne`,
@@ -1326,7 +1321,7 @@ Seule la section sélectionnée est exportée.<\/dd>
 	},
 	'Filter aktiv' : {
 		DE : `Filter aktiv`,
-		EN : `Filter activ`,
+		EN : `Filter active`,
 		FR : `Filtre actif`,
 	},
 	'Filter löschen' : {
@@ -1366,7 +1361,7 @@ Seule la section sélectionnée est exportée.<\/dd>
 	},
 	'Weitere Informationen' : {
 		DE : `Weitere Informationen`,
-		EN : `Further informations`,
+		EN : `Further information`,
 		FR : `Informations supplémentaires`,
 	},
 	'Keine zum Filter passende Einträge vorhanden' : {
@@ -1374,8 +1369,8 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `No suitable records present for filtering`,
 		FR : `Aucun enregistrement présent adapté au filtre`,
 	},
-	'Sichbarkeit der Spalten verwalten' : {
-		DE : `Sichbarkeit der Spalten verwalten`,
+	'Sichtbarkeit der Spalten verwalten' : {
+		DE : `Sichtbarkeit der Spalten verwalten`,
 		EN : `Manage the visibility of the columns`,
 		FR : `Gérer la visibilité des colonnes`,
 	},
@@ -1558,6 +1553,273 @@ Seule la section sélectionnée est exportée.<\/dd>
 		FR: ``,
 	},
 // end of not used signal positions
+	// EEP_Export_Bridge.html, Kompass, Kurzformen
+	'dir_W' : {
+		DE : `W`,
+		EN : `W`,
+		FR : `O`,
+	},
+	'dir_WNW' : {
+		DE : `WNW`,
+		EN : `WNW`,
+		FR : `ONO`,
+	},
+	'dir_NW' : {
+		DE : `NW`,
+		EN : `NW`,
+		FR : `NO`,
+	},
+	'dir_NNW' : {
+		DE : `NNW`,
+		EN : `NNW`,
+		FR : `NNO`,
+	},
+	'dir_N' : {
+		DE : `N`,
+		EN : `N`,
+		FR : `N`,
+	},
+	'dir_NNO' : {
+		DE : `NNO`,
+		EN : `NNE`,
+		FR : `NNE`,
+	},
+	'dir_NO' : {
+		DE : `NO`,
+		EN : `NE`,
+		FR : `NE`,
+	},
+	'dir_ONO' : {
+		DE : `ONO`,
+		EN : `ENE`,
+		FR : `ENE`,
+	},
+	'dir_O' : {
+		DE : `O`,
+		EN : `E`,
+		FR : `E`,
+	},
+	'dir_OSO' : {
+		DE : `OSO`,
+		EN : `ESE`,
+		FR : `ESE`,
+	},
+	'dir_SO' : {
+		DE : `SO`,
+		EN : `SE`,
+		FR : `SE`,
+	},
+	'dir_SSO' : {
+		DE : `SSO`,
+		EN : `SSE`,
+		FR : `SSE`,
+	},
+	'dir_S' : {
+		DE : `S`,
+		EN : `S`,
+		FR : `S`,
+	},
+	'dir_SSW' : {
+		DE : `SSW`,
+		EN : `SSW`,
+		FR : `SSO`,
+	},
+	'dir_SW' : {
+		DE : `SW`,
+		EN : `SW`,
+		FR : `SO`,
+	},
+	'dir_WSW' : {
+		DE : `WSW`,
+		EN : `WSW`,
+		FR : `OSO`,
+	},
+	'FStartKurz' : {
+		DE : `Fs`,
+		EN : `Ls`,
+		FR : `Id`,
+	},
+	'FZielKurz' : {
+		DE : `Fz`,
+		EN : `Le`,
+		FR : `Ia`,
+	},
+	'Fehler' : {
+		DE : `Fehler`,
+		EN : `Error`,
+		FR : `Erreur`,
+	},
+	'Datei live verfolgen' : {
+		DE : `Datei live verfolgen`,
+		EN : `Follow file live`,
+		FR : `Suivre le fichier en direct`,
+	},
+	'oder einmalig' : {
+		DE : `oder einmalig:`,
+		EN : `or load once:`,
+		FR : `ou charger une fois :`,
+	},
+	'alle' : {
+		DE : `alle`,
+		EN : `every`,
+		FR : `toutes les`,
+	},
+	'URL abfragen' : {
+		DE : `URL abfragen`,
+		EN : `Poll URL`,
+		FR : `Interroger l'URL`,
+	},
+	'an Gleisplan senden' : {
+		DE : `an Gleisplan senden`,
+		EN : `Send to track plan`,
+		FR : `Envoyer au plan de voies`,
+	},
+	'Gleisplan öffnen' : {
+		DE : `Gleisplan öffnen`,
+		EN : `Open track plan`,
+		FR : `Ouvrir le plan de voies`,
+	},
+	'keine Daten' : {
+		DE : `keine Daten`,
+		EN : `no data`,
+		FR : `aucune donnée`,
+	},
+	'ZuletztURL' : {
+		DE : `Zuletzt: URL $1`,
+		EN : `Last: URL $1`,
+		FR : `Dernier : URL $1`,
+	},
+	'ZuletztDatei' : {
+		DE : `Zuletzt: Datei $1`,
+		EN : `Last: file $1`,
+		FR : `Dernier : fichier $1`,
+	},
+	'ZeitWetter' : {
+		DE : `Zeit & Wetter`,
+		EN : `Time & weather`,
+		FR : `Heure & météo`,
+	},
+	'Züge' : {
+		DE : `Züge`,
+		EN : `Trains`,
+		FR : `Trains`,
+	},
+	'Zug' : {
+		DE : `Zug`,
+		EN : `Train`,
+		FR : `Train`,
+	},
+	'Folgen' : {
+		DE : `Folgen`,
+		EN : `Follow`,
+		FR : `Suivre`,
+	},
+	'kein Zug' : {
+		DE : `– kein Zug –`,
+		EN : `– no train –`,
+		FR : `– aucun train –`,
+	},
+	'sigNoteGleisplan' : {
+		DE : `(Farben aus Gleisplan)`,
+		EN : `(colours from track plan)`,
+		FR : `(couleurs du plan de voies)`,
+	},
+	'sigNoteNeutral' : {
+		DE : `(neutral – Gleisplan nicht verbunden)`,
+		EN : `(neutral – track plan not connected)`,
+		FR : `(neutre – plan de voies non connecté)`,
+	},
+	'Soll' : {
+		DE : `Soll`,
+		EN : `Target`,
+		FR : `Cible`,
+	},
+	'Stellung' : {
+		DE : `Stellung`,
+		EN : `Position`,
+		FR : `Position`,
+	},
+	'Zeige' : {
+		DE : `Zeige`,
+		EN : `Show`,
+		FR : `Afficher`,
+	},
+	'GleisInfo' : {
+		DE : `Gleis-Info`,
+		EN : `Track info`,
+		FR : `Info voie`,
+	},
+	'EEPZeit' : {
+		DE : `EEP-Zeit`,
+		EN : `EEP time`,
+		FR : `Heure EEP`,
+	},
+	'Wolken' : {
+		DE : `Wolken`,
+		EN : `Clouds`,
+		FR : `Nuages`,
+	},
+	'Nebel' : {
+		DE : `Nebel`,
+		EN : `Fog`,
+		FR : `Brouillard`,
+	},
+	'Regen' : {
+		DE : `Regen`,
+		EN : `Rain`,
+		FR : `Pluie`,
+	},
+	'Schnee' : {
+		DE : `Schnee`,
+		EN : `Snow`,
+		FR : `Neige`,
+	},
+	'Hagel' : {
+		DE : `Hagel`,
+		EN : `Hail`,
+		FR : `Grêle`,
+	},
+	'Wind' : {
+		DE : `Wind`,
+		EN : `Wind`,
+		FR : `Vent`,
+	},
+	'Aktiver Zug' : {
+		DE : `Aktiver Zug`,
+		EN : `Active train`,
+		FR : `Train actif`,
+	},
+	'Lok' : {
+		DE : `Lok`,
+		EN : `Loco`,
+		FR : `Loco`,
+	},
+	'KupplungVH' : {
+		DE : `Kupplung v/h`,
+		EN : `Coupling f/r`,
+		FR : `Attelage av/ar`,
+	},
+	'UngueltigesJSON' : {
+		DE : `Ungültiges JSON`,
+		EN : `Invalid JSON`,
+		FR : `JSON invalide`,
+	},
+	'KeinEEPExport' : {
+		DE : `Kein EEP-Export (global/trains fehlen)`,
+		EN : `Not an EEP export (global/trains missing)`,
+		FR : `Pas un export EEP (global/trains manquants)`,
+	},
+	'ExportStatus' : {
+		DE : `Export von EEP-Zeit $1, letzte Änderung vor $2 s`,
+		EN : `Export from EEP time $1, last change $2 s ago`,
+		FR : `Export de l'heure EEP $1, dernier changement il y a $2 s`,
+	},
+	'LiveLesenChrome' : {
+		DE : `Live-Lesen von Dateien braucht Chrome/Edge – alternativ URL oder einmaliges Laden`,
+		EN : `Live reading of files requires Chrome/Edge – alternatively use a URL or load once`,
+		FR : `La lecture en direct de fichiers nécessite Chrome/Edge – sinon utiliser une URL ou un chargement unique`,
+	},
+	
 	allowedBlocks : {
 		DE : `Erlaubte Blöcke mit Wartezeit`, 
 		EN : `Allowed blocks with wait time`, 
@@ -1667,7 +1929,7 @@ Additional texts in EEP_Gleisplan.html and EEP_Inventar.html
 
 <span lang="de">Gleisobjekte</span>
 <span lang="en">Track objects</span>
-<span lang="fr">Suivre l'objets</span>
+<span lang="fr">Objets de voie</span>
 
 <span lang="de">Kameras</span>
 <span lang="en">Cameras</span>
@@ -1704,15 +1966,19 @@ Additional texts in EEP_Gleisplan.html and EEP_Inventar.html
 	function getText(topic, key, ...args) {
 		if ( texts[topic] && texts[topic][key] ) {
 			// get text
-			let text = texts[topic][key][language]
+			let text = texts[topic][key][getLanguage()];
 			// in case of missing translation get text in master language
 			if (!text || text === ``) {
 				text = texts[topic][key][masterLanguage];
 			}
+			// still nothing: show the key
+			if (!text) {
+				return topic + '.' + key;
+			}
 			// replace parameters $1 , $2 , ...
 			let i = 1;
 			for (const arg of args) {
-				text = text.replace('$'+i, arg);
+				text = text.replace('$'+i, () => arg);	// function avoids special handling of $& etc. in arg
 				i += 1;
 			}
 			return text;
@@ -1741,6 +2007,7 @@ document.write(`
 <input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage('EN')" autocomplete="off" >
 <input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage('FR')" autocomplete="off" >
 `);
+document.documentElement.lang = EEP_Texts.getLanguage().toLowerCase();
 switch (EEP_Texts.getLanguage()) {	// do it as early as possible
 	case "DE" : document.getElementById("german").checked = true; break;
 	case "EN" : document.getElementById("english").checked = true; break;

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EEP Export Bridge</title>
+<link rel="stylesheet" href="css/EEP_Texts.css">
 <style>
 :root{--bg:#f5f5f5;--fg:#111;--card:#fff;--line:#d0d7de;--acc:#4682b4}
 @media(prefers-color-scheme:dark){:root{--bg:#1b1f23;--fg:#e6e6e6;--card:#24292e;--line:#3a4048}}
@@ -13,6 +14,7 @@ header{background:var(--acc);color:#fff;padding:8px 14px;display:flex;flex-wrap:
 header h1{font-size:17px;margin:0 10px 0 0}
 main{padding:12px;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
 section{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto}
+section.medium{grid-column:span 2}
 section.wide{grid-column:1/-1}
 h2{font-size:14px;margin:0 0 6px}
 table{border-collapse:collapse;width:100%}
@@ -29,26 +31,28 @@ small{opacity:.75}
 </style>
 </head>
 <body>
+<script src="js/EEP_Texts.js"></script> <!-- Texte; fügt versteckte Sprach-Radiobuttons ein -->
 <header>
   <h1>EEP Export Bridge</h1>
   <button id="bLast" hidden></button>
-  <button id="bFile">Datei live verfolgen</button>
-  <label>oder einmalig: <input type="file" id="fOnce" accept=".json"></label>
+  <button id="bFile" data-t="Datei live verfolgen"></button>
+  <label><span data-t="oder einmalig"></span> <input type="file" id="fOnce" accept=".json"></label>
   <label>URL <input id="url" value="eep_export.json" size="18"></label>
-  <button id="bUrl">URL abfragen</button>
-  <label>alle <input id="iv" type="number" value="2" min="0.5" step="0.5" style="width:55px"> s</label>
-  <label><input type="checkbox" id="send" checked> an Gleisplan senden</label>
-  <button id="bPlan">Gleisplan öffnen</button>
-  <span id="st">keine Daten</span>
+  <button id="bUrl" data-t="URL abfragen"></button>
+  <label><span data-t="alle"></span> <input id="iv" type="number" value="2" min="0.5" step="0.5" style="width:55px"> s</label>
+  <label><input type="checkbox" id="send" checked> <span data-t="an Gleisplan senden"></span></label>
+  <button id="bPlan" data-t="Gleisplan öffnen"></button>
+  <span id="st" data-t="keine Daten"></span>
+  <select id="lang" title="Language"><option value="DE">Deutsch</option><option value="EN">English</option><option value="FR">Français</option></select>
 </header>
 
 <main>
-  <section><h2>Zeit &amp; Wetter</h2><div id="gl">–</div></section>
-  <section class="wide"><h2>Züge <small>
-    Folgen: <select id="follow"><option value="">– kein Zug –</option></select></small></h2><div id="trains"></div></section>
-  <section><h2>Signale <small id="sigNote"></small></h2><div id="sigs"></div></section>
-  <section><h2>Weichen</h2><div id="sws"></div></section>
-  <section class="wide"><h2>Rollmaterial</h2><div id="rs"></div></section>
+  <section class="medium"><h2 data-t="ZeitWetter"></h2><div id="gl">–</div></section>
+  <section class="wide"><h2><span data-t="Züge"></span> <small>
+    <span data-t="Folgen"></span>: <select id="follow"><option value="" data-t="kein Zug"></option></select></small></h2><div id="trains"></div></section>
+  <section><h2><span data-t="Signale"></span> <small id="sigNote"></small></h2><div id="sigs"></div></section>
+  <section><h2 data-t="Weichen"></h2><div id="sws"></div></section>
+  <section class="wide"><h2 data-t="Rollmaterialien"></h2><div id="rs"></div></section>
 </main>
 
 <script>
@@ -74,7 +78,7 @@ const idbGet = async k => { const db = await idb(); return new Promise((res, rej
 function showLast() {
   const s = lsLoad(), b = $("bLast");
   b.hidden = !((s.src === "url" && s.url) || (s.src === "file" && s.file));
-  b.textContent = s.src === "url" ? "Zuletzt: URL " + s.url : "Zuletzt: Datei " + s.file;
+  b.textContent = s.src === "url" ? _("ZuletztURL", s.url) : _("ZuletztDatei", s.file);
 }
 { const s = lsLoad();
   if (s.url) $("url").value = s.url;
@@ -85,25 +89,25 @@ $("iv").onchange = () => { lsSave({iv: $("iv").value}); if (timer) startPoll(pol
 $("send").onchange = () => { lsSave({send: $("send").checked}); if ($("send").checked) { push(); centerFollow(); } };
 
 // ---- Darstellung -----------------------------------------------------------
-const SWTXT = {1:["Durchfahrt","b"], 2:["Abzweig","o"], 3:["KoAbzweig","p"]};
-const swChip = s => { const [t, c] = SWTXT[s] || ["Stellung " + s, "x"]; return `<span class="chip ${c}">${t}</span>`; };
+const SWTXT = {1:["Durchfahrt","b"], 2:["Abzweig","o"], 3:["KoAbzweig","p"], 5:["Spezial","x"]};
+const swChip = s => { const e = SWTXT[s], t = e ? _(e[0]) : _("Stellung") + " " + s; return `<span class="chip ${e ? e[1] : "x"}">${esc(t)}</span>`; };
 // (c) Ohne Info aus dem Gleisplan: neutral grau
 function sigChip(id, s) {
   const p = sigInfo && sigInfo[id] && sigInfo[id].pos[s];
-  if (!p) return `<span class="chip x">Stellung ${esc(s)}</span>`;
+  if (!p) return `<span class="chip x">${esc(_("Stellung"))} ${esc(s)}</span>`;
   const c = {halt:"r", fahrt:"g", warn:"o"}[p.cls] || "x";
   return `<span class="chip ${c}">${esc(s)}: ${esc(p.text || "?")}</span>`;
 }
 const byNum = (a, b) => Number(a) - Number(b);
 const list = x => x ? Object.values(x) : [];
 const fmt = (n, d = 1) => (typeof n === "number" ? n.toFixed(d) : "–");
-function status(msg, err) { const s = $("st"); s.textContent = msg; s.className = err ? "err" : ""; }
+function status(msg, err) { const s = $("st"); s.removeAttribute("data-t"); s.textContent = msg; s.className = err ? "err" : ""; }
 
 // ---- (b) Nur bei geändertem meta.exportedAtEepTime neu darstellen -----------
 function ingest(text) {
   let d;
-  try { d = JSON.parse(text); } catch (e) { return status("Ungültiges JSON: " + e.message, true); }
-  if (!d.global || !d.trains) return status("Kein EEP-Export (global/trains fehlen)", true);
+  try { d = JSON.parse(text); } catch (e) { return status(_("UngueltigesJSON") + ": " + e.message, true); }
+  if (!d.global || !d.trains) return status(_("KeinEEPExport"), true);
   let stamp = d.meta && d.meta.exportedAtEepTime;
   if (stamp === undefined && d.global.time) stamp = d.global.time.seconds;   // Fallback ohne meta
   if (stamp !== undefined && stamp === lastStamp) return;
@@ -130,48 +134,48 @@ live.onmessage = ev => {
 
 function render() {
   const g = data.global, tm = g.time || {}, w = g.weather || {};
-  $("gl").innerHTML = `<b>${p2(tm.hour)}:${p2(tm.minute)}:${p2(tm.second)}</b> EEP-Zeit · EEP ${esc(g.eepVersion)}<br>
-    Wolken ${w.cloudsIntensity}% · Nebel ${w.fog}% · Regen ${w.rain}% · Schnee ${w.snow}% · Hagel ${w.hail}% · Wind ${w.wind}<br>
-    <small>Aktiver Zug: ${esc(g.activeTrain || "–")}</small>`;
+  $("gl").innerHTML = `<b>${p2(tm.hour)}:${p2(tm.minute)}:${p2(tm.second)}</b> ${_("EEPZeit")} · EEP ${esc(g.eepVersion)}<br>
+    ${_("Wolken")} ${w.cloudsIntensity}% · ${_("Nebel")} ${w.fog}% · ${_("Regen")} ${w.rain}% · ${_("Schnee")} ${w.snow}% · ${_("Hagel")} ${w.hail}% · ${_("Wind")} ${w.wind}<br>
+    <small>${_("Aktiver Zug")}: ${esc(g.activeTrain || "–")}</small>`;
 
   const names = Object.keys(data.trains);
-  let h = "<table><tr><th>Zug</th><th>km/h</th><th>Soll</th><th>Wagen</th><th>Länge</th><th>Route</th><th>Gleis</th><th></th></tr>";
+  let h = `<table><tr><th>${_("Zug")}</th><th>km/h</th><th>${_("Soll")}</th><th>${_("Fahrzeuge")}</th><th>${_("Länge")}</th><th>${_("Route")}</th><th>${_("Gleis")}</th><th></th></tr>`;
   for (const n of names) {
     const t = data.trains[n], k = t.track || {};
     h += `<tr class="${n === g.activeTrain ? "act" : ""}"><td>${esc(n)}</td><td>${fmt(t.speed)}</td><td>${fmt(t.targetSpeed)}</td>
       <td>${t.vehicleCount}</td><td>${fmt(t.length)} m</td><td>${esc(t.route || "")}</td>
       <td>${k.system}-${k.id} @ ${fmt(k.position, 0)} m</td>
-      <td><button data-a="center" data-n="${esc(n)}">Zeige</button>
-          <button data-a="track" data-gs="${k.system}" data-gi="${k.id}">Gleis-Info</button></td></tr>`;
+      <td><button data-a="center" data-n="${esc(n)}">${_("Zeige")}</button>
+          <button data-a="track" data-gs="${k.system}" data-gi="${k.id}">${_("GleisInfo")}</button></td></tr>`;
   }
   $("trains").innerHTML = h + "</table>";
   const key = names.join("|");
   if (key !== trainKey) {
     trainKey = key; const cur = $("follow").value;
-    $("follow").innerHTML = '<option value="">– kein Zug –</option>' + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    $("follow").innerHTML = `<option value="">${esc(_("kein Zug"))}</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
     $("follow").value = names.includes(cur) ? cur : "";
   }
 
-  $("sigNote").textContent = sigInfo ? "(Farben aus Gleisplan)" : "(neutral – Gleisplan nicht verbunden)";
-  h = "<table><tr><th>ID</th><th>Stellung</th><th>Züge</th><th></th></tr>";
+  $("sigNote").textContent = sigInfo ? _("sigNoteGleisplan") : _("sigNoteNeutral");
+  h = `<table><tr><th>ID</th><th>${_("Stellung")}</th><th>${_("Züge")}</th><th></th></tr>`;
   for (const id of Object.keys(data.signals || {}).sort(byNum)) {
     const s = data.signals[id], tr = list(s.trains);
     h += `<tr><td>${id}</td><td>${sigChip(id, s.state)}</td><td>${tr.length ? esc(tr.join(", ")) : ""}</td>
-      <td><button data-a="id" data-i="${id}">Zeige</button></td></tr>`;
+      <td><button data-a="id" data-i="${id}">${_("Zeige")}</button></td></tr>`;
   }
   $("sigs").innerHTML = h + "</table>";
 
-  h = "<table><tr><th>ID</th><th>Stellung</th><th></th></tr>";
+  h = `<table><tr><th>ID</th><th>${_("Stellung")}</th><th></th></tr>`;
   for (const id of Object.keys(data.switches || {}).sort(byNum)) {
     h += `<tr><td>${id}</td><td>${swChip(data.switches[id].state)}</td>
-      <td><button data-a="id" data-i="${id}">Zeige</button></td></tr>`;
+      <td><button data-a="id" data-i="${id}">${_("Zeige")}</button></td></tr>`;
   }
   $("sws").innerHTML = h + "</table>";
 
-  h = "<table><tr><th>Name</th><th>Zug</th><th>Länge</th><th>Gleis</th><th>Position (x, y, z)</th><th>Kupplung v/h</th></tr>";
+  h = `<table><tr><th>${_("Name")}</th><th>${_("Zug")}</th><th>${_("Länge")}</th><th>${_("Gleis")}</th><th>${_("Position")} (x, y, z)</th><th>${_("KupplungVH")}</th></tr>`;
   for (const n of Object.keys(data.rollingstock || {})) {
     const r = data.rollingstock[n], k = r.track || {}, p = r.position || {};
-    h += `<tr><td>${esc(n)}${r.gears > 0 ? " (Lok)" : ""}</td><td>${esc(r.train || "")}</td><td>${fmt(r.length, 2)} m</td>
+    h += `<tr><td>${esc(n)}${r.gears > 0 ? " (" + _("Lok") + ")" : ""}</td><td>${esc(r.train || "")}</td><td>${fmt(r.length, 2)} m</td>
       <td>${k.system}-${k.id} @ ${fmt(k.position, 1)}${k.direction === 1 ? " →" : " ←"}</td>
       <td>${fmt(p.x)}, ${fmt(p.y)}, ${fmt(p.z, 2)}</td><td>${r.couplingFront}/${r.couplingRear}</td></tr>`;
   }
@@ -179,7 +183,7 @@ function render() {
 }
 
 setInterval(() => {
-  if (data) status(`Export von EEP-Zeit ${p2(data.global.time.hour)}:${p2(data.global.time.minute)}:${p2(data.global.time.second)}, letzte Änderung vor ${Math.round((Date.now() - received) / 1000)} s`);
+  if (data) status(_("ExportStatus", `${p2(data.global.time.hour)}:${p2(data.global.time.minute)}:${p2(data.global.time.second)}`, Math.round((Date.now() - received) / 1000)));
 }, 1000);
 
 document.body.addEventListener("click", ev => {
@@ -199,7 +203,7 @@ document.body.addEventListener("click", ev => {
 let pollFn = null;
 function startPoll(fn) {
   clearInterval(timer); pollFn = fn; lastStamp = null;
-  const run = () => fn().catch(e => status("Fehler: " + e.message, true));
+  const run = () => fn().catch(e => status(_("Fehler") + ": " + e.message, true));
   run(); timer = setInterval(run, Math.max(500, $("iv").value * 1000));
 }
 function useHandle(h) {
@@ -208,19 +212,13 @@ function useHandle(h) {
   startPoll(async () => ingest(await (await handle.getFile()).text()));
 }
 $("bFile").onclick = async () => {
-  if (!window.showOpenFilePicker) return status("Live-Lesen von Dateien braucht Chrome/Edge – alternativ URL oder einmaliges Laden", true);
+  if (!window.showOpenFilePicker) return status(_("LiveLesenChrome"), true);
   try { useHandle((await showOpenFilePicker({id: "eep-export", types: [{accept: {"application/json": [".json"]}}]}))[0]); } catch (e) {}
 };
 $("bUrl").onclick = () => {
   lsSave({src: "url", url: $("url").value}); showLast();
   startPoll(async () => {
-    const u = $("url").value;
-		const r = await fetch(u + (/\?/.test(u) ? "&" : "?") + "t=" + Date.now(), {
-			cache: "no-store",
-			method: 'GET',
-			// Zwingend erforderlich für PNA (Private Network Access) im Browser:
-			targetAddressSpace: 'private'
-		});
+    const u = $("url").value, r = await fetch(u + (/\?/.test(u) ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
     if (!r.ok) throw new Error("HTTP " + r.status);
     ingest(await r.text());
   });
@@ -248,6 +246,22 @@ $("follow").onchange = centerFollow;
 // Aufruf mit ?url=... traegt die URL ein und startet die Abfrage automatisch (Vorrang vor "Zuletzt")
 { const param = new URLSearchParams(window.location.search).get("url");
   if (param) { $("url").value = param; $("bUrl").click(); } }
+
+// ---- Sprache -------------------------------------------------------------------
+function applyTexts() {
+  document.querySelectorAll("[data-t]").forEach(e => { e.textContent = _(e.dataset.t); });
+  showLast();
+  trainKey = "";                       // Zug-Auswahl neu aufbauen (enthält übersetzten Text)
+  if (data) render();
+}
+$("lang").value = EEP_Texts.getLanguage();
+$("lang").onchange = () => {
+  EEP_Texts.setLanguage($("lang").value);
+  const r = document.getElementById({DE: "german", EN: "english", FR: "french"}[EEP_Texts.getLanguage()]);
+  if (r) r.checked = true;
+  applyTexts();
+};
+applyTexts();
 
 </script>
 </body>

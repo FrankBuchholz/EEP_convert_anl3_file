@@ -101,8 +101,8 @@ matrix.det = function (A) { // Determinant of the 4x4 matrix
 	return det;
 }
 
-matrix.quarternion = function (A) {
-	// Translate matrix into quarternion
+matrix.quaternion = function (A) {
+	// Translate matrix into quaternion
 	// https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
 	let S, w, x, y, z, axis;
 
@@ -164,10 +164,10 @@ matrix.euler_angles = function (obj) {
 	// Source:  https://computergraphics.stackexchange.com/questions/8195/how-to-convert-euler-angles-to-quaternions-and-get-the-same-euler-angles-back-fr
 	
 	let Q;
-	if (obj.tr) { 	// The object is a quarternion
+	if (obj.tr) { 	// The object is a quaternion
 		Q = obj; 
 	} else {		// The object is a rotation matix
-		Q = matrix.quarternion(obj);
+		Q = matrix.quaternion(obj);
 	}
 	  
 	const tr = Q.tr;
