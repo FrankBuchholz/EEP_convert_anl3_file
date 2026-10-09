@@ -1,1 +1,0 @@
-curl -s https://frankbuchholz.github.io/EEP_convert_anl3_file/npx/eep_local_server.js | node

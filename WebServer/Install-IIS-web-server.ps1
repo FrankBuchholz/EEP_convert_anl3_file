@@ -1,10 +1,11 @@
-#Requires -RunAsAdministrator
 #Requires -Version 5.1
 <#
 .SYNOPSIS
     Installiert und konfiguriert den IIS unter Windows 11:
     - liefert nur .json und .anl3 Dateien aus
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
+    - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
+    - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
     - HTTPS (Zertifikat, Bindung, HTTP->HTTPS-Umleitung, HSTS, TLS-Haertung)
     - Vorpruefungen (Ports, Parameter, Internet) VOR jeder Aenderung
     - Abschlusstests (Dienst, Bindung, CORS, Dateityp-Sperre, Umleitung)
@@ -15,23 +16,65 @@
 .EXAMPLE
     .\Install-IIS.ps1 -SitePath C:\EEP17 -HttpPort 3000 -HttpsPort 3001
 .EXAMPLE
-    .\Install-IIS.ps1 -GitHubOrigins "https://meinname.github.io" -OpenFirewall
+    .\Install-IIS.ps1 -SitePath C:\EEP17 -HttpPort 3000 -HttpPort 3000 -HttpsPort 3001 -AllowNullOrigin
+.EXAMPLE
+    .\Install-IIS.ps1 -GitHubOrigins -SitePath C:\EEP17 "https://meinname.github.io" -OpenFirewall
 .NOTES
-    In Windows PowerShell 5.1 als Administrator ausfuehren (nicht PowerShell 7).
+    Als Administrator in Windows PowerShell 5.1 ausfuehren (nicht PowerShell 7).
+    Meldung "nicht digital signiert": Nach dem Download des Skriptes ist die Datei in Windows 11 
+		als "aus dem Internet" markiert. Die Ausfuehrungsrichtlinie von Windows verlangt dann eine
+		Signatur oder eine explizite Freischaltung mit folgendem Befehl:
+		Unblock-File .\Install-IIS-web-server.ps1
     Fuer URL Rewrite (CORS + Umleitung) wird eine Internetverbindung benoetigt.
+		Der EEP-Server und ein anderer Webserver koennen nicht gleichzeitig dieselben Ports nutzen.
+		Die Option -AllowNullOrigin wird nur benötigt, wenn die das Bridge-Programm lokal auf einem Rechner gestartet wird.
+    Der Browser sendet dabei die Origin "null" auch bei file://-Seiten, aber ebenso
+    bei Seiten in Sandbox-Frames. Die Option gibt die Daten deshalb fuer jede solche Seite frei.
 #>
 [CmdletBinding()]
 param(
     [string]$SiteName          = "EEP Export", # Name der WebSite
-    [string]$SitePath          = "SITEPATH",   # Verzeichnis, das die Daten der WebSite enthält, hier also das Installationsverzeichnis von EEP
+    [string]$SitePath          = "SITEPATH",   # Verzeichnis, das die Daten der WebSite enthaelt, hier also das Installationsverzeichnis von EEP
     [int]$HttpPort             = 80,
     [int]$HttpsPort            = 443,
     [string[]]$GitHubOrigins   = @("https://frankbuchholz.github.io"), # "https://USERNAME.github.io"
     [string]$PfxPath,                 # optional: eigenes Zertifikat statt selbstsigniert
     [securestring]$PfxPassword,
     [switch]$SkipTlsHardening,        # TLS 1.0/1.1 NICHT deaktivieren
+    [switch]$AllowNullOrigin,         # CORS auch fuer Origin "null" (Seite aus lokaler Datei file://)
     [switch]$OpenFirewall
 )
+
+# ---------------------------------------------------------------- Administrator-Pruefung (ersetzt #Requires -RunAsAdministrator)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host "FEHLER: Das Skript muss in einer PowerShell mit Administratorrechten gestartet werden." -ForegroundColor Red
+    Write-Host "        Windows PowerShell mit Rechtsklick -> 'Als Administrator ausfuehren' oeffnen und das Skript erneut starten."
+    exit 1
+}
+
+# ---------------------------------------------------------------- Hilfe bei Aufruf ohne Parameter
+if ($PSBoundParameters.Count -eq 0) {
+    $self = $MyInvocation.MyCommand.Name
+    Write-Host "Wichtigste Optionen:" -ForegroundColor Cyan
+    Write-Host "  -SitePath  <Pfad>  Verzeichnis der Website, hier das Installationsverzeichnis von EEP"
+    Write-Host "                     (z.B. C:\EEP17)                      [aktuell: $SitePath]"
+    Write-Host "  -HttpPort  <Port>  Port fuer HTTP (wird auf HTTPS umgeleitet)  [Standard: $HttpPort]"
+    Write-Host "  -HttpsPort <Port>  Port fuer HTTPS                             [Standard: $HttpsPort]"
+    Write-Host "  -AllowNullOrigin   CORS auch fuer Origin 'null' (Seite wird aus einer lokalen Datei geoeffnet)"
+    Write-Host ""
+    Write-Host "Beispiele:" -ForegroundColor Cyan
+    Write-Host "  .\$self -SitePath C:\EEP17"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpPort 3000 -HttpsPort 3001"
+    Write-Host ""
+    Write-Host "Alle Optionen: Get-Help .\$self -Detailed"
+    if ($SitePath -match "SITEPATH") {
+        Write-Host "`nHinweis: -SitePath ist noch nicht gesetzt. Es wurde nichts veraendert." -ForegroundColor Yellow
+        exit 0
+    }
+    Write-Host "`nOhne Angaben werden die Standardwerte verwendet." -ForegroundColor Yellow
+    Write-Host ""
+}
 
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -46,12 +89,13 @@ function Write-Check([bool]$Ok, [string]$Text) {
 }
 
 # Liefert Status und Header, auch bei 3xx/4xx; folgt keiner Umleitung
-function Invoke-Probe([string]$Uri, [hashtable]$Headers = @{}) {
+function Invoke-Probe([string]$Uri, [hashtable]$Headers = @{}, [string]$Method = "GET") {
     $resp = $null
     $err  = ""
     try {
         $req = [System.Net.HttpWebRequest]::Create($Uri)
         $req.AllowAutoRedirect = $false
+        $req.Method = $Method
         $req.Timeout = 15000
         foreach ($k in $Headers.Keys) { $req.Headers.Add($k, $Headers[$k]) }
         $resp = $req.GetResponse()
@@ -110,28 +154,17 @@ foreach ($g in $GitHubOrigins) {
         $errors.Add("Ungueltige GitHub-Origin '$g' (nur Schema und Host, ohne Pfad, z.B. https://name.github.io).")
     }
 }
+if ($AllowNullOrigin) {
+    $warnings.Add("-AllowNullOrigin: Origin 'null' wird freigegeben. Das erlaubt lokalen Dateien (file:///) und Seiten in sandboxed iframes das Lesen der Daten.")
+}
 if ($GitHubOrigins -match "USERNAME") {
     $warnings.Add("GitHub-Origin ist noch der Platzhalter. Mit -GitHubOrigins 'https://dein-name.github.io' anpassen.")
 }
-
-																														 
-								
-			
-																																																
-																																																										 
-			 
-						
-
 $webAdminOk = $null -ne (Get-Module -ListAvailable -Name WebAdministration)
 if ($webAdminOk) { Import-Module WebAdministration }
 
 # Portbelegung (fremde Programme und Websites werden nie beendet)
 foreach ($port in ($HttpPort, $HttpsPort | Select-Object -Unique)) {
-																																																				 
-							 
-																																																																														 
-		 
-
     $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
 
     # Fremde Programme (alles ausser System/http.sys, PID 4)
@@ -153,18 +186,12 @@ foreach ($port in ($HttpPort, $HttpsPort | Select-Object -Unique)) {
         }
         foreach ($n in $others) {
             $errors.Add("Die fremde Website '$n' belegt Port $port. Sie wird nicht veraendert: anderen Port waehlen (-HttpPort/-HttpsPort) oder die Website selbst stoppen.")
-																	
-																																									
-										
-																																																																			 
-						 
         }
         if ($others.Count -eq 0 -and -not $own) {
             $errors.Add("Port $port ist von System (http.sys, PID 4) belegt, aber keine IIS-Website gefunden. Pruefen mit: netsh http show servicestate  und  netsh http show urlacl")
         }
     }
 }
-																											
 
 # Internet fuer URL Rewrite
 if (-not (Test-Path "HKLM:\SOFTWARE\Microsoft\IIS Extensions\URL Rewrite")) {
@@ -191,7 +218,7 @@ foreach ($f in $features) {
         if ($res.RestartNeeded) { $restartNeeded = $true }
     }
 }
-# IIS-Verwaltungsmodule importieren				 
+# IIS-Verwaltungsmodule importieren
 Import-Module WebAdministration
 
 # ---------------------------------------------------------------- 2. URL Rewrite
@@ -209,7 +236,9 @@ if (-not (Test-Path "HKLM:\SOFTWARE\Microsoft\IIS Extensions\URL Rewrite")) {
 $outbound = @(
     @{ Name = "CORS Allow-Origin";  Var = "RESPONSE_Access_Control_Allow_Origin";  Value = "{C:0}" },
     @{ Name = "CORS Allow-Methods"; Var = "RESPONSE_Access_Control_Allow_Methods"; Value = "GET, HEAD, OPTIONS" },
-    @{ Name = "CORS Allow-Headers"; Var = "RESPONSE_Access_Control_Allow_Headers"; Value = "Content-Type, Accept" }
+    @{ Name = "CORS Allow-Headers"; Var = "RESPONSE_Access_Control_Allow_Headers"; Value = "Content-Type, Accept" },
+    # Private Network Access: nur wenn der Browser es anfragt (Access-Control-Request-Private-Network: true)
+    @{ Name = "CORS Allow-Private-Network"; Var = "RESPONSE_Access_Control_Allow_Private_Network"; Value = "true"; RequestHeader = "HTTP_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK" }
 )
 foreach ($o in $outbound) {
     & $appcmd set config -section:system.webServer/rewrite/allowedServerVariables "/+[name='$($o.Var)']" /commit:apphost 2>&1 | Out-Null
@@ -259,18 +288,20 @@ if (-not (Test-Path "$SitePath\beispiel.anl3")) { 'Beispiel' | Set-Content "$Sit
 # Erlaubte Origins: localhost, private Netze (10.x, 172.16-31.x, 192.168.x), *.local, PC-Name, GitHub
 $ghAlt      = ($GitHubOrigins | ForEach-Object { [regex]::Escape($_.TrimEnd("/")) }) -join "|"
 $lanHosts   = 'localhost|127\.0\.0\.1|\[::1\]|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|[a-z0-9-]+\.local|' + [regex]::Escape($env:COMPUTERNAME)
-$originRegex = '^((https?://(' + $lanHosts + ')(:\d+)?)|(' + $ghAlt + '))$'
+$nullAlt     = if ($AllowNullOrigin) { '|(null)' } else { '' }
+$originRegex = '^((https?://(' + $lanHosts + ')(:\d+)?)|(' + $ghAlt + ')' + $nullAlt + ')$'
 
 $portSuffix = if ($HttpsPort -eq 443) { "" } else { ":$HttpsPort" }
 
 $rulesXml = ""
 foreach ($o in $outbound) {
+    $extraCond = if ($o.RequestHeader) { "`n            " + '<add input="{' + $o.RequestHeader + '}" pattern="^true$" />' } else { "" }
     $rulesXml += @"
 
         <rule name="$($o.Name)">
           <match serverVariable="$($o.Var)" pattern=".*" />
           <conditions>
-            <add input="{HTTP_ORIGIN}" pattern="$originRegex" />
+            <add input="{HTTP_ORIGIN}" pattern="$originRegex" />$extraCond
           </conditions>
           <action type="Rewrite" value="$($o.Value)" />
         </rule>
@@ -330,10 +361,10 @@ Set-Content -Path "$SitePath\web.config" -Value $webConfig -Encoding UTF8
 
 # ---------------------------------------------------------------- 5. App-Pool + Website + HTTPS-Bindung
 Write-Host "5/7 Website und HTTPS-Bindung ..." -ForegroundColor Cyan
-															
-																																							 
-																					
- 
+
+
+
+
 if (-not (Test-Path "IIS:\AppPools\$SiteName")) { New-WebAppPool -Name $SiteName | Out-Null }
 Set-ItemProperty "IIS:\AppPools\$SiteName" -Name managedRuntimeVersion -Value ""
 
@@ -378,7 +409,7 @@ if ($OpenFirewall) {
 
 # ---------------------------------------------------------------- 7. Start + Abschlusstests
 Write-Host "7/7 Start und Tests ..." -ForegroundColor Cyan
-			 
+
 Start-Service W3SVC
 if ((Get-WebsiteState -Name $SiteName).Value -ne "Started") {
     try { Start-Website -Name $SiteName }
@@ -418,9 +449,25 @@ foreach ($g in $GitHubOrigins) {
 $r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "https://fremde-seite.example" }
 Write-Check (-not $r.Headers[$acao]) "CORS: fremde Origin wird NICHT freigegeben"
 
+# Origin "null": gesendet bei lokalen Dateien (file:///) und sandboxed iframes
+$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "null" }
+if ($AllowNullOrigin) { Write-Check ($r.Headers[$acao] -eq "null") "CORS: Origin 'null' (lokale Datei) erlaubt" }
+else                  { Write-Check (-not $r.Headers[$acao]) "CORS: Origin 'null' (lokale Datei) wird NICHT freigegeben" }
+
+# Private Network Access: Header nur bei entsprechender Preflight-Anfrage und erlaubter Origin
+$pna = "Access-Control-Allow-Private-Network"
+$pre = @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET"; "Access-Control-Request-Private-Network" = "true" }
+$r = Invoke-Probe "$baseUrl/daten.json" $pre "OPTIONS"
+Write-Check ($r.Headers[$pna] -eq "true") "PNA: Preflight mit Private-Network-Anfrage wird freigegeben"
+$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
+Write-Check (-not $r.Headers[$pna]) "PNA: ohne Anfrage des Browsers wird der Header nicht gesendet"
+$pre["Origin"] = "https://fremde-seite.example"
+$r = Invoke-Probe "$baseUrl/daten.json" $pre "OPTIONS"
+Write-Check (-not $r.Headers[$pna]) "PNA: fremde Origin wird NICHT freigegeben"
+
 # Nur .json und .anl3
 $r = Invoke-Probe "$baseUrl/beispiel.anl3"
-Write-Check ($r.Status -eq 200) "beispiel.anl wird ausgeliefert: Status $($r.Status)"
+Write-Check ($r.Status -eq 200) "beispiel.anl3 wird ausgeliefert: Status $($r.Status)"
 
 $testFile = Join-Path $SitePath "pruefung.txt"
 'test' | Set-Content $testFile

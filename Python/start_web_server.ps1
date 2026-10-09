@@ -1,1 +1,0 @@
-python -c "import urllib.request; exec(urllib.request.urlopen('https://frankbuchholz.github.io/EEP_convert_anl3_file/Python/eep_local_server.py').read().decode('utf-8'))"
