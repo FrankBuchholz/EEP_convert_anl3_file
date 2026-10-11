@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies and build assets
         run: |
           npm ci
-          npm run build # Erstellt die Dateien im dist-Ordner
+          #npm run build # Erstellt die Dateien im dist-Ordner (bei diesem Projekt nicht erforderlich)
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
