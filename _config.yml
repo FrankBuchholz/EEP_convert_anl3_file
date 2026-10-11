@@ -5,7 +5,6 @@ description: Dieses Projekt enthält verschiedene Programme zur Analyse, Darstel
 # Ordner und Dateien, die Jekyll ignorieren soll
 exclude:
   - dist
-  - node_modules/
   - package.json
   - package-lock.json
 
