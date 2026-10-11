@@ -4,11 +4,11 @@ Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konv
 
 | Programm | Zweck | Dokumentation |
 | --- | --- | --- |
-| `EEP_Gleisplan.html` | Gleisplan einer Anlage im Browser, optional mit Live-Daten | dieser Text |
-| `EEP_Inventar.html` | Inventarlisten einer Anlage | dieser Text |
-| `EEP_Signale.html` | Signalstellungen | dieser Text |
-| `EEP_Export_Bridge.html` + `EepExport.lua` | Live-Zustand einer laufenden Anlage (Züge, Signale, Weichen, Zeit, Wetter) | [`EEP_Export_Bridge.md`](EEP_Export_Bridge.md) |
-| Webserver-Skripte (IIS, Python, Node.js) | liefern `eep_export.json` und `.anl3` an andere Rechner aus | [`README_Web_Server.md`](README_Web_Server.md) |
+| [`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html") | Gleisplan einer Anlage im Browser, optional mit Live-Daten | dieser Text |
+| [`EEP_Inventar.html`](EEP_Inventar.html "EEP_Inventar.html") | Inventarlisten einer Anlage | dieser Text |
+| [`EEP_Signale.html`](EEP_Signale.html "EEP_Signale.html") | Signalstellungen | dieser Text |
+| [`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html") + [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") | Live-Zustand einer laufenden Anlage (Züge, Signale, Weichen, Zeit, Wetter) | [`README_Export_Bridge`](README_Export_Bridge.html "README_Export_Bridge") |
+| Webserver-Skripte (IIS, Python, Node.js) | liefern `eep_export.json` und `.anl3` an andere Rechner aus | [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer") |
 
 Die Programme können direkt mit den angegebenen Links im Browser (Chrome, Firefox oder MS Edge) gestartet werden. In diesem Fall ist eine aktive Internetverbindung notwendig.
 Alternativ kann das Archiv [`dist/EEP_convert_anl3_file.zip`](https://github.com/FrankBuchholz/EEP_convert_anl3_file/raw/master/dist/EEP_convert_anl3_file.zip) auf [GitHub](https://github.com/FrankBuchholz/EEP_convert_anl3_file) in einem beliebigen Verzeichnis entpackt werden. Dann können die Programme lokal gestartet werden wobei keine Internetverbindung benötigt wird.
@@ -22,7 +22,7 @@ Solche EEP-Anlagen sind z.B. hier zu finden:
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html "EEP_Gleisplan.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html](EEP_Gleisplan.html "EEP_Gleisplan.html")
 
 ### Mausfunktionen
 
@@ -77,13 +77,13 @@ Dieses Programm nutzt die Javascript-Funktion [`DOMParser`](https://www.w3school
 
 Anschließend wird dynamisch mit Javascript die Graphik des Gleisplanes mit [SVG](https://www.w3schools.com/html/html5_svg.asp)-Befehlen aufgebaut. Die Formatierung der graphischen Elemente erfolgt getrennt von der Definition der Graphik mit der SVG-Variante von [CSS](https://www.w3schools.com/html/html_css.asp).
 
-Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken [`svg-pan-zoom`](https://github.com/ariutta/svg-pan-zoom) zum Verschieben und Zoomen und [`toolwindow`](https://github.com/fluffynuts/toolwindow) zur Anzeige von Popups verwendet.
+Der Browser kann solche SVG-Graphiken direkt anzeigen. Zusätzlich werden die Bibliotheken [`svg-pan-zoom`](https://github.com/bumbu/svg-pan-zoom) zum Verschieben und Zoomen und [`toolwindow`](https://github.com/fluffynuts/toolwindow) zur Anzeige von Popups verwendet.
 
 Die automatische Größenanpassung des SVG-Elements im Brower zur Nutzung des gesamten restlichen Bildschirmbereiches erfolgt mit [`flex`](https://www.w3schools.com/css/css3_flexbox.asp).
 
 Die Speicherung der Einstellungen erfolgt automatisch mit [`localStorage`](https://www.w3schools.com/html/html5_webstorage.asp).
 
-Der Fortschrittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit `Promise` / `requestAnimationFrame` und diversen Schritten bei der Verarbeitung realisiert. Leider unterstützt der Internet Explorer diese Funktion und diverse andere, moderne Sprachkonstrukte nicht und kann daher gar nicht verwendet werden. Die einzig empfohlenen Browser sind daher Google Chrome (bzw. diejenigen Browser, die auf Chomium basieren) und Firefox.
+Der Fortschrittsbalken beim Laden und Verarbeiten von (großen) Dateien wird mit `Promise` / `requestAnimationFrame` und diversen Schritten bei der Verarbeitung realisiert. Leider unterstützt der Internet Explorer diese Funktion und diverse andere, moderne Sprachkonstrukte nicht und kann daher gar nicht verwendet werden. Empfohlen sind daher aktuelle Versionen von Google Chrome, MS Edge (beide Chromium-basiert) und Firefox.
 
 Die interaktive Einstellung der Linien- und Textbreite wird über dynamische Anpassung der CSS-Variablen in den SVG-CSS-Regeln realisiert.
 
@@ -98,7 +98,7 @@ In 2026 wurden mit Hilfe der Claude AI mehrere Korrekturen und Performance-Verbe
 
 ### Abhängigkeiten
 
-Das Programm verwendet die GitHub-Bibliotheken [`svg-pan-zoom`](https://github.com/ariutta/svg-pan-zoom) und [`toolwindow`](https://github.com/fluffynuts/toolwindow).
+Das Programm verwendet die GitHub-Bibliotheken [`svg-pan-zoom`](https://github.com/bumbu/svg-pan-zoom) und [`toolwindow`](https://github.com/fluffynuts/toolwindow).
 
 ---
 
@@ -108,7 +108,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](EEP_Inventar.html "EEP_Inventar.html")
 
 Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, virtuellen Verbindungen, Zugverbände, Depots, Rollmaterialien, Gleisstile, Gleisobjekte und Kameras ausgegeben. Außerdem werden die Gleisbildstellpulte gezeigt. Die Anlage-Datei kann per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Inventar.html?url=<Adresse der .anl3-Datei>`) geladen werden. Das Programm kann leicht für andere Daten erweitert werden werden.
 
@@ -119,7 +119,7 @@ Man kann die Tabellen (bei Firefox auch mit Strg+A) mit Copy & Paste in ein Tabe
 Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.
 
 [Filter-Operatoren](https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators):  
-<kbd>&lt;</kbd>, <kbd>&lt;</kbd>, <kbd>=</kbd>, <kbd>&gt;=</kbd>, <kbd>&gt;</kbd>, <kbd>*</kbd>, <kbd>!</kbd> (nicht), <kbd>{</kbd> (beginnt mit), <kbd>}</kbd> (endet mit), <kbd>||</kbd> (oder), <kbd>&amp;&amp;</kbd> (und), <kbd>[empty]</kbd>, <kbd>[nonempty]</kbd>, <kbd>rgx:</kbd> (gefolgt von einer _regular expression_)
+<kbd>&lt;</kbd>, <kbd>&lt;=</kbd>, <kbd>=</kbd>, <kbd>&gt;=</kbd>, <kbd>&gt;</kbd>, <kbd>*</kbd>, <kbd>!</kbd> (nicht), <kbd>{</kbd> (beginnt mit), <kbd>}</kbd> (endet mit), <kbd>||</kbd> (oder), <kbd>&amp;&amp;</kbd> (und), <kbd>[empty]</kbd>, <kbd>[nonempty]</kbd>, <kbd>rgx:</kbd> (gefolgt von einer _regular expression_)
 
 Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers den Gleisplan für die gleiche EEP-Anlage-Datei öffnet, dann kann man über die Links von Gleisen, Signalen, Weichen oder Kontakten den Gleisplan auf das gewählte Objekt positionieren und das Info-Popup dort öffnen:
 
@@ -152,13 +152,13 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html "EEP_Signale.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html](EEP_Signale.html "EEP_Signale.html")
 
 ---
 
 ## Programm: EEP_Export_Bridge.html (Live-Anzeige einer laufenden EEP-Anlage)
 
-Zeigt den aktuellen Zustand einer laufenden EEP-Anlage im Browser: Züge, Rollmaterial, Signal- und Weichenstellungen, Uhrzeit und Wetter. Die Daten kommen aus dem Lua-Modul `EepExport.lua`, das sie regelmäßig als JSON-Datei (`eep_export.json`) ausgibt.
+Das Programm [`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html") zeigt den aktuellen Zustand einer laufenden EEP-Anlage im Browser: Züge, Rollmaterial, Signal- und Weichenstellungen, Uhrzeit und Wetter. Die Daten kommen aus dem Lua-Modul [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua"), das sie regelmäßig als JSON-Datei (`eep_export.json`) ausgibt.
 
 Die Bridge leitet die Daten zusätzlich an den Gleisplan weiter. Dort werden Züge (mit Infobox bei Klick), Signal- und Weichenstellungen dynamisch dargestellt.
 
@@ -166,7 +166,7 @@ Das Programm, das Lua-Modul und die Live-Erweiterung des Gleisplans wurden in 20
 
 ### Kurzanleitung
 
-1. **Lua-Modul einbinden:** `EepExport.lua` in den Lua-Ordner von EEP (oder ab EEP 18.1 Plugin 1 in den Anlagenordner) kopieren und im Hauptskript der Anlage laden:
+1. **Lua-Modul einbinden:** [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") in den Lua-Ordner von EEP (oder ab EEP 18.1 Plugin 1 in den Anlagenordner) kopieren und im Hauptskript der Anlage laden:
 
    ```lua
    local EepExport = require("EepExport")
@@ -178,7 +178,7 @@ Das Programm, das Lua-Modul und die Live-Erweiterung des Gleisplans wurden in 20
    ```
 
    Signale, Weichen, Depots, Züge und Rollmaterial werden automatisch erkannt. Die Datei `eep_export.json` entsteht im Anlagenordner (sonst im Installationsordner von EEP).
-2. **Bridge öffnen** ([Aufruf](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html)) und die JSON-Datei verbinden.
+2. **Bridge öffnen** ([Aufruf](EEP_Export_Bridge.html "EEP_Export_Bridge.html")) und die JSON-Datei verbinden.
 3. **Gleisplan öffnen** (Knopf in der Bridge) und die `.anl3`-Datei **derselben** Anlage laden.
 
 ### Wie kommen die Dateien in den Browser?
@@ -192,28 +192,28 @@ Wenn EEP und Bridge nicht auf demselben Rechner laufen, kann der Browser die JSO
 
 | Variante | Besonderheit |
 | --- | --- |
-| **IIS** (`Install-IIS-web-server.ps1`) | Windows-Dienst mit Autostart, größter Eingriff ins System |
-| **Python** (`Install-Python-web-server.ps1`) | kleiner Eingriff, Start von Hand |
-| **Node.js** (`Install-node-web-server.ps1`) | kleiner Eingriff, kein Internet nötig, Start von Hand |
+| **IIS** ([`Install-IIS-web-server.ps1`](WebServer/Install-IIS-web-server.ps1 "Install-IIS-web-server.ps1")) | Windows-Dienst mit Autostart, größter Eingriff ins System |
+| **Python** ([`Install-Python-web-server.ps1`](WebServer/Install-Python-web-server.ps1 "Install-Python-web-server.ps1")) | kleiner Eingriff, Start von Hand |
+| **Node.js** ([`Install-node-web-server.ps1`](WebServer/Install-node-web-server.ps1 "Install-node-web-server.ps1")) | kleiner Eingriff, kein Internet nötig, Start von Hand |
 
 Aufruf (Windows PowerShell als Administrator), Beispiel:
 
 ```powershell
-.\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001 -OpenFirewall
+.\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001
 ```
 
-Einzelheiten, Vor- und Nachteile, Zertifikat und Fehlersuche stehen in [`README_Web_Server.md`](README_Web_Server.md).
+Einzelheiten, Vor- und Nachteile, Zertifikat und Fehlersuche stehen in [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer").
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html "EEP_Export_Bridge.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html](EEP_Export_Bridge.html "EEP_Export_Bridge.html")
 
 Mit URL-Parameter startet die Abfrage sofort: `EEP_Export_Bridge.html?url=<Adresse der eep_export.json>`
 
 ### Dokumentation
 
-- Lua-Modul, Bedienung der Bridge, Zusammenspiel mit dem Gleisplan, Aufbau der JSON-Datei, Fehlersuche: [`EEP_Export_Bridge.md`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html "EEP_Export_Bridge.md")
-- Webserver für den Zugriff von anderen Rechnern: [`README_WebServer.md`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer.md")
+- Lua-Modul, Bedienung der Bridge, Zusammenspiel mit dem Gleisplan, Aufbau der JSON-Datei, Fehlersuche: [`README_Export_Bridge`](README_Export_Bridge.html "README_Export_Bridge")
+- Webserver für den Zugriff von anderen Rechnern: [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer")
 
 ---
 

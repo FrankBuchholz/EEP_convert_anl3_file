@@ -6,10 +6,10 @@ Lua-Modul in EEP, das sie regelmäßig als JSON-Datei ausgibt.
 
 | Baustein | Aufgabe |
 | --- | --- |
-| **`EepExport.lua`** (in EEP) | schreibt den aktuellen Anlagenzustand in die Datei `eep_export.json` |
-| **`EEP_Export_Bridge.html`** | liest die JSON-Datei, zeigt Züge, Signale, Weichen und Rollmaterial als Tabellen und leitet die Daten an den Gleisplan weiter |
-| **`EEP_Gleisplan.html`** | zeigt den Gleisplan einer Anlage (`.anl3`) und zeichnet die Live-Daten der Bridge hinein |
-| **Webserver** (optional, siehe [`README_Web_Server.md`](README_Web_Server.md)) | liefert `eep_export.json` und die `.anl3`-Datei über das Netzwerk aus, wenn EEP und Browser nicht auf demselben Rechner laufen |
+| **[`EepExport.lua`](Lua/EepExport.lua "EepExport.lua")** (in EEP) | schreibt den aktuellen Anlagenzustand in die Datei `eep_export.json` |
+| **[`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html")** | liest die JSON-Datei, zeigt Züge, Signale, Weichen und Rollmaterial als Tabellen und leitet die Daten an den Gleisplan weiter |
+| **[`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html")** | zeigt den Gleisplan einer Anlage (`.anl3`) und zeichnet die Live-Daten der Bridge hinein |
+| **Webserver** (optional, siehe [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer")) | liefert `eep_export.json` und die `.anl3`-Datei über das Netzwerk aus, wenn EEP und Browser nicht auf demselben Rechner laufen |
 
 ```
 EEP (EepExport.lua) ──► Datei eep_export.json ──► EEP_Export_Bridge.html ──► EEP_Gleisplan.html
@@ -24,12 +24,12 @@ EEP (EepExport.lua) ──► Datei eep_export.json ──► EEP_Export_Bridge.
 | --- | --- | --- |
 | **A** EEP und Browser auf **demselben Rechner**, Bridge und Gleisplan von lokaler Kopie oder von GitHub Pages | Bridge liest die JSON-Datei direkt (*Datei live verfolgen*, nur Chrome/Edge), Gleisplan lädt die `.anl3` per Dateiauswahl oder Drag&Drop | nein |
 | **B** EEP und Browser auf **demselben Rechner**, aber Firefox/Safari oder Komfort per URL | URL-Zugriff auf einen lokalen Server (Abschnitt 2.2) | ja, einfacher lokaler Server |
-| **C** EEP auf einem Rechner, Bridge und Gleisplan auf einem **anderen Rechner/Tablet** | URL-Zugriff, `.json` und `.anl3` kommen vom EEP-Rechner | **ja**, HTTPS-Webserver auf dem EEP-Rechner, siehe [`README_Web_Server.md`](README_Web_Server.md) |
-| **D** Bridge und Gleisplan **im Web** (GitHub Pages) geöffnet, EEP lokal | URL-Zugriff, nur HTTPS erlaubt | **ja**, HTTPS-Webserver auf dem EEP-Rechner, siehe [`README_Web_Server.md`](README_Web_Server.md) |
+| **C** EEP auf einem Rechner, Bridge und Gleisplan auf einem **anderen Rechner/Tablet** | URL-Zugriff, `.json` und `.anl3` kommen vom EEP-Rechner | **ja**, HTTPS-Webserver auf dem EEP-Rechner, siehe [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer") |
+| **D** Bridge und Gleisplan **im Web** (GitHub Pages) geöffnet, EEP lokal | URL-Zugriff, nur HTTPS erlaubt | **ja**, HTTPS-Webserver auf dem EEP-Rechner, siehe [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer") |
 
 Warum bei C und D ein Webserver nötig ist: Ein Browser darf Dateien eines anderen Rechners nicht direkt lesen.
 Der Zugriff geht nur über HTTP(S). Eine Seite aus dem Web (HTTPS) darf zudem nur HTTPS-Quellen abfragen
-und braucht die Freigabe des Servers (CORS). Die drei Installationsskripte in `README_Web_Server.md`
+und braucht die Freigabe des Servers (CORS). Die drei Installationsskripte in [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer")
 richten das mit wenigen Handgriffen ein.
 
 ## Inhalt
@@ -209,7 +209,7 @@ spätere Definition den Handler. Alternativ rufst du die Handler (`EepExport.onT
   liefert (ab EEP 18.1 Plugin 1). Sonst dient der Ordner des Pfads, den EEP beim Speichern meldet.
   Steht auch der nicht zur Verfügung, landet die Datei im Arbeitsverzeichnis, das ist der Installationsordner von EEP.
 - **Merke dir den Speicherort.** Du brauchst ihn in Abschnitt 2 (Datei auswählen) bzw. für den Webserver
-  (`-SitePath` in [`README_Web_Server.md`](README_Web_Server.md)).
+  (`-SitePath` in [`README_WebServer`](WebServer/README_WebServer.html)).
 - Beim Speichern der Anlage pausiert der Export, damit EEP nicht beim Schreiben gestört wird.
   Das Modul nutzt dafür `EEPOnBeforeSaveAnl` und `EEPOnSaveAnl`. Nach dem Speichern wird zeitnah
   neu exportiert. Der gemeldete Speicherpfad steht in der JSON-Datei als `global.plant.path`.
@@ -234,7 +234,7 @@ Die Bridge ist eine einzelne HTML-Datei (`EEP_Export_Bridge.html`, zusammen mit 
 `css/EEP_Texts.css`). Sie braucht keine Installation. Öffne sie in einem aktuellen Browser
 (Chrome, Edge oder Firefox), entweder direkt im Web
 (<https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html>) oder aus dem entpackten Archiv
-(siehe `README.md`). Oben rechts wählst du die Sprache (Deutsch, English, Français).
+(siehe [`README`](README.html "README") und Abschnitt 2.2). Oben rechts wählst du die Sprache (Deutsch, English, Français).
 
 Es gibt zwei Wege, die JSON-Datei zu lesen:
 
@@ -247,7 +247,7 @@ Es gibt zwei Wege, die JSON-Datei zu lesen:
 
 > **EEP und Bridge auf verschiedenen Rechnern?** Dann kann der Browser die Datei `eep_export.json` nicht direkt
 > lesen, und der Gleisplan kann die `.anl3`-Datei nicht per Dateiauswahl laden. Richte auf dem EEP-Rechner einen
-> Webserver ein, der beide Dateien ausliefert (Abschnitt 2.2 und [`README_Web_Server.md`](README_Web_Server.md)).
+> Webserver ein, der beide Dateien ausliefert (Abschnitt 2.2 und [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer")).
 
 ### 2.1 Dateizugriff auf die JSON-Datei
 
@@ -276,16 +276,16 @@ ausliefern. Wähle je nach Situation:
 #### Situation C/D: EEP-Rechner und Browser getrennt, oder Seiten aus dem Web
 
 Installiere auf dem EEP-Rechner einen der drei HTTPS-Webserver aus
-[`README_Web_Server.md`](README_Web_Server.md) (IIS, Python oder Node.js). Dieser liefert **nur** `.json`- und
+[`README_WebServer`](WebServer/README_WebServer.html "README_WebServer") (IIS, Python oder Node.js). Dieser liefert **nur** `.json`- und
 `.anl3`-Dateien aus, erlaubt CORS nur für das lokale Netz und GitHub Pages und verwendet HTTPS.
 Beispiel mit Port 3001 und dem Anlagenordner als Datenordner:
 
 ```powershell
-.\Install-npx-web-server.ps1 -SitePath "C:\Pfad\zum\Anlagenordner" -HttpsPort 3001 -OpenFirewall
+.\Install-node-web-server.ps1 -SitePath "C:\Pfad\zum\Anlagenordner" -HttpsPort 3001 -OpenFirewall
 ```
 
 Danach öffnest du auf dem zweiten Rechner (nachdem du dort das Zertifikat `EEP Export.cer` importiert hast,
-siehe `README_Web_Server.md`, Abschnitt 3.6):
+siehe [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer"), Abschnitt 3.6):
 
 ```
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html?url=https://192.168.0.115:3001/eep_export.json
@@ -325,7 +325,7 @@ Anschließend `http://localhost:8000/EEP_Export_Bridge.html` öffnen, im Feld **
 JSON-Datei relativ zum Serverordner eintragen (z. B. `eep_export.json`) und **URL abfragen** klicken.
 Beenden mit `Strg+C`. `--bind 127.0.0.1` bzw. `-a 127.0.0.1` sorgt dafür, dass nur dein eigener Rechner den Server erreicht.
 Diese einfachen Server liefern **alle** Dateien des Ordners aus. Gib sie nie ins Internet frei und verwende sie
-nicht für den Zugriff aus dem Netzwerk. Dafür sind die Skripte aus `README_Web_Server.md` gedacht.
+nicht für den Zugriff aus dem Netzwerk. Dafür sind die Skripte aus [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer") gedacht.
 
 #### Aufruf mit URL-Parameter
 
@@ -349,8 +349,8 @@ So lässt sich die Bridge als Lesezeichen mit fester Quelle ablegen.
 - Bei `HTTP 404` stimmt der Pfad nicht. Bei einem einfachen lokalen Server ist der Pfad im URL-Feld relativ zum Ordner, in dem der
   Server gestartet wurde.
 - Liegt die JSON-Datei auf einem anderen Server als die Bridge, muss dieser Server
-  CORS-Zugriffe erlauben (die Skripte aus `README_Web_Server.md` tun das für das lokale Netz und GitHub Pages).
-  Eine Bridge aus dem Web (HTTPS) kann nur HTTPS-Adressen abfragen.
+  CORS-Zugriffe erlauben (die Skripte aus [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer") tun das für das lokale Netz und GitHub Pages).
+  Eine Bridge aus dem Web (HTTPS) kann nur HTTPS-Adressen abfragen (Ausnahme: `http://localhost` bzw. `http://127.0.0.1`, das die üblichen Browser zulassen).
 
 ### 2.3 Bedienung der Bridge
 
@@ -412,7 +412,7 @@ Beide Seiten müssen außerdem im **selben Browser** (selbes Profil) laufen.
    (relativ zur Seite oder vollständig, z. B. `https://192.168.0.115:3001/MeineAnlage.anl3`) und klicke auf **URL laden**.
    Alternativ rufst du den Gleisplan mit dem Parameter `?url=…` auf, z. B. `EEP_Gleisplan.html?url=meineAnlage.anl3`,
    dann wird die Datei automatisch geladen. Die zuletzt benutzte URL wird gemerkt. Die Datei wird dabei einmalig geladen,
-   nicht fortlaufend. Liegt sie auf einem anderen Server, muss dieser CORS erlauben (siehe [`README_Web_Server.md`](README_Web_Server.md)).
+   nicht fortlaufend. Liegt sie auf einem anderen Server, muss dieser CORS erlauben (siehe [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer")).
    Der Gleisplan meldet sich erst nach dem Laden bei der Bridge, ab dann fließen die Daten. Daten, die vorher eintreffen, werden zwischengespeichert.
 5. Sobald sich die Daten ändern, aktualisiert sich der Gleisplan von selbst.
 
@@ -462,7 +462,7 @@ sind (zum Beispiel `Hl 13; Hp 0`), bleibt es bei Grau.
 **Weichen**
 
 Der Weichentext (W…) wird nach der Stellung gefärbt: Blau = Durchfahrt, Orange = Abzweig,
-Lila = KoAbzweig. Diese Farben sagen nichts über „frei" oder „gesperrt" aus.
+Lila = KoAbzweig. Andere Stellungen (z. B. 5 = Spezial) bleiben ungefärbt. Diese Farben sagen nichts über „frei" oder „gesperrt" aus.
 
 ### Zusammenspiel mit der Bridge
 
@@ -576,8 +576,8 @@ Positionen (`x`, `y`, `z`) sind Meter im Koordinatensystem der Anlage.
 | Statuszeile zeigt „keine Daten" | Quelle noch nicht gewählt. Datei verbinden, URL abfragen oder die Bridge mit `?url=…` aufrufen. |
 | „Ungültiges JSON" | Die Datei wird gerade geschrieben oder ist beschädigt. Beim nächsten Intervall erneut versuchen. |
 | „Kein EEP-Export (global/trains fehlen)" | Falsche Datei gewählt. |
-| „HTTP 404" bei URL | Pfad falsch oder Server im falschen Ordner gestartet. Beim HTTPS-Webserver aus `README_Web_Server.md`: Liegt `eep_export.json` im `-SitePath`? |
-| „Fehler: Failed to fetch" bei URL | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat auf diesem Gerät nicht vertraut, Origin der Bridge vom Server nicht erlaubt (CORS) oder die Bridge kommt per HTTPS aus dem Web und die URL ist nur HTTP. Siehe `README_Web_Server.md`, Abschnitt 4. |
+| „HTTP 404" bei URL | Pfad falsch oder Server im falschen Ordner gestartet. Beim HTTPS-Webserver aus [`README_WebServer`](WebServer/README_WebServer.html): Liegt `eep_export.json` im `-SitePath`? |
+| „Fehler: Failed to fetch" bei URL | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat auf diesem Gerät nicht vertraut, Origin der Bridge vom Server nicht erlaubt (CORS) oder die Bridge kommt per HTTPS aus dem Web und die URL ist nur HTTP. Siehe [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer"), Abschnitt 4. |
 | „Live-Lesen von Dateien braucht Chrome/Edge" | Anderen Browser verwenden oder URL-Zugriff nutzen. |
 | „Letzte Änderung vor …" wächst dauernd | EEP steht oder das Lua-Modul exportiert nicht mehr. |
 | Gleisplan: „Fehler: …" bei **URL laden** | Datei nicht erreichbar (falsche URL, `file://`, fehlendes CORS bei anderem Server, Zertifikat nicht vertraut). Datei stattdessen auswählen oder per Drag&Drop laden. |

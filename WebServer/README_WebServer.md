@@ -1,8 +1,8 @@
 # EEP Export: lokaler Webserver für Export Bridge und Gleisplan
 
-Die **EEP Export Bridge** (`EEP_Export_Bridge.html`) liest die Datei `eep_export.json`, die das Lua-Modul `EepExport.lua` in EEP schreibt. Der **Gleisplan** (`EEP_Gleisplan.html`) lädt die Anlage-Datei (`.anl3`) der laufenden Anlage.
+Die **[`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html")** liest die Datei `eep_export.json`, die das Lua-Modul [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") in EEP schreibt. Der **[`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html")** lädt die Anlage-Datei (`.anl3`) der laufenden Anlage.
 
-Laufen EEP und Browser auf **demselben Rechner**, kann die Bridge die JSON-Datei direkt lesen (siehe [`EEP_Export_Bridge.md`](EEP_Export_Bridge.md), Abschnitt 2.1). Ein Webserver wird dann nicht zwingend gebraucht.
+Laufen EEP und Browser auf **demselben Rechner**, kann die Bridge die JSON-Datei direkt lesen (siehe [`README_Export_Bridge`](README_Export_Bridge.html), Abschnitt 2.1). Ein Webserver wird dann nicht zwingend gebraucht.
 
 Einen Webserver braucht man, wenn
 
@@ -13,9 +13,9 @@ Dafür gibt es drei Installationsskripte für Windows 11, die auf dem **EEP-Rech
 
 | Skript | Webserver | Start |
 |---|---|---|
-| `Install-IIS-web-server.ps1` | IIS (Windows-Bordmittel) | läuft als Windows-Dienst, Autostart |
-| `Install-Python-web-server.ps1` | Python (`server.py`) | von Hand mit einem Kommando |
-| `Install-node-web-server.ps1` | Node.js (`server.js`) | von Hand mit einem Kommando |
+| [`Install-IIS-web-server.ps1`](WebServer/Install-IIS-web-server.ps1 "Install-IIS-web-server.ps1") | IIS (Windows-Bordmittel) | läuft als Windows-Dienst, Autostart |
+| [`Install-Python-web-server.ps1`](WebServer/Install-Python-web-server.ps1 "Install-Python-web-server.ps1") | Python (`server.py`) | von Hand mit einem Kommando |
+| [`Install-node-web-server.ps1`](WebServer/Install-node-web-server.ps1 "Install-node-web-server.ps1") | Node.js (`server.js`) | von Hand mit einem Kommando |
 
 ```
 EEP-Rechner                                         zweiter Rechner / Tablet
@@ -116,11 +116,11 @@ Das Beispiel gilt für alle drei Varianten. `C:/EEP17` und `C:\EEP17` werden gle
 
 ### 3.1 Vorbereitung
 
-1. Skripte in einen Ordner kopieren, z. B. `C:\Users\<Name>\Documents\GitHub\EEP_convert_anl3_file\iis`.
+1. Skripte in einen Ordner kopieren, z. B. `C:\Users\<Name>\Documents\GitHub\EEP_convert_anl3_file\WebServer`.
 2. **Windows PowerShell als Administrator** öffnen (Start → „Windows PowerShell" → Rechtsklick → *Als Administrator ausführen*) und in den Ordner wechseln:
 
    ```powershell
-   cd "C:\Users\<Name>\Documents\GitHub\EEP_convert_anl3_file\iis"
+   cd "C:\Users\<Name>\Documents\GitHub\EEP_convert_anl3_file\WebServer"
    ```
 
 3. Meldung „nicht digital signiert"? Heruntergeladene Skripte sind als „aus dem Internet" markiert. Die Markierung entfernt man einmalig:
@@ -183,7 +183,7 @@ Im Browser auf dem EEP-Rechner:
 
 ### 3.5 Bridge und Gleisplan verwenden
 
-Bridge und Gleisplan müssen **vom selben Server stammen** (gleiche Origin), damit sie per `BroadcastChannel` miteinander sprechen können. Der beschriebene Webserver liefert bewusst nur Daten aus. Bridge und Gleisplan öffnet man deshalb entweder im Web (GitHub Pages) oder von einer lokalen Kopie (siehe [`EEP_Export_Bridge.md`](EEP_Export_Bridge.md), Abschnitt 2.2).
+Bridge und Gleisplan müssen **vom selben Server stammen** (gleiche Origin), damit sie per `BroadcastChannel` miteinander sprechen können. Der beschriebene Webserver liefert bewusst nur Daten aus. Bridge und Gleisplan öffnet man deshalb entweder im Web (GitHub Pages) oder von einer lokalen Kopie (siehe [`README_Export_Bridge`](README_Export_Bridge.html "README_Export_Bridge"), Abschnitt 2.2).
 
 **Bridge**: Die Daten per URL abfragen, entweder im Feld **URL** mit Klick auf *URL abfragen* oder direkt über den Parameter `url`:
 

@@ -114,7 +114,7 @@ M.lastError = nil
 -- ---------------------------------------------------------------------------------------------
 local config = {
   outputFile       = nil,   -- Vollstaendiger Pfad der Ausgabedatei; Standard: <Anlagenpfad>\eep_export.json
-  interval         = 5,     -- Export-Intervall in EEP-Sekunden (0 = nur manuell per M.export())
+  interval         = 5,     -- Export-Intervall in EEP-Sekunden (-1 = nur manuell per M.export(), 0 = bei jedem Aufruf)
   pretty           = false, -- true = eingerueckte, lesbare JSON-Ausgabe
   global           = true,  -- Zeit, Jahreszeit, Wetter, Kamera exportieren
   discoverMax      = 1000,  -- Obergrenze der ID-Suche, wenn add...() ohne Eingabe aufgerufen wird
