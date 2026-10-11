@@ -4,12 +4,10 @@ description: Dieses Projekt enthält verschiedene Programme zur Analyse, Darstel
 
 # Ordner und Dateien, die Jekyll ignorieren soll
 exclude:
-  - dist
+  - node_modules
   - package.json
   - package-lock.json
 
 # Ordner, die Jekyll explizit mit in die fertige Seite aufnehmen soll
-include:
-  - node_modules/toolwindow/dist/
-  - node_modules/tablefilter/dist/tablefilter/
-  - node_modules/svg-pan-zoom/dist/
+#include:
+#  - dist

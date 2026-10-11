@@ -52,6 +52,20 @@ jobs:
           source: ./
           destination: ./_site
 
+      # 3. Nur die benötigten node_modules direkt in den fertigen Jekyll-Ordner injizieren
+      - name: Inject required node_modules into final site
+        run: |
+          # Zielordner innerhalb des fertigen Jekyll-Builds erstellen
+          mkdir -p _site/node_modules/toolwindow/dist
+          mkdir -p _site/node_modules/tablefilter/dist/tablefilter
+          mkdir -p _site/node_modules/svg-pan-zoom/dist
+          
+          # Dateien exakt in die erwartete Struktur kopieren
+          cp -r node_modules/toolwindow/dist/* _site/node_modules/toolwindow/dist/
+          cp -r node_modules/tablefilter/dist/tablefilter/* _site/node_modules/tablefilter/dist/tablefilter/
+          cp -r node_modules/svg-pan-zoom/dist/* _site/node_modules/svg-pan-zoom/dist/
+
+      # 4. Das fertige Paket (inklusive der injizierten Module) hochladen
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
