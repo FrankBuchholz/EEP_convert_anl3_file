@@ -7916,7 +7916,10 @@ function walk(GleissystemID, GleisID, f, sgn, len, vx, vy, onTrain) {
 			}
 		}
 		if (!c) break;
-
+		
+		// Virtuelle Verbindung: Fahrzeug nur bis zum Ende des aktuellen Gleises zeichnen
+		if (c.Flags) break;
+		
 		curGleisID = c.GleisID;
 		G = geom(GleissystemID, curGleisID);
 		if (!G) break;
