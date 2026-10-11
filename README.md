@@ -1,6 +1,14 @@
 # Projekt: EEP_convert_anl3_file
 
-Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konvertierung von Gleisplänen von EEP.
+Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konvertierung von Gleisplänen von EEP sowie zur Live-Anzeige einer laufenden EEP-Anlage.
+
+| Programm | Zweck | Dokumentation |
+| --- | --- | --- |
+| `EEP_Gleisplan.html` | Gleisplan einer Anlage im Browser, optional mit Live-Daten | dieser Text |
+| `EEP_Inventar.html` | Inventarlisten einer Anlage | dieser Text |
+| `EEP_Signale.html` | Signalstellungen | dieser Text |
+| `EEP_Export_Bridge.html` + `EepExport.lua` | Live-Zustand einer laufenden Anlage (Züge, Signale, Weichen, Zeit, Wetter) | [`EEP_Export_Bridge.md`](EEP_Export_Bridge.md) |
+| Webserver-Skripte (IIS, Python, Node.js) | liefern `eep_export.json` und `.anl3` an andere Rechner aus | [`README_Web_Server.md`](README_Web_Server.md) |
 
 Die Programme können direkt mit den angegebenen Links im Browser (Chrome, Firefox oder MS Edge) gestartet werden. In diesem Fall ist eine aktive Internetverbindung notwendig.
 Alternativ kann das Archiv [`dist/EEP_convert_anl3_file.zip`](https://github.com/FrankBuchholz/EEP_convert_anl3_file/raw/master/dist/EEP_convert_anl3_file.zip) auf [GitHub](https://github.com/FrankBuchholz/EEP_convert_anl3_file) in einem beliebigen Verzeichnis entpackt werden. Dann können die Programme lokal gestartet werden wobei keine Internetverbindung benötigt wird.
@@ -21,10 +29,10 @@ Solche EEP-Anlagen sind z.B. hier zu finden:
 Verschieben: Klick+Halten+Bewegen  
 An der Stelle des Cursors hineinzoomen: Doppelklick  
 Herauszoomen: <kbd>&#x21E7; Shift</kbd>+Doppelklick  
-Details anzeigen: Klick auf Gleis, Symbol oder Text
+Details anzeigen: Klick auf Gleis, Symbol, Text oder (bei Live-Anzeige) Zug
 
 - wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet
-- wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt
+- wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt (bei Zügen: die Liste der Fahrzeuge)
 
 ### Tastaturfunktionen
 
@@ -44,7 +52,7 @@ Auswahl der Gleise mit minimalem und maximalen Höhenfilter
 Farben der Gleissysteme anpassen  
 Anzeige der Fahrstraßen (alle bzw. von bestimmten Start-Signalen oder zu bestimmten Ende-Signalen)  
 Laden der Anlage-Datei per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Gleisplan.html?url=<Adresse der .anl3-Datei>`)  
-Live-Anzeige von Zügen sowie Signal- und Weichenstellungen einer laufenden EEP-Anlage (siehe Programm `EEP_Export_Bridge.html`)
+Live-Anzeige von Zügen sowie Signal- und Weichenstellungen einer laufenden EEP-Anlage mit Infobox zu Zügen und Fahrzeugen (siehe Programm `EEP_Export_Bridge.html`)
 
 ### Tipp zum Export als svg
 
@@ -102,7 +110,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 
 [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html")
 
-Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, Zugverbände und verwendeter Gleisstile ausgegeben. Außerdem werden die Gleisbildstellpulte gezeigt. Das Programm kann leicht für andere Daten erweitert werden werden.
+Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, virtuellen Verbindungen, Zugverbände, Depots, Rollmaterialien, Gleisstile, Gleisobjekte und Kameras ausgegeben. Außerdem werden die Gleisbildstellpulte gezeigt. Die Anlage-Datei kann per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Inventar.html?url=<Adresse der .anl3-Datei>`) geladen werden. Das Programm kann leicht für andere Daten erweitert werden werden.
 
 ### Interaktive Funktionen
 
@@ -113,7 +121,7 @@ Die Tabellen können mit Klicks in die Spaltenüberschriften sortiert werden.
 [Filter-Operatoren](https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators):  
 <kbd>&lt;</kbd>, <kbd>&lt;</kbd>, <kbd>=</kbd>, <kbd>&gt;=</kbd>, <kbd>&gt;</kbd>, <kbd>*</kbd>, <kbd>!</kbd> (nicht), <kbd>{</kbd> (beginnt mit), <kbd>}</kbd> (endet mit), <kbd>||</kbd> (oder), <kbd>&amp;&amp;</kbd> (und), <kbd>[empty]</kbd>, <kbd>[nonempty]</kbd>, <kbd>rgx:</kbd> (gefolgt von einer _regular expression_)
 
-Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers den Gleisplan für die gleiche EEP-Anlage-Datei öffnet, dann kann man über die Links von Gleisen den Gleisplan auf das gewählte Objekt positionieren und das Info-Popup dort öffnen:
+Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers den Gleisplan für die gleiche EEP-Anlage-Datei öffnet, dann kann man über die Links von Gleisen, Signalen, Weichen oder Kontakten den Gleisplan auf das gewählte Objekt positionieren und das Info-Popup dort öffnen:
 
 - wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet
 - wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt
@@ -148,23 +156,64 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 
 ---
 
-## Programm: EEP_Export_Bridge.html
+## Programm: EEP_Export_Bridge.html (Live-Anzeige einer laufenden EEP-Anlage)
 
-Anzeige des aktuellen Zustand zu Zügen und Signal- und Weichenstellungen sowie Uhrzeit und Wetter einer laufenden EEP-Anlage im Browser. Die Daten kommen aus einem Lua-Modul in EEP, das sie regelmäßig als JSON-Datei ausgibt.
+Zeigt den aktuellen Zustand einer laufenden EEP-Anlage im Browser: Züge, Rollmaterial, Signal- und Weichenstellungen, Uhrzeit und Wetter. Die Daten kommen aus dem Lua-Modul `EepExport.lua`, das sie regelmäßig als JSON-Datei (`eep_export.json`) ausgibt.
 
-Weiterhin sendet die Bridge die Daten über den aktiven Browser an das Gleisplan-Programm. Hier werden die Züge, Signal- und Weichenstellungen dynamisch dargestellt.
+Die Bridge leitet die Daten zusätzlich an den Gleisplan weiter. Dort werden Züge (mit Infobox bei Klick), Signal- und Weichenstellungen dynamisch dargestellt.
 
-Das Lua-Modul `EepExport.lua` wird in der Minimalversion nur geladen und in `EEPMain()` mit `EepExport.run()` aufgerufen. Signale, Weichen, Depots, Züge und Rollmaterial werden automatisch erkannt, die EEP-Rückruffunktionen automatisch erweitert. Die Datei `eep_export.json` entsteht im Anlagenordner.
+Das Programm, das Lua-Modul und die Live-Erweiterung des Gleisplans wurden in 2026 mit Claude AI erstellt.
 
-Dieses Programm sowie das dazugehörige Lua-Modul und die Erweiterung des Gleisplan-Programmes wurde in 2026 mit Claude AI erstellt.
+### Kurzanleitung
+
+1. **Lua-Modul einbinden:** `EepExport.lua` in den Lua-Ordner von EEP (oder ab EEP 18.1 Plugin 1 in den Anlagenordner) kopieren und im Hauptskript der Anlage laden:
+
+   ```lua
+   local EepExport = require("EepExport")
+
+   function EEPMain()
+     EepExport.run()
+     return 1
+   end
+   ```
+
+   Signale, Weichen, Depots, Züge und Rollmaterial werden automatisch erkannt. Die Datei `eep_export.json` entsteht im Anlagenordner (sonst im Installationsordner von EEP).
+2. **Bridge öffnen** ([Aufruf](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html)) und die JSON-Datei verbinden.
+3. **Gleisplan öffnen** (Knopf in der Bridge) und die `.anl3`-Datei **derselben** Anlage laden.
+
+### Wie kommen die Dateien in den Browser?
+
+| Situation | Zugriff auf `eep_export.json` und `.anl3` | Webserver? |
+| --- | --- | --- |
+| EEP und Browser auf **demselben Rechner** | Bridge: *Datei live verfolgen* (Chrome/Edge); Gleisplan: Datei-Auswahl oder Drag&Drop | nicht nötig |
+| EEP und Browser auf **verschiedenen Rechnern** (zweiter PC, Tablet) oder Bridge/Gleisplan **im Web** geöffnet | per URL, z. B. `https://192.168.0.115:3001/eep_export.json` | **ja**: HTTPS-Webserver auf dem EEP-Rechner |
+
+Wenn EEP und Bridge nicht auf demselben Rechner laufen, kann der Browser die JSON-Datei und die `.anl3`-Datei nicht direkt lesen. Dann richtet man auf dem EEP-Rechner einen kleinen Webserver ein, der nur diese beiden Dateitypen ausliefert. Drei Varianten stehen zur Auswahl:
+
+| Variante | Besonderheit |
+| --- | --- |
+| **IIS** (`Install-IIS-web-server.ps1`) | Windows-Dienst mit Autostart, größter Eingriff ins System |
+| **Python** (`Install-Python-web-server.ps1`) | kleiner Eingriff, Start von Hand |
+| **Node.js** (`Install-node-web-server.ps1`) | kleiner Eingriff, kein Internet nötig, Start von Hand |
+
+Aufruf (Windows PowerShell als Administrator), Beispiel:
+
+```powershell
+.\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001 -OpenFirewall
+```
+
+Einzelheiten, Vor- und Nachteile, Zertifikat und Fehlersuche stehen in [`README_Web_Server.md`](README_Web_Server.md).
 
 ### Aufruf
 
 [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html "EEP_Export_Bridge.html")
 
+Mit URL-Parameter startet die Abfrage sofort: `EEP_Export_Bridge.html?url=<Adresse der eep_export.json>`
+
 ### Dokumentation
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.md](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.md "EEP_Export_Bridge.md")
+- Lua-Modul, Bedienung der Bridge, Zusammenspiel mit dem Gleisplan, Aufbau der JSON-Datei, Fehlersuche: [`EEP_Export_Bridge.md`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html "EEP_Export_Bridge.md")
+- Webserver für den Zugriff von anderen Rechnern: [`README_WebServer.md`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer.md")
 
 ---
 

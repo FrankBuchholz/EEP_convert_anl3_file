@@ -43,7 +43,7 @@ local EepExport = require("EepExport")
 --- Optional: Konfiguration (nicht erforderlich)
 EepExport.configure({ 
   --outputFile       = nil,    -- Vollstaendiger Pfad der Ausgabedatei; Standard: <Anlagenpfad>\eep_export.json
-  --interval         = 5,      -- Export-Intervall in EEP-Sekunden (0 = nur manuell per M.export()), Standard: 5
+  --interval         = 5,      -- Export-Intervall in EEP-Sekunden (-1 = nur manuell per M.export(), 0 = bei jedem Aufruf), Standard: 5
   pretty             = true,   -- true = eingerueckte, lesbare JSON-Ausgabe, Standard: false
   --global           = true,   -- Zeit, Jahreszeit, Wetter, Kamera exportieren, Standard: true
   --discoverMax      = 1000,   -- Bereich 1..discoverMax wird beim ersten Lauf automatisch auf vorhandene Objekte
@@ -88,9 +88,8 @@ EepExport.addTrainyards(EepExport.range(1, 5)) -- Bereich angeben
 
 function EEPMain()
   --- In EEPMain() aufrufen. Exportiert automatisch im eingestellten Intervall (EEP-Zeit in Sekunden). 
-  --- Alternativ: EepExport.export() mit unbedingter Ausführung in jedem Zyklus (also 5 Mal je Sekunde)
   EepExport.run()
-  --- Anzeige der letzten Fehlermeldung (EepExport.lastError wird bei jedem Fehler gesetzt, nach erfolgreichem Export geloescht)
+  --- Anzeige der letzten Fehlermeldung
   if EepExport.lastError then print(EepExport.lastError) end
   
   return 1
@@ -385,7 +384,7 @@ end
 --- Wertet alle bisher angemeldeten add...()-Aufrufe aus. Wird von collect() automatisch aufgerufen.
 --- Gibt eine Tabelle mit der Anzahl neu hinzugefuegter Objekte je Kategorie zurueck.
 function M.resolve()
-  --if config.debug then print("EepExport.resolve()") end
+  --if config.debug then print("EepExport.resolve") end
   
   local queued = pending
   pending = {}
@@ -950,8 +949,6 @@ end
 
 --- Sammelt alle Zustandsdaten und gibt sie als Tabelle zurueck.
 function M.collect()
-  --if config.debug then print("EepExport.collect()") end
-  
   M.resolve()               -- Ermittelt den Status der registrierten Objekte
   scanForTrains()           -- Suche nach neuen Zuegen
   pruneAuto("trains")       -- Entferne Zuege, die es nicht mehr gibt
@@ -1074,11 +1071,11 @@ function M.run()
     if config.debug then print(M.lastError) end
   end
   
-  if not config.interval or config.interval <= 0 then return end
+  if not config.interval or config.interval < 0 then return end
   
   if M.isExportPaused() then return end
   
-  if lastExport == nil or EEPTime < lastExport or EEPTime - lastExport >= config.interval then
+  if lastExport == nil or config.interval == 0 or EEPTime < lastExport or EEPTime - lastExport >= config.interval then
     local ok, msg = M.export()
     if not ok then
       lastExport = EEPTime  -- Fehlermeldung nicht mit jedem Zyklus wiederholen
