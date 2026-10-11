@@ -1,0 +1,3 @@
+theme: jekyll-theme-minimal
+title: EEP Gleisplan und Inventar
+description: Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konvertierung von Gleisplänen von EEP sowie zur Live-Anzeige einer laufenden EEP-Anlage.
