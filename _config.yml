@@ -1,3 +1,13 @@
 theme: jekyll-theme-minimal
 title: EEP Gleisplan und Inventar
 description: Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konvertierung von Gleisplänen von EEP sowie zur Live-Anzeige einer laufenden EEP-Anlage.
+
+# Ordner und Dateien, die Jekyll ignorieren soll
+exclude:
+  - node_modules/
+  - package.json
+  - package-lock.json
+
+# Ordner, die Jekyll explizit mit in die fertige Seite aufnehmen soll
+include:
+  - dist
