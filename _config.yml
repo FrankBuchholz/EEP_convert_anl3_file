@@ -9,5 +9,6 @@ exclude:
   - package-lock.json
 
 # Ordner, die Jekyll explizit mit in die fertige Seite aufnehmen soll
-#include:
+include:
 #  - dist
+  - vendor_node_modules

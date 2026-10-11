@@ -29,54 +29,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. Node.js Umgebung einrichten
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Oder deine gewünschte Node-Version
-          cache: 'npm'       # Aktiviert automatisches Caching für schnellere Builds
+          node-version: '20'
+          cache: 'npm'
 
-      # 2. Node-Abhängigkeiten installieren und Build-Skript ausführen
+      # 1. Abhängigkeiten installieren und App bauen
       - name: Install dependencies and build assets
         run: |
           npm ci
-          #npm run build # Erstellt die Dateien im dist-Ordner (bei diesem Projekt nicht erforderlich)
+          #npm run build (bei diesem Projekt nicht nötig)
 
+      # 2. Struktur in einem temporären Ordner vorbereiten
+      - name: Prepare node_modules files
+        run: |
+          mkdir -p vendor_node_modules/toolwindow/dist
+          mkdir -p vendor_node_modules/tablefilter/dist/tablefilter
+          mkdir -p vendor_node_modules/svg-pan-zoom/dist
+          
+          cp -r node_modules/toolwindow/dist/* vendor_node_modules/toolwindow/dist/
+          cp -r node_modules/tablefilter/dist/tablefilter/* vendor_node_modules/tablefilter/dist/tablefilter/
+          cp -r node_modules/svg-pan-zoom/dist/* vendor_node_modules/svg-pan-zoom/dist/
+
+      # 3. Setup Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # 3. Jekyll baut die Seite und nimmt den dist-Ordner automatisch mit
+      # 4. Jekyll baut die Seite und nimmt den temporären Ordner mit auf
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./
           destination: ./_site
 
-      # 3. Nur die benötigten node_modules direkt in den fertigen Jekyll-Ordner injizieren
-      - name: Inject required node_modules into final site
+      # 5. Mit Admin-Rechten (sudo) den Ordner im fertigen Build in 'node_modules' umbenennen
+      - name: Rename vendor folder to node_modules in final site
         run: |
-          # Zielordner innerhalb des fertigen Jekyll-Builds erstellen
-          mkdir -p _site/node_modules/toolwindow/dist
-          mkdir -p _site/node_modules/tablefilter/dist/tablefilter
-          mkdir -p _site/node_modules/svg-pan-zoom/dist
-          
-          # Dateien exakt in die erwartete Struktur kopieren
-          cp -r node_modules/toolwindow/dist/* _site/node_modules/toolwindow/dist/
-          cp -r node_modules/tablefilter/dist/tablefilter/* _site/node_modules/tablefilter/dist/tablefilter/
-          cp -r node_modules/svg-pan-zoom/dist/* _site/node_modules/svg-pan-zoom/dist/
+          sudo mv _site/vendor_node_modules _site/node_modules
 
-      # 4. Das fertige Paket (inklusive der injizierten Module) hochladen
+      # 6. Das fertige Paket hochladen
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
-
-  # Deployment job
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
