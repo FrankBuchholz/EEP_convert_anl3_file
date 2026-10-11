@@ -1,0 +1,21 @@
+---
+---
+@import "{{ site.theme }}";
+
+// Breite des Hauptcontainers anpassen
+.wrapper {
+  width: 90%;            // Nutzt flexibel 90% des Bildschirms
+  max-width: 960px;      // Setzt das Limit hoch (Standard ist meist ~600px-700px)
+  margin: 0 auto;
+}
+
+// Optionale Feinanpassung der Textspalte selbst
+section {
+  width: 70%;            // Standard-Verhältnis für den Textbereich (restliche Breite geht an die Sidebar)
+  float: right;
+}
+
+header {
+  width: 23%;            // Breite der Sidebar links anpassen
+  float: left;
+}
