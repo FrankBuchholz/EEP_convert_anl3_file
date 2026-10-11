@@ -6,7 +6,7 @@
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
     - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
     - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
-    - HTTPS (Zertifikat, HTTP->HTTPS-Umleitung, HSTS, TLS 1.2 als Minimum)
+    - HTTPS (Zertifikat, HSTS, TLS 1.2 als Minimum); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
     - Vorpruefungen (Ports, Parameter, Python, Internet) VOR jeder Aenderung
     - Abschlusstests (Ports, CORS, Dateityp-Sperre, Umleitung) mit einem kurzzeitig gestarteten Testserver
     - kein Autostart: der Server wird bei Bedarf mit einem Python-Kommando gestartet
@@ -15,13 +15,14 @@
     Bei erneutem Start wird die bestehende Installation auf die aktuellen
     Angaben aktualisiert.
 .EXAMPLE
-    .\Install-Python-web-server.ps1 -SitePath C:\EEP17
+    .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001
 .EXAMPLE
     .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpPort 3000 -HttpsPort 3001
+    (zusaetzlich HTTP-Port 3000 mit Umleitung auf HTTPS)
 .EXAMPLE
-    .\Install-Python-web-server.ps1 -SitePath C:\EEP17  -HttpPort 3000 -HttpsPort 3001 -AllowNullOrigin
+    .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -AllowNullOrigin
 .EXAMPLE
-    .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -GitHubOrigins "https://meinname.github.io" -OpenFirewall
+    .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -GitHubOrigins "https://meinname.github.io" -OpenFirewall
 .EXAMPLE
     .\Install-Python-web-server.ps1 -Uninstall
 .NOTES
@@ -33,7 +34,8 @@
     Python 3.9+ wird bei Bedarf per winget installiert (fuer alle Benutzer).
     Fuer winget und pip wird eine Internetverbindung benoetigt.
     Der EEP-Server und ein anderer Webserver koennen nicht gleichzeitig dieselben Ports nutzen.
-		Die Option -AllowNullOrigin wird nur benötigt, wenn die das Bridge-Programm lokal auf einem Rechner gestartet wird.
+    Standard ist -HttpPort 0: Es wird nur der HTTPS-Port geoeffnet, es gibt keinen HTTP-Port und keine Umleitung.
+    Die Option -AllowNullOrigin wird nur benoetigt, wenn das Bridge-Programm lokal auf einem Rechner gestartet wird.
     Der Browser sendet dabei die Origin "null" auch bei file://-Seiten, aber ebenso
     bei Seiten in Sandbox-Frames. Die Option gibt die Daten deshalb fuer jede solche Seite frei.
     Es gibt keinen Autostart. Der Server wird mit diesem Python-Kommando gestartet:
@@ -44,7 +46,7 @@ param(
     [string]$SiteName          = "EEP Export", # Name der WebSite
     [string]$SitePath          = "SITEPATH",   # Verzeichnis, das die Daten der WebSite enthaelt, hier also das Installationsverzeichnis von EEP
     [string]$InstallPath       = (Join-Path $env:ProgramData "EEP-Python-Server"),  # server.py, venv, Zertifikat, Log
-    [int]$HttpPort             = 80,
+    [int]$HttpPort             = 0,      # 0 = kein HTTP-Port (nur HTTPS)
     [int]$HttpsPort            = 443,
     [string[]]$GitHubOrigins   = @("https://frankbuchholz.github.io"), # "https://USERNAME.github.io"
     [string]$PfxPath,                 # optional: eigenes Zertifikat statt selbstsigniert
@@ -68,12 +70,12 @@ if ($PSBoundParameters.Count -eq 0) {
     Write-Host "Wichtigste Optionen:" -ForegroundColor Cyan
     Write-Host "  -SitePath  <Pfad>  Verzeichnis der Website, hier das Installationsverzeichnis von EEP"
     Write-Host "                     (z.B. C:\EEP17)                      [aktuell: $SitePath]"
-    Write-Host "  -HttpPort  <Port>  Port fuer HTTP (wird auf HTTPS umgeleitet)  [Standard: $HttpPort]"
+    Write-Host "  -HttpPort  <Port>  optional: Port fuer HTTP, wird auf HTTPS umgeleitet (0 = kein HTTP)  [Standard: $HttpPort]"
     Write-Host "  -HttpsPort <Port>  Port fuer HTTPS                             [Standard: $HttpsPort]"
     Write-Host "  -AllowNullOrigin   CORS auch fuer Origin 'null' (Seite wird aus einer lokalen Datei geoeffnet)"
     Write-Host ""
     Write-Host "Beispiele:" -ForegroundColor Cyan
-    Write-Host "  .\$self -SitePath C:\EEP17"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001"
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpPort 3000 -HttpsPort 3001"
     Write-Host "  .\$self -Uninstall"
     Write-Host ""
@@ -87,6 +89,9 @@ if ($PSBoundParameters.Count -eq 0) {
 }
 
 $ErrorActionPreference = "Stop"
+# Schraegstriche vereinheitlichen (C:/EEP17 wird zu C:\EEP17)
+$SitePath = $SitePath.Replace("/", "\")
+$InstallPath = $InstallPath.Replace("/", "\")
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $script:failed = 0
 
@@ -193,11 +198,9 @@ if ($PSVersionTable.PSEdition -eq "Core") {
 }
 
 # Parameter
-foreach ($name in "HttpPort","HttpsPort") {
-    $v = Get-Variable $name -ValueOnly
-    if ($v -lt 1 -or $v -gt 65535) { $errors.Add("$name ($v) liegt nicht zwischen 1 und 65535.") }
-}
-if ($HttpPort -eq $HttpsPort) { $errors.Add("HttpPort und HttpsPort muessen verschieden sein.") }
+if ($HttpPort -lt 0 -or $HttpPort -gt 65535) { $errors.Add("HttpPort ($HttpPort) liegt nicht zwischen 0 (kein HTTP) und 65535.") }
+if ($HttpsPort -lt 1 -or $HttpsPort -gt 65535) { $errors.Add("HttpsPort ($HttpsPort) liegt nicht zwischen 1 und 65535.") }
+if ($HttpPort -gt 0 -and $HttpPort -eq $HttpsPort) { $errors.Add("HttpPort und HttpsPort muessen verschieden sein.") }
 if ($SiteName -match '[\\/:*?"<>|]') { $errors.Add('SiteName enthaelt ungueltige Zeichen: \ / : * ? " < > |') }
 if ($SitePath -match "SITEPATH") {
     $errors.Add("SitePath ist noch der Platzhalter. Mit -SitePath 'Installationspfad von EEP' anpassen.")
@@ -227,7 +230,7 @@ if ($webAdminOk) { Import-Module WebAdministration }
 
 # Portbelegung (fremde Programme und Websites werden nie beendet)
 $ownPids = @(Get-OwnProcesses | ForEach-Object { $_.ProcessId })
-foreach ($port in ($HttpPort, $HttpsPort | Select-Object -Unique)) {
+foreach ($port in @($HttpPort, $HttpsPort | Where-Object { $_ -gt 0 } | Select-Object -Unique)) {
     $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
 
     # Fremde Programme (alles ausser System/http.sys, PID 4, und dem eigenen Server)
@@ -490,7 +493,7 @@ $serverCode = @'
 """EEP Export - schlanker HTTPS-Server (nur Python-Standardbibliothek).
 
 Liefert ausschliesslich .json und .anl3 aus (GET, HEAD, OPTIONS), mit CORS,
-HTTP->HTTPS-Umleitung und HSTS. Konfiguration: config.json neben dieser Datei
+HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung. Konfiguration: config.json neben dieser Datei
 (wird von Install-Python-web-server.ps1 erzeugt).
 """
 import json
@@ -527,12 +530,46 @@ _lan = (r"localhost|127\.0\.0\.1|\[::1\]|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\
 ALLOW_NULL = bool(CFG.get("allow_null_origin"))   # Origin "null": Seite wird aus einer lokalen Datei (file://) geoeffnet
 ORIGIN_RE = re.compile(r"(https?://(" + _lan + r")(:\d+)?)" + (("|(" + _gh + ")") if _gh else ""), re.I)
 
+# Protokoll schreiben
+# --- FARB-FORMATTER FUER DIE KONSOLE DEFINIEREN ---
+class ColorFormatter(logging.Formatter):
+    # ANSI Escape Codes fuer Farben
+    GRAU = "\033[90m"
+    GELB = "\033[93m"
+    ROT = "\033[91m"
+    FETT_ROT = "\033[1;91m"
+    RESET = "\033[0m"
+    # Zuordnung der Farben zu den Levels
+    COLORS = {
+        logging.WARNING: GELB,
+        logging.ERROR: ROT,
+        logging.CRITICAL: FETT_ROT,
+    }
+    def format(self, record):
+        # Farbe fuer das aktuelle Level holen (Standard: Grau)
+        color = self.COLORS.get(record.levelno, self.GRAU)
+        # Das Level-Praefix farblich verpacken, z.B. [WARNING] oder [ERROR]
+        level_name = f"{color}[{record.levelname}]{self.RESET}"
+        # Neues Format dynamisch fuer diesen Record zusammenbauen
+        # Zeit bleibt normal, Level wird farbig, Nachricht normal
+        formatter = logging.Formatter(
+            f"%(asctime)s {level_name} %(message)s"
+        )
+        return formatter.format(record)
+# --- LOGGING KONFIGURATION ---
+# Protokoll schreiben
 LOG = logging.getLogger("eep")
-LOG.setLevel(logging.INFO)
-_h = logging.handlers.RotatingFileHandler(CFG["log_file"], maxBytes=1000000, backupCount=5, encoding="utf-8")
-_h.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
-LOG.addHandler(_h)
-
+LOG.setLevel(logging.INFO)  # WICHTIG: Erlaubt INFO, damit es die Datei erreicht
+# Protokoll in Datei zu INFO, WARNING, ERROR und CRITICAL
+_fileLog = logging.handlers.RotatingFileHandler(CFG["log_file"], maxBytes=1000000, backupCount=5, encoding="utf-8")
+_fileLog.setLevel(logging.INFO)
+_fileLog.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+LOG.addHandler(_fileLog)
+# Und zusaetzlich Protokoll in der Konsole zu INFO, WARNING, ERROR und CRITICAL
+_consoleLog = logging.StreamHandler(sys.stdout) # sys.stdout oder sys.stderr
+_consoleLog.setLevel(logging.INFO)
+_consoleLog.setFormatter(ColorFormatter())
+LOG.addHandler(_consoleLog)
 
 def clean(text):
     return re.sub(r"[^\x20-\x7e]", "?", str(text))
@@ -678,7 +715,13 @@ class BaseServer(ThreadingHTTPServer):
         self.server_port = self.socket.getsockname()[1]
 
     def handle_error(self, request, client_address):
-        LOG.info("Verbindungsfehler %s: %s", client_address[0], clean(sys.exc_info()[1]))
+        exc = sys.exc_info()[1]
+        # Client hat die Verbindung ohne sauberen TLS-Abschluss geschlossen: kein Fehler
+        if isinstance(exc, (ConnectionError, TimeoutError, ssl.SSLEOFError)) or \
+           (isinstance(exc, ssl.SSLError) and "EOF" in str(exc)):
+            LOG.debug("Verbindung vom Client beendet %s: %s", client_address[0], clean(exc))
+            return
+        LOG.error("Verbindungsfehler %s: %s", client_address[0], clean(exc))
 
 
 class TLSServer(BaseServer):
@@ -690,7 +733,7 @@ class TLSServer(BaseServer):
             request.settimeout(10)
             request = self.ctx.wrap_socket(request, server_side=True)
         except (ssl.SSLError, OSError) as exc:
-            LOG.info("TLS-Handshake fehlgeschlagen %s: %s", client_address[0], clean(exc))
+            LOG.error("TLS-Handshake fehlgeschlagen %s: %s", client_address[0], clean(exc))
             self.shutdown_request(request)
             return
         super().process_request_thread(request, client_address)
@@ -712,9 +755,10 @@ def main():
     ctx.load_cert_chain(CFG["cert_file"], CFG["key_file"])
     https = make_server(TLSServer, HTTPS_PORT, Handler)
     https.ctx = ctx
-    http = make_server(BaseServer, HTTP_PORT, RedirectHandler)
-    threading.Thread(target=http.serve_forever, daemon=True).start()
-    LOG.info("Server gestartet: HTTPS %d, HTTP %d, Inhalt %s", HTTPS_PORT, HTTP_PORT, SITE_ROOT)
+    if HTTP_PORT > 0:
+        http = make_server(BaseServer, HTTP_PORT, RedirectHandler)
+        threading.Thread(target=http.serve_forever, daemon=True).start()
+    LOG.info("Server gestartet: HTTPS Port %d, HTTP Port %s, Inhalt %s", HTTPS_PORT, HTTP_PORT or "aus", SITE_ROOT)
     try:
         https.serve_forever()
     except KeyboardInterrupt:
@@ -739,8 +783,8 @@ Write-Host "5/6 Firewall ..." -ForegroundColor Cyan
 if ($OpenFirewall) {
     Remove-NetFirewallRule -DisplayName $fwName -ErrorAction SilentlyContinue
     New-NetFirewallRule -DisplayName $fwName -Direction Inbound -Protocol TCP `
-        -LocalPort $HttpPort,$HttpsPort -Action Allow -Profile Private,Domain | Out-Null
-    Write-Host "   Eingehende Regel '$fwName' fuer Port $HttpPort/$HttpsPort (Privat, Domaene) angelegt."
+        -LocalPort @($HttpPort, $HttpsPort | Where-Object { $_ -gt 0 }) -Action Allow -Profile Private,Domain | Out-Null
+    Write-Host "   Eingehende Regel '$fwName' fuer Port $(@($HttpPort, $HttpsPort | Where-Object { $_ -gt 0 }) -join '/') (Privat, Domaene) angelegt."
 } else {
     Write-Host "   Uebersprungen (nur lokaler Zugriff). Fuer Zugriff aus dem LAN: -OpenFirewall"
 }
@@ -753,8 +797,8 @@ Start-Process -FilePath $venvPy -ArgumentList "`"$serverPy`"" -WorkingDirectory 
 $deadline = (Get-Date).AddSeconds(30)
 do {
     Start-Sleep -Milliseconds 500
-    $up = [bool](Get-NetTCPConnection -LocalPort $HttpsPort -State Listen -ErrorAction SilentlyContinue) -and
-          [bool](Get-NetTCPConnection -LocalPort $HttpPort  -State Listen -ErrorAction SilentlyContinue)
+    $up = [bool](Get-NetTCPConnection -LocalPort $HttpsPort -State Listen -ErrorAction SilentlyContinue)
+    if ($up -and $HttpPort -gt 0) { $up = [bool](Get-NetTCPConnection -LocalPort $HttpPort -State Listen -ErrorAction SilentlyContinue) }
 } until ($up -or (Get-Date) -gt $deadline)
 
 # Bei eigenem Zertifikat (PFX) passt der Name evtl. nicht zu "localhost": Vertrauenspruefung nur fuer die Tests ausschalten
@@ -782,7 +826,7 @@ $acao       = "Access-Control-Allow-Origin"
 $ownPids    = @(Get-OwnProcesses | ForEach-Object { $_.ProcessId })
 
 # Ports
-foreach ($port in ($HttpPort, $HttpsPort)) {
+foreach ($port in @($HttpPort, $HttpsPort | Where-Object { $_ -gt 0 })) {
     $l = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
     Write-Check (($l.Count -gt 0) -and (@($l | Where-Object { $ownPids -notcontains $_.OwningProcess }).Count -eq 0)) "Port $port lauscht (eigener Server)"
 }
@@ -809,6 +853,7 @@ foreach ($g in $GitHubOrigins) {
 $r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "https://fremde-seite.example" }
 Write-Check (-not $r.Headers[$acao]) "CORS: fremde Origin wird NICHT freigegeben"
 
+# Origin "null": gesendet bei lokalen Dateien (file:///) und sandboxed iframes
 $r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "null" }
 if ($AllowNullOrigin) { Write-Check ($r.Headers[$acao] -eq "null") "CORS: Origin 'null' (lokale Datei) erlaubt" }
 else                  { Write-Check (-not $r.Headers[$acao])      "CORS: Origin 'null' (lokale Datei) wird NICHT freigegeben" }
@@ -842,9 +887,11 @@ Write-Check ($r.Status -eq 404) "Andere Dateitypen (.txt) sind gesperrt: Status 
 $r = Invoke-Probe "$baseUrl/"
 Write-Check ($r.Status -eq 404) "Verzeichnisauflistung ist gesperrt: Status $($r.Status)"
 
-# HTTP -> HTTPS
-$r = Invoke-Probe "http://localhost$httpSuffix/daten.json"
-Write-Check ($r.Status -eq 301 -and "$($r.Headers['Location'])" -like "https://*") "HTTP wird auf HTTPS umgeleitet: Status $($r.Status) $($r.Headers['Location']) $($r.Error)"
+# HTTP -> HTTPS (nur wenn ein HTTP-Port konfiguriert ist)
+if ($HttpPort -gt 0) {
+    $r = Invoke-Probe "http://localhost$httpSuffix/daten.json"
+    Write-Check ($r.Status -eq 301 -and "$($r.Headers['Location'])" -like "https://*") "HTTP wird auf HTTPS umgeleitet: Status $($r.Status) $($r.Headers['Location']) $($r.Error)"
+}
 
 Stop-OwnServer      # Testserver beenden
 

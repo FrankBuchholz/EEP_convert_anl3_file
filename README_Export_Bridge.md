@@ -9,36 +9,36 @@ Lua-Modul in EEP, das sie regelmäßig als JSON-Datei ausgibt.
 | **`EepExport.lua`** (in EEP) | schreibt den aktuellen Anlagenzustand in die Datei `eep_export.json` |
 | **`EEP_Export_Bridge.html`** | liest die JSON-Datei, zeigt Züge, Signale, Weichen und Rollmaterial als Tabellen und leitet die Daten an den Gleisplan weiter |
 | **`EEP_Gleisplan.html`** | zeigt den Gleisplan einer Anlage (`.anl3`) und zeichnet die Live-Daten der Bridge hinein |
+| **Webserver** (optional, siehe [`README_Web_Server.md`](README_Web_Server.md)) | liefert `eep_export.json` und die `.anl3`-Datei über das Netzwerk aus, wenn EEP und Browser nicht auf demselben Rechner laufen |
 
 ```
 EEP (EepExport.lua) ──► Datei eep_export.json ──► EEP_Export_Bridge.html ──► EEP_Gleisplan.html
-                                                  (Tabellen, Auswahl)       (Züge, Signale, Weichen im Plan)
+                        Datei <Anlage>.anl3   ──────────────────────────────► (Züge, Signale, Weichen im Plan)
+                              │
+                              └─ direkt lesen (gleicher Rechner) oder über einen Webserver (anderer Rechner)
 ```
+
+## Welcher Weg passt zu mir?
+
+| Situation | Datenzugriff | Webserver nötig? |
+| --- | --- | --- |
+| **A** EEP und Browser auf **demselben Rechner**, Bridge und Gleisplan von lokaler Kopie oder von GitHub Pages | Bridge liest die JSON-Datei direkt (*Datei live verfolgen*, nur Chrome/Edge), Gleisplan lädt die `.anl3` per Dateiauswahl oder Drag&Drop | nein |
+| **B** EEP und Browser auf **demselben Rechner**, aber Firefox/Safari oder Komfort per URL | URL-Zugriff auf einen lokalen Server (Abschnitt 2.2) | ja, einfacher lokaler Server |
+| **C** EEP auf einem Rechner, Bridge und Gleisplan auf einem **anderen Rechner/Tablet** | URL-Zugriff, `.json` und `.anl3` kommen vom EEP-Rechner | **ja**, HTTPS-Webserver auf dem EEP-Rechner, siehe [`README_Web_Server.md`](README_Web_Server.md) |
+| **D** Bridge und Gleisplan **im Web** (GitHub Pages) geöffnet, EEP lokal | URL-Zugriff, nur HTTPS erlaubt | **ja**, HTTPS-Webserver auf dem EEP-Rechner, siehe [`README_Web_Server.md`](README_Web_Server.md) |
+
+Warum bei C und D ein Webserver nötig ist: Ein Browser darf Dateien eines anderen Rechners nicht direkt lesen.
+Der Zugriff geht nur über HTTP(S). Eine Seite aus dem Web (HTTPS) darf zudem nur HTTPS-Quellen abfragen
+und braucht die Freigabe des Servers (CORS). Die drei Installationsskripte in `README_Web_Server.md`
+richten das mit wenigen Handgriffen ein.
 
 ## Inhalt
 
-- [EEP Export Bridge und Live-Gleisplan](#eep-export-bridge-und-live-gleisplan)
-  - [Inhalt](#inhalt)
-  - [1. Lua-Modul in eine Anlage einbinden](#1-lua-modul-in-eine-anlage-einbinden)
-    - [1.1 Minimalversion](#11-minimalversion)
-    - [1.2 Ausführliche Version](#12-ausführliche-version)
-  - [2. Die Export Bridge nutzen](#2-die-export-bridge-nutzen)
-    - [2.1 Dateizugriff auf die JSON-Datei](#21-dateizugriff-auf-die-json-datei)
-    - [2.2 URL-Zugriff mit lokalem Webserver](#22-url-zugriff-mit-lokalem-webserver)
-      - [Variante A: Python](#variante-a-python)
-      - [Variante B: Node.js mit npx](#variante-b-nodejs-mit-npx)
-      - [Aufruf mit URL-Parameter](#aufruf-mit-url-parameter)
-      - [Hinweise zum URL-Zugriff](#hinweise-zum-url-zugriff)
-      - [Bridge und Gleisplan auf einem zweiten Rechner](#bridge-und-gleisplan-auf-einem-zweiten-rechner)
-    - [2.3 Bedienung der Bridge](#23-bedienung-der-bridge)
-  - [3. Gleisplan und Bridge zusammen nutzen](#3-gleisplan-und-bridge-zusammen-nutzen)
-    - [Ablauf](#ablauf)
-    - [Was der Gleisplan anzeigt](#was-der-gleisplan-anzeigt)
-    - [Zusammenspiel mit der Bridge](#zusammenspiel-mit-der-bridge)
-    - [Hinweise und Grenzen](#hinweise-und-grenzen)
-    - [Geplante Änderungen](#geplante-änderungen)
-  - [4. Aufbau der JSON-Datei](#4-aufbau-der-json-datei)
-  - [5. Fehlersuche](#5-fehlersuche)
+- [1. Lua-Modul in eine Anlage einbinden](#1-lua-modul-in-eine-anlage-einbinden)
+- [2. Die Export Bridge nutzen](#2-die-export-bridge-nutzen)
+- [3. Gleisplan und Bridge zusammen nutzen](#3-gleisplan-und-bridge-zusammen-nutzen)
+- [4. Aufbau der JSON-Datei](#4-aufbau-der-json-datei)
+- [5. Fehlersuche](#5-fehlersuche)
 
 ---
 
@@ -68,27 +68,27 @@ automatisch Folgendes:
 
 - Wurden keine Signale bzw. Weichen angemeldet, werden die IDs `1` bis `discoverMax` (Standard 1000) nach vorhandenen Objekten durchsucht.
 - Wurden keine Depots angemeldet, werden die IDs `1` bis `discoverDepotMax` (Standard 10) durchsucht.
-- Züge und Rollmaterial werden automatisch erkannt, sobald sie an einem Signal oder in einem Depot stehen oder der aktive Zug sind.
+- Züge und Rollmaterial werden automatisch erkannt: über die Signale und Depots, über den aktiven Zug und über die Rückruffunktionen von EEP.
 - Die EEP-Rückruffunktionen werden erweitert (siehe `installCallbacks` unten).
 
 1. **Modul ablegen.** Kopiere `EepExport.lua` in den Lua-Ordner von EEP. Ab EEP 18.1 Plugin 1 kannst du
    sie auch in den Anlagenordner neben die `.anl3`-Datei legen (siehe `package.path` in 1.2).
 2. **Hauptskript ergänzen.** Öffne in EEP das Lua-Fenster der Anlage und füge ein:
 
-  ```lua
-  local EepExport = require("EepExport")
+   ```lua
+   local EepExport = require("EepExport")
 
-  function EEPMain()
-    EepExport.run()         -- exportiert automatisch im eingestellten Intervall
-    return 1
-  end
-  ```
+   function EEPMain()
+     EepExport.run()         -- exportiert automatisch im eingestellten Intervall
+     return 1
+   end
+   ```
 
 3. **Anlage starten.** Nach dem Start entsteht die Datei `eep_export.json` und wird alle 5 EEP-Sekunden
    aktualisiert. Sie liegt im Anlagenordner (neben der `.anl3`-Datei), sofern EEP ihn ermitteln kann
    (ab EEP 18.1 Plugin 1). Sonst wird der Ordner des zuletzt gespeicherten Anlagenpfads verwendet
-   (bekannt, sobald die Anlage einmal gespeichert wurde) und zuletzt der Installationsordner von EEP.
-   Mit der Konfigurationsoption  `outputFile` legst du den Pfad selbst fest.
+   (bekannt, sobald die Anlage einmal gespeichert wurde) und zuletzt das Arbeitsverzeichnis, das ist der Installationsordner von EEP.
+   Mit der Konfigurationsoption `outputFile` legst du den Pfad selbst fest.
 
 Fehler beim Export (zum Beispiel eine nicht beschreibbare Datei) gibt `run()` selbst im
 EEP-Ereignisfenster aus. Die letzte Fehlermeldung steht außerdem in `EepExport.lastError`.
@@ -107,7 +107,7 @@ local EepExport = require("EepExport")
 -- Optional: Konfiguration (nur die Einträge entkommentieren und angeben, die du ändern willst)
 EepExport.configure({
   --outputFile       = nil,    -- vollständiger Pfad der Ausgabedatei, Standard: <Anlagenordner>\eep_export.json
-  --interval         = 5,      -- Export-Intervall in EEP-Sekunden (0 = nur manuell per EepExport.export()), Standard: 5 Sekunden
+  --interval         = 5,      -- Export-Intervall in EEP-Sekunden (-1 = nur manuell per EepExport.export(), 0 = bei jedem Aufruf), Standard: 5
   --pretty           = false,  -- true = eingerückte, lesbare JSON-Ausgabe, Standard: false
   --global           = true,   -- Zeit, Jahreszeit, Wetter, Kamera exportieren, Standard: true
   --discoverMax      = 1000,   -- Suchbereich 1..discoverMax bei add...() ohne Eingabe und bei der automatischen Suche, Standard: 1000
@@ -122,7 +122,7 @@ EepExport.configure({
 
 -- Optional: Auswahl der zu exportierenden Objekte. Ohne Auswahl werden beim ersten run() automatisch
 -- Signale und Weichen (1..discoverMax) sowie Depots (1..discoverDepotMax) gesucht.
--- Bislang werden nur Signale, Weichen und Züge weiterverarbeitet.
+-- Bislang werden Signale, Weichen und Züge (mit Rollmaterial) von der Bridge weiterverarbeitet.
 -- Damit Züge in Depots automatisch gefunden werden, müssen die Depots erfasst sein.
 EepExport.addSignals()                         -- ohne Eingabe: alle Signale 1..discoverMax suchen
 EepExport.addSwitches({ 1, 2, 3 })             -- Liste: nur vorhandene werden aufgenommen
@@ -157,7 +157,7 @@ end
 | Einstellung | Bedeutung | Standard |
 | --- | --- | --- |
 | `outputFile` | vollständiger Pfad der Ausgabedatei | `<Anlagenordner>\eep_export.json` (siehe unten) |
-| `interval` | Export-Intervall in EEP-Sekunden, `0` = nur manueller Export | `5` |
+| `interval` | Export-Intervall in EEP-Sekunden; `-1` = nur manueller Export, `0` = bei jedem Aufruf von `run()` | `5` |
 | `pretty` | `true` = eingerückte, lesbare JSON-Ausgabe (größere Datei) | `false` |
 | `global` | Zeit, Jahreszeit, Wetter und Kamera exportieren | `true` |
 | `discoverMax` | Obergrenze der ID-Suche bei `add…()` ohne Eingabe und bei der automatischen Suche nach Signalen und Weichen (`nil` oder `0` = keine Suche) | `1000` |
@@ -180,6 +180,7 @@ end
 | `EepExport.export()` | sammelt die Daten und schreibt die Datei sofort, gibt `true, Pfad` oder `false, Fehlermeldung` zurück |
 | `EepExport.run()` | in `EEPMain()` aufrufen, exportiert im eingestellten Intervall |
 | `EepExport.installCallbacks()` | hängt die Handler an die EEP-Rückruffunktionen (siehe unten) |
+| `EepExport.toJson(tabelle, pretty)` | wandelt eine Lua-Tabelle in einen JSON-Text um |
 
 **Automatische Erkennung von Zügen und Rollmaterial**
 
@@ -190,7 +191,7 @@ end
 - Automatisch aufgenommene Einträge verschwinden wieder, wenn es sie nicht mehr gibt (zum Beispiel
   nach einer Umbenennung durch Kuppeln). Von Hand angemeldete bleiben immer erhalten.
 
-**Rückruffunktionen und eigene EEP-Funktionen:** 
+**Rückruffunktionen und eigene EEP-Funktionen**
 
 Beim ersten `run()` erweitert das Modul die Funktionen
 `EEPOnTrainStoppedOnSignal`, `EEPOnTrainEnterTrainyard`, `EEPOnTrainExitTrainyard`,
@@ -207,6 +208,8 @@ spätere Definition den Handler. Alternativ rufst du die Handler (`EepExport.onT
 - Ohne `outputFile` schreibt das Modul in den Anlagenordner (neben die `.anl3`-Datei), wenn EEP ihn
   liefert (ab EEP 18.1 Plugin 1). Sonst dient der Ordner des Pfads, den EEP beim Speichern meldet.
   Steht auch der nicht zur Verfügung, landet die Datei im Arbeitsverzeichnis, das ist der Installationsordner von EEP.
+- **Merke dir den Speicherort.** Du brauchst ihn in Abschnitt 2 (Datei auswählen) bzw. für den Webserver
+  (`-SitePath` in [`README_Web_Server.md`](README_Web_Server.md)).
 - Beim Speichern der Anlage pausiert der Export, damit EEP nicht beim Schreiben gestört wird.
   Das Modul nutzt dafür `EEPOnBeforeSaveAnl` und `EEPOnSaveAnl`. Nach dem Speichern wird zeitnah
   neu exportiert. Der gemeldete Speicherpfad steht in der JSON-Datei als `global.plant.path`.
@@ -215,7 +218,7 @@ spätere Definition den Handler. Alternativ rufst du die Handler (`EepExport.onT
   bei vielen Zügen. Mit `debug = true` siehst du, wie lange Sammeln, JSON-Erzeugung und Schreiben dauern.
 - Die Bridge aktualisiert ihre Anzeige nur, wenn sich etwas ändert (dazu wird `meta.exportedAtEepTime` verglichen).
 
-**Fehlermeldungen:** 
+**Fehlermeldungen**
 
 `EepExport.lastError` enthält die letzte Fehlermeldung und wird bei jedem Fehler gesetzt:
 beim Sammeln der Daten, bei der JSON-Erzeugung, beim Öffnen und beim Schreiben der Datei sowie bei der
@@ -227,8 +230,11 @@ setzt `lastError` aber nicht.
 
 ## 2. Die Export Bridge nutzen
 
-Die Bridge ist eine einzelne HTML-Datei (`EEP_Export_Bridge.html`). Sie braucht keine Installation.
-Öffne sie in einem aktuellen Browser (Chrome, Edge oder Firefox).
+Die Bridge ist eine einzelne HTML-Datei (`EEP_Export_Bridge.html`, zusammen mit `js/EEP_Texts.js` und
+`css/EEP_Texts.css`). Sie braucht keine Installation. Öffne sie in einem aktuellen Browser
+(Chrome, Edge oder Firefox), entweder direkt im Web
+(<https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html>) oder aus dem entpackten Archiv
+(siehe `README.md`). Oben rechts wählst du die Sprache (Deutsch, English, Français).
 
 Es gibt zwei Wege, die JSON-Datei zu lesen:
 
@@ -237,7 +243,11 @@ Es gibt zwei Wege, die JSON-Datei zu lesen:
 | Aufwand | gering | Webserver nötig |
 | Browser | Chrome oder Edge (für das laufende Verfolgen) | alle aktuellen Browser |
 | Ändert sich die Datei? | wird alle *n* Sekunden neu gelesen | wird alle *n* Sekunden neu abgefragt |
-| Geeignet für | ein Rechner, EEP und Browser zusammen | auch andere Geräte im Heimnetz (Tablet, zweiter Rechner) |
+| Geeignet für | **ein Rechner**, EEP und Browser zusammen | auch **andere Geräte** im Heimnetz (Tablet, zweiter Rechner) und Seiten aus dem Web |
+
+> **EEP und Bridge auf verschiedenen Rechnern?** Dann kann der Browser die Datei `eep_export.json` nicht direkt
+> lesen, und der Gleisplan kann die `.anl3`-Datei nicht per Dateiauswahl laden. Richte auf dem EEP-Rechner einen
+> Webserver ein, der beide Dateien ausliefert (Abschnitt 2.2 und [`README_Web_Server.md`](README_Web_Server.md)).
 
 ### 2.1 Dateizugriff auf die JSON-Datei
 
@@ -255,67 +265,67 @@ Weitere Möglichkeiten:
   nächsten Aufruf als Knopf **Zuletzt: …** an. Bei einer Datei fragt der Browser dabei erneut
   nach der Erlaubnis, bei einer URL startet die Abfrage sofort.
 
-> **Einschränkung:** Das fortlaufende Lesen einer Datei funktioniert nur in Chrome und Edge.
+> **Einschränkung:** Das fortlaufende Lesen einer Datei funktioniert nur in Chrome und Edge auf einem PC oder Laptop.
 > In Firefox und Safari oder auf einem Tablet nutze den URL-Zugriff (Abschnitt 2.2) oder lade die Datei einmalig.
 
-### 2.2 URL-Zugriff mit lokalem Webserver
+### 2.2 URL-Zugriff mit Webserver
 
-Beim URL-Zugriff holt die Bridge die JSON-Datei per HTTP ab. Dafür muss ein Webserver die Datei
-ausliefern. Auf dem eigenen Rechner reicht ein einfacher lokaler Server.
+Beim URL-Zugriff holt die Bridge die JSON-Datei per HTTP(S) ab. Dafür muss ein Webserver die Datei
+ausliefern. Wähle je nach Situation:
 
-**Wichtig für eine lokale Instalation:** Webserver schützen den Zugriff auf Resoource über CORS.
-Wen der Webserver nicht mit offenen CORS-Regeln arbeiten soll, muss man trotzdem sichrstellen, dass 
-die Bridge und das Gleisplan-Programm Zugriff erhalten.
+#### Situation C/D: EEP-Rechner und Browser getrennt, oder Seiten aus dem Web
 
-Lege dazu die JSON-Datei, `EEP_Export_Bridge.html` und `EEP_Gleisplan.html` (samt den
-Ordnern `js`, `css` und `node_modules` des Gleisplans) so, dass der Server sie alle ausliefert.
-Starte den Server dazu in einem gemeinsamen übergeordneten Ordner. Dann liegen Bridge und Gleisplan
-auf demselben Server (siehe Abschnitt 3: das ist Voraussetzung für die Verbindung beider Seiten).
-Beachte, dass die JSON-Datei standardmäßig im Anlagenordner liegt (siehe 1.2). Der Serverordner
-muss diesen Ordner enthalten, oder du setzt `outputFile` auf einen Pfad innerhalb des Serverordners.
+Installiere auf dem EEP-Rechner einen der drei HTTPS-Webserver aus
+[`README_Web_Server.md`](README_Web_Server.md) (IIS, Python oder Node.js). Dieser liefert **nur** `.json`- und
+`.anl3`-Dateien aus, erlaubt CORS nur für das lokale Netz und GitHub Pages und verwendet HTTPS.
+Beispiel mit Port 3001 und dem Anlagenordner als Datenordner:
 
-#### Variante A: Python
+```powershell
+.\Install-npx-web-server.ps1 -SitePath "C:\Pfad\zum\Anlagenordner" -HttpsPort 3001 -OpenFirewall
+```
 
-Python 3 bringt einen kleinen Webserver mit.
+Danach öffnest du auf dem zweiten Rechner (nachdem du dort das Zertifikat `EEP Export.cer` importiert hast,
+siehe `README_Web_Server.md`, Abschnitt 3.6):
 
-1. Öffne eine Eingabeaufforderung bzw. ein Terminal im gewünschten Ordner.
-2. Starte den Server:
+```
+https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html?url=https://192.168.0.115:3001/eep_export.json
+https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html?url=https://192.168.0.115:3001/MeineAnlage.anl3
+```
 
-   ```bash
-   # Windows
-   py -m http.server 8000 --bind 127.0.0.1
+(`192.168.0.115` ersetzt du durch die IP-Adresse oder den Namen des EEP-Rechners.) Beide Seiten stammen von
+GitHub Pages, haben also dieselbe Origin und können miteinander sprechen (Abschnitt 3). Auf dem EEP-Rechner selbst
+reicht `https://localhost:3001/…`.
 
-   # Linux / macOS
-   python3 -m http.server 8000 --bind 127.0.0.1
-   ```
+#### Situation B: einfacher lokaler Server auf einem Rechner
 
-3. Öffne im Browser `http://localhost:8000/EEP_Export_Bridge.html`.
-4. Trage im Feld **URL** den Pfad zur JSON-Datei ein, relativ zum Serverordner,
-   z. B. `eep_export.json`, und klicke auf **URL abfragen**.
-5. Beenden: `Strg+C` im Terminalfenster.
+Läuft alles auf einem Rechner und möchtest du nur den URL-Zugriff nutzen (z. B. weil du Firefox verwendest),
+reicht ein einfacher lokaler Server. Er liefert Bridge, Gleisplan, JSON-Datei und `.anl3`-Datei **aus einem
+gemeinsamen Ordner** aus. Dann gibt es keine CORS-Probleme. Lege dazu die JSON-Datei und die `.anl3`-Datei
+in den entpackten Projektordner (Bridge und Gleisplan samt `js`, `css` und `node_modules`) oder starte den Server
+in einem gemeinsamen übergeordneten Ordner. Beachte: Die JSON-Datei liegt standardmäßig im Anlagenordner (siehe 1.2).
+Der Serverordner muss diesen Ordner enthalten, oder du setzt `outputFile` auf einen Pfad innerhalb des Serverordners.
 
-`--bind 127.0.0.1` sorgt dafür, dass nur dein eigener Rechner den Server erreicht.
-Für den Zugriff von einem anderen Gerät im Heimnetz lässt du die Option weg und rufst die Seite
-mit der IP-Adresse deines Rechners auf, z. B. `http://192.168.0.20:8000/...`.
-Gib den Server dann nie ins Internet frei.
+**Python:**
 
-#### Variante B: Node.js mit npx
+```bash
+# Windows
+py -m http.server 8000 --bind 127.0.0.1
 
-Voraussetzung ist [Node.js](https://nodejs.org) (enthält `npx`).
+# Linux / macOS
+python3 -m http.server 8000 --bind 127.0.0.1
+```
 
-1. Terminal im gewünschten Ordner öffnen.
-2. Server starten (`-c-1` schaltet das Caching ab, damit immer die aktuelle Datei geliefert wird,
-   `--cors` ermöglicht, dass auch andere Rechner auf die Datei zugreifen können):
+**Node.js:**
 
-   ```bash
-   npx http-server -p 8000 -c-1 -a 127.0.0.1 --cors
-   ```
+```bash
+npx http-server -p 8000 -c-1 -a 127.0.0.1 --cors
+```
 
-3. Weiter wie bei Python: `http://localhost:8000/EEP_Export_Bridge.html` öffnen,
-   URL der JSON-Datei eintragen, **URL abfragen** klicken.
-4. Beenden: `Strg+C`.
-
-Alternativ geht auch `npx serve -l 8000 --cors`.
+Anschließend `http://localhost:8000/EEP_Export_Bridge.html` öffnen, im Feld **URL** den Pfad der
+JSON-Datei relativ zum Serverordner eintragen (z. B. `eep_export.json`) und **URL abfragen** klicken.
+Beenden mit `Strg+C`. `--bind 127.0.0.1` bzw. `-a 127.0.0.1` sorgt dafür, dass nur dein eigener Rechner den Server erreicht.
+Diese einfachen Server liefern **alle** Dateien des Ordners aus. Gib sie nie ins Internet frei und verwende sie
+nicht für den Zugriff aus dem Netzwerk. Dafür sind die Skripte aus `README_Web_Server.md` gedacht.
 
 #### Aufruf mit URL-Parameter
 
@@ -336,23 +346,11 @@ So lässt sich die Bridge als Lesezeichen mit fester Quelle ablegen.
 
 - Die Bridge hängt an jede Abfrage einen Zeitstempel an und verhindert so, dass der Browser alte
   Daten aus dem Zwischenspeicher liefert.
-- Bei `HTTP 404` stimmt der Pfad nicht. Der Pfad im URL-Feld ist relativ zum Ordner, in dem der
+- Bei `HTTP 404` stimmt der Pfad nicht. Bei einem einfachen lokalen Server ist der Pfad im URL-Feld relativ zum Ordner, in dem der
   Server gestartet wurde.
 - Liegt die JSON-Datei auf einem anderen Server als die Bridge, muss dieser Server
-  CORS-Zugriffe erlauben. Einfacher ist es, alles auf einem Server zu halten.
-
-#### Bridge und Gleisplan auf einem zweiten Rechner
-
-Da auch der Gleisplan die Anlagendatei per URL laden kann (siehe Abschnitt 3), kannst du EEP auf einem
-Rechner laufen lassen und Bridge und Gleisplan auf einem zweiten Rechner nutzen:
-
-1. Auf dem EEP-Rechner liefert ein Webserver mit `--cors` die `.anl3`-Datei und die JSON-Datei aus
-   (Server ohne `127.0.0.1`-Beschränkung starten, nur im Heimnetz).
-2. Auf dem zweiten Rechner öffnest du Bridge und Gleisplan. Beide müssen vom selben Server stammen
-   (zum Beispiel einem zweiten lokalen Server dort), damit die Verbindung funktioniert.
-3. In der Bridge trägst du die vollständige URL der JSON-Datei ein
-   (z. B. `http://192.168.0.20:8000/eep_export.json`), im Gleisplan die vollständige URL der `.anl3`-Datei.
-   Beides geht auch per URL-Parameter: `EEP_Export_Bridge.html?url=…` und `EEP_Gleisplan.html?url=…`.
+  CORS-Zugriffe erlauben (die Skripte aus `README_Web_Server.md` tun das für das lokale Netz und GitHub Pages).
+  Eine Bridge aus dem Web (HTTPS) kann nur HTTPS-Adressen abfragen.
 
 ### 2.3 Bedienung der Bridge
 
@@ -363,11 +361,12 @@ Rechner laufen lassen und Bridge und Gleisplan auf einem zweiten Rechner nutzen:
 | **Zuletzt: …** | letzte Quelle (Datei oder URL) erneut verwenden |
 | **Datei live verfolgen** | JSON-Datei auswählen und fortlaufend lesen |
 | **oder einmalig** | Datei einmal laden (auch per Drag&Drop) |
-| **URL / URL abfragen** | JSON-Datei per HTTP abfragen (auch per Aufruf mit `?url=…`, siehe 2.2) |
+| **URL / URL abfragen** | JSON-Datei per HTTP(S) abfragen (auch per Aufruf mit `?url=…`, siehe 2.2) |
 | **alle … s** | Abfrageintervall |
 | **an Gleisplan senden** | Daten an einen geöffneten Gleisplan weiterleiten |
 | **Gleisplan öffnen** | öffnet `EEP_Gleisplan.html` im selben Ordner in einem neuen Fenster |
 | Statuszeile | EEP-Zeit des Exports und Zeit seit der letzten Änderung |
+| Sprachauswahl | Deutsch, English, Français (gilt auch für Gleisplan und Inventar) |
 
 Die Statuszeile zeigt, ob noch neue Daten ankommen. Wächst die Zeit seit der letzten Änderung
 dauernd an, steht EEP oder der Export.
@@ -375,7 +374,7 @@ dauernd an, steht EEP oder der Export.
 **Bereiche**
 
 - **Zeit & Wetter:** EEP-Uhrzeit, EEP-Version, Wolken, Nebel, Regen, Schnee, Hagel, Wind und aktiver Zug.
-- **Züge:** Geschwindigkeit, Soll-Geschwindigkeit, Anzahl Wagen, Länge, Route und Gleis.
+- **Züge:** Geschwindigkeit, Soll-Geschwindigkeit, Anzahl Fahrzeuge, Länge, Route und Gleis.
   - **Folgen:** Mit der Auswahl oben rechts im Bereich zentriert der Gleisplan bei jeder
     Aktualisierung auf den gewählten Zug.
   - **Zeige:** zentriert den Gleisplan einmalig auf den Zug.
@@ -383,8 +382,8 @@ dauernd an, steht EEP oder der Export.
 - **Signale:** Stellung und wartende Züge. Die Farben stammen aus dem Gleisplan
   (siehe Abschnitt 3). Ohne verbundenen Gleisplan sind alle Stellungen neutral grau.
 - **Weichen:** Stellung (Durchfahrt, Abzweig, KoAbzweig).
-- **Rollmaterial:** alle Fahrzeuge mit Zug, Länge, Gleis, Position und Kupplungen.
-  Fahrzeuge mit Antrieb sind mit „(Lok)“ markiert.
+- **Rollmaterialien:** alle Fahrzeuge mit Zug, Länge, Gleis (mit Richtungspfeil), Position und Kupplungen (vorne/hinten).
+  Fahrzeuge mit Antrieb sind mit „(Lok)" markiert.
 
 ---
 
@@ -392,10 +391,16 @@ dauernd an, steht EEP oder der Export.
 
 Die Bridge sendet die Daten über einen Browser-Kanal (`BroadcastChannel`) an den Gleisplan.
 Den Programmcode zum Empfangen und Zeichnen der Live-Daten enthält `EEP_Gleisplan.html` selbst
-(Abschnitt „EEP-Live-Erweiterung“ am Ende der Datei). Die Bridge braucht dafür nichts mehr einzufügen.
-Beide Seiten müssen dafür **aus demselben Ursprung** geladen sein, also vom selben Server
-(`http://localhost:8000/...`). Lokale Dateien (`file://`) verhalten sich je nach Browser anders,
-daher wird der Weg über den lokalen Webserver (Abschnitt 2.2) empfohlen.
+(Abschnitt „EEP-Live-Erweiterung" am Ende der Datei). Die Bridge braucht dafür nichts mehr einzufügen.
+
+Beide Seiten müssen dafür **aus demselben Ursprung** geladen sein (gleiches Protokoll, gleicher Rechnername, gleicher Port), also zum Beispiel:
+
+- beide von GitHub Pages (`https://frankbuchholz.github.io/…`), oder
+- beide vom selben lokalen Server (`http://localhost:8000/…`).
+
+Der Knopf **Gleisplan öffnen** der Bridge öffnet den Gleisplan aus demselben Ordner und sorgt so automatisch
+für den gleichen Ursprung. Lokale Dateien (`file://`) verhalten sich je nach Browser anders, daher wird der Weg über Webserver bzw. GitHub Pages empfohlen.
+Beide Seiten müssen außerdem im **selben Browser** (selbes Profil) laufen.
 
 ### Ablauf
 
@@ -404,11 +409,11 @@ daher wird der Weg über den lokalen Webserver (Abschnitt 2.2) empfohlen.
 3. **Gleisplan öffnen**, über **Gleisplan öffnen** in der Bridge oder direkt über `EEP_Gleisplan.html`.
 4. **Die `.anl3`-Datei derselben Anlage laden.** Wähle die Anlagendatei der gerade laufenden Anlage
    (auch per Drag&Drop möglich) oder trage im Feld **URL einer EEP-Anlage-Datei** die Adresse ein
-   (relativ zur Seite oder vollständig) und klicke auf **URL laden**. Alternativ rufst du den Gleisplan
-   mit dem Parameter `?url=…` auf, z. B. `EEP_Gleisplan.html?url=meineAnlage.anl3`, dann wird die Datei
-   automatisch geladen. Die zuletzt benutzte URL wird gemerkt. Die Datei wird dabei einmalig geladen,
-   nicht fortlaufend. Liegt sie auf einem anderen Server, muss dieser CORS erlauben.
-   Der Gleisplan meldet sich erst nach dem Laden bei der Bridge, ab dann fließen die Daten.
+   (relativ zur Seite oder vollständig, z. B. `https://192.168.0.115:3001/MeineAnlage.anl3`) und klicke auf **URL laden**.
+   Alternativ rufst du den Gleisplan mit dem Parameter `?url=…` auf, z. B. `EEP_Gleisplan.html?url=meineAnlage.anl3`,
+   dann wird die Datei automatisch geladen. Die zuletzt benutzte URL wird gemerkt. Die Datei wird dabei einmalig geladen,
+   nicht fortlaufend. Liegt sie auf einem anderen Server, muss dieser CORS erlauben (siehe [`README_Web_Server.md`](README_Web_Server.md)).
+   Der Gleisplan meldet sich erst nach dem Laden bei der Bridge, ab dann fließen die Daten. Daten, die vorher eintreffen, werden zwischengespeichert.
 5. Sobald sich die Daten ändern, aktualisiert sich der Gleisplan von selbst.
 
 Wichtig: Die Daten gehören zu einer bestimmten Anlage. Lade im Gleisplan dieselbe Anlage, die in
@@ -424,8 +429,21 @@ EEP läuft. Mit einer anderen Anlage stimmen Gleis-, Signal- und Weichennummern 
   Gleisgrenzen und Weichen hinweg.
 - Fahrzeuge mit Antrieb (Loks) sind dunkler und dicker gezeichnet.
 - Ein Kreis mit dunklem Rand markiert die Zugspitze, der Zugname steht darüber.
-- Kleinere Kreise sitzen an den Fahrzeuganfängen laut Export. Daneben steht die Länge des
-  Fahrzeugs (`l=…`). Bei angetriebenen Fahrzeugen ist der Kreis dunkler und größer.
+- Kleinere Kreise sitzen an den Fahrzeuganfängen laut Export. Daneben stehen Modelltyp (z. B. „Diesellok", „Güterwaggon") und
+  Länge des Fahrzeugs. Bei angetriebenen Fahrzeugen ist der Kreis dunkler und größer.
+
+**Infobox zu Zügen und Fahrzeugen**
+
+Ein Klick auf einen Zug (Linie, Kreis oder Text) öffnet eine Infobox mit Geschwindigkeit, Soll-Geschwindigkeit,
+Länge, Anzahl Fahrzeuge, Route, Position und Gleis (mit Link, der die Gleis-Info öffnet).
+Die Tasten funktionieren wie bei den anderen Objekten:
+
+| Bedienung | Wirkung |
+| --- | --- |
+| Klick | Infobox des Zuges (ersetzt die zuletzt geöffnete Infobox) |
+| <kbd>⇧ Shift</kbd> + Klick | öffnet für den Zug eine eigene, zusätzliche Infobox |
+| <kbd>Alt</kbd> + Klick | zusätzlich Liste aller Fahrzeuge des Zuges (Modelltyp, Länge, Ausrichtung, Kupplungen, Position, Gleis); das angeklickte Fahrzeug ist fett |
+| <kbd>Alt</kbd> + <kbd>⇧ Shift</kbd> + Klick | beides zusammen |
 
 **Signale**
 
@@ -444,7 +462,7 @@ sind (zum Beispiel `Hl 13; Hp 0`), bleibt es bei Grau.
 **Weichen**
 
 Der Weichentext (W…) wird nach der Stellung gefärbt: Blau = Durchfahrt, Orange = Abzweig,
-Lila = KoAbzweig. Diese Farben sagen nichts über „frei“ oder „gesperrt“ aus.
+Lila = KoAbzweig. Diese Farben sagen nichts über „frei" oder „gesperrt" aus.
 
 ### Zusammenspiel mit der Bridge
 
@@ -455,6 +473,7 @@ Lila = KoAbzweig. Diese Farben sagen nichts über „frei“ oder „gesperrt“
   Nachricht `showTrack` mit `GleissystemID` und `GleisID`.
 - **an Gleisplan senden:** Mit abgeschaltetem Häkchen sendet die Bridge keine Daten mehr.
   Beim erneuten Einschalten wird sofort der aktuelle Stand gesendet.
+- **Signalfarben:** Die Bridge fragt die Stellungstexte der Signale beim Gleisplan ab und färbt damit ihre Signaltabelle.
 
 ### Hinweise und Grenzen
 
@@ -477,8 +496,6 @@ Lila = KoAbzweig. Diese Farben sagen nichts über „frei“ oder „gesperrt“
 
 - Die Export-Datei muss eigentlich keine reale Datei sein. Es würde genügen, wenn sie im Hauptspeicher des einen Rechners zugreifbar wäre.
 - Der Gleisplan lädt die `.anl3`-Datei bisher nur einmalig von einer URL. Ein fortlaufendes Nachladen ist nicht vorgesehen.
-- Übersetzung der Texte in der Bridge auf Englisch und Französisch.
-- Bei einem Klick auf einen Zug im Gleisplan öffnet sich eine Infobox.
 
 ---
 
@@ -538,6 +555,8 @@ EEP-Version die Abfrage nicht kennt (einige Felder gibt es erst ab EEP 17.x bzw.
 | `track.direction` | Orientierung des Fahrzeugs bezogen auf die Verlegerichtung des Gleises |
 | `forward` | Fahrzeug ist vorwärts (true) oder rückwärts (false) im Zugverband eingereiht |
 | `gears` | größer als 0: Fahrzeug mit Antrieb (Lok) |
+| `modelType` | 1 Tenderlok, 2 Schlepptenderlok, 3 Tender, 4 Elektrolok, 5 Diesellok, 6 Triebwagen, 7 U-/S-Bahn, 8 Straßenbahn, 9 Güterwaggon, 10 Personenwaggon, 11 Luftfahrzeug, 12 Maschine, 13 Wasserfahrzeug, 14 LKW, 15 PKW |
+| `couplingFront`, `couplingRear` | Kupplung: 1 scharf, 2 abstoßen, 3 gekuppelt |
 | `trainyard` | Zug steht im Depot (nur Zug im Depot: dann fehlen die Fahrdaten) |
 | `signals.*.state` | Signalstellung (die Bedeutung hängt vom Signal ab) |
 | `switches.*.state` | 1 Durchfahrt, 2 Abzweig, 3 KoAbzweig |
@@ -552,19 +571,20 @@ Positionen (`x`, `y`, `z`) sind Meter im Koordinatensystem der Anlage.
 
 | Beobachtung | Mögliche Ursache und Abhilfe |
 | --- | --- |
-| Es entsteht keine `eep_export.json` | Prüfe das EEP-Ereignisfenster. Dort meldet `run()` Fehler wie „Datei nicht schreibbar“, mit `debug = true` zusätzlich Details. Die letzte Meldung steht auch in `EepExport.lastError`. Die Datei liegt im Anlagenordner (ab EEP 18.1 Plugin 1), sonst im Installationsordner von EEP. Bei älteren EEP-Versionen oder wenn der Pfad nicht beschreibbar ist, `outputFile` setzen. Während die Anlage gespeichert wird, ist der Export pausiert. |
+| Es entsteht keine `eep_export.json` | Prüfe das EEP-Ereignisfenster. Dort meldet `run()` Fehler wie „Datei nicht schreibbar", mit `debug = true` zusätzlich Details. Die letzte Meldung steht auch in `EepExport.lastError`. Die Datei liegt im Anlagenordner (ab EEP 18.1 Plugin 1), sonst im Installationsordner von EEP. Bei älteren EEP-Versionen oder wenn der Pfad nicht beschreibbar ist, `outputFile` setzen. Während die Anlage gespeichert wird, ist der Export pausiert. |
 | Züge fehlen in der Datei | Züge werden über Signale und Depots erkannt. Prüfe, ob die Signale gefunden wurden (`discoverMax`) und ob deine Depots im Bereich `1..discoverDepotMax` liegen, sonst `addTrainyards()` verwenden. Ist `installCallbacks = false`, rufe `installCallbacks()` am Ende des Skripts auf. Alternativ mit `addTrains()` anmelden. |
-| Statuszeile zeigt „keine Daten“ | Quelle noch nicht gewählt. Datei verbinden, URL abfragen oder die Bridge mit `?url=…` aufrufen. |
-| „Ungültiges JSON“ | Die Datei wird gerade geschrieben oder ist beschädigt. Beim nächsten Intervall erneut versuchen. |
-| „Kein EEP-Export (global/trains fehlen)“ | Falsche Datei gewählt. |
-| „HTTP 404“ bei URL | Pfad falsch oder Server im falschen Ordner gestartet. |
-| „Live-Lesen von Dateien braucht Chrome/Edge“ | Anderen Browser verwenden oder URL-Zugriff nutzen. |
-| „Letzte Änderung vor …“ wächst dauernd | EEP steht oder das Lua-Modul exportiert nicht mehr. |
-| Gleisplan: „Fehler: …“ bei **URL laden** | Datei nicht erreichbar (falsche URL, `file://`, fehlendes CORS bei anderem Server). Datei stattdessen auswählen oder per Drag&Drop laden. |
-| Gleisplan zeigt keine Züge | Anlage im Gleisplan noch nicht geladen. Bridge und Gleisplan nicht vom selben Server geöffnet. Haken *an Gleisplan senden* aus. Falsche Anlage geladen. |
+| Statuszeile zeigt „keine Daten" | Quelle noch nicht gewählt. Datei verbinden, URL abfragen oder die Bridge mit `?url=…` aufrufen. |
+| „Ungültiges JSON" | Die Datei wird gerade geschrieben oder ist beschädigt. Beim nächsten Intervall erneut versuchen. |
+| „Kein EEP-Export (global/trains fehlen)" | Falsche Datei gewählt. |
+| „HTTP 404" bei URL | Pfad falsch oder Server im falschen Ordner gestartet. Beim HTTPS-Webserver aus `README_Web_Server.md`: Liegt `eep_export.json` im `-SitePath`? |
+| „Fehler: Failed to fetch" bei URL | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat auf diesem Gerät nicht vertraut, Origin der Bridge vom Server nicht erlaubt (CORS) oder die Bridge kommt per HTTPS aus dem Web und die URL ist nur HTTP. Siehe `README_Web_Server.md`, Abschnitt 4. |
+| „Live-Lesen von Dateien braucht Chrome/Edge" | Anderen Browser verwenden oder URL-Zugriff nutzen. |
+| „Letzte Änderung vor …" wächst dauernd | EEP steht oder das Lua-Modul exportiert nicht mehr. |
+| Gleisplan: „Fehler: …" bei **URL laden** | Datei nicht erreichbar (falsche URL, `file://`, fehlendes CORS bei anderem Server, Zertifikat nicht vertraut). Datei stattdessen auswählen oder per Drag&Drop laden. |
+| Gleisplan zeigt keine Züge | Anlage im Gleisplan noch nicht geladen. Bridge und Gleisplan nicht von derselben Origin oder nicht im selben Browser geöffnet. Haken *an Gleisplan senden* aus. Falsche Anlage geladen. |
 | Alle Signale grau | Gleisplan nicht verbunden bzw. Anlage noch nicht geladen. Das Signalmodell fehlt in `js/EEP_Signale_Daten.js`. |
 | Züge nicht auf dem Gleis | Anlage im Gleisplan stimmt nicht mit der laufenden überein. Oder das Gleis ist ein nicht unterstützter Kurventyp (siehe Konsole). |
-| Meldungen „EEP-Live: …“ in der Konsole | Diagnosemeldungen des Live-Moduls, zum Beispiel „Gleis … nicht gefunden“. Öffne die Browser-Konsole mit `F12`. |
+| Meldungen „EEP-Live: …" in der Konsole | Diagnosemeldungen des Live-Moduls, zum Beispiel „Gleis … nicht gefunden". Öffne die Browser-Konsole mit `F12`. |
 
 Meldungen mit dem Präfix `EEP-Live:` erscheinen jeweils nur einmal pro Ursache.
 Wenn du einen Fehler meldest, hänge die Beschreibung bitte an die Meldung.

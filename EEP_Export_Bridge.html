@@ -10,8 +10,10 @@
 @media(prefers-color-scheme:dark){:root{--bg:#1b1f23;--fg:#e6e6e6;--card:#24292e;--line:#3a4048}}
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.4 system-ui,Arial,sans-serif;background:var(--bg);color:var(--fg)}
-header{background:var(--acc);color:#fff;padding:8px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-header h1{font-size:17px;margin:0 10px 0 0}
+header{padding:8px 14px 0}
+header h3{margin:0.5em 0}
+#controls{padding:6px 14px 10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px dotted var(--acc)}
+#url{width:min(60em,100%)}
 main{padding:12px;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
 section{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto}
 section.medium{grid-column:span 2}
@@ -25,26 +27,33 @@ button{cursor:pointer}
 .g{background:#1a9a1a}.r{background:#d22}.o{background:#e08000}.p{background:#9a2fc0}.b{background:#1565c0}.x{background:#808080}
 tr.act td{font-weight:600}
 #st{font-size:12px;opacity:.9}
-.err{color:#ffd0d0}
+.err{color:#c00}
 pre{background:rgba(127,127,127,.12);padding:8px;max-height:220px;overflow:auto;font-size:12px}
 small{opacity:.75}
 </style>
 </head>
 <body>
 <script src="js/EEP_Texts.js"></script> <!-- Texte; fügt versteckte Sprach-Radiobuttons ein -->
-<header>
-  <h1>EEP Export Bridge</h1>
+<header class="flexRow"> <!-- Überschrift und Sprachauswahl wie in Gleisplan und Inventar, siehe EEP_Texts.css -->
+  <div><h3>EEP Export Bridge</h3></div>
+  <div>
+    <label for="german" class="langBtn">Deutsch</label>
+    <label for="english" class="langBtn">English</label>
+    <label for="french" class="langBtn">Français</label>
+  </div>
+</header>
+<nav id="controls">
   <button id="bLast" hidden></button>
   <button id="bFile" data-t="Datei live verfolgen"></button>
   <label><span data-t="oder einmalig"></span> <input type="file" id="fOnce" accept=".json"></label>
-  <label>URL <input id="url" value="eep_export.json" size="18"></label>
+  <label>URL <input id="url" value="eep_export.json" size="100"></label>
   <button id="bUrl" data-t="URL abfragen"></button>
   <label><span data-t="alle"></span> <input id="iv" type="number" value="2" min="0.5" step="0.5" style="width:55px"> s</label>
   <label><input type="checkbox" id="send" checked> <span data-t="an Gleisplan senden"></span></label>
   <button id="bPlan" data-t="Gleisplan öffnen"></button>
   <span id="st" data-t="keine Daten"></span>
-  <select id="lang" title="Language"><option value="DE">Deutsch</option><option value="EN">English</option><option value="FR">Français</option></select>
-</header>
+</nav>
+				 
 
 <main>
   <section class="medium"><h2 data-t="ZeitWetter"></h2><div id="gl">–</div></section>
@@ -413,13 +422,13 @@ function applyTexts() {
   if (data) render();
 }
 // Sprache wechseln: Radiobuttons in EEP_Texts.js erzeugt, Auswahl in <select> synchronisieren
-$("lang").value = EEP_Texts.getLanguage();
-$("lang").onchange = () => {
-  EEP_Texts.setLanguage($("lang").value);
-  const r = document.getElementById({DE: "german", EN: "english", FR: "french"}[EEP_Texts.getLanguage()]);
-  if (r) r.checked = true;
-  applyTexts();
-};
+// Die Radiobuttons (von EEP_Texts.js) setzen die Sprache selbst; hier nur die Texte der Bridge neu aufbauen
+document.querySelectorAll('input[name="lang"]').forEach(r => r.addEventListener("click", applyTexts));
+																				 
+																																																					
+													
+							 
+	
 applyTexts();
 
 </script>
