@@ -1,4 +1,4 @@
-# Combined workflow: Build site, inject node_modules, create ZIP, and deploy to Pages
+# Combined workflow: Build site, create ZIP, inject node_modules and deploy to Pages
 # see corresponding file _config.yml in root the directory
 name: Deploy Jekyll with Node dependencies and ZIP download
 
@@ -36,46 +36,19 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # 1. Abhängigkeiten der node-Pakete installieren und App bauen
+      # 1. Abhängigkeiten der node-Pakete installieren und ggf. App bauen
       - name: Install dependencies and build assets
         run: |
           npm ci
-          #npm run build (bei diesem Projekt nicht nötig)
+          #npm run build # (bei diesem Projekt nicht nötig)
 
-      # 2. Struktur in einem temporären Ordner vorbereiten, da Jekyll das Verzeichnis node_modules ignoriert
-      - name: Prepare node_modules files
+      # 2. Präzises ZIP-Archiv im dist-Ordner erstellen (VOR dem Jekyll-Build)
+      # Dadurch gibt es keine Permission-Probleme.
+      # Wichtig: Wir nutzen temporär die echten node_modules für das ZIP.
+      - name: Create project ZIP archive
         run: |
-          mkdir -p vendor_node_modules/toolwindow/dist
-          mkdir -p vendor_node_modules/tablefilter/dist/tablefilter
-          mkdir -p vendor_node_modules/svg-pan-zoom/dist
-          
-          cp -r node_modules/toolwindow/dist/* vendor_node_modules/toolwindow/dist/
-          cp -r node_modules/tablefilter/dist/tablefilter/* vendor_node_modules/tablefilter/dist/tablefilter/
-          cp -r node_modules/svg-pan-zoom/dist/* vendor_node_modules/svg-pan-zoom/dist/
-
-      # 3. Setup Pages
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      # 4. Jekyll baut die Seite und nimmt den temporären Ordner gemäß _config.yml mit auf
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
-
-      # 5. Ordner umbenennen, Download-Verzeichnis erstellen und präzises ZIP-Archiv generieren
-      - name: Rename vendor folder and create precise ZIP archive
-        run: |
-          # 1. Ordner in die finale Struktur für GitHub Pages bringen
-          sudo mv _site/vendor_node_modules _site/node_modules
-          
-          # 2. Ordner für den Web-Download innerhalb von GitHub Pages erstellen
-          mkdir -p _site/downloads
-          
-          # 3. Dein gewohnter Zip-Befehl (erweitert um die 3 node_modules Ordner)
-          # Wir speichern das ZIP-Archiv direkt im downloads-Ordner von GitHub Pages
-          zip -r _site/downloads/EEP_convert_anl3_file.zip \
+          mkdir -p dist
+          zip -r ./dist/EEP_convert_anl3_file.zip \
             EEP_Gleisplan.html \
             EEP_Inventar.html \
             EEP_Export_Bridge.html \
@@ -92,7 +65,35 @@ jobs:
             node_modules/tablefilter/dist/tablefilter/ \
             node_modules/svg-pan-zoom/dist/
 
-      # 6. Das fertige Paket hochladen
+      # 3. Struktur für die Live-Webseite in einem temporären Ordner vorbereiten
+      - name: Prepare node_modules files for web view
+        run: |
+          mkdir -p vendor_node_modules/toolwindow/dist
+          mkdir -p vendor_node_modules/tablefilter/dist/tablefilter
+          mkdir -p vendor_node_modules/svg-pan-zoom/dist
+          
+          cp -r node_modules/toolwindow/dist/* vendor_node_modules/toolwindow/dist/
+          cp -r node_modules/tablefilter/dist/tablefilter/* vendor_node_modules/tablefilter/dist/tablefilter/
+          cp -r node_modules/svg-pan-zoom/dist/* vendor_node_modules/svg-pan-zoom/dist/
+
+      # 4. Setup Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 5. Jekyll baut die Seite, nimmt dist samt ZIP-Datei und den temporären Ordner gemäß _config.yml mit
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      # 6. Ordner im geschützten _site-Verzeichnis mittels sudo umbenennen
+      # Damit stimmen die HTML-Pfade der Live-Webseite wieder.
+      - name: Rename vendor folder to node_modules in final site
+        run: |
+          sudo mv _site/vendor_node_modules _site/node_modules
+
+      # 7. Das fertige Paket hochladen
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 

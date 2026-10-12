@@ -10,5 +10,5 @@ exclude:
 
 # Ordner, die Jekyll explizit mit in die fertige Seite aufnehmen soll
 include:
-#  - dist
+  - dist
   - vendor_node_modules
