@@ -1,5 +1,6 @@
-# Sample workflow for building and deploying a Jekyll site with Node.js dependencies to GitHub Pages
-name: Deploy Jekyll with Node.js and GitHub Pages dependencies
+# Combined workflow: Build site, inject node_modules, create ZIP, and deploy to Pages
+# see corresponding file _config.yml in root the directory
+name: Deploy Jekyll with Node dependencies and ZIP download
 
 on:
   # Runs on pushes targeting the default branch
@@ -35,13 +36,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # 1. Abhängigkeiten installieren und App bauen
+      # 1. Abhängigkeiten der node-Pakete installieren und App bauen
       - name: Install dependencies and build assets
         run: |
           npm ci
           #npm run build (bei diesem Projekt nicht nötig)
 
-      # 2. Struktur in einem temporären Ordner vorbereiten
+      # 2. Struktur in einem temporären Ordner vorbereiten, da Jekyll das Verzeichnis node_modules ignoriert
       - name: Prepare node_modules files
         run: |
           mkdir -p vendor_node_modules/toolwindow/dist
@@ -56,18 +57,52 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # 4. Jekyll baut die Seite und nimmt den temporären Ordner mit auf
+      # 4. Jekyll baut die Seite und nimmt den temporären Ordner gemäß _config.yml mit auf
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./
           destination: ./_site
 
-      # 5. Mit Admin-Rechten (sudo) den Ordner im fertigen Build in 'node_modules' umbenennen
-      - name: Rename vendor folder to node_modules in final site
+      # 5. Ordner umbenennen, Download-Verzeichnis erstellen und präzises ZIP-Archiv generieren
+      - name: Rename vendor folder and create precise ZIP archive
         run: |
+          # 1. Ordner in die finale Struktur für GitHub Pages bringen
           sudo mv _site/vendor_node_modules _site/node_modules
+          
+          # 2. Ordner für den Web-Download innerhalb von GitHub Pages erstellen
+          mkdir -p _site/downloads
+          
+          # 3. Dein gewohnter Zip-Befehl (erweitert um die 3 node_modules Ordner)
+          # Wir speichern das ZIP-Archiv direkt im downloads-Ordner von GitHub Pages
+          zip -r _site/downloads/EEP_convert_anl3_file.zip \
+            EEP_Gleisplan.html \
+            EEP_Inventar.html \
+            EEP_Export_Bridge.html \
+            EEP_Signale.html \
+            EEP_blockControl.html \
+            js/ \
+            css/ \
+            Lua/ \
+            images/ \
+            WebServer/ \
+            README.md \
+            EEP_Export_Bridge.md \
+            node_modules/toolwindow/dist/ \
+            node_modules/tablefilter/dist/tablefilter/ \
+            node_modules/svg-pan-zoom/dist/
 
       # 6. Das fertige Paket hochladen
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
