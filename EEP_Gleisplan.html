@@ -764,6 +764,7 @@ function prepareGleissysteme(sutrackp) {
 	global.KameraSet 		= {};	// Verwendung: Kamera = global.KameraSet[index];
 	global.Zugverband 		= {};	// Verwendung: Train = global.Zugverband[GleissystemID][trainName];
 	global.Gleisobjekte		= {};
+	global.Rollmaterial		= {};	// Verwendung: global.Rollmaterial[name] = {clsid, vUeberhang, hUeberhang}
 	global.Routen			= {};
 	global.Sounds			= {};
 	
@@ -1244,6 +1245,42 @@ function prepareGleissysteme(sutrackp) {
 
 		const routeID		= Zugverband.getAttribute("Route");
 		const routeName		= global.Routen[routeID] || "";
+
+		// Rollmaterial: vorderer und hinterer Überhang (in der Datei in cm, hier in m)
+		// clsid	Legt die Art des Rollmaterials fest
+		//   16095510-0EAB-46AF-B294-CBB6D3516007	angetrieben
+		//   7B0D0A3A-0882-44D6-B3E7-45D933A70F74	nicht angetrieben
+		// vUeberhang	Vorderer Überhang in cm (ausgehend vom vorderen Radsatz)
+		// hUeberhang	Hinterer Überhang in cm (ausgehend ebenfalls vom vorderen Radsatz)
+		/* Beispiel
+		<Rollmaterial clsid="16095510-0EAB-46AF-B294-CBB6D3516007" ausrichtung="1" bremsung="0" Flags="12" Masse="87000" Reibung="25" maxbremsung="150" vUeberhang="979" hUeberhang="979" TotalDist="0" name="Lokomotion 189.917 EpVI" typ="SCHIENE\LOKOMOTIVEN\LM_189-917_VI_SB3.3dm" LightStat="-218234880" Hook="0" Active="1" RollIdx="34" Favorite="0" ActCabin="1" ImmoIdx="0" zuStellung="0" Wartender="0" LockEd="0">
+		
+		Anlage:
+		EEP15_Bitte-Einsteigen Export.anl3
+		
+		#Zug Rheingold, Länge: 113.6m, Fahrzeuge: 6
+		<Zugverband ZugID="30" Geschwindigkeit="2.427589" autopilot="1" sollgeschwindigkeit="0" sollgeschwindigkeit_kp="0" wirkungsdistanz="2207.184" kupplungvorn="2" kupplunghinten="2" Route="0" LastDir="1" StepStop="-1" clsid="6FE10FB0-A974-4620-B7A5-D7D047A7903B" name="#Zug Rheingold" LightStat="0" Hide="-1" Favorite="1">
+
+		Schlepptenderlok, Länge: 13.69m, Ausrichtung: vorwärts
+		<Rollmaterial clsid="16095510-0EAB-46AF-B294-CBB6D3516007" ausrichtung="1" bremsung="0.8604586" Flags="12" Masse="85000" Reibung="15" maxbremsung="97" vUeberhang="705" hUeberhang="663.793" TotalDist="4407" name="Bayerische S 3/6 (BR 18 478)" typ="SCHIENE\LOKOMOTIVEN\BAYERISCHES3-6_SM2.3dm" LightStat="-214040512" Hook="0" Active="1" RollIdx="64" Favorite="0" ImmoIdx="0" zuStellung="0" Wartender="0" LockEd="0">
+ 
+		Tender, Länge: 9.21m, Ausrichtung: vorwärts
+		<Rollmaterial clsid="7B0D0A3A-0882-44D6-B3E7-45D933A70F74" ausrichtung="1" bremsung="0.8604585" Flags="12" Masse="63000" Reibung="8" maxbremsung="56" vUeberhang="419.81" hUeberhang="501" TotalDist="4392" name="Bayerische S 3/6 - Tender (BR 18 478)" typ="SCHIENE\TENDER\BAYERISCHES3-6_TNDR_SM2.3dm" LightStat="-214040512" Hook="0" Active="1" RollIdx="65" Favorite="0" ImmoIdx="0" zuStellung="0" Wartender="0" LockEd="0">
+
+		Personenwaggon, Länge: 23.65m, Ausrichtung: vorwärts
+		<Rollmaterial clsid="7B0D0A3A-0882-44D6-B3E7-45D933A70F74" ausrichtung="1" bremsung="0.8604585" Flags="12" Masse="63000" Reibung="8" maxbremsung="56" vUeberhang="419.81" hUeberhang="501" TotalDist="4392" name="Bayerische S 3/6 - Tender (BR 18 478)" typ="SCHIENE\TENDER\BAYERISCHES3-6_TNDR_SM2.3dm" LightStat="-214040512" Hook="0" Active="1" RollIdx="65" Favorite="0" ImmoIdx="0" zuStellung="0" Wartender="0" LockEd="0">
+
+		*/
+		for (const Rollmaterial of Zugverband.getElementsByTagName("Rollmaterial")) {
+			const rName = Rollmaterial.getAttribute("name");
+			if (rName) {
+				global.Rollmaterial[rName] = {
+					angetrieben : Rollmaterial.getAttribute("clsid") == "16095510-0EAB-46AF-B294-CBB6D3516007",
+					vUeberhang : (+Rollmaterial.getAttribute("vUeberhang") || 0) / 100,
+					hUeberhang : (+Rollmaterial.getAttribute("hUeberhang") || 0) / 100,
+				};
+			}
+		}
 
 		global.Zugverband[GleissystemID][trainName] = {
 			// train data
@@ -4749,9 +4786,9 @@ text.text-anchor-end {
 	fill:   grey;
 }
 
-/* Individuelle Formatierung je Gleissystem */
+/* Individuelle Formatierung je Gleissystem (gilt nicht für den liveLayer) */
 
-.Eisenbahn {
+.Eisenbahn:not(.live) {
 	stroke-width: var(--normal-stroke-width);
 	stroke: var(--Eisenbahn-color);
 	fill:   none;
@@ -4762,11 +4799,11 @@ text.text-anchor-end {
 #EisenbahnMarkerCircle, #EisenbahnMarkerArrow {
 	fill: var(--Eisenbahn-marker-color);
 }
-.Eisenbahn text {
+.Eisenbahn:not(.live) text {
 	fill: var(--Eisenbahn-color);
 }
 
-.Strassenbahn {
+.Strassenbahn:not(.live) {
 	stroke-width: var(--normal-stroke-width);
 	stroke: var(--Strassenbahn-color);
 	fill:   none;
@@ -4776,11 +4813,11 @@ text.text-anchor-end {
 #StrassenbahnMarkerCircle, #StrassenbahnMarkerArrow {
 	fill: var(--Strassenbahn-marker-color) ;
 }
-.Strassenbahn text {
+.Strassenbahn:not(.live) text {
 	fill: var(--Strassenbahn-color) ;
 }
 
-.Strasse {
+.Strasse:not(.live) {
 	stroke-width: var(--normal-stroke-width);
 	stroke: var(--Strasse-color);
 	fill:   none;
@@ -4790,11 +4827,11 @@ text.text-anchor-end {
 #StrasseMarkerCircle, #StrasseMarkerArrow {
 	fill: var(--Strasse-marker-color);
 }
-.Strasse text {
+.Strasse text:not(.live) {
 	fill: var(--Strasse-color);
 }
 
-.Wasserwege {
+.Wasserwege:not(.live) {
 	stroke-width: var(--narrow-stroke-width);
 	stroke: var(--Wasserwege-color);
 	fill:   none;
@@ -4804,11 +4841,11 @@ text.text-anchor-end {
 #WasserwegeMarkerCircle, #WasserwegeMarkerArrow {
 	fill: var(--Wasserwege-marker-color);
 }
-.Wasserwege text {
+.Wasserwege:not(.live) text {
 	fill: var(--Wasserwege-color);
 }
 
-.Steuerstrecken {
+.Steuerstrecken:not(.live) {
 	stroke-width: var(--narrow-stroke-width);
 	stroke: var(--Steuerstrecken-color);
 	fill:   none;
@@ -4818,7 +4855,7 @@ text.text-anchor-end {
 #SteuerstreckenMarkerCircle, #SteuerstreckenMarkerArrow {
 	fill: var(--Steuerstrecken-marker-color);
 }
-.Steuerstrecken text {
+.Steuerstrecken:not(.live) text {
 	fill: var(--Steuerstrecken-color);
 }
 
@@ -7881,6 +7918,9 @@ function fractionOf(v, G){
 // len Meter über das Gleisnetz. vx/vy: bekannter Startpunkt in Weltkoordinaten.
 // Liefert Punkte [{x, y, s}] mit s = zurückgelegte Strecke in m, oder null.
 // Wo sich das Gleisnetz verzweigt, wird das Gleis bevorzugt, auf dem Fahrzeuge des Zuges stehen (onTrain), sonst gilt die Weichenstellung.
+// Ist die Gleisverbindung virtuell (Flags = 1)?
+const isVirtual = connection => !!(connection && connection.Flags != null && Number(connection.Flags) === 1);
+
 function walk(GleissystemID, GleisID, f, sgn, len, vx, vy, onTrain) {
 	let G = geom(GleissystemID, GleisID); 
 	if (!G) return null;
@@ -7905,22 +7945,20 @@ function walk(GleissystemID, GleisID, f, sgn, len, vx, vy, onTrain) {
 
 		// Streckenende: Nachbargleis über die Gleisverbindungen
 		const conns = (global.trackConnections && global.trackConnections[G.GleissystemID] && global.trackConnections[G.GleissystemID][curGleisID]) || {};
-		let c;
-		if (sgn < 0) { c = conns.Anfang; }
+		let connection;
+		if (sgn < 0) { connection = conns.Anfang; }
 		else {
 			const candidates = [conns.Ende, conns.EndeAbzweig, conns.EndeKoAbzweig].filter(Boolean);
-			c = candidates.find(x => onTrain && onTrain.has(x.GleisID) && x.GleisID !== curGleisID);
-			if (!c) { 
+			connection = candidates.find(x => onTrain && onTrain.has(x.GleisID) && x.GleisID !== curGleisID);
+			if (!connection) { 
 				const st = switchState(G.Gleis); 
-				c = (st === 2 && conns.EndeAbzweig) || (st === 3 && conns.EndeKoAbzweig) || conns.Ende || conns.EndeAbzweig; 
+				connection = (st === 2 && conns.EndeAbzweig) || (st === 3 && conns.EndeKoAbzweig) || conns.Ende || conns.EndeAbzweig; 
 			}
 		}
-		if (!c) break;
-		
-		// Virtuelle Verbindung: Fahrzeug nur bis zum Ende des aktuellen Gleises zeichnen
-		if (c.Flags) break;
-		
-		curGleisID = c.GleisID;
+		if (!connection) break;
+		if (isVirtual(connection)) break;   // Virtuelle Verbindung: nicht verfolgen, das Ende liegt an der Verbindungsstelle
+
+		curGleisID = connection.GleisID;
 		G = geom(GleissystemID, curGleisID);
 		if (!G) break;
 
@@ -7934,59 +7972,51 @@ function walk(GleissystemID, GleisID, f, sgn, len, vx, vy, onTrain) {
 	return pts;
 }
 
-// Abstand eines Punktes von einem Linienzug
-function distToPath(p, path){
-	let best = 1e9;
-	for (let i = 0; i + 1 < path.length; i++) {
-		const a = path[i], b = path[i+1], dx = b.x-a.x, dy = b.y-a.y, l2 = dx*dx + dy*dy;
-		const t = l2 > 0 ? Math.max(0, Math.min(1, ((p.x-a.x)*dx + (p.y-a.y)*dy) / l2)) : 0;
-		best = Math.min(best, Math.hypot(p.x - (a.x + t*dx), p.y - (a.y + t*dy)));
-	}
-	return best;
+// Länge eines Linienzuges neu aufsummieren (Feld s)
+function withS(pts){
+	let s = 0;
+	return pts.map((p, i) => { 
+		if (i) s += dist(p, pts[i-1]); 
+		return {x: p.x, y: p.y, s: s}; 
+	});
 }
 
-// Punkt auf dem Linienzug nach der Strecke s
-function pointAtS(path, s){
-	if (s <= 0) return path[0];
-	for (let i = 0; i + 1 < path.length; i++) {
-		const a = path[i], b = path[i+1];
-		if (s <= b.s) {
-			const t = b.s > a.s ? (s - a.s) / (b.s - a.s) : 0;
-			return {x: a.x + t*(b.x-a.x), y: a.y + t*(b.y-a.y)};
-		}
-	}
-	return path[path.length-1];
-}
-
-// Linienzug des ganzen Zuges: ab dem Anfang des ersten Fahrzeugs (Zugspitze) über die Summe aller Fahrzeuglängen zum Zugende.
-// Die Fahrzeuge eines Zuges schließen lückenlos aneinander an. Ihre Längen ergeben zusammen die Zuglänge,
-// aber die Anfänge der Fahrzeuge (position) liegen je nach Fahrzeugmodell an unterschiedlichen Stellen im Fahrzeug.
-// Daher wird der Zug aus den Längen aufgebaut und nicht aus den Abständen der Fahrzeuganfänge.
-function trainPath(vehicles, total){
-	const head = vehicles[0], k = head.track;
-	if (!k) return null;
-	const G = geom(k.system, k.id);
+// Linienzug EINES Fahrzeuges, von der Spitze (pts[0]) bis zum Ende (pts[n-1]).
+// Er wird allein aus den Daten dieses Fahrzeuges und dem Gleisnetz berechnet. Fehler (z.B. aufgeschnittene Weichen)
+// bleiben damit auf dieses Fahrzeug beschränkt.
+// Die Position laut Export ist der Bezugspunkt. Die Spitze liegt am Bezugspunkt,
+// das Ende eine Fahrzeuglänge hinter der Spitze. Virtuelle Verbindungen werden nicht verfolgt (Ende = Verbindungsstelle).
+// nextV = nächstes Fahrzeug im Zug (hilft bei der Richtung und bei Verzweigungen).
+function vehiclePath(vehicle, nextV){
+	const track = vehicle.track;
+	if (!track || !vehicle.position) return null;
+	const G = geom(track.system, track.id);
 	if (!G) return null;
 
-	const f0 = fractionOf(head, G);
-	const onTrain = new Set(vehicles.filter(v => v.track && v.track.system === k.system).map(v => v.track.id));
-	const run = sgn => walk(k.system, k.id, f0, sgn, total, head.position.x, head.position.y, onTrain);
+	const f0  = fractionOf(vehicle, G);
+	const hint = new Set();
+	if (nextV && nextV.track && nextV.track.system === track.system) hint.add(nextV.track.id);
+	const run = (sgn, len) => walk(track.system, track.id, f0, sgn, len, vehicle.position.x, vehicle.position.y, hint);
 
-	// Richtung zum Zugende: aus der Orientierung des ersten Fahrzeugs.
-	// direction = 1 und forward = true: Zugspitze zeigt in Richtung wachsender Position, das Zugende liegt bei kleineren Positionen.
-	const rule = (k.direction === 1 ? 1 : -1) * (head.forward === false ? -1 : 1) > 0 ? -1 : 1;
+	// tSgn = Richtung vom Bezugspunkt zum Fahrzeugende (+1: Position wächst, -1: Position nimmt ab)
+	const build = tSgn => {
+		const tail = run(tSgn, vehicle.length || 0);
+		return tail ? withS(tail) : null;
+	};
 
-	if (vehicles.length > 1) {
-		// Mehrere Fahrzeuge: nimm die Richtung, in der die Fahrzeuganfänge am besten auf dem Linienzug liegen
-		const a = run(-1), b = run(+1);
+	// Richtung aus Gleisrichtung und Ausrichtung des Fahrzeuges
+	const ruleSgn = (track.direction === 1 ? 1 : -1) * (vehicle.forward === false ? -1 : 1) > 0 ? -1 : 1;
+	const a = build(ruleSgn);
+	// Mit Nachfolger: die Richtung nehmen, bei der das Ende näher am Bezugspunkt des Nachfolgers liegt
+	if (nextV && nextV.position) {
+		const b = build(-ruleSgn);
 		if (a && b) {
-			const others = vehicles.slice(1).map(v => v.position);
-			const cost = path => others.reduce((sum, p) => sum + distToPath(p, path), 0);
-			return cost(a) <= cost(b) ? a : b;
+			const e = p => p[p.length-1];
+			return dist(e(b), nextV.position) + 1 < dist(e(a), nextV.position) ? b : a;
 		}
 		return a || b;
 	}
-	return run(rule);
+	return a;
 }
 
 // ---- Zeichnen -------------------------------------------------------------------
@@ -8027,10 +8057,12 @@ function draw(d){
 		if (switchElement && color) switchElement.style.fill = color;
 	}
 
-	// Zeichne Zugverbände
+	// Zeichne Zugverbände: jedes Fahrzeug einzeln
+	const DASH = "stroke-dasharray:calc(var(--normal-stroke-width)*2) calc(var(--normal-stroke-width)*1.5)";
 	for (const trainName in d.trains || {}) {
 		//console.log(trainName);
 		const train = d.trains[trainName];
+
 		const vehicles = [];     // vehicles[0] = erstes Fahrzeug = Zugspitze
 		for (const name of train.vehicles || []) {
 			const rs = d.rollingstock[name];
@@ -8038,95 +8070,67 @@ function draw(d){
 		}
 		if (!vehicles.length) continue;
 
-		const total = vehicles.reduce((sum, v) => sum + (v.length || 0), 0) || train.length || 0;
-		const path = trainPath(vehicles, total);
-		//console.log(path);
-		if (!path) {
-			warnOnce("nopath" + trainName, `Zug ${trainName}: kein Linienzug entlang der Gleise (Gleis ${vehicles[0].track && vehicles[0].track.system}-${vehicles[0].track && vehicles[0].track.id}) - Ersatz`);
-		}
+		// Class live verhindert die Färbung gemäß Gleissystem, class TrackSystemCode erlaubt das verstecken der Element
+		const liveTrain = el(liveLayer, "g", {id: "liveTrain" + trainName, "class" : `live ${global.TrackSystemCode[global.TrackSystem[train.track.system]]}`});
 
-		const liveTrain = el(liveLayer, "g", {id: "liveTrain" + trainName});
+		// Linien je Fahrzeug (unabhängig von den anderen Fahrzeugen des Zuges)
+		const paths = vehicles.map((v, i) => vehiclePath(v, vehicles[i+1]));
+		//console.log(trainName);
+		//console.log("train", train, train.position.x, train.position.y);
+		//console.log("vehicles", vehicles, vehicles[0].position.x, vehicles[0].position.y);
+		//console.log("paths", paths);
 
-		// Zeichne gerade Linien für alle Fahrzeuge
-		let s0 = 0;      // Strecke ab der Zugspitze bis zum Beginn des Fahrzeugs
+		// Name des Zugverbandes an der Zugspitze
+		const tip = paths[0] ? paths[0][0] : vehicles[0].position;
+		el(liveTrain, "text", {x: tip.x, y: -tip.y - 3.0, fill: TRAIN_COLOR,
+			"pointer-events": "visiblePainted", "data-train": trainName}).textContent = `${trainName}, ${train.length.toFixed(1)}m`;
+
 		vehicles.forEach((vehicle, i) => {
+			//console.log("vehicle", i, vehicle, vehicle.position.x, vehicle.position.y);
 			const hasGears = vehicle.gears > 0;
-			let a, b;
-			if (path) {
-				a = pointAtS(path, s0);
-				b = pointAtS(path, s0 + (vehicle.length || 0));
-				//console.log("a", a, "b", b, "pos", vehicle.position);
-			} else {   // Ersatz: Fahrzeuganfänge verbinden
-				const next = vehicles[i+1];
-				a = vehicle.position;
-				b = next ? next.position : vehicle.position;
-				//console.log("a", a,"b",b, "pos", vehicle.position, "ersatz");
-			}
-			s0 += (vehicle.length || 0);
-			if (a !== b && (a.x !== b.x || a.y !== b.y)) {
-				// Linie zur Anzeige des Fahrzeuges
-				//el(liveTrain, "polyline", {	points: a.x + "," + (-a.y) + " " + b.x + "," + (-b.y),
-				el(liveTrain, "line", {	x1: a.x, y1: (-a.y), x2: b.x, y2: (-b.y),
-					fill: "none",
-					stroke: (hasGears ? GEARS_COLOR : TRAIN_COLOR),
-					style: "stroke-width:calc(var(--normal-stroke-width)*" + (hasGears ? 4 : 3) + ");stroke-linecap:round" // or butt
-				});
-				// Unsichtbarer Bereich, um den Klick-Event abzufangen (mit einem um den Faktor 8 verbreiterten Bereich)
-				el(liveTrain, "line", { x1: a.x, y1: (-a.y), x2: b.x, y2: (-b.y),
-					stroke: "transparent", fill: "none",
-					"pointer-events": "stroke", 
-					"data-train": trainName, "data-vehicle": vehicle.name,
-					style: "stroke-width:calc(var(--normal-stroke-width)*8);stroke-linecap:round;cursor:pointer"
-				});
-			}
-		});
+			const color = hasGears ? GEARS_COLOR : TRAIN_COLOR;
+			const path = paths[i];
+			if (!path) warnOnce("nopath" + vehicle.name, `Fahrzeug ${vehicle.name} (${trainName}): kein Linienzug (Gleis ${vehicle.track && vehicle.track.system}-${vehicle.track && vehicle.track.id})`);
+			const head = path ? path[0] : vehicle.position;
+			const data = {"data-train": trainName, "data-vehicle": vehicle.name};
 
-		// Zeichne Details der Fahrzeuge (Anfang des Fahrzeugs laut Export)
-		vehicles.forEach(vehicle => {
-			const hasGears = vehicle.gears > 0;
-			el(liveTrain, "circle", {
-				cx: vehicle.position.x,
-				cy: -vehicle.position.y,
-				r: (hasGears ? 1.0 : 0.5),
-				fill: (hasGears ? GEARS_COLOR : TRAIN_COLOR),
-				stroke: (hasGears ? "rgb(90,40,0)" : "none"),
-				"pointer-events": "all", 
-				"data-train": trainName, "data-vehicle": vehicle.name,
-				style: "stroke-width:calc(var(--normal-stroke-width)*1.0)"
-			});
+			// Gestrichelte Verbindung vom Ende dieses Fahrzeuges zur Spitze des nächsten Fahrzeuges
+			const nextPath = paths[i+1];
+			if (path && nextPath) {
+				const a = path[path.length-1], b = nextPath[0];
+				if (dist(a, b) > 0.3) {
+					el(liveTrain, "line", {x1: a.x, y1: -a.y, x2: b.x, y2: -b.y, stroke: TRAIN_COLOR, fill: "none",
+						"pointer-events": "none", style: "stroke-width:calc(var(--normal-stroke-width)*1.5);" + DASH});
+				}
+			}
+
+			if (path && path.length > 1) {
+				// Fahrzeug als gerade Linie von der Spitze zum Ende
+				const e = path[path.length-1], ln = {x1: head.x, y1: -head.y, x2: e.x, y2: -e.y};
+				el(liveTrain, "line", Object.assign({fill: "none", stroke: color,
+					style: "stroke-width:calc(var(--normal-stroke-width)*" + (hasGears ? 4 : 3) + ");stroke-linecap:round"}, ln));
+				// Unsichtbare, breitere Linie zum Anklicken
+				el(liveTrain, "line", Object.assign({fill: "none", stroke: "transparent", "pointer-events": "stroke",
+					style: "stroke-width:calc(var(--normal-stroke-width)*8);stroke-linecap:round;cursor:pointer"}, ln, data));
+			}
+
+			// Kreis am Kopf des Fahrzeuges (Zugspitze: größer)
+			el(liveTrain, "circle", Object.assign({
+				cx: head.x, cy: -head.y,
+				r: (i === 0 ? 1.0 : (hasGears ? 0.8 : 0.6)),
+				fill: color, style: "fill-opacity:50%",
+				//stroke: "rgb(90,40,0)", style: "stroke-width:calc(var(--normal-stroke-width)*1.0)"
+				"pointer-events": "all"
+			}, data));
+
 			// Beschreibung des Fahrzeuges
-			el(liveTrain, "text", {
-				x: vehicle.position.x,
-				y: -vehicle.position.y + 3.0,
-				fill: TRAIN_COLOR,
-				"pointer-events": "visiblePainted", 
-				"data-train": trainName , "data-vehicle": vehicle.name
-			}).textContent = 
-				//`${_('Modelltyp')}: ${(vehicle.modelType >= 1 && vehicle.modelType <= 15) ? _('modelType_' + vehicle.modelType) : (vehicle.modelType ?? "–")}, ${_('Länge')}=${vehicle.length}m`;		
-				`${(vehicle.modelType >= 1 && vehicle.modelType <= 15) ? _('modelType_' + vehicle.modelType) : (vehicle.modelType ?? "–")}, ${vehicle.length}m`;		
-			});
-
-		// Zugspitze = Anfang des ersten Fahrzeugs
-		const tip = vehicles[0].position;
-		el(liveTrain, "circle", {
-			cx: tip.x,
-			cy: -tip.y,
-			r: 1.0,
-			fill: TRAIN_COLOR,
-			stroke: "rgb(90,40,0)",
-			"pointer-events": "all", 
-			"data-train": trainName, // "data-vehicle": vehicle.name,
-			style: "stroke-width:calc(var(--normal-stroke-width)*1.0)"
+			el(liveTrain, "text", Object.assign({
+				x: head.x, y: -head.y + 3.0, fill: TRAIN_COLOR, "pointer-events": "visiblePainted"
+			}, data)).textContent =
+				`${(vehicle.modelType >= 1 && vehicle.modelType <= 15) ? _('modelType_' + vehicle.modelType) : (vehicle.modelType ?? "–")}`
+				+`, ${vehicle.length.toFixed(1)}m`
+				;
 		});
-
-		// Name des Zugverbandes
-		el(liveTrain, "text", {
-			x: tip.x,
-			y: -tip.y - 3.0,
-			fill: TRAIN_COLOR,
-			"pointer-events": "visiblePainted", 
-			"data-train": trainName //, "data-vehicle": vehicle.name
-		}).textContent = trainName;
 	}
 }
 
@@ -8135,7 +8139,7 @@ const escH = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>
 const num  = (n, d = 1) => (typeof n === "number" ? n.toFixed(d) : "–");
 // Übersetzter Text zu modelType (1-15), sonst der Rohwert
 const modelTypeText = t => (t >= 1 && t <= 15) ? _('modelType_' + t) : (t != null ? escH(t) : "–");
-const couplingText = t => (t >= 1 && t <= 3) ? _('coupling_' + t) : (t != null ? escH(t) : "–");
+const couplingText  = t => (t >= 1 && t <= 3)  ? _('coupling_' + t)  : (t != null ? escH(t) : "–");
 
 function sysText(id){
 	try { return TrackSystemText(String(id)) || ("Gleissystem " + id); } catch (e) { return "Gleissystem " + id; }
