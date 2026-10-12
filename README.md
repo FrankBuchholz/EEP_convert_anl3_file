@@ -11,7 +11,8 @@ Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konv
 | Webserver-Skripte (IIS, Python, Node.js) | liefern `eep_export.json` und `.anl3` an andere Rechner aus | [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer") |
 
 Die Programme können direkt mit den angegebenen Links im Browser (Chrome, Firefox oder MS Edge) gestartet werden. In diesem Fall ist eine aktive Internetverbindung notwendig.
-Alternativ kann das Archiv [`dist/EEP_convert_anl3_file.zip`](https://github.com/FrankBuchholz/EEP_convert_anl3_file/raw/master/dist/EEP_convert_anl3_file.zip) auf [GitHub](https://github.com/FrankBuchholz/EEP_convert_anl3_file) in einem beliebigen Verzeichnis entpackt werden. Dann können die Programme lokal gestartet werden wobei keine Internetverbindung benötigt wird.
+
+Alternativ kann das Archiv [`EEP_convert_anl3_file.zip`](dist/EEP_convert_anl3_file.zip "EEP_convert_anl3_file.zip") in einem beliebigen Verzeichnis entpackt werden. Dann können die Programme lokal im Browser gestartet werden wobei keine Internetverbindung benötigt wird.
 
 ## Programm: EEP_Gleisplan.html
 
