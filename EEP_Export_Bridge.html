@@ -48,7 +48,7 @@ small{opacity:.75}
   <label><span data-t="oder einmalig"></span> <input type="file" id="fOnce" accept=".json"></label>
   <label>URL <input id="url" value="eep_export.json" size="100"></label>
   <button id="bUrl" data-t="URL abfragen"></button>
-  <label><span data-t="alle"></span> <input id="iv" type="number" value="2" min="0.5" step="0.5" style="width:55px"> s</label>
+  <label><span data-t="alle"></span> <input id="iv" type="number" value="2" min="0.2" step="0.2" style="width:55px"> s</label>
   <label><input type="checkbox" id="send" checked> <span data-t="an Gleisplan senden"></span></label>
   <button id="bPlan" data-t="Gleisplan öffnen"></button>
   <span id="st" data-t="keine Daten"></span>
@@ -76,7 +76,7 @@ const cmd = new BroadcastChannel("EEP");
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const p2 = n => String(n).padStart(2, "0");
 
-let data = null, handle = null, timer = null, lastStamp = null, received = 0, trainKey = "";
+let data = null, handle = null, timer = null, received = 0, trainKey = "";
 let sigInfo = null, askedKey = "";
 
 // ---- Letzte Quelle merken -------------------------------------------
@@ -153,17 +153,18 @@ const fmt = (n, d = 1) => (typeof n === "number" ? n.toFixed(d) : "–");
 function status(msg, err) { const s = $("st"); s.removeAttribute("data-t"); s.textContent = msg; s.className = err ? "err" : ""; }
 
 // JSON-Daten verarbeiten, die von EEP exportiert wurden
-// Nur bei geändertem meta.exportedAtEepTime neu darstellen (Alternative: text vergleichen)
+// Nur bei geändertem Daten neu darstellen
+let prevText = "";
 function ingest(text) {
+  if (text === prevText) return;
+  prevText = text;
+	
   let d;
   try { d = JSON.parse(text); } catch (e) { return status(_("UngueltigesJSON") + ": " + e.message, true); }
   if (!d.global || !d.trains) return status(_("KeinEEPExport"), true);
 
-  let stamp = d.meta && d.meta.exportedAtEepTime;
-  if (stamp === undefined && d.global.time) stamp = d.global.time.seconds;   // Fallback ohne meta
-  if (stamp !== undefined && stamp === lastStamp) return;
-
-  lastStamp = stamp; data = d; received = Date.now();
+	data = d; 
+	received = Date.now();
   render(); 
   askSignals(); 
   push(); 
@@ -330,10 +331,9 @@ let pollFn = null;
 function startPoll(fn) {
   clearInterval(timer); 
   pollFn = fn; 
-  lastStamp = null;
   const run = () => fn().catch(e => status(_("Fehler") + ": " + e.message, true));
   run(); 
-  timer = setInterval(run, Math.max(500, $("iv").value * 1000));
+  timer = setInterval(run, Math.max(200, $("iv").value * 1000)); // Mindestens 1/5 Sekunde, wie in EEP
 }
 
 // Aktion verarbeiten: Datei live verfolgen
@@ -384,7 +384,6 @@ $("bLast").onclick = async () => {
 async function once(f) {
   clearInterval(timer); 
   timer = null; 
-  lastStamp = null;
   lsSave({src: "file", file: f.name}); 
   showLast();
   ingest(await f.text());
@@ -424,11 +423,6 @@ function applyTexts() {
 // Sprache wechseln: Radiobuttons in EEP_Texts.js erzeugt, Auswahl in <select> synchronisieren
 // Die Radiobuttons (von EEP_Texts.js) setzen die Sprache selbst; hier nur die Texte der Bridge neu aufbauen
 document.querySelectorAll('input[name="lang"]').forEach(r => r.addEventListener("click", applyTexts));
-																				 
-																																																					
-													
-							 
-	
 applyTexts();
 
 </script>

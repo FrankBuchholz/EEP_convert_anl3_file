@@ -11,6 +11,8 @@
 --- waehrend des Ladens des Skripts nicht zuverlaessig funktionieren.
 --- Zuege und Rollmaterial haben keine numerischen IDs; hier ist nur a) und b) moeglich.
 ---
+--- Alle Rollmaterialien und indirekt damit auch alle Züge können auch komplett aus der anl3-Datei gelesen werden.
+---
 --- Automatische Erkennung von Zuegen und Rollmaterial (autoTrains / autoRollingstock):
 ---   * Zuege: werden aus den angemeldeten Signalen (EEPGetSignalTrainName) und virtuellen Depots
 ---     (EEPGetTrainyardItemName) uebernommen, sobald sie dort auftauchen. Zusaetzlich reagieren
@@ -53,6 +55,7 @@ EepExport.configure({
   --autoRollingstock = true,   -- Rollmaterial automatisch aus den Fahrzeuglisten bekannter Zuege einsammeln, Standard: true
   --scanInterval     = 2,      -- Abstand der automatischen Suche in EEP-Sekunden, Standard: 2
   --installCallbacks = true,   -- EEP-Rueckruffunktionen automatisch erweitern, Standard: true
+  --anlFile          = nil,    -- Pfad zu einer .anl3-Datei: Namen aller Rollmaterialien werden daraus gelesen, Standard: nil
   debug              = true,   -- Debug, Standard: false
 })
 
@@ -74,18 +77,6 @@ EepExport.addTrainyards(EepExport.range(1, 5)) -- Bereich angeben
 --EepExport.addTrains({ "#ICE1", "#Gueterzug" })
 --EepExport.addRollingstock({ 'Lok', 'Wagen', 'Fracht' })
 
---- Optional: Sucht in allen Kategorien mit numerischen IDs (also ausser Zuege und Rollmaterial) nach vorhandenen Objekten.
---EepExport.discoverAll()
-
---- Optional: Sammelt alle Zustandsdaten und gibt sie als Tabelle zurueck.
---EepExport.collect()
-
---- Optional: Wertet alle bisher angemeldeten add...()-Aufrufe aus. Wird von collect() automatisch aufgerufen.
---EepExport.resolve()
-
---- Optional: Sammelt die Daten und schreibt sie als JSON-Datei. Gibt true, Pfad oder false, Fehlermeldung zurueck.
---EepExport.export()
-
 function EEPMain()
   --- In EEPMain() aufrufen. Exportiert automatisch im eingestellten Intervall (EEP-Zeit in Sekunden). 
   EepExport.run()
@@ -102,6 +93,23 @@ end
 --- EEPOnBeforeSaveAnl, EEPOnSaveAnl.
 --- Eigene Funktionen gleichen Namens bleiben erhalten und werden nach den Handlern aufgerufen.
 --- Manuell (z.B. bei abgeschaltetem Automatismus) weiterhin moeglich: EepExport.installCallbacks()
+
+--- Test-Funktionen (diese Funktionen können in einer späteren Version entfallen)
+
+--- Test: Lese die Namen von Rollmaterialien aus einer anl3-Datei
+--local okRead, names, err = EepExport.readRollingstockNames(path)
+
+--- Test: Sucht in allen Kategorien mit numerischen IDs (also ausser Zuege und Rollmaterial) nach vorhandenen Objekten.
+--EepExport.discoverAll()
+
+--- Test: Sammelt alle Zustandsdaten und gibt sie als Tabelle zurueck.
+--local okCollect, data = EepExport.collect()
+
+--- Test: Wertet alle bisher angemeldeten add...()-Aufrufe aus. Wird von collect() automatisch aufgerufen.
+--local counts = EepExport.resolve()
+
+--- Test: Sammelt die Daten und schreibt sie als JSON-Datei. Gibt true, Pfad oder false, Fehlermeldung zurueck.
+--local ok, msg = EepExport.export()
 ------------------------------------------------------------------------------------------------]]
 
 local M = {}
@@ -125,6 +133,8 @@ local config = {
   saveTimeout      = 60,    -- Sicherheitsnetz: Export-Pause endet nach so vielen realen Sekunden von selbst,
                             -- falls EEPOnSaveAnl nie kommt (0 = kein Timeout)
   installCallbacks = true,  -- EEP-Rueckruffunktionen beim ersten run() automatisch erweitern
+  trainScanBatch   = 100,   -- Rollmaterialien je Suchlauf, deren Zug per EEPRollingstockGetTrainName ermittelt wird (0 = aus)
+  anlFile          = nil,   -- Pfad zu einer .anl3-Datei; daraus werden die Namen aller Rollmaterialien gelesen
   debug            = false, -- Debugging-Information anzeigen
 }
 
@@ -144,6 +154,7 @@ local registry = {
   rollingstock = {},
 }
 local pending = {}      -- noch nicht ausgewertete add...()-Aufrufe
+local anlLoaded = nil   -- anlFile, aus dem die Rollmaterialnamen zuletzt gelesen wurden
 local lastExport = nil
 local lastScan   = nil       
 local initialized = false  -- automatische Initialisierung (Callbacks, Suche) bereits erfolgt
@@ -377,8 +388,142 @@ local function process(cat, input, scan, auto)
   return added
 end
 
-local function queue(key, input)
-  pending[#pending + 1] = { key = key, input = input, scan = (input == nil) }
+local function queue(key, input, auto)
+  pending[#pending + 1] = { key = key, input = input, scan = (input == nil), auto = auto }
+end
+
+-- ---------------------------------------------------------------------------------------------
+-- Rollmaterialnamen aus einer .anl3-Datei lesen
+-- ---------------------------------------------------------------------------------------------
+-- Die Datei wird in Bloecken gelesen und nicht als Ganzes geladen. Es wird erst ab <Fuhrpark>
+-- gesucht und nach </Fuhrpark> sofort aufgehoert; Landschaft, Gleise, Kameras usw. werden nur
+-- uebersprungen. Ausgewertet werden nur die name-Attribute der <Rollmaterial>-Elemente.
+
+local function codepointToUtf8(cp)
+  if not cp then return "" end
+  if cp < 0x80 then return string.char(cp) end
+  if cp < 0x800 then
+    return string.char(0xC0 + math.floor(cp / 0x40), 0x80 + cp % 0x40)
+  end
+  if cp < 0x10000 then
+    return string.char(0xE0 + math.floor(cp / 0x1000), 0x80 + math.floor(cp / 0x40) % 0x40, 0x80 + cp % 0x40)
+  end
+  return string.char(
+    0xF0 + math.floor(cp / 0x40000),
+    0x80 + math.floor(cp / 0x1000) % 0x40,
+    0x80 + math.floor(cp / 0x40) % 0x40,
+    0x80 + cp % 0x40
+  )
+end
+
+local function xmlUnescape(s)
+  if not s:find("&", 1, true) then return s end
+  s = s:gsub("&#[xX](%x+);", function(h) return codepointToUtf8(tonumber(h, 16)) end)
+  s = s:gsub("&#(%d+);",     function(d) return codepointToUtf8(tonumber(d)) end)
+  s = s:gsub("&lt;", "<")
+  s = s:gsub("&gt;", ">")
+  s = s:gsub("&quot;", '"')
+  s = s:gsub("&apos;", "'")
+  s = s:gsub("&amp;", "&")   -- zuletzt, damit "&amp;lt;" nicht doppelt aufgeloest wird
+  return s
+end
+
+--- Position des ">" das ein Tag beendet (">" in Anfuehrungszeichen zaehlt nicht), sonst nil.
+local function findTagEnd(buf, from)
+  local pos = from
+  while true do
+    local i = buf:find('[">]', pos)
+    if not i then return nil end
+    if buf:sub(i, i) == ">" then return i end
+    local j = buf:find('"', i + 1, true)
+    if not j then return nil end
+    pos = j + 1
+  end
+end
+
+--- Liest die Namen aller Rollmaterialien (Fuhrpark/Zugverband/Rollmaterial@name) aus einer .anl3-Datei.
+--- Gibt eine Liste (Reihenfolge wie in der Datei, ohne Duplikate) zurueck oder nil, Fehlermeldung.
+function M.readRollingstockNames(path)
+  local file, err = io.open(path, "rb")
+  if not file then return nil, "Datei nicht lesbar: " .. tostring(err) end
+
+  local OPEN, CLOSE = "<Rollmaterial", "</Fuhrpark"
+  local names, seen = {}, {}
+  local buf, inFuhrpark, done = "", false, false
+
+  while not done do
+    local chunk = file:read(65536)
+    local eof = (chunk == nil)
+    if chunk then buf = buf .. chunk end
+
+    local pos = 1
+    while true do
+      if not inFuhrpark then
+        local s = buf:find("<Fuhrpark", pos, true)
+        if not s then pos = math.max(pos, #buf - 8); break end     -- Rest koennte ein Teil von "<Fuhrpark" sein
+        local e = findTagEnd(buf, s + 9)
+        if not e then pos = s; break end                           -- Tag noch unvollstaendig: Block nachladen
+        if buf:sub(e - 1, e - 1) == "/" then done = true; break end -- <Fuhrpark/> ohne Inhalt
+        inFuhrpark = true
+        pos = e + 1
+      else
+        local sR = buf:find(OPEN, pos, true)
+        local sE = buf:find(CLOSE, pos, true)
+        if sE and (not sR or sE < sR) then done = true; break end
+        if not sR then pos = math.max(pos, #buf - 12); break end
+        local e = findTagEnd(buf, sR + #OPEN)
+        if not e then pos = sR; break end
+
+        local attrs = buf:sub(sR + #OPEN, e - 1)
+        for key, value in attrs:gmatch('([%w_:%-]+)%s*=%s*"([^"]*)"') do
+          if key == "name" then
+            local name = xmlUnescape(value)
+            if name ~= "" and not seen[name] then
+              seen[name] = true
+              names[#names + 1] = name
+            end
+            break
+          end
+        end
+        pos = e + 1
+      end
+    end
+
+    buf = buf:sub(pos)
+    if eof then break end
+  end
+
+  file:close()
+  return names
+end
+
+--- Liest bei Bedarf (neuer/geaenderter config.anlFile) die Rollmaterialnamen und meldet sie als
+--- automatisch aufgenommene Eintraege an. Nicht mehr vorhandene werden spaeter per pruneAuto entfernt.
+local function loadAnlRollingstock()
+  local path = config.anlFile
+  if type(path) ~= "string" or path == "" or anlLoaded == path then return end
+  anlLoaded = path   -- nur einmal je Datei versuchen, auch bei Fehler
+
+  local s0 = os.clock()
+
+  local okRead, names, err = pcall(M.readRollingstockNames, path)
+  if not okRead then names, err = nil, names end
+  if not names then
+    M.lastError = "EepExport: anl3-Datei " .. tostring(path) .. ": " .. tostring(err)
+    if config.debug then print(M.lastError) end
+    return
+  end
+
+  local s1 = os.clock()
+
+  if config.debug then 
+    print(string.format("EepExport: %d Rollmaterialien in %.1f ms aus %s gelesen", 
+      #names, 
+      (s1 - s0) * 1000, 
+      path
+    )) 
+  end
+  if #names > 0 then queue("rollingstock", names, true) end
 end
 
 --- Wertet alle bisher angemeldeten add...()-Aufrufe aus. Wird von collect() automatisch aufgerufen.
@@ -386,12 +531,14 @@ end
 function M.resolve()
   --if config.debug then print("EepExport.resolve") end
   
+  loadAnlRollingstock()   -- falls config.anlFile gesetzt ist (einmalig je Datei)
+
   local queued = pending
   pending = {}
   local counts = {}
   for _, job in ipairs(queued) do
     local cat = categories[job.key]
-    counts[job.key] = (counts[job.key] or 0) + process(cat, job.input, job.scan)
+    counts[job.key] = (counts[job.key] or 0) + process(cat, job.input, job.scan, job.auto)
   end
   return counts
 end
@@ -434,7 +581,7 @@ end
 -- Automatische Erkennung von Zuegen und Rollmaterial
 -- ---------------------------------------------------------------------------------------------
 local vehicleCount = {}   -- Zugname -> zuletzt gelesene Fahrzeugzahl (spart wiederholte Abfragen)
-
+local trainCursor = 0   -- Position der reihum laufenden Zugsuche ueber die Rollmaterialliste
 --- Nimmt einen Zug bzw. ein Fahrzeug automatisch auf (mit Existenzpruefung).
 --- Zugnamen werden mit und ohne #-Praefix versucht, da Rueckrufe sie teils ohne liefern.
 local function addAuto(key, name)
@@ -492,6 +639,19 @@ local function scanForTrains()
     end
   end
   
+  -- Zuege ueber das Rollmaterial: z.B. aus der anl3-Datei gelesene Fahrzeuge verraten ihren Zug.
+  -- Reihum in Bloecken, damit bei vielen Fahrzeugen nicht jeder Lauf alle abfragen muss.
+  if config.autoTrains then
+    local list = registry.rollingstock
+    local total = #list
+    local batch = math.min(config.trainScanBatch or 0, total)
+    for _ = 1, batch do
+      trainCursor = trainCursor % total + 1
+      local ok, trainName = try(EEPRollingstockGetTrainName, list[trainCursor])
+      if ok and type(trainName) == "string" and trainName ~= "" then addAuto("trains", trainName) end
+    end
+  end
+
   if config.autoRollingstock then
     for _, train in ipairs(registry.trains) do
       local count = try(EEPGetRollingstockItemsCount, train)
@@ -945,6 +1105,7 @@ end
 --- Setzt Konfigurationswerte. Beispiel: EepExport.configure({ interval = 10, pretty = true })
 function M.configure(options)
   for k, v in pairs(options or {}) do config[k] = v end
+  if options and options.anlFile ~= nil and options.anlFile ~= anlLoaded then anlLoaded = nil end
 end
 
 --- Sammelt alle Zustandsdaten und gibt sie als Tabelle zurueck.
