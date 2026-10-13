@@ -68,7 +68,7 @@ automatisch Folgendes:
 
 - Wurden keine Signale bzw. Weichen angemeldet, werden die IDs `1` bis `discoverMax` (Standard 1000) nach vorhandenen Objekten durchsucht.
 - Wurden keine Depots angemeldet, werden die IDs `1` bis `discoverDepotMax` (Standard 10) durchsucht.
-- Züge und Rollmaterial werden automatisch erkannt: über die Signale und Depots, über den aktiven Zug und über die Rückruffunktionen von EEP.
+- Züge und Rollmaterial werden automatisch erkannt: über die Signale und Depots, über den aktiven Zug und über die Rückruffunktionen von EEP. Mit der Option `anlFile` (siehe 1.2) kommen zusätzlich alle Fahrzeuge aus der `.anl3`-Datei dazu, und über sie auch ihre Züge.
 - Die EEP-Rückruffunktionen werden erweitert (siehe `installCallbacks` unten).
 
 1. **Modul ablegen.** Kopiere `EepExport.lua` in den Lua-Ordner von EEP. Ab EEP 18.1 Plugin 1 kannst du
@@ -115,6 +115,8 @@ EepExport.configure({
   --autoTrains       = true,   -- Züge automatisch über Signale und Depots einsammeln, Standard: true
   --autoRollingstock = true,   -- Rollmaterial automatisch aus den Fahrzeuglisten der Züge einsammeln, Standard: true
   --scanInterval     = 2,      -- Abstand der automatischen Suche von Zügen und Rollmaterialien, Standard: 2 Sekunden
+  --trainScanBatch   = 100,    -- Rollmaterialien je Suchlauf, deren Zug ermittelt wird (0 = aus), Standard: 100
+  --anlFile          = nil,    -- Pfad der .anl3-Datei: die Namen aller Rollmaterialien werden daraus gelesen, Standard: nil
   --installCallbacks = true,   -- EEP-Rückruffunktionen automatisch erweitern, Standard: true
   --saveTimeout      = 60,     -- Export-Pause beim Speichern endet nach so vielen echten Sekunden von selbst, Standard: 60
   --debug            = true,   -- Meldungen im EEP-Ereignisfenster anzeigen, Standard: false
@@ -162,9 +164,11 @@ end
 | `global` | Zeit, Jahreszeit, Wetter und Kamera exportieren | `true` |
 | `discoverMax` | Obergrenze der ID-Suche bei `add…()` ohne Eingabe und bei der automatischen Suche nach Signalen und Weichen (`nil` oder `0` = keine Suche) | `1000` |
 | `discoverDepotMax` | Obergrenze der automatischen Depot-Suche (`nil` oder `0` = keine Suche) | `10` |
-| `autoTrains` | Züge automatisch über Signale und Depots einsammeln | `true` |
+| `autoTrains` | Züge automatisch über Signale, Depots und Rollmaterial einsammeln | `true` |
 | `autoRollingstock` | Rollmaterial automatisch aus den Fahrzeuglisten der Züge einsammeln | `true` |
 | `scanInterval` | Abstand der automatischen Suche in EEP-Sekunden | `2` |
+| `trainScanBatch` | Anzahl der Rollmaterialien je Suchlauf, deren Zug über `EEPRollingstockGetTrainName` ermittelt wird. Die Suche läuft reihum über alle bekannten Rollmaterialien, damit bei vielen Fahrzeugen nicht jeder Lauf alle abfragen muss. `0` = aus | `100` |
+| `anlFile` | vollständiger Pfad einer `.anl3`-Datei. Die Namen aller Rollmaterialien werden daraus gelesen und als automatisch erkannte Fahrzeuge angemeldet (siehe unten) | `nil` |
 | `installCallbacks` | EEP-Rückruffunktionen beim ersten `run()` automatisch erweitern | `true` |
 | `saveTimeout` | Der Export ist beim Speichern pausiert. Die Pause endet nach so vielen echten Sekunden von selbst, falls EEP die Speichermeldung nie sendet (`0` = kein Timeout) | `60` |
 | `debug` | Debug-Meldungen im EEP-Ereignisfenster (Dauer von Sammeln, JSON-Erzeugung und Schreiben, automatisches Aufnehmen und Entfernen von Zügen und Fahrzeugen) | `false` |
@@ -173,23 +177,57 @@ end
 
 | Funktion | Wirkung |
 | --- | --- |
+| `EepExport.run()` | in `EEPMain()` aufrufen, exportiert im eingestellten Intervall |
+| `EepExport.installCallbacks()` | hängt die Handler an die EEP-Rückruffunktionen (siehe unten) |
 | `EepExport.range(a, b)` | erzeugt die Zahlenliste `a` bis `b` |
+
+**Weitere Test-Funktionen**
+
+| Funktion | Wirkung |
+| --- | --- |
 | `EepExport.discoverAll()` | sucht in allen Kategorien mit numerischen IDs nach vorhandenen Objekten |
 | `EepExport.resolve()` | wertet alle bisherigen `add…()`-Aufrufe aus (macht `collect()` von selbst) |
 | `EepExport.collect()` | sammelt alle Daten und gibt sie als Lua-Tabelle zurück |
 | `EepExport.export()` | sammelt die Daten und schreibt die Datei sofort, gibt `true, Pfad` oder `false, Fehlermeldung` zurück |
-| `EepExport.run()` | in `EEPMain()` aufrufen, exportiert im eingestellten Intervall |
-| `EepExport.installCallbacks()` | hängt die Handler an die EEP-Rückruffunktionen (siehe unten) |
 | `EepExport.toJson(tabelle, pretty)` | wandelt eine Lua-Tabelle in einen JSON-Text um |
+| `EepExport.readRollingstockNames(pfad)` | liest die Namen aller Rollmaterialien aus einer `.anl3`-Datei, gibt eine Liste (Reihenfolge wie in der Datei, ohne Duplikate) oder `nil, Fehlermeldung` zurück |
+
 
 **Automatische Erkennung von Zügen und Rollmaterial**
 
 - Züge kommen aus den angemeldeten Signalen und Depots (Voraussetzung: sie wurden angemeldet oder
   automatisch gefunden) und aus dem aktiven Zug. Mit den Rückruffunktionen werden sie zusätzlich bei
   Signalhalt, Depot-Ein-/Ausfahrt, Kuppeln und Trennen erkannt.
-- Rollmaterial kommt aus den Fahrzeuglisten aller bekannten Züge.
+- Züge kommen außerdem aus dem Rollmaterial: Das Modul fragt reihum bei jedem Suchlauf bis zu
+  `trainScanBatch` Fahrzeuge nach ihrem Zug. So findet es auch Züge, die an keinem angemeldeten Signal
+  oder Depot stehen.
+- Rollmaterial kommt aus den Fahrzeuglisten aller bekannten Züge und, falls `anlFile` gesetzt ist,
+  aus der `.anl3`-Datei.
 - Automatisch aufgenommene Einträge verschwinden wieder, wenn es sie nicht mehr gibt (zum Beispiel
   nach einer Umbenennung durch Kuppeln). Von Hand angemeldete bleiben immer erhalten.
+
+**Rollmaterial aus der `.anl3`-Datei (`anlFile`)**
+
+Die Anlagendatei enthält die Namen aller Rollmaterialien. Setzt du `anlFile` auf ihren Pfad, werden
+diese Namen als automatisch erkannte Fahrzeuge angemeldet. Über `trainScanBatch` werden anschließend
+auch ihre Züge gefunden, ohne dass Signale oder Depots angemeldet sein müssen.
+
+```lua
+EepExport.configure({
+  anlFile = "C:\\Pfad\\zum\\Anlagenordner\\MeineAnlage.anl3",
+})
+```
+
+- Die Datei wird je Pfad nur einmal gelesen (auch wenn das Lesen fehlschlug), und zwar in Blöcken. Es
+  werden nur die `name`-Attribute der `<Rollmaterial>`-Elemente im Abschnitt `<Fuhrpark>` ausgewertet,
+  der Rest der Datei wird übersprungen. Ändert sich `anlFile`, wird die neue Datei gelesen.
+- Ein Eintrag wird nur aufgenommen, wenn EEP das Fahrzeug kennt (`EEPRollingstockGetTrainName`).
+  Fahrzeuge, die es nicht mehr gibt, werden wie alle automatisch erkannten Einträge wieder entfernt.
+- Die gespeicherte `.anl3`-Datei zeigt den Stand beim letzten Speichern. Fahrzeuge, die du danach
+  umbenannt hast, fehlen oder heißen anders.
+- Bei Lesefehlern steht die Meldung in `EepExport.lastError`. Mit `debug = true` wird zusätzlich die
+  Anzahl der gelesenen Rollmaterialien und die Lesedauer ausgegeben.
+- Ohne `anlFile` bleibt das Verhalten unverändert.
 
 **Rückruffunktionen und eigene EEP-Funktionen**
 
@@ -222,7 +260,7 @@ spätere Definition den Handler. Alternativ rufst du die Handler (`EepExport.onT
 
 `EepExport.lastError` enthält die letzte Fehlermeldung und wird bei jedem Fehler gesetzt:
 beim Sammeln der Daten, bei der JSON-Erzeugung, beim Öffnen und beim Schreiben der Datei sowie bei der
-automatischen Suche in `run()`. Nach einem erfolgreichen Export ist der Wert wieder `nil`. Die Pause
+automatischen Suche in `run()` sowie beim Lesen der `.anl3`-Datei (`anlFile`). Nach einem erfolgreichen Export ist der Wert wieder `nil`. Die Pause
 während des Speicherns gilt nicht als Fehler. `export()` liefert dann `false` mit einem Hinweistext,
 setzt `lastError` aber nicht.
 
@@ -572,7 +610,8 @@ Positionen (`x`, `y`, `z`) sind Meter im Koordinatensystem der Anlage.
 | Beobachtung | Mögliche Ursache und Abhilfe |
 | --- | --- |
 | Es entsteht keine `eep_export.json` | Prüfe das EEP-Ereignisfenster. Dort meldet `run()` Fehler wie „Datei nicht schreibbar", mit `debug = true` zusätzlich Details. Die letzte Meldung steht auch in `EepExport.lastError`. Die Datei liegt im Anlagenordner (ab EEP 18.1 Plugin 1), sonst im Installationsordner von EEP. Bei älteren EEP-Versionen oder wenn der Pfad nicht beschreibbar ist, `outputFile` setzen. Während die Anlage gespeichert wird, ist der Export pausiert. |
-| Züge fehlen in der Datei | Züge werden über Signale und Depots erkannt. Prüfe, ob die Signale gefunden wurden (`discoverMax`) und ob deine Depots im Bereich `1..discoverDepotMax` liegen, sonst `addTrainyards()` verwenden. Ist `installCallbacks = false`, rufe `installCallbacks()` am Ende des Skripts auf. Alternativ mit `addTrains()` anmelden. |
+| Züge fehlen in der Datei | Züge werden über Signale und Depots erkannt. Prüfe, ob die Signale gefunden wurden (`discoverMax`) und ob deine Depots im Bereich `1..discoverDepotMax` liegen, sonst `addTrainyards()` verwenden. Ist `installCallbacks = false`, rufe `installCallbacks()` am Ende des Skripts auf. Alternativ mit `addTrains()` anmelden oder `anlFile` setzen, dann werden die Züge über die Fahrzeuge der Anlagendatei gefunden. |
+| Meldung „anl3-Datei …: Datei nicht lesbar“ | Der Pfad in `anlFile` stimmt nicht oder die Datei ist nicht lesbar. Vollständigen Pfad inklusive Dateiname prüfen. Der Export läuft trotzdem weiter, nur die Fahrzeuge aus der Datei fehlen. |
 | Statuszeile zeigt „keine Daten" | Quelle noch nicht gewählt. Datei verbinden, URL abfragen oder die Bridge mit `?url=…` aufrufen. |
 | „Ungültiges JSON" | Die Datei wird gerade geschrieben oder ist beschädigt. Beim nächsten Intervall erneut versuchen. |
 | „Kein EEP-Export (global/trains fehlen)" | Falsche Datei gewählt. |
