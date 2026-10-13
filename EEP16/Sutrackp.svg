@@ -1,0 +1,235 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="464" height="998" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<rect x="176" y="25" width="61" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="206.5" y="36" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Version</text>
+<line x1="178" y1="27" x2="186" y2="27" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="29" x2="184" y2="29" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="31" x2="184" y2="31" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="33" x2="184" y2="33" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="46" x2="180" y2="43" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 43 L182 45 L183 40 L178 41 L180 43 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="350" y="77" width="64" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="382" y="88" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Dreibein</text>
+<line x1="352" y1="79" x2="360" y2="79" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="352" y1="81" x2="358" y2="81" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="352" y1="83" x2="358" y2="83" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="352" y1="85" x2="358" y2="85" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="351" y1="98" x2="354" y2="95" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M354 95 L356 97 L357 92 L352 93 L354 95 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="353" y="132" width="53" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1;stroke-dasharray:4,1"/>
+<rect x="350" y="129" width="53" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1;stroke-dasharray:4,1"/>
+<text x="376.5" y="140" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Gleis</text>
+<text x="398" y="161" style="font-family:Arial;font-size:7.2pt;fill:rgb(0,0,0);text-anchor:end;dominant-baseline:central">0..∞</text>
+<line x1="351" y1="150" x2="354" y2="147" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M354 147 L356 149 L357 144 L352 145 L354 147 Z" style="fill:rgb(0,0,0)"/>
+<rect x="398" y="135" width="10" height="10" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="400" y1="140" x2="406" y2="140" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="403" y1="137" x2="403" y2="143" style="stroke:rgb(0,0,0);stroke-width:1"/>
+
+<rect x="353" y="184" width="104" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1;stroke-dasharray:4,1"/>
+<rect x="350" y="181" width="104" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1;stroke-dasharray:4,1"/>
+<text x="402" y="192" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Gleisverbindung</text>
+<text x="444" y="213" style="font-family:Arial;font-size:7.2pt;fill:rgb(0,0,0);text-anchor:end;dominant-baseline:central">0..∞</text>
+<line x1="352" y1="183" x2="360" y2="183" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="352" y1="185" x2="358" y2="185" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="352" y1="187" x2="358" y2="187" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="352" y1="189" x2="358" y2="189" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="351" y1="202" x2="354" y2="199" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M354 199 L356 201 L357 196 L352 197 L354 199 Z" style="fill:rgb(0,0,0)"/>
+
+<line x1="340" y1="88" x2="350" y2="88" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="340" y1="140" x2="350" y2="140" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="340" y1="192" x2="350" y2="192" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="340" y1="88" x2="340" y2="192" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="330" y1="88" x2="340" y2="88" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<path d="M296 78 L319 78 L325 84 L325 92 L319 98 L296 98 L290 92 L290 84 Z" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="293" y1="88" x2="322" y2="88" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<ellipse cx="302" cy="88" rx="2" ry="2" style="rgb(0,0,0)"/>
+<ellipse cx="307" cy="88" rx="2" ry="2" style="rgb(0,0,0)"/>
+<ellipse cx="312" cy="88" rx="2" ry="2" style="rgb(0,0,0)"/>
+<rect x="320" y="83" width="10" height="10" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="322" y1="88" x2="328" y2="88" style="stroke:rgb(0,0,0);stroke-width:1"/>
+
+<line x1="270" y1="88" x2="290" y2="88" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<rect x="179" y="80" width="89" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<rect x="176" y="77" width="89" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="220.5" y="88" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Gleissystem</text>
+<text x="260" y="109" style="font-family:Arial;font-size:7.2pt;fill:rgb(0,0,0);text-anchor:end;dominant-baseline:central">6..6</text>
+<line x1="177" y1="98" x2="180" y2="95" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 95 L182 97 L183 92 L178 93 L180 95 Z" style="fill:rgb(0,0,0)"/>
+<rect x="260" y="83" width="10" height="10" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="262" y1="88" x2="268" y2="88" style="stroke:rgb(0,0,0);stroke-width:1"/>
+
+<rect x="176" y="233" width="67" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="209.5" y="244" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Fuhrpark</text>
+<line x1="178" y1="235" x2="186" y2="235" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="237" x2="184" y2="237" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="239" x2="184" y2="239" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="241" x2="184" y2="241" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="254" x2="180" y2="251" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 251 L182 253 L183 248 L178 249 L180 251 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="179" y="288" width="124" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<rect x="176" y="285" width="124" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="238" y="296" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Gebaeudesammlung</text>
+<text x="290" y="317" style="font-family:Arial;font-size:7.2pt;fill:rgb(0,0,0);text-anchor:end;dominant-baseline:central">6..6</text>
+<line x1="178" y1="287" x2="186" y2="287" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="289" x2="184" y2="289" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="291" x2="184" y2="291" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="293" x2="184" y2="293" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="306" x2="180" y2="303" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 303 L182 305 L183 300 L178 301 L180 303 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="337" width="157" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="254.5" y="348" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Gleisbildstellpultsammlung</text>
+<line x1="178" y1="339" x2="186" y2="339" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="341" x2="184" y2="341" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="343" x2="184" y2="343" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="345" x2="184" y2="345" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="358" x2="180" y2="355" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 355 L182 357 L183 352 L178 353 L180 355 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="389" width="68" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="210" y="400" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">AnimRoll</text>
+<line x1="178" y1="391" x2="186" y2="391" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="393" x2="184" y2="393" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="395" x2="184" y2="395" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="397" x2="184" y2="397" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="410" x2="180" y2="407" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 407 L182 409 L183 404 L178 405 L180 407 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="441" width="55" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="203.5" y="452" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Goods</text>
+<line x1="178" y1="443" x2="186" y2="443" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="445" x2="184" y2="445" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="447" x2="184" y2="447" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="449" x2="184" y2="449" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="462" x2="180" y2="459" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 459 L182 461 L183 456 L178 457 L180 459 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="493" width="108" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="230" y="504" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">CrowdSammlung</text>
+<line x1="178" y1="495" x2="186" y2="495" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="497" x2="184" y2="497" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="499" x2="184" y2="499" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="501" x2="184" y2="501" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="514" x2="180" y2="511" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 511 L182 513 L183 508 L178 509 L180 511 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="545" width="121" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="236.5" y="556" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Kammerasammlung</text>
+<line x1="178" y1="547" x2="186" y2="547" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="549" x2="184" y2="549" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="551" x2="184" y2="551" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="553" x2="184" y2="553" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="566" x2="180" y2="563" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 563 L182 565 L183 560 L178 561 L180 563 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="597" width="63" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="207.5" y="608" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Settings</text>
+<line x1="178" y1="599" x2="186" y2="599" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="601" x2="184" y2="601" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="603" x2="184" y2="603" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="605" x2="184" y2="605" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="618" x2="180" y2="615" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 615 L182 617 L183 612 L178 613 L180 615 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="649" width="62" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="207" y="660" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Options</text>
+<line x1="178" y1="651" x2="186" y2="651" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="653" x2="184" y2="653" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="655" x2="184" y2="655" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="657" x2="184" y2="657" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="670" x2="180" y2="667" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 667 L182 669 L183 664 L178 665 L180 667 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="701" width="63" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="207.5" y="712" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Weather</text>
+<line x1="178" y1="703" x2="186" y2="703" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="705" x2="184" y2="705" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="707" x2="184" y2="707" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="709" x2="184" y2="709" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="722" x2="180" y2="719" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 719 L182 721 L183 716 L178 717 L180 719 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="753" width="74" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="213" y="764" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">TimeTable</text>
+<line x1="178" y1="755" x2="186" y2="755" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="757" x2="184" y2="757" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="759" x2="184" y2="759" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="761" x2="184" y2="761" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="774" x2="180" y2="771" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 771 L182 773 L183 768 L178 769 L180 771 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="805" width="62" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="207" y="816" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">EEPLua</text>
+<line x1="178" y1="807" x2="186" y2="807" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="809" x2="184" y2="809" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="811" x2="184" y2="811" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="813" x2="184" y2="813" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="826" x2="180" y2="823" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 823 L182 825 L183 820 L178 821 L180 823 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="857" width="74" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="213" y="868" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Kamera3D</text>
+<line x1="178" y1="859" x2="186" y2="859" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="861" x2="184" y2="861" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="863" x2="184" y2="863" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="865" x2="184" y2="865" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="878" x2="180" y2="875" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 875 L182 877 L183 872 L178 873 L180 875 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="909" width="75" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="213.5" y="920" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Schandlaft</text>
+<line x1="178" y1="911" x2="186" y2="911" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="913" x2="184" y2="913" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="915" x2="184" y2="915" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="917" x2="184" y2="917" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="930" x2="180" y2="927" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 927 L182 929 L183 924 L178 925 L180 927 Z" style="fill:rgb(0,0,0)"/>
+
+<rect x="176" y="961" width="92" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="222" y="972" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">Beschreibung</text>
+<line x1="178" y1="963" x2="186" y2="963" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="965" x2="184" y2="965" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="967" x2="184" y2="967" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="178" y1="969" x2="184" y2="969" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="177" y1="982" x2="180" y2="979" style="stroke:rgb(0,0,0);stroke-width:2"/>
+<path d="M180 979 L182 981 L183 976 L178 977 L180 979 Z" style="fill:rgb(0,0,0)"/>
+
+<line x1="166" y1="36" x2="176" y2="36" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="88" x2="176" y2="88" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="244" x2="176" y2="244" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="296" x2="176" y2="296" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="348" x2="176" y2="348" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="400" x2="176" y2="400" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="452" x2="176" y2="452" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="504" x2="176" y2="504" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="556" x2="176" y2="556" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="608" x2="176" y2="608" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="660" x2="176" y2="660" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="712" x2="176" y2="712" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="764" x2="176" y2="764" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="816" x2="176" y2="816" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="868" x2="176" y2="868" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="920" x2="176" y2="920" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="972" x2="176" y2="972" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="166" y1="36" x2="166" y2="972" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<line x1="156" y1="36" x2="166" y2="36" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<path d="M122 26 L145 26 L151 32 L151 40 L145 46 L122 46 L116 40 L116 32 Z" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="119" y1="36" x2="148" y2="36" style="stroke:rgb(0,0,0);stroke-width:1"/>
+<ellipse cx="128" cy="36" rx="2" ry="2" style="rgb(0,0,0)"/>
+<ellipse cx="133" cy="36" rx="2" ry="2" style="rgb(0,0,0)"/>
+<ellipse cx="138" cy="36" rx="2" ry="2" style="rgb(0,0,0)"/>
+<rect x="146" y="31" width="10" height="10" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="148" y1="36" x2="154" y2="36" style="stroke:rgb(0,0,0);stroke-width:1"/>
+
+<line x1="96" y1="36" x2="116" y2="36" style="stroke:rgb(0,0,0);stroke-width:1;stroke-linecap:round"/>
+<rect x="20" y="25" width="71" height="22" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<text x="55.5" y="36" style="font-family:Arial;font-size:8pt;fill:rgb(0,0,0);font-weight:bold;text-anchor:middle;dominant-baseline:central">sutrackp</text>
+<rect x="86" y="31" width="10" height="10" style="fill:rgb(255,255,255);stroke:rgb(0,0,0);stroke-width:1"/>
+<line x1="88" y1="36" x2="94" y2="36" style="stroke:rgb(0,0,0);stroke-width:1"/>
+</svg>
