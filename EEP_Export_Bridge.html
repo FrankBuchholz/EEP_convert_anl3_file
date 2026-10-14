@@ -130,7 +130,7 @@ function showLast() {
 }
 
 // Eingaben: Intervall und Senden an Gleisplan merken
-$("iv").onchange = () => { lsSave({iv: $("iv").value}); if (timer) startPoll(pollFn); };
+$("iv").onchange = () => { lsSave({iv: $("iv").value}); if (timer) schedulePoll(); };
 $("send").onchange = () => { lsSave({send: $("send").checked}); if ($("send").checked) { push(); centerFollow(); } };
 
 // ---- Darstellung -----------------------------------------------------------
@@ -303,7 +303,7 @@ function render() {
 
 // Status: Uhrzeit und Zeit seit Empfang der Daten
 setInterval(() => {
-  if (data) status(_("ExportStatus", `${p2(data.global.time.hour)}:${p2(data.global.time.minute)}:${p2(data.global.time.second)}`, Math.round((Date.now() - received) / 1000)));
+  if (data) status(_("ExportStatus", `${p2(data.global.time.hour)}:${p2(data.global.time.minute)}:${p2(data.global.time.second)}`, Math.round((Date.now() - received) / 1000)) + " · " + transport);
 }, 1000);
 
 // Buttons: Gleisplan zentrieren, Gleisinfo anzeigen, Signal oder Weiche gemäß ID anzeigen
@@ -325,15 +325,76 @@ document.body.addEventListener("click", ev => {
 });
 
 // ---- Datenquellen ------------------------------------------------------------
-let pollFn = null;
+let pollFn = null, liveUrl = "", ws = null, wsTimer = null, transport = "HTTP";
 
-// Datenquelle live abfragen (Datei oder URL) in Intervallen
-function startPoll(fn) {
-  clearInterval(timer); 
-  pollFn = fn; 
-  const run = () => fn().catch(e => status(_("Fehler") + ": " + e.message, true));
-  run(); 
+// WebSocket-Adresse aus der URL der Exportdatei: https -> wss, http -> ws.
+// Bei anderen Quellen (z. B. file://) bleibt sie leer, dann wird nur per HTTP abgefragt.
+function wsAddress(u) {
+  try {
+    const a = new URL(u, window.location.href);
+    if (a.protocol === "https:") a.protocol = "wss:";
+    else if (a.protocol === "http:") a.protocol = "ws:";
+    else return "";
+    a.hash = "";
+    return a.href;
+  } catch (e) { return ""; }
+}
+
+// WebSocket beenden (z. B. beim Wechsel der Quelle)
+function stopLive() {
+  clearTimeout(wsTimer); wsTimer = null; liveUrl = "";
+  if (ws) {
+    ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null;
+    try { ws.close(); } catch (e) {}
+    ws = null;
+  }
+  transport = "HTTP";
+}
+
+// WebSocket zum Server aufbauen: der Server sendet die Exportdatei sofort und danach bei jeder Aenderung.
+// Solange der Socket offen ist, wird nicht mehr gepollt. Bei Verbindungsverlust wird wieder gepollt
+// und nach 5 Sekunden ein neuer Verbindungsversuch gemacht.
+function connectLive() {
+  if (!liveUrl || ws || !window.WebSocket) return;
+  let s;
+  try { s = new WebSocket(liveUrl); } catch (e) { 
+    // Greift nur bei synchronen Fehlern (z.B. ungültiges URL-Schema)
+    console.error("Synchroner Fehler:", e);
+		return; 
+	}	
+  ws = s;
+  s.onopen = () => { transport = "WebSocket"; clearInterval(timer); timer = null; };
+  s.onmessage = ev => { if (typeof ev.data === "string") ingest(ev.data); };
+	s.onerror = function(error) {
+		console.log("WebSocket-Verbindungsfehler abgefangen!");
+		// Ihre Fehlerbehandlung hier (z.B. return oder Reconnect-Logik)
+		return;
+	};	
+	s.onclose = () => {
+    if (ws !== s) return;
+    ws = null; transport = "HTTP";
+    if (!liveUrl) return;
+    if (!timer && pollFn) schedulePoll();
+    wsTimer = setTimeout(connectLive, 5000);
+  };
+}
+
+// Datenquelle in Intervallen abfragen (Datei oder URL); gibt den Promise des ersten Abrufs zurueck
+function schedulePoll() {
+  clearInterval(timer);
+  const run = () => pollFn().catch(e => status(_("Fehler") + ": " + e.message, true));
+  const first = run();
   timer = setInterval(run, Math.max(200, $("iv").value * 1000)); // Mindestens 1/5 Sekunde, wie in EEP
+  return first;
+}
+
+// Datenquelle starten. Erster Abruf per HTTP(S); bei URL-Quellen danach Umschalten auf WebSocket (liveUrl).
+function startPoll(fn, lu) {
+  stopLive();
+  pollFn = fn;
+  liveUrl = lu || "";
+  const first = schedulePoll();
+  if (liveUrl) first.then(connectLive);
 }
 
 // Aktion verarbeiten: Datei live verfolgen
@@ -362,7 +423,7 @@ $("bUrl").onclick = () => {
     const u = $("url").value, r = await fetch(u + (/\?/.test(u) ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
     if (!r.ok) throw new Error("HTTP " + r.status);
     ingest(await r.text());
-  });
+  }, wsAddress($("url").value));
 };
 
 // Aktion verarbeiten: letzte Datei laden
@@ -382,6 +443,7 @@ $("bLast").onclick = async () => {
 // Aktion verarbeiten: Datei einmalig laden
 // Wenn der Benutzer eine Datei auswählt, wird die Datei gelesen und die Daten werden verarbeitet.
 async function once(f) {
+  stopLive();
   clearInterval(timer); 
   timer = null; 
   lsSave({src: "file", file: f.name}); 

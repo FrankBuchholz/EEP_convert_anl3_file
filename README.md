@@ -4,15 +4,15 @@ Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konv
 
 | Programm | Zweck | Dokumentation |
 | --- | --- | --- |
-| [`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html") | Gleisplan einer Anlage im Browser, optional mit Live-Daten | dieser Text |
-| [`EEP_Inventar.html`](EEP_Inventar.html "EEP_Inventar.html") | Inventarlisten einer Anlage | dieser Text |
-| [`EEP_Signale.html`](EEP_Signale.html "EEP_Signale.html") | Signalstellungen | dieser Text |
-| [`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html") + [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") | Live-Zustand einer laufenden Anlage (Züge, Signale, Weichen, Zeit, Wetter) | [`README_Export_Bridge`](README_Export_Bridge.html "README_Export_Bridge") |
-| Webserver-Skripte (IIS, Python, Node.js) | liefern `eep_export.json` und `.anl3` an andere Rechner aus | [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer") |
+| [`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html") | Gleisplan einer Anlage im Browser, optional mit Live-Daten | [dieser Text](https://frankbuchholz.github.io/EEP_convert_anl3_file/ "dieser Text") |
+| [`EEP_Inventar.html`](EEP_Inventar.html "EEP_Inventar.html") | Inventarlisten einer Anlage | [dieser Text](https://frankbuchholz.github.io/EEP_convert_anl3_file/ "dieser Text") |
+| [`EEP_Signale.html`](EEP_Signale.html "EEP_Signale.html") | Signalstellungen | [dieser Text](https://frankbuchholz.github.io/EEP_convert_anl3_file/ "dieser Text") |
+| [`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html") + [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") | Live-Zustand einer laufenden Anlage (Züge, Signale, Weichen, Zeit, Wetter) | [`README_Export_Bridge`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html "README_Export_Bridge") |
+| Webserver-Skripte (IIS, Python, Node.js) | liefern `eep_export.json` und `.anl3` an andere Rechner aus | [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer") |
 
 Die Programme können direkt mit den angegebenen Links im Browser (Chrome, Firefox oder MS Edge) gestartet werden. In diesem Fall ist eine aktive Internetverbindung notwendig.
 
-Alternativ kann das Archiv [`EEP_convert_anl3_file.zip`](dist/EEP_convert_anl3_file.zip "EEP_convert_anl3_file.zip") in einem beliebigen Verzeichnis entpackt werden. Dann können die Programme lokal im Browser gestartet werden wobei keine Internetverbindung benötigt wird.
+Alternativ kann das Archiv [`EEP_convert_anl3_file.zip`](https://frankbuchholz.github.io/EEP_convert_anl3_file/dist/EEP_convert_anl3_file.zip "EEP_convert_anl3_file.zip") in einem beliebigen Verzeichnis entpackt werden. Dann können die Programme lokal im Browser gestartet werden wobei keine Internetverbindung benötigt wird.
 
 ## Programm: EEP_Gleisplan.html
 
@@ -23,7 +23,7 @@ Solche EEP-Anlagen sind z.B. hier zu finden:
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html](EEP_Gleisplan.html "EEP_Gleisplan.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html "EEP_Gleisplan.html")
 
 ### Mausfunktionen
 
@@ -109,7 +109,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](EEP_Inventar.html "EEP_Inventar.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html")
 
 Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, virtuellen Verbindungen, Zugverbände, Depots, Rollmaterialien, Gleisstile, Gleisobjekte und Kameras ausgegeben. Außerdem werden die Gleisbildstellpulte gezeigt. Die Anlage-Datei kann per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Inventar.html?url=<Adresse der .anl3-Datei>`) geladen werden. Das Programm kann leicht für andere Daten erweitert werden werden.
 
@@ -153,7 +153,7 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html](EEP_Signale.html "EEP_Signale.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html "EEP_Signale.html")
 
 ---
 
@@ -207,14 +207,14 @@ Einzelheiten, Vor- und Nachteile, Zertifikat und Fehlersuche stehen in [`README_
 
 ### Aufruf
 
-[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html](EEP_Export_Bridge.html "EEP_Export_Bridge.html")
+[https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html "EEP_Export_Bridge.html")
 
 Mit URL-Parameter startet die Abfrage sofort: `EEP_Export_Bridge.html?url=<Adresse der eep_export.json>`
 
 ### Dokumentation
 
-- Lua-Modul, Bedienung der Bridge, Zusammenspiel mit dem Gleisplan, Aufbau der JSON-Datei, Fehlersuche: [`README_Export_Bridge`](README_Export_Bridge.html "README_Export_Bridge")
-- Webserver für den Zugriff von anderen Rechnern: [`README_WebServer`](WebServer/README_WebServer.html "README_WebServer")
+- Lua-Modul, Bedienung der Bridge, Zusammenspiel mit dem Gleisplan, Aufbau der JSON-Datei, Fehlersuche: [`README_Export_Bridge`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html "README_Export_Bridge")
+- Webserver für den Zugriff von anderen Rechnern: [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer")
 
 ---
 

@@ -7,6 +7,8 @@
     - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
     - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
     - HTTPS (Zertifikat, HSTS, TLS 1.2 als Minimum); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
+    - WebSocket (wss://) auf derselben URL wie die Datei: Der Server ueberwacht die Datei und sendet jede Aenderung,
+      sodass die Bridge nicht mehr pollen muss (Origin-Pruefung wie bei CORS)
     - Vorpruefungen (Ports, Parameter, Python, Internet) VOR jeder Aenderung
     - Abschlusstests (Ports, CORS, Dateityp-Sperre, Umleitung) mit einem kurzzeitig gestarteten Testserver
     - kein Autostart: der Server wird bei Bedarf mit einem Python-Kommando gestartet
@@ -38,6 +40,10 @@
     Die Option -AllowNullOrigin wird nur benoetigt, wenn das Bridge-Programm lokal auf einem Rechner gestartet wird.
     Der Browser sendet dabei die Origin "null" auch bei file://-Seiten, aber ebenso
     bei Seiten in Sandbox-Frames. Die Option gibt die Daten deshalb fuer jede solche Seite frei.
+    WebSocket: Die Bridge liest die Datei zuerst per HTTPS und oeffnet dann wss://<Host>:<Port>/<Datei>.json.
+    Der Server sendet die komplette Datei sofort und danach nach jeder Aenderung (nur gueltiges JSON).
+    Python kennt in der Standardbibliothek keine Datei-Benachrichtigung: Ein Thread prueft die Datei 10 mal pro
+    Sekunde (os.stat, sehr billig) und nur solange mindestens ein WebSocket-Client verbunden ist.
     Es gibt keinen Autostart. Der Server wird mit diesem Python-Kommando gestartet:
     & "<InstallPath>\venv\Scripts\python.exe" "<InstallPath>\server.py"
 #>
@@ -278,7 +284,7 @@ if (-not (Test-Path $venvPy)) {
 }
 
 if ($AllowNullOrigin) {
-    $warnings.Add("-AllowNullOrigin: Die Origin 'null' wird freigegeben. Sie stammt von file://-Seiten, aber auch von Sandbox-Frames fremder Seiten.")
+    $warnings.Add("-AllowNullOrigin: Die Origins 'null' und 'file://' werden freigegeben. Sie stammen von file://-Seiten (Chrome sendet bei WebSockets 'file://'), aber 'null' auch von Sandbox-Frames fremder Seiten.")
 }
 
 foreach ($w in $warnings) { Write-Warning $w }
@@ -493,9 +499,13 @@ $serverCode = @'
 """EEP Export - schlanker HTTPS-Server (nur Python-Standardbibliothek).
 
 Liefert ausschliesslich .json und .anl3 aus (GET, HEAD, OPTIONS), mit CORS,
-HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung. Konfiguration: config.json neben dieser Datei
+HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung.
+WebSocket (wss://, gleiche URL wie die Datei): sendet die Datei beim Verbinden und nach jeder Aenderung.
+Konfiguration: config.json neben dieser Datei
 (wird von Install-Python-web-server.ps1 erzeugt).
 """
+import base64
+import hashlib
 import json
 import logging
 import logging.handlers
@@ -505,8 +515,10 @@ import shutil
 import socket
 import socketserver
 import ssl
+import struct
 import sys
 import threading
+import time
 from email.utils import formatdate
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -575,6 +587,210 @@ def clean(text):
     return re.sub(r"[^\x20-\x7e]", "?", str(text))
 
 
+def origin_allowed(origin):
+    # Lokale Datei (file://): CORS-Anfragen senden die Origin "null", Chrome sendet bei WebSockets "file://"
+    return bool(origin) and (bool(ORIGIN_RE.fullmatch(origin)) or (ALLOW_NULL and origin in ("null", "file://")))
+
+
+# ---- WebSocket (RFC 6455, nur Standardbibliothek)
+# Die Bridge liest die Datei zuerst per HTTPS und verbindet sich dann mit wss://host:port/<Datei>.
+# Der Server sendet die Datei sofort und danach bei jeder Aenderung. Browser pruefen bei WebSockets kein CORS,
+# deshalb wird die Origin hier selbst geprueft (gleiche Regeln wie bei CORS).
+WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+WS_MAX_CLIENTS = 50
+WS_MAX_IN = 65536            # groesster erlaubter eingehender Frame (der Client sendet nichts Wichtiges)
+WS_SOCKET_TIMEOUT = 5        # Lese- und Sendetimeout je Client in Sekunden
+WS_PING_S = 25
+WS_WATCH_S = 0.1             # Pruefintervall der Dateiueberwachung (os.stat)
+WS_FORCE_EVERY = 10          # alle 10 Durchlaeufe (1 s) wird auch ohne neue Zeit/Groesse der Inhalt verglichen
+
+WLOCK = threading.Lock()
+CLIENTS = set()
+WATCHES = {}                 # Dateipfad -> Watch
+_wthread = None
+
+
+def ws_frame(opcode, payload):
+    n = len(payload)
+    if n < 126:
+        head = struct.pack("!BB", 0x80 | opcode, n)
+    elif n < 65536:
+        head = struct.pack("!BBH", 0x80 | opcode, 126, n)
+    else:
+        head = struct.pack("!BBQ", 0x80 | opcode, 127, n)
+    return head + payload
+
+
+class WSClient:
+    def __init__(self, sock, addr, url):
+        self.sock = sock
+        self.addr = addr
+        self.url = url
+        self.lock = threading.Lock()   # Handler-Thread (Ping/Pong) und Watcher-Thread senden gleichzeitig
+        self.closed = False
+        self.watch = None
+
+    def send(self, frame):
+        with self.lock:
+            if self.closed:
+                return False
+            try:
+                self.sock.sendall(frame)
+                return True
+            except (OSError, ssl.SSLError):     # Timeout = Client nimmt nichts ab: trennen
+                self.kill()
+                return False
+
+    def kill(self):
+        self.closed = True
+        try:
+            self.sock.shutdown(socket.SHUT_RDWR)
+        except (OSError, ssl.SSLError):
+            pass
+
+    def close(self, code):
+        self.send(ws_frame(0x8, struct.pack("!H", code)))
+        self.kill()
+
+
+def ws_parse(c, buf):
+    """Verarbeitet vollstaendige Frames im Puffer. Gibt (Rest, weiter?) zurueck."""
+    while len(buf) >= 2:
+        b0, b1 = buf[0], buf[1]
+        fin, op = bool(b0 & 0x80), b0 & 0x0F
+        if (b0 & 0x70) or not (b1 & 0x80):     # RSV-Bits oder Frame vom Client nicht maskiert
+            c.close(1002)
+            return buf, False
+        n, off = b1 & 0x7F, 2
+        if n == 126:
+            if len(buf) < 4:
+                break
+            n, off = struct.unpack("!H", buf[2:4])[0], 4
+        elif n == 127:
+            if len(buf) < 10:
+                break
+            n, off = struct.unpack("!Q", buf[2:10])[0], 10
+        if n > WS_MAX_IN:
+            c.close(1009)
+            return buf, False
+        if len(buf) < off + 4 + n:
+            break
+        mask, data, buf = buf[off:off + 4], buf[off + 4:off + 4 + n], buf[off + 4 + n:]
+        if n:
+            data = (int.from_bytes(data, "big") ^ int.from_bytes((mask * (n // 4 + 1))[:n], "big")).to_bytes(n, "big")
+        if op >= 0x8 and (not fin or n > 125):
+            c.close(1002)
+            return buf, False
+        if op == 0x8:
+            c.close(1000)
+            return buf, False
+        if op == 0x9 and not c.send(ws_frame(0xA, data)):    # Ping -> Pong
+            return buf, False
+        # Text, Binary, Pong: nichts zu tun
+    return buf, True
+
+
+# ---- Datei ueberwachen: ein Eintrag pro Datei, egal wie viele Clients
+class Watch:
+    def __init__(self, full):
+        self.full = full
+        self.json = full.lower().endswith(".json")
+        self.clients = set()
+        self.last = None        # zuletzt gesendeter Text
+        self.sig = None         # (mtime_ns, size) des zuletzt erfolgreich gelesenen Stands
+        self.try_sig = None
+        self.fails = 0
+        self.lock = threading.RLock()
+
+
+def watch_read(w, target=None):
+    """Datei lesen und senden. Gibt True zurueck, wenn der Stand erledigt ist (gesendet, unveraendert
+    oder dauerhaft ungueltig), False wenn noch einmal gelesen werden soll (Datei fehlt, JSON unvollstaendig).
+    target = neuer Client, der den Stand auch dann bekommt, wenn er sich nicht geaendert hat."""
+    with w.lock:
+        try:
+            with open(w.full, "rb") as f:
+                raw = f.read()
+        except OSError:
+            return False
+        if raw.startswith(b"\xef\xbb\xbf"):
+            raw = raw[3:]
+        text = raw.decode("utf-8", "replace")
+        if w.json:
+            try:
+                json.loads(text)         # EEP schreibt evtl. gerade: Unvollstaendiges wird nicht gesendet
+            except ValueError:
+                w.fails += 1
+                return w.fails > 10
+        w.fails = 0
+        changed = text != w.last
+        w.last = text
+        if changed:
+            targets = list(w.clients)
+        elif target is not None and target in w.clients:
+            targets = [target]
+        else:
+            targets = []
+        if targets:
+            frame = ws_frame(0x1, text.encode("utf-8"))
+            for c in targets:
+                c.send(frame)
+        return True
+
+
+def _watch_loop():
+    global _wthread
+    tick = 0
+    while True:
+        time.sleep(WS_WATCH_S)
+        tick += 1
+        with WLOCK:
+            items = list(WATCHES.values())
+            if not items:
+                _wthread = None
+                return
+        for w in items:
+            try:
+                st = os.stat(w.full)
+                sig = (st.st_mtime_ns, st.st_size)
+                if sig != w.try_sig:
+                    w.try_sig, w.fails = sig, 0
+                if sig != w.sig or tick % WS_FORCE_EVERY == 0:
+                    if watch_read(w):
+                        w.sig = sig
+            except OSError:
+                pass
+            except Exception:
+                LOG.exception("Dateiueberwachung")
+
+
+def watch_add(full, c):
+    global _wthread
+    with WLOCK:
+        w = WATCHES.get(full)
+        if w is None:
+            w = WATCHES[full] = Watch(full)
+            LOG.info("Ueberwache %s", full)
+        w.clients.add(c)
+        c.watch = w
+        if _wthread is None:
+            _wthread = threading.Thread(target=_watch_loop, daemon=True)
+            _wthread.start()
+    watch_read(w, c)                     # aktuellen Stand sofort an den neuen Client
+
+
+def watch_remove(c):
+    w = c.watch
+    if w is None:
+        return
+    c.watch = None
+    with WLOCK:
+        w.clients.discard(c)
+        if not w.clients and WATCHES.get(w.full) is w:
+            del WATCHES[w.full]
+            LOG.info("Ueberwachung beendet %s", w.full)
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "EEP-Export"
@@ -603,7 +819,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _begin(self):
         origin = self.headers.get("Origin", "")
-        ok = bool(origin) and (bool(ORIGIN_RE.fullmatch(origin)) or (ALLOW_NULL and origin == "null"))
+        ok = origin_allowed(origin)
         self._cors = origin if ok else None
         self._pna = self.headers.get("Access-Control-Request-Private-Network", "").lower() == "true"
 
@@ -654,7 +870,94 @@ class Handler(BaseHTTPRequestHandler):
                 shutil.copyfileobj(f, self.wfile, 65536)
 
     def do_GET(self):
-        self._serve(True)
+        if "websocket" in self.headers.get("Upgrade", "").lower():
+            self._websocket()
+        else:
+            self._serve(True)
+
+    def _websocket(self):
+        self._begin()
+        self.close_connection = True
+        key = self.headers.get("Sec-WebSocket-Key", "")
+        if ("upgrade" not in self.headers.get("Connection", "").lower()
+                or self.headers.get("Sec-WebSocket-Version") != "13"
+                or not re.fullmatch(r"[A-Za-z0-9+/]{22}==", key)):
+            self.send_error(400)
+            return
+        origin = self.headers.get("Origin", "")
+        if not origin_allowed(origin):
+            LOG.warning("%s \"WS %s\" 403 Forbidden (Origin: %s%s)", self.client_address[0], clean(self.path), clean(origin) or "fehlt",
+                        "" if ALLOW_NULL else ", file:// und null nur mit -AllowNullOrigin")
+            self.send_error(403)
+            return
+        full = self._resolve(self.path)          # gleiche Regeln wie bei HTTP: nur .json und .anl3
+        if not full:
+            self.send_error(404)
+            return
+        sock = self.connection
+        c = WSClient(sock, self.client_address[0], clean(self.path))
+        with WLOCK:
+            if len(CLIENTS) >= WS_MAX_CLIENTS:
+                full = None
+            else:
+                CLIENTS.add(c)
+        if not full:
+            self.send_error(503)
+            return
+        try:
+            accept = base64.b64encode(hashlib.sha1((key + WS_GUID).encode("ascii")).digest()).decode("ascii")
+            sock.sendall(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+                          "Sec-WebSocket-Accept: %s\r\n\r\n" % accept).encode("ascii"))
+            sock.settimeout(WS_SOCKET_TIMEOUT)
+            try:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            except OSError:
+                pass
+            LOG.info('%s "WS %s" 101 (%d offen)', c.addr, c.url, len(CLIENTS))
+            watch_add(full, c)
+            self._ws_loop(c)
+        except (OSError, ssl.SSLError):
+            pass
+        finally:
+            c.kill()
+            watch_remove(c)
+            with WLOCK:
+                CLIENTS.discard(c)
+                n = len(CLIENTS)
+            LOG.info("%s WebSocket beendet %s (%d offen)", c.addr, c.url, n)
+
+    def _ws_loop(self, c):
+        buf = b""
+        alive = True
+        last_ping = time.monotonic()
+        while not c.closed:
+            try:
+                chunk = c.sock.recv(65536)
+            except (socket.timeout, TimeoutError, ssl.SSLWantReadError) as exc:
+                chunk = None
+            except ssl.SSLError as exc:
+                if "timed out" not in str(exc):
+                    return
+                chunk = None
+            except OSError:
+                return
+            if chunk is None:
+                # Ping an den Client; wer seit dem letzten Ping nichts von sich hoeren liess, wird getrennt
+                if time.monotonic() - last_ping >= WS_PING_S:
+                    if not alive:
+                        return
+                    alive = False
+                    last_ping = time.monotonic()
+                    if not c.send(ws_frame(0x9, b"")):
+                        return
+                continue
+            if not chunk:
+                return
+            alive = True
+            buf, ok = ws_parse(c, buf + chunk)
+            if not ok:
+                return
 
     def do_HEAD(self):
         self._serve(False)
@@ -695,6 +998,9 @@ class RedirectHandler(Handler):
         self.send_header("Location", "https://%s%s%s" % (name, port, path))
         self.send_header("Content-Length", "0")
         self.end_headers()
+
+    def do_GET(self):
+        self._serve(True)           # auf dem HTTP-Port kein WebSocket, nur Umleitung
 
     def do_OPTIONS(self):
         self._serve(False)
@@ -758,7 +1064,7 @@ def main():
     if HTTP_PORT > 0:
         http = make_server(BaseServer, HTTP_PORT, RedirectHandler)
         threading.Thread(target=http.serve_forever, daemon=True).start()
-    LOG.info("Server gestartet: HTTPS Port %d, HTTP Port %s, Inhalt %s", HTTPS_PORT, HTTP_PORT or "aus", SITE_ROOT)
+    LOG.info("Server gestartet (mit WebSocket): HTTPS Port %d, HTTP Port %s, Inhalt %s", HTTPS_PORT, HTTP_PORT or "aus", SITE_ROOT)
     try:
         https.serve_forever()
     except KeyboardInterrupt:
@@ -893,6 +1199,85 @@ if ($HttpPort -gt 0) {
     Write-Check ($r.Status -eq 301 -and "$($r.Headers['Location'])" -like "https://*") "HTTP wird auf HTTPS umgeleitet: Status $($r.Status) $($r.Headers['Location']) $($r.Error)"
 }
 
+# WebSocket: Handshake, sofortige Datei, Push bei Aenderung, fremde Origin wird abgelehnt (Testclient in Python)
+$wsFile = Join-Path $SitePath "wstest.json"
+$wsPy   = Join-Path $InstallPath "ws-selftest.py"
+$wsCode = @'
+import base64, json, os, socket, ssl, struct, sys
+
+port, origin, path = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+A, B = json.dumps({"n": 1}), json.dumps({"n": 2})
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+
+def open_ws(org):
+    s = ctx.wrap_socket(socket.create_connection(("localhost", port), 10), server_hostname="localhost")
+    s.settimeout(10)
+    key = base64.b64encode(os.urandom(16)).decode()
+    s.sendall(("GET /wstest.json HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n"
+               "Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: %s\r\nOrigin: %s\r\n\r\n" % (key, org)).encode())
+    buf = b""
+    while b"\r\n\r\n" not in buf:
+        d = s.recv(4096)
+        if not d:
+            break
+        buf += d
+    head, _, rest = buf.partition(b"\r\n\r\n")
+    return s, int(head.split(b" ", 2)[1]), rest
+
+
+def read_text(s, buf):
+    while True:
+        while len(buf) >= 2:
+            n, off = buf[1] & 127, 2
+            if n == 126:
+                if len(buf) < 4:
+                    break
+                n, off = struct.unpack("!H", buf[2:4])[0], 4
+            elif n == 127:
+                if len(buf) < 10:
+                    break
+                n, off = struct.unpack("!Q", buf[2:10])[0], 10
+            if len(buf) < off + n:
+                break
+            op, p, buf = buf[0] & 15, buf[off:off + n], buf[off + n:]
+            if op == 1:
+                return p.decode("utf-8"), buf
+        d = s.recv(65536)
+        if not d:
+            raise RuntimeError("Verbindung beendet")
+        buf += d
+
+
+try:
+    with open(path, "w") as f:
+        f.write(A)
+    s, st, rest = open_ws(origin)
+    if st != 101:
+        sys.exit("Upgrade abgelehnt: Status %d" % st)
+    t, rest = read_text(s, rest)
+    if t != A:
+        sys.exit("Erste Nachricht falsch: " + t)
+    with open(path, "w") as f:
+        f.write(B)
+    t, rest = read_text(s, rest)
+    if t != B:
+        sys.exit("Aenderung nicht gepusht: " + t)
+    s.close()
+    s, st, rest = open_ws("https://fremde-seite.example")
+    if st != 403:
+        sys.exit("fremde Origin: Status %d" % st)
+    print("OK")
+except Exception as exc:
+    sys.exit("%s" % exc)
+'@
+Write-Utf8NoBom $wsPy $wsCode
+try { $r = Invoke-Native $venvPy @($wsPy, "$HttpsPort", $localOrigin, $wsFile) }
+finally { Remove-Item $wsPy, $wsFile -Force -ErrorAction SilentlyContinue }
+Write-Check ($r.ExitCode -eq 0 -and $r.Output -match 'OK') "WebSocket: Datei beim Verbinden, Push bei Aenderung, fremde Origin abgelehnt $(if ($r.ExitCode -ne 0) { $r.Output })"
+
 Stop-OwnServer      # Testserver beenden
 
 if ($script:failed -gt 0) {
@@ -907,5 +1292,5 @@ if ($script:failed -gt 0) {
 Write-Host "`nFertig. Alle Pruefungen bestanden; der Testserver wurde wieder beendet (kein Autostart)." -ForegroundColor Green
 Write-Host "Server starten (Strg+C beendet ihn):"
 Write-Host "  & `"$venvPy`" `"$serverPy`"" -ForegroundColor Yellow
-Write-Host "Danach erreichbar unter: $baseUrl/daten.json"
+Write-Host "Danach erreichbar unter: $baseUrl/daten.json   (WebSocket mit wss statt https)"
 Write-Host "Log: $logFile    Deinstallation: .\Install-Python-web-server.ps1 -Uninstall"

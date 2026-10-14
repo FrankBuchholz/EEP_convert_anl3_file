@@ -7,6 +7,8 @@
     - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
     - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
     - HTTPS (Zertifikat, HSTS, TLS 1.2 als Minimum); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
+    - WebSocket (wss://) auf derselben URL wie die Datei: Der Server ueberwacht die Datei und sendet jede Aenderung,
+      sodass die Bridge nicht mehr pollen muss (Origin-Pruefung wie bei CORS)
     - Pruefung zu Beginn: Node.js muss bereits installiert sein, sonst Abbruch (ohne Aenderung)
     - Vorpruefungen (Ports, Parameter) VOR jeder Aenderung
     - Abschlusstests (Ports, CORS, Dateityp-Sperre, Umleitung) mit einem kurzzeitig gestarteten Testserver
@@ -40,6 +42,9 @@
     Die Option -AllowNullOrigin wird nur benoetigt, wenn das Bridge-Programm lokal auf einem Rechner gestartet wird.
     Der Browser sendet dabei die Origin "null" auch bei file://-Seiten, aber ebenso
     bei Seiten in Sandbox-Frames. Die Option gibt die Daten deshalb fuer jede solche Seite frei.
+    WebSocket: Die Bridge liest die Datei zuerst per HTTPS und oeffnet dann wss://<Host>:<Port>/<Datei>.json.
+    Der Server sendet die komplette Datei sofort und danach nach jeder Aenderung (nur gueltiges JSON, Entprellung).
+    Eingebaut mit der Node.js-Standardbibliothek (RFC 6455), es werden keine npm-Pakete benoetigt.
     Es gibt keinen Autostart. Der Server wird mit diesem Node-Kommando gestartet:
     & "<Pfad zu node.exe>" "<InstallPath>\server.js"
 #>
@@ -300,7 +305,7 @@ foreach ($port in @($HttpPort, $HttpsPort | Where-Object { $_ -gt 0 } | Select-O
 }
 
 if ($AllowNullOrigin) {
-    $warnings.Add("-AllowNullOrigin: Die Origin 'null' wird freigegeben. Sie stammt von file://-Seiten, aber auch von Sandbox-Frames fremder Seiten.")
+    $warnings.Add("-AllowNullOrigin: Die Origins 'null' und 'file://' werden freigegeben. Sie stammen von file://-Seiten (Chrome sendet bei WebSockets 'file://'), aber 'null' auch von Sandbox-Frames fremder Seiten.")
 }
 
 foreach ($w in $warnings) { Write-Warning $w }
@@ -431,6 +436,7 @@ $serverCode = @'
  *
  * Liefert ausschliesslich .json und .anl3 aus (GET, HEAD, OPTIONS), mit CORS,
  * HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung.
+ * WebSocket (wss://, gleiche URL wie die Datei): sendet die Datei beim Verbinden und nach jeder Aenderung.
  * Konfiguration: config.json neben dieser Datei
  * (wird von Install-node-web-server.ps1 erzeugt).
  */
@@ -438,6 +444,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
+const crypto = require('crypto');
 
 function readText(file) { return fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''); }
 const CFG = JSON.parse(readText(path.join(__dirname, 'config.json')));
@@ -458,6 +465,8 @@ const lan = 'localhost|127\\.0\\.0\\.1|\\[::1\\]|10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{
   + '|172\\.(1[6-9]|2\\d|3[01])\\.\\d{1,3}\\.\\d{1,3}|[a-z0-9-]+\\.local|' + esc(CFG.computer_name);
 const ALLOW_NULL = !!CFG.allow_null_origin;   // Origin "null": Seite wird aus einer lokalen Datei (file://) geoeffnet
 const ORIGIN_RE = new RegExp('^(?:https?://(?:' + lan + ')(?::\\d+)?' + (ghAlt ? '|' + ghAlt : '') + ')$', 'i');
+// Lokale Datei (file://): CORS-Anfragen senden die Origin "null", Chrome sendet bei WebSockets "file://"
+const originAllowed = origin => origin !== '' && (ORIGIN_RE.test(origin) || (ALLOW_NULL && (origin === 'null' || origin === 'file://')));
 
 // ---- Log (eine Datei, bei ueber 1 MB wird sie nach server.log.1 verschoben)
 function clean(text) { return String(text).replace(/[^\x20-\x7e]/g, '?'); }
@@ -482,7 +491,7 @@ function log(msg, level) {
 // ---- Header: Sicherheit + CORS (nur fuer erlaubte Origins)
 function headersFor(req, extra) {
   const origin = String(req.headers['origin'] || '');
-  const ok = origin !== '' && (ORIGIN_RE.test(origin) || (ALLOW_NULL && origin === 'null'));
+  const ok = originAllowed(origin);
   const pna = String(req.headers['access-control-request-private-network'] || '').toLowerCase() === 'true';
   const h = Object.assign({
     'Strict-Transport-Security': 'max-age=31536000',
@@ -563,6 +572,197 @@ function redirect(req, res) {
   res.end();
 }
 
+// ---- WebSocket (RFC 6455, nur Standardbibliothek)
+// Die Bridge liest die Datei zuerst per HTTPS und verbindet sich dann mit wss://host:port/<Datei>.
+// Der Server sendet die Datei sofort und danach bei jeder Aenderung. Browser pruefen bei WebSockets kein CORS,
+// deshalb wird die Origin hier selbst geprueft (gleiche Regeln wie bei CORS).
+const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+const WS_MAX_CLIENTS = 50;
+const WS_MAX_IN = 65536;          // groesster erlaubter eingehender Frame (der Client sendet nichts Wichtiges)
+const WS_MAX_BACKLOG = 8 * 1024 * 1024;   // Client, der so viel nicht abnimmt, wird getrennt
+const WS_PING_MS = 25000;
+const WS_POLL_MS = 2000;          // Sicherheitsnetz, falls fs.watch eine Aenderung nicht meldet
+const wsClients = new Set();
+const watches = new Map();        // Dateipfad -> { full, json, clients, last, timer, watcher, poll, sig, retry }
+
+function wsFrame(opcode, payload) {
+  const len = payload.length;
+  let head;
+  if (len < 126) { head = Buffer.alloc(2); head[1] = len; }
+  else if (len < 65536) { head = Buffer.alloc(4); head[1] = 126; head.writeUInt16BE(len, 2); }
+  else { head = Buffer.alloc(10); head[1] = 127; head.writeBigUInt64BE(BigInt(len), 2); }
+  head[0] = 0x80 | opcode;
+  return Buffer.concat([head, payload]);
+}
+
+function wsPush(c, frame) {
+  if (c.closed) return;
+  if (c.socket.writableLength > WS_MAX_BACKLOG) {
+    log(c.addr + ' WebSocket-Client nimmt Daten zu langsam ab, getrennt', 'WARNING');
+    return c.socket.destroy();
+  }
+  c.socket.write(frame);
+}
+
+function wsDrop(c) {
+  if (c.closed) return;
+  c.closed = true;
+  watchRemove(c);
+  wsClients.delete(c);
+  log(c.addr + ' WebSocket beendet ' + c.url + ' (' + wsClients.size + ' offen)');
+}
+
+function wsClose(c, code) {
+  if (c.closed) return;
+  wsDrop(c);
+  try {
+    const p = Buffer.alloc(2); p.writeUInt16BE(code || 1000, 0);
+    c.socket.write(wsFrame(0x8, p));
+    c.socket.end();
+  } catch (e) { /* Socket schon weg */ }
+  setTimeout(() => c.socket.destroy(), 2000).unref();
+}
+
+function wsOnData(c, chunk) {
+  c.alive = true;
+  c.buf = Buffer.concat([c.buf, chunk]);
+  while (c.buf.length >= 2 && !c.closed) {
+    const b0 = c.buf[0], b1 = c.buf[1];
+    const fin = (b0 & 0x80) !== 0, opcode = b0 & 0x0f, masked = (b1 & 0x80) !== 0;
+    if (b0 & 0x70) return wsClose(c, 1002);
+    if (!masked) return wsClose(c, 1002);              // Frames vom Client muessen maskiert sein
+    let len = b1 & 0x7f, off = 2;
+    if (len === 126) { if (c.buf.length < 4) return; len = c.buf.readUInt16BE(2); off = 4; }
+    else if (len === 127) {
+      if (c.buf.length < 10) return;
+      const big = c.buf.readBigUInt64BE(2);
+      if (big > BigInt(WS_MAX_IN)) return wsClose(c, 1009);
+      len = Number(big); off = 10;
+    }
+    if (len > WS_MAX_IN) return wsClose(c, 1009);
+    if (c.buf.length < off + 4 + len) return;
+    const mask = c.buf.subarray(off, off + 4);
+    const data = Buffer.from(c.buf.subarray(off + 4, off + 4 + len));
+    for (let i = 0; i < len; i++) data[i] ^= mask[i & 3];
+    c.buf = c.buf.subarray(off + 4 + len);
+    if (opcode >= 0x8 && (!fin || len > 125)) return wsClose(c, 1002);
+    if (opcode === 0x8) return wsClose(c, 1000);
+    if (opcode === 0x9) wsPush(c, wsFrame(0xA, data)); // Ping -> Pong
+    // Text, Binary, Pong: nichts zu tun
+  }
+}
+
+// ---- Datei ueberwachen: ein Watcher pro Datei, egal wie viele Clients
+function watchAdd(full, c) {
+  let w = watches.get(full);
+  if (!w) {
+    w = { full: full, json: path.extname(full).toLowerCase() === '.json', clients: new Set(), last: null, timer: null, watcher: null, poll: null, sig: '', retry: 0 };
+    const dir = path.dirname(full), base = path.basename(full).toLowerCase();
+    try {
+      // Verzeichnis statt Datei ueberwachen: EEP kann die Datei neu anlegen oder ersetzen
+      w.watcher = fs.watch(dir, { persistent: true }, (ev, name) => {
+        if (!name || String(name).toLowerCase() === base) watchSchedule(w, 80);
+      });
+      w.watcher.on('error', e => log('Dateiueberwachung: ' + clean(e && e.message), 'WARNING'));
+    } catch (e) { log('fs.watch nicht moeglich, nur Abfrage alle ' + WS_POLL_MS + ' ms: ' + clean(e && e.message), 'WARNING'); }
+    w.poll = setInterval(() => {
+      fs.stat(full, (err, st) => {
+        if (err) return;
+        const sig = st.mtimeMs + ':' + st.size;
+        if (sig !== w.sig) { w.sig = sig; watchSchedule(w, 0); }
+      });
+    }, WS_POLL_MS);
+    watches.set(full, w);
+    log('Ueberwache ' + full);
+  }
+  w.clients.add(c);
+  c.watch = w;
+  watchRead(w, c);                  // aktuellen Stand sofort an den neuen Client
+}
+
+function watchRemove(c) {
+  const w = c.watch;
+  if (!w) return;
+  c.watch = null;
+  w.clients.delete(c);
+  if (w.clients.size === 0) {
+    clearTimeout(w.timer);
+    clearInterval(w.poll);
+    if (w.watcher) { try { w.watcher.close(); } catch (e) { /* ignorieren */ } }
+    watches.delete(w.full);
+    log('Ueberwachung beendet ' + w.full);
+  }
+}
+
+// Entprellung: EEP schreibt die Datei evtl. in mehreren Schritten, fs.watch meldet mehrfach
+function watchSchedule(w, ms) {
+  clearTimeout(w.timer);
+  w.timer = setTimeout(() => watchRead(w, null), ms);
+}
+
+// Datei lesen und senden. Unvollstaendiges JSON (EEP schreibt gerade) wird nicht gesendet, sondern kurz spaeter erneut gelesen.
+// target = neuer Client, der den Stand auch dann bekommt, wenn er sich nicht geaendert hat.
+function watchRead(w, target) {
+  fs.readFile(w.full, 'utf8', (err, text) => {
+    if (err) return;
+    text = text.replace(/^\uFEFF/, '');
+    if (w.json) {
+      try { JSON.parse(text); w.retry = 0; }
+      catch (e) { if (w.retry++ < 10) watchSchedule(w, 150); return; }
+    }
+    const changed = text !== w.last;
+    w.last = text;
+    if (!changed && !(target && w.clients.has(target))) return;
+    const frame = wsFrame(0x1, Buffer.from(text, 'utf8'));
+    if (changed) for (const c of w.clients) wsPush(c, frame);
+    else wsPush(target, frame);
+  });
+}
+
+function onUpgrade(req, socket, head) {
+  socket.on('error', () => { /* Verbindungsabbruch des Clients ignorieren */ });
+  const addr = req.socket.remoteAddress;
+  const deny = (code, text, detail) => {
+    log(addr + ' "WS ' + clean(req.url) + '" ' + code + ' ' + text + (detail || ''), 'WARNING');
+    socket.end('HTTP/1.1 ' + code + ' ' + text + '\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
+  };
+  const key = String(req.headers['sec-websocket-key'] || '');
+  if (req.method !== 'GET' || String(req.headers['upgrade'] || '').toLowerCase() !== 'websocket'
+      || !/\bupgrade\b/i.test(String(req.headers['connection'] || ''))
+      || req.headers['sec-websocket-version'] !== '13' || !/^[A-Za-z0-9+/]{22}==$/.test(key)) return deny(400, 'Bad Request');
+  const origin = String(req.headers['origin'] || '');
+  if (!originAllowed(origin)) return deny(403, 'Forbidden', ' (Origin: ' + (clean(origin) || 'fehlt') + (ALLOW_NULL ? '' : ', file:// und null nur mit -AllowNullOrigin') + ')');
+  const full = resolvePath(req.url || '/');          // gleiche Regeln wie bei HTTP: nur .json und .anl3
+  if (!full) return deny(404, 'Not Found');
+  if (wsClients.size >= WS_MAX_CLIENTS) return deny(503, 'Service Unavailable');
+
+  const accept = crypto.createHash('sha1').update(key + WS_GUID).digest('base64');
+  socket.setTimeout(0);                              // der Timeout des HTTP-Servers gilt nicht fuer den Socket
+  socket.setNoDelay(true);
+  socket.setKeepAlive(true, 30000);
+  socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
+
+  const c = { socket: socket, buf: Buffer.alloc(0), alive: true, closed: false, watch: null, addr: addr, url: clean(req.url) };
+  wsClients.add(c);
+  socket.on('data', d => wsOnData(c, d));
+  socket.on('close', () => wsDrop(c));
+  socket.on('end', () => wsClose(c, 1000));
+  log(addr + ' "WS ' + c.url + '" 101 (' + wsClients.size + ' offen)');
+  watchAdd(full, c);
+  if (head && head.length) wsOnData(c, head);
+}
+
+// Ping an alle Clients; wer seit dem letzten Ping nichts von sich hoeren liess, wird getrennt
+function wsStartPing() {
+  setInterval(() => {
+    for (const c of Array.from(wsClients)) {
+      if (!c.alive) { c.socket.destroy(); continue; }
+      c.alive = false;
+      wsPush(c, wsFrame(0x9, Buffer.alloc(0)));
+    }
+  }, WS_PING_MS).unref();
+}
+
 function logged(fn) {
   return (req, res) => {
     res.on('finish', () => log(req.socket.remoteAddress + ' "' + req.method + ' ' + clean(req.url) + '" ' + res.statusCode));
@@ -605,12 +805,14 @@ async function main() {
 
   const secure = prepare(https.createServer(tls, logged(handle)));
   secure.on('tlsClientError', (err, socket) => log('TLS-Handshake fehlgeschlagen ' + (socket.remoteAddress || '?') + ': ' + clean(err.message), 'ERROR'));
+  secure.on('upgrade', onUpgrade);
+  wsStartPing();
   await listen(secure, HTTPS_PORT);
 
   if (HTTP_PORT > 0) {
     await listen(prepare(http.createServer(logged(redirect))), HTTP_PORT);
   }
-  log('Server gestartet: HTTPS Port ' + HTTPS_PORT + ', HTTP Port ' + (HTTP_PORT || 'aus') + ', Inhalt ' + SITE_ROOT);
+  log('Server gestartet (mit WebSocket): HTTPS Port ' + HTTPS_PORT + ', HTTP Port ' + (HTTP_PORT || 'aus') + ', Inhalt ' + SITE_ROOT);
 }
 
 main().catch(err => {
@@ -752,6 +954,57 @@ if ($HttpPort -gt 0) {
     Write-Check ($r.Status -eq 301 -and "$($r.Headers['Location'])" -like "https://*") "HTTP wird auf HTTPS umgeleitet: Status $($r.Status) $($r.Headers['Location']) $($r.Error)"
 }
 
+# WebSocket: Handshake, sofortige Datei, Push bei Aenderung, fremde Origin wird abgelehnt (Testclient mit Node.js)
+$wsFile = Join-Path $SitePath "wstest.json"
+$wsJs   = Join-Path $InstallPath "ws-selftest.js"
+$wsCode = @'
+'use strict';
+const https = require('https'), crypto = require('crypto'), fs = require('fs');
+const port = Number(process.argv[2]), origin = process.argv[3], file = process.argv[4];
+const A = JSON.stringify({ n: 1 }), B = JSON.stringify({ n: 2 });
+const fail = m => { console.log(m); process.exit(1); };
+setTimeout(() => fail('Zeitueberschreitung'), 10000);
+function open(org, onUp, onRes) {
+  const req = https.request({ host: 'localhost', port: port, path: '/wstest.json', rejectUnauthorized: false,
+    headers: { Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13',
+               'Sec-WebSocket-Key': crypto.randomBytes(16).toString('base64'), Origin: org } });
+  req.on('upgrade', onUp); req.on('response', onRes); req.on('error', e => fail(e.message)); req.end();
+}
+function frames(sock, cb) {
+  let b = Buffer.alloc(0);
+  sock.on('data', d => {
+    b = Buffer.concat([b, d]);
+    for (;;) {
+      if (b.length < 2) return;
+      let l = b[1] & 127, o = 2;
+      if (l === 126) { if (b.length < 4) return; l = b.readUInt16BE(2); o = 4; }
+      else if (l === 127) { if (b.length < 10) return; l = Number(b.readBigUInt64BE(2)); o = 10; }
+      if (b.length < o + l) return;
+      const op = b[0] & 15, p = b.subarray(o, o + l);
+      b = b.subarray(o + l);
+      if (op === 1) cb(p.toString('utf8'));
+    }
+  });
+}
+fs.writeFileSync(file, A);
+open(origin, (res, sock, head) => {
+  frames(sock, t => {
+    if (t === A) fs.writeFileSync(file, B);
+    else if (t === B) { sock.destroy(); other(); }
+    else fail('Unerwartete Nachricht: ' + t);
+  });
+  if (head && head.length) sock.unshift(head);
+}, res => fail('Upgrade abgelehnt: Status ' + res.statusCode));
+function other() {
+  open('https://fremde-seite.example', () => fail('fremde Origin wurde angenommen'),
+    res => { if (res.statusCode === 403) { console.log('OK'); process.exit(0); } fail('fremde Origin: Status ' + res.statusCode); });
+}
+'@
+Write-Utf8NoBom $wsJs $wsCode
+try { $r = Invoke-Native $node.Path @($wsJs, "$HttpsPort", $localOrigin, $wsFile) }
+finally { Remove-Item $wsJs, $wsFile -Force -ErrorAction SilentlyContinue }
+Write-Check ($r.ExitCode -eq 0 -and $r.Output -match 'OK') "WebSocket: Datei beim Verbinden, Push bei Aenderung, fremde Origin abgelehnt $(if ($r.ExitCode -ne 0) { $r.Output })"
+
 Stop-OwnServer      # Testserver beenden
 if ($script:failed -gt 0) {
     Write-Host "`n$($script:failed) Pruefung(en) fehlgeschlagen. Details siehe oben." -ForegroundColor Red
@@ -767,5 +1020,5 @@ Write-Host "Server starten (Strg+C beendet ihn):"
 Write-Host "  & `"$($node.Path)`" `"$serverJs`"" -ForegroundColor Yellow
 Write-Host "oder (npm gehoert zu Node.js):"
 Write-Host "  npm start --prefix `"$InstallPath`"" -ForegroundColor Yellow
-Write-Host "Danach erreichbar unter: $baseUrl/daten.json"
+Write-Host "Danach erreichbar unter: $baseUrl/daten.json   (WebSocket mit wss statt https)"
 Write-Host "Log: $logFile    Deinstallation: .\Install-node-web-server.ps1 -Uninstall"
