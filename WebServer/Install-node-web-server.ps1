@@ -546,17 +546,23 @@ function handle(req, res) {
   if (!full) return notFound(req, res);
   // Datei komplett lesen: EEP schreibt die Exportdatei laufend neu, so passen Content-Length und Inhalt immer zusammen
   fs.readFile(full, (err, buf) => {
-    if (err) return notFound(req, res);
-    let mtime = new Date();
-    try { mtime = fs.statSync(full).mtime; } catch (e) { /* aktuelle Zeit */ }
-    res.writeHead(200, headersFor(req, {
-      'Content-Type': ALLOWED_TYPES[path.extname(full).toLowerCase()],
-      'Content-Length': buf.length,
-      'Last-Modified': mtime.toUTCString(),
-      'Cache-Control': 'no-cache'
-    }));
-    res.end(req.method === 'HEAD' ? undefined : buf);
-  });
+		if (err) return notFound(req, res);
+		const ext = path.extname(full).toLowerCase();
+		let type = ALLOWED_TYPES[ext];
+		if (ext === '.json') {            // einheitlich UTF-8 ausliefern
+			buf = Buffer.from(decodeText(buf).replace(/^\uFEFF/, ''), 'utf8');
+			type += '; charset=utf-8';
+		}
+		let mtime = new Date();
+		try { mtime = fs.statSync(full).mtime; } catch (e) { /* aktuelle Zeit */ }
+		res.writeHead(200, headersFor(req, {
+			'Content-Type': type,
+			'Content-Length': buf.length,
+			'Last-Modified': mtime.toUTCString(),
+			'Cache-Control': 'no-cache'
+		}));
+		res.end(req.method === 'HEAD' ? undefined : buf);
+	});
 }
 
 // ---- Port HTTP: leitet alles dauerhaft auf HTTPS um (nur wenn http_port > 0)
@@ -700,12 +706,21 @@ function watchSchedule(w, ms) {
   w.timer = setTimeout(() => watchRead(w, null), ms);
 }
 
+// Datei-Inhalt als Text: gueltiges UTF-8 bleibt, sonst wird ANSI (Windows-1252) angenommen
+function decodeText(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) {
+    try { return new TextDecoder('windows-1252').decode(buf); }
+    catch (e2) { return buf.toString('latin1'); }   // Notfall, falls Node ohne ICU laeuft
+  }
+}
+
 // Datei lesen und senden. Unvollstaendiges JSON (EEP schreibt gerade) wird nicht gesendet, sondern kurz spaeter erneut gelesen.
 // target = neuer Client, der den Stand auch dann bekommt, wenn er sich nicht geaendert hat.
 function watchRead(w, target) {
-  fs.readFile(w.full, 'utf8', (err, text) => {
+  fs.readFile(w.full, (err, buf) => {
     if (err) return;
-    text = text.replace(/^\uFEFF/, '');
+    const text = decodeText(buf).replace(/^\uFEFF/, '');
     if (w.json) {
       try { JSON.parse(text); w.retry = 0; }
       catch (e) { if (w.retry++ < 10) watchSchedule(w, 150); return; }

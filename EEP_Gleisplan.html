@@ -6218,6 +6218,7 @@ function changeHeightRange(valueLow, valueHigh) {
 	const minZ = global.usedArea.min.z + delta * valueLow;
 	const maxZ = global.usedArea.min.z + delta * valueHigh;
 	document.getElementById("heightArea").textContent = minZ.toFixed(1) + " .. " + maxZ.toFixed(1);
+	global.heightRange = { minZ: minZ, maxZ: maxZ };   // für das Neuzeichnen des liveLayer
 
 	// Adjust svg group elements
 	const svgElem = document.getElementById("svg");
@@ -7980,13 +7981,6 @@ function draw(d){
 	cur = d;
 	const root = document.getElementById("sutrackpSVG");
 
-	// Erneuere die Ebene für die Zugverbände
-	if (liveLayer) liveLayer.remove();
-	liveLayer = el(root, "g", {
-		id: "liveLayer",
-		"pointer-events": "none"
-	});
-
 	// Ändere die Farbe von Signalen
 	const info = signalInfo(Object.keys(d.signals || {})) || {};
 	for (const id in d.signals || {}) {
@@ -8009,6 +8003,23 @@ function draw(d){
 		if (switchElement && color) switchElement.style.fill = color;
 	}
 
+	// Erneuere die Ebene für die Zugverbände
+	if (liveLayer) liveLayer.remove();
+	liveLayer = el(root, "g", {
+		id: "liveLayer",
+		"pointer-events": "none"
+	});
+
+	// Gruppe mit height-Klasse (wird von changeHeightRange() ausgewertet) erzeugen
+	// und den aktuellen Höhenfilter sofort anwenden, da der liveLayer bei jedem Datensatz neu aufgebaut wird
+	function heightGroup(parent, z){
+		const h = +(+z || 0).toFixed(2);
+		const g = el(parent, "g", {"class": `height=${h.toFixed(2)}`});
+		const r = global.heightRange;
+		if (r && (h < r.minZ || h > r.maxZ)) g.classList.add("hiddenZ");
+		return g;
+	}
+
 	// Zeichne Zugverbände: jedes Fahrzeug einzeln
 	const DASH = "stroke-dasharray:calc(var(--normal-stroke-width)*2) calc(var(--normal-stroke-width)*1.5)";
 	for (const trainName in d.trains || {}) {
@@ -8023,7 +8034,14 @@ function draw(d){
 		if (!vehicles.length) continue;
 
 		// Class live verhindert die Färbung gemäß Gleissystem, class TrackSystemCode erlaubt das verstecken des Elements
-		const liveTrain = el(liveLayer, "g", {id: "liveTrain" + trainName, "class" : `live ${global.TrackSystemCode[global.TrackSystem[train.track.system]]}`});
+		const systemCode = global.TrackSystemCode[global.TrackSystem[train.track.system]];
+		const liveTrain = el(liveLayer, "g", {id: "liveTrain" + trainName, "class" : `live ${systemCode}`});
+
+		// Aktuellen Status der Checkbox des Gleissystems übernehmen, da der liveLayer bei jedem Datensatz neu aufgebaut wird
+		const systemCheckbox = document.querySelector(`input[type="checkbox"][name="${systemCode}"]`);
+		if (systemCheckbox && !systemCheckbox.checked) {
+			liveTrain.classList.add("hidden");
+		}
 
 		// Anfang = Fahrzeugposition, Ende = näherungsweise auf dem Gleis
 		const ends = vehicles.map((v, i) => vehicleEnd(v, vehicles[i+1]));
@@ -8034,28 +8052,26 @@ function draw(d){
 
 		// Name des Zugverbandes an der Zugspitze
 		const tip = vehicles[0].position;
-		el(liveTrain, "text", {x: tip.x, y: -tip.y - 3.0, fill: TRAIN_COLOR,
+		el(heightGroup(liveTrain, tip.z), "text", {x: tip.x, y: -tip.y - 3.0, fill: TRAIN_COLOR,
 			"pointer-events": "visiblePainted", "data-train": trainName}).textContent = `${trainName}, ${train.length.toFixed(1)}m`;
-
+	
 		vehicles.forEach((vehicle, i) => {
 			const hasGears = vehicle.gears > 0;
 			const color = hasGears ? GEARS_COLOR : TRAIN_COLOR;
 			const head = vehicle.position, end = ends[i];
 			const data = {"data-train": trainName, "data-vehicle": vehicle.name};
+			const vg = heightGroup(liveTrain, head.z);   // Höhe des Fahrzeuganfangs
 
 			if (end) {
-				// Fahrzeug als gerade Linie von Anfang zu Ende
 				const ln = {x1: head.x, y1: -head.y, x2: end.x, y2: -end.y};
-				el(liveTrain, "line", Object.assign({fill: "none", stroke: color,
+				el(vg, "line", Object.assign({fill: "none", stroke: color,
 					style: "stroke-width:calc(var(--normal-stroke-width)*" + (hasGears ? 4 : 3) + ");stroke-linecap:round"}, ln));
-				// Unsichtbare, breitere Linie zum Anklicken
-				el(liveTrain, "line", Object.assign({fill: "none", stroke: "transparent", "pointer-events": "stroke",
+				el(vg, "line", Object.assign({fill: "none", stroke: "transparent", "pointer-events": "stroke",
 					style: "stroke-width:calc(var(--normal-stroke-width)*8);stroke-linecap:round;cursor:pointer"}, ln, data));
 
-				// Gestrichelte Linie, wenn das Ende nicht zum Anfang des nächsten Fahrzeuges passt
 				const next = vehicles[i+1];
 				if (next && dist(end, next.position) > 0.3) {
-					el(liveTrain, "line", {x1: end.x, y1: -end.y, x2: next.position.x, y2: -next.position.y,
+					el(vg, "line", {x1: end.x, y1: -end.y, x2: next.position.x, y2: -next.position.y,
 						stroke: TRAIN_COLOR, fill: "none", "pointer-events": "none",
 						style: "stroke-width:calc(var(--normal-stroke-width)*1.5);" + DASH});
 				}
@@ -8063,15 +8079,13 @@ function draw(d){
 				warnOnce("noend" + vehicle.name, `Fahrzeug ${vehicle.name} (${trainName}): Ende nicht berechenbar (Gleis ${vehicle.track && vehicle.track.system}-${vehicle.track && vehicle.track.id})`);
 			}
 
-			// Kreis nur am Anfang des Fahrzeuges (Zugspitze: größer)
-			el(liveTrain, "circle", Object.assign({
+			el(vg, "circle", Object.assign({
 				cx: head.x, cy: -head.y,
 				r: (i === 0 ? 1.0 : (hasGears ? 0.8 : 0.6)),
 				fill: color, style: "fill-opacity:50%", "pointer-events": "all"
 			}, data));
 
-			// Beschreibung des Fahrzeuges
-			el(liveTrain, "text", Object.assign({
+			el(vg, "text", Object.assign({
 				x: head.x, y: -head.y + 3.0, fill: TRAIN_COLOR, "pointer-events": "visiblePainted"
 			}, data)).textContent =
 				`${(vehicle.modelType >= 1 && vehicle.modelType <= 15) ? _('modelType_' + vehicle.modelType) : (vehicle.modelType ?? "–")}`

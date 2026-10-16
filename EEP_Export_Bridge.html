@@ -357,7 +357,7 @@ function stopLive() {
 function connectLive() {
   if (!liveUrl || ws || !window.WebSocket) return;
   let s;
-  try { s = new WebSocket(liveUrl); } catch (e) { 
+  try { s = new WebSocket(liveUrl); } catch (e) {  
     // Greift nur bei synchronen Fehlern (z.B. ungültiges URL-Schema)
     console.error("Synchroner Fehler:", e);
 		return; 
@@ -377,6 +377,12 @@ function connectLive() {
     if (!timer && pollFn) schedulePoll();
     wsTimer = setTimeout(connectLive, 5000);
   };
+}
+
+// Liest Bytes als UTF-8; ist der Inhalt kein gültiges UTF-8, wird Windows-1252 (ANSI) verwendet.
+function EEP_decode(buf) {
+	try { return new TextDecoder("utf-8", {fatal: true}).decode(buf); }
+	catch (e) { return new TextDecoder("windows-1252").decode(buf); }
 }
 
 // Datenquelle in Intervallen abfragen (Datei oder URL); gibt den Promise des ersten Abrufs zurueck
@@ -403,7 +409,9 @@ function useHandle(h) {
   lsSave({src: "file", file: h.name}); 
   showLast();
   idbSet("file", h).catch(() => {});
-  startPoll(async () => ingest(await (await handle.getFile()).text()));
+  //startPoll(async () => ingest(await (await handle.getFile()).text()));
+	startPoll(async () => ingest(EEP_decode(await (await handle.getFile()).arrayBuffer()))); // incl. Konvertierung von ANSI wenn nötig
+
 }
 
 // Aktion verarbeiten: Datei live verfolgen
@@ -422,7 +430,8 @@ $("bUrl").onclick = () => {
   startPoll(async () => {
     const u = $("url").value, r = await fetch(u + (/\?/.test(u) ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
     if (!r.ok) throw new Error("HTTP " + r.status);
-    ingest(await r.text());
+    //ingest(await r.text());
+		ingest(EEP_decode(await r.arrayBuffer())); // incl. Konvertierung von ANSI wenn nötig
   }, wsAddress($("url").value));
 };
 
@@ -449,6 +458,7 @@ async function once(f) {
   lsSave({src: "file", file: f.name}); 
   showLast();
   ingest(await f.text());
+	ingest(EEP_decode(await f.arrayBuffer())); // incl. Konvertierung von ANSI wenn nötig
 }
 
 // Datei einmalig laden: Datei-Auswahl oder Drag&Drop

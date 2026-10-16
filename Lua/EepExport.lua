@@ -459,6 +459,7 @@ function M.readRollingstockNames(path)
     local pos = 1
     while true do
       if not inFuhrpark then
+        -- Suche Fuhrpark
         local s = buf:find("<Fuhrpark", pos, true)
         if not s then pos = math.max(pos, #buf - 8); break end     -- Rest koennte ein Teil von "<Fuhrpark" sein
         local e = findTagEnd(buf, s + 9)
@@ -467,18 +468,25 @@ function M.readRollingstockNames(path)
         inFuhrpark = true
         pos = e + 1
       else
-        local sR = buf:find(OPEN, pos, true)
-        local sE = buf:find(CLOSE, pos, true)
+        -- Verarbeite Fuhrpark
+        local sR = buf:find(OPEN, pos, true)  -- Suche Anfang von Rollmaterial
+        local sE = buf:find(CLOSE, pos, true) -- Suche Ende des Fuhrparks
         if sE and (not sR or sE < sR) then done = true; break end
-        if not sR then pos = math.max(pos, #buf - 12); break end
+        if not sR then pos = math.max(pos, #buf - 12); break end -- 12 = Länge von "<Rollmaterial" - 1
         local e = findTagEnd(buf, sR + #OPEN)
         if not e then pos = sR; break end
 
+        -- Rollmaterial gefunden
         local attrs = buf:sub(sR + #OPEN, e - 1)
         for key, value in attrs:gmatch('([%w_:%-]+)%s*=%s*"([^"]*)"') do
           if key == "name" then
             local name = xmlUnescape(value)
+            -- UTF-8 (Latin-1-Bereich) -> ANSI, damit Namen wie die von EEP geliefern aussehen
+            name = name:gsub("([\194\195])([\128-\191])", function(a, b)
+              return string.char((a:byte() - 194) * 64 + b:byte())
+            end)
             if name ~= "" and not seen[name] then
+              if config.debug then print("EepExport: Rollmaterial in anl3-Datei gefunden: ", name) end
               seen[name] = true
               names[#names + 1] = name
             end

@@ -702,7 +702,16 @@ class Watch:
         self.fails = 0
         self.lock = threading.RLock()
 
-
+def decode_text(raw):
+    """Gueltiges UTF-8 bleibt, sonst wird ANSI (Windows-1252) angenommen."""
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            return raw.decode("cp1252")
+        except UnicodeDecodeError:          # undefinierte Bytes (0x81, 0x8D, 0x8F, 0x90, 0x9D)
+            return raw.decode("latin-1")
+						
 def watch_read(w, target=None):
     """Datei lesen und senden. Gibt True zurueck, wenn der Stand erledigt ist (gesendet, unveraendert
     oder dauerhaft ungueltig), False wenn noch einmal gelesen werden soll (Datei fehlt, JSON unvollstaendig).
@@ -715,7 +724,7 @@ def watch_read(w, target=None):
             return False
         if raw.startswith(b"\xef\xbb\xbf"):
             raw = raw[3:]
-        text = raw.decode("utf-8", "replace")
+        text = decode_text(raw)
         if w.json:
             try:
                 json.loads(text)         # EEP schreibt evtl. gerade: Unvollstaendiges wird nicht gesendet
@@ -860,14 +869,25 @@ class Handler(BaseHTTPRequestHandler):
             return
         with f:
             st = os.fstat(f.fileno())
+            ext = os.path.splitext(full)[1].lower()
+            body = None
+            ctype = ALLOWED_TYPES[ext]
+            length = st.st_size
+            if ext == ".json":      # einheitlich UTF-8 ausliefern
+                body = decode_text(f.read()).lstrip("\ufeff").encode("utf-8")
+                ctype += "; charset=utf-8"
+                length = len(body)
             self.send_response(200)
-            self.send_header("Content-Type", ALLOWED_TYPES[os.path.splitext(full)[1].lower()])
-            self.send_header("Content-Length", str(st.st_size))
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(length))
             self.send_header("Last-Modified", formatdate(st.st_mtime, usegmt=True))
             self.send_header("Cache-Control", "no-cache")
             self.end_headers()
             if send_body:
-                shutil.copyfileobj(f, self.wfile, 65536)
+                if body is not None:
+                    self.wfile.write(body)
+                else:
+                    shutil.copyfileobj(f, self.wfile, 65536)
 
     def do_GET(self):
         if "websocket" in self.headers.get("Upgrade", "").lower():

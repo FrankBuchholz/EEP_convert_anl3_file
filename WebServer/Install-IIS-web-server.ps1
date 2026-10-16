@@ -349,7 +349,7 @@ $webConfig = @"
     <staticContent>
       <clientCache cacheControlMode="DisableCache" />
       <remove fileExtension=".json" />
-      <mimeMap fileExtension=".json" mimeType="application/json" />
+      <mimeMap fileExtension=".json" mimeType="application/json; charset=windows-1252" />
       <remove fileExtension=".anl3" />
       <mimeMap fileExtension=".anl3" mimeType="application/octet-stream" />
     </staticContent>
