@@ -68,5 +68,10 @@
 		"not ios_saf < 15.4",
 		"not dead",
 		"not ie 11"
-	]
+	],
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"eslint": "^10.13.0",
+		"globals": "^17.13.0"
+	}
 }

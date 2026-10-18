@@ -152,17 +152,21 @@ const list = x => x ? Object.values(x) : [];
 const fmt = (n, d = 1) => (typeof n === "number" ? n.toFixed(d) : "–");
 function status(msg, err) { const s = $("st"); s.removeAttribute("data-t"); s.textContent = msg; s.className = err ? "err" : ""; }
 
+// Time to String
+const timeStr = tm =>
+  (tm && tm.hour != null) ? `${p2(tm.hour)}:${p2(tm.minute)}:${p2(tm.second)}` : "–:–:–";
+
 // JSON-Daten verarbeiten, die von EEP exportiert wurden
 // Nur bei geändertem Daten neu darstellen
 let prevText = "";
 function ingest(text) {
   if (text === prevText) return;
-  prevText = text;
 	
   let d;
   try { d = JSON.parse(text); } catch (e) { return status(_("UngueltigesJSON") + ": " + e.message, true); }
   if (!d.global || !d.trains) return status(_("KeinEEPExport"), true);
 
+  prevText = text;
 	data = d; 
 	received = Date.now();
   render(); 
@@ -207,7 +211,7 @@ function render() {
   const tm = g.time || {};
   const w = g.weather || {};
 
-  $("gl").innerHTML = `<b>${p2(tm.hour)}:${p2(tm.minute)}:${p2(tm.second)}</b> ${_("EEPZeit")}`
+  $("gl").innerHTML = `<b>${timeStr(tm)}</b> ${_("EEPZeit")}`
       + ` · EEP ${esc(g.eepVersion)}<br>`
       + `${_("Wolken")} ${w.cloudsIntensity}%`
       + ` · ${_("Nebel")} ${w.fog}%`
@@ -303,7 +307,9 @@ function render() {
 
 // Status: Uhrzeit und Zeit seit Empfang der Daten
 setInterval(() => {
-  if (data) status(_("ExportStatus", `${p2(data.global.time.hour)}:${p2(data.global.time.minute)}:${p2(data.global.time.second)}`, Math.round((Date.now() - received) / 1000)) + " · " + transport);
+  if (!data) return;
+  const t = timeStr(data.global.time);
+  status(_("ExportStatus", t, Math.round((Date.now() - received) / 1000)) + " · " + transport);
 }, 1000);
 
 // Buttons: Gleisplan zentrieren, Gleisinfo anzeigen, Signal oder Weiche gemäß ID anzeigen
@@ -367,7 +373,6 @@ function connectLive() {
   s.onmessage = ev => { if (typeof ev.data === "string") ingest(ev.data); };
 	s.onerror = function(error) {
 		console.log("WebSocket-Verbindungsfehler abgefangen!");
-		// Ihre Fehlerbehandlung hier (z.B. return oder Reconnect-Logik)
 		return;
 	};	
 	s.onclose = () => {
@@ -409,7 +414,6 @@ function useHandle(h) {
   lsSave({src: "file", file: h.name}); 
   showLast();
   idbSet("file", h).catch(() => {});
-  //startPoll(async () => ingest(await (await handle.getFile()).text()));
 	startPoll(async () => ingest(EEP_decode(await (await handle.getFile()).arrayBuffer()))); // incl. Konvertierung von ANSI wenn nötig
 
 }
@@ -430,7 +434,6 @@ $("bUrl").onclick = () => {
   startPoll(async () => {
     const u = $("url").value, r = await fetch(u + (/\?/.test(u) ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
     if (!r.ok) throw new Error("HTTP " + r.status);
-    //ingest(await r.text());
 		ingest(EEP_decode(await r.arrayBuffer())); // incl. Konvertierung von ANSI wenn nötig
   }, wsAddress($("url").value));
 };
@@ -457,7 +460,6 @@ async function once(f) {
   timer = null; 
   lsSave({src: "file", file: f.name}); 
   showLast();
-  ingest(await f.text());
 	ingest(EEP_decode(await f.arrayBuffer())); // incl. Konvertierung von ANSI wenn nötig
 }
 

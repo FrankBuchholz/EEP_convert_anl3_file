@@ -3,13 +3,14 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <META http-equiv="Content-Script-Type" content="text/javascript">
-<title>Inventar zu einer EEP-Anlage-Datei (.anl3) anzeigen</title>
+<title>Inventar zu einer EEP-Anlage-Datei (.anl3 / .zip) anzeigen</title>
 <meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl3-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird der Inhalt ausgegeben.">
 <meta name="author" content="Frank Buchholz">
 <meta name="keywords" content="EEP,.anl3,Inventar" />
 <meta name="language" content="de" />
 <link rel="icon" href="https://www.eepforum.de/images/favicon.ico" type="image/x-icon">
 
+<script type="text/javascript" src="js/EEP_Zip.js"></script> <!-- zip-Dateien entpacken -->
 <script type="text/javascript" src="js/EEP_Texts.js"></script> <!-- Load texts and translations -->
 <script type="text/javascript" src="js/EEP_Icons.js"></script> <!-- Load icons -->
 <link rel="stylesheet" href="css/EEP_Texts.css">
@@ -40,19 +41,25 @@ https://www.tablefilter.com/data-types.html
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <script type="text/javascript"> // Load file
 "use strict";
+// Liefert den Adressraum für Private Network Access, oder null für öffentliche Hosts
+function targetSpace(url) {
+	let h = "";
+	try { h = new URL(url, document.baseURI).hostname.toLowerCase(); } catch (e) { return null; }
+	if (h === "localhost" || h === "[::1]" || /^127\./.test(h)) { return "local"; }
+	if (/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h) || h.endsWith(".local")) { return "private"; }
+	return null;	// öffentlich: Option weglassen
+}
 // Anlage-Datei einmalig von einer URL laden (relativ oder absolut) und wie eine ausgewählte Datei verarbeiten
 function loadUrl(url) {
 	url = (url || "").trim();
 	const status = document.getElementById("urlStatus");
 	if (!url) { status.textContent = "URL?"; return; }
 	try { localStorage.setItem("anl3Url", url); } catch (e) {}
-	status.textContent = "...";
-	fetch(url, {
-			cache: "no-store",
-			method: 'GET',
-			// Zwingend erforderlich für PNA (Private Network Access) im Browser:
-			targetAddressSpace: 'private'
-		})
+	EEP_Zip.setStatus("...", false); // Status zurücksetzen
+	const opts = { cache: "no-store", method: "GET" };
+	const space = targetSpace(url);
+	if (space) { opts.targetAddressSpace = space; }
+	fetch(url, opts)
 		.then(function(r) {
 			if (!r.ok) { throw new Error("HTTP " + r.status); }
 			return r.blob();
@@ -61,11 +68,11 @@ function loadUrl(url) {
 			let name = "";
 			try { name = decodeURIComponent(new URL(url, document.baseURI).pathname.split("/").pop()); } catch (e) {}
 			if (!name) { name = "anlage.anl3"; }
-			status.textContent = "";
+			EEP_Zip.setStatus("...", false); // Status zurücksetzen
 			loadFile(new File([blob], name));
 		})
 		.catch(function(err) {
-			status.textContent = _('Fehler') + ": " + err.message;	// z.B. CORS, file:// oder falsche URL
+			EEP_Zip.setStatus(EEP_Zip.describeError(err, url), true);	// z.B. CORS, file:// oder falsche URL
 		});
 }
 
@@ -82,7 +89,20 @@ document.addEventListener("DOMContentLoaded", function() {
 	if (param) { input.value = param; loadUrl(param); }
 });
 
+// Datei laden und dabei ZIP-Dateien entpacken, falls nötig. Danach wird die Datei wie eine ausgewählte Datei verarbeitet.
 function loadFile(file) {
+	if (file && window.EEP_Zip) {
+		EEP_Zip.resolve(file).then(loadFileInner).catch(function(err) {
+			EEP_Zip.setStatus(EEP_Zip.describeError(err, ""), true);
+			console.log(err);
+		});
+	} else {
+		loadFileInner(file);
+	}
+}
+
+// Datei laden und verarbeiten
+function loadFileInner(file) {
 	let fr;	// upvalue for function processFile
 	if (typeof window.FileReader !== 'function') {
 		e(null, "p", EEP_Texts.getText("err", "001")); // "The file API isn't supported on this browser yet."
@@ -99,7 +119,6 @@ function loadFile(file) {
 
 	// process file (local function to get access to local variable fr)
 	function processFile() {
-
 		// Create parser
 		const parser = new DOMParser();
 		// Parse xml into DOM
@@ -2815,16 +2834,16 @@ button {
 
 <form action='#' onsubmit='return false;'> <!-- better not to use inline listener, explizit register is better -->
 <label for="fileinput">
-<span lang="de">Wähle (auch mit Drag&amp;Drop möglich) und lade eine EEP-Anlage-Datei (.anl3).</span>
-<span lang="en">Select (or use Drag&amp;Drop) and load an EEP file (.anl3).</span>
-<span lang="fr">Sélectionnez un réseau EEP (nom_du_réseau.anl3) ou utilisez la fonction glisser-déposer.</span>
+<span lang="de">Wähle eine EEP-Anlagendatei (.anl3, .zip) aus oder ziehe sie per Drag-and-Drop hierher, um sie zu laden.</span>
+<span lang="en">Select (or use Drag&amp;Drop) to load an EEP layout file (.anl3 / .zip).</span>
+<span lang="fr">Sélectionnez (ou utilisez le Glisser-Déposer) pour charger un fichier de disposition EEP (.anl3, .zip).</span>
 </label>
-	<input type='file' id='fileinput' accept='.anl3' onchange='loadFile(this.files && this.files[0])' />
+	<input type='file' id='fileinput' accept='.anl3,.zip' onchange='loadFile(this.files && this.files[0])' />
 	<br>
 	<label for="urlinput">
-	<span lang="de">oder URL einer EEP-Anlage-Datei (.anl3):</span>
-	<span lang="en">or URL of an EEP file (.anl3):</span>
-	<span lang="fr">ou URL d'un réseau EEP (.anl3):</span>
+	<span lang="de">oder URL einer EEP-Anlagendatei (.anl3 / .zip):</span>
+	<span lang="en">or URL of an EEP layout file (.anl3 / .zip):</span>
+	<span lang="fr">ou l'URL d'un fichier de ressource EEP (.anl3 / .zip):</span>
 	</label>
 	<input type="text" id="urlinput" size="100" style="max-width:100%" value="" />
 	<button type="button" id="btnUrl"><span lang="de">URL laden</span><span lang="en">Load URL</span><span lang="fr">Charger l'URL</span></button>

@@ -22,6 +22,10 @@ Check for updates(on top of #45):
 */
 
 "use strict";
+/* global
+	changeHeightRange:readonly,
+	module:readonly
+*/
 /* Interface
 required standard objects:
 	HTMLInputElement
@@ -146,14 +150,16 @@ multirange.init = function() {
 };
 
 if (typeof module === "undefined") {
+	// Umgebung: Browser
+	// Warte bis die Seite vom Browser geladen und aufgebaut ist, dann initialisiere die Slider
 	self.multirange = multirange;
 	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", multirange.init);
-	}
-	else {
+	} else {
 		multirange.init();
 	}
 } else {
+	// Umgebung: Node.js
 	module.exports = multirange;
 }
 })(this); // end module

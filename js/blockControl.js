@@ -1,5 +1,8 @@
 // Create data for Lua module "blockControl"
 "use strict";
+/* global
+	global:readonly
+*/
 /* Interface
 public api:
 	calculate

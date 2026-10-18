@@ -52,8 +52,18 @@ Einstellung der Linienbreite und der Schriftgröße
 Auswahl der Gleise mit minimalem und maximalen Höhenfilter  
 Farben der Gleissysteme anpassen  
 Anzeige der Fahrstraßen (alle bzw. von bestimmten Start-Signalen oder zu bestimmten Ende-Signalen)  
-Laden der Anlage-Datei per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Gleisplan.html?url=<Adresse der .anl3-Datei>`)  
+Laden der Anlage-Datei (`.anl3` oder `.zip`, siehe unten) per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Gleisplan.html?url=<Adresse der .anl3- oder .zip-Datei>`)  
 Live-Anzeige von Zügen sowie Signal- und Weichenstellungen einer laufenden EEP-Anlage mit Infobox zu Zügen und Fahrzeugen (siehe Programm `EEP_Export_Bridge.html`)
+
+### Zip-Dateien
+
+Anlage-Dateien werden häufig als `.zip`-Archiv angeboten. Beim Laden per Datei-Auswahl, Drag&Drop oder URL kann daher direkt die `.zip`-Datei angegeben werden; ein vorheriges Entpacken ist nicht nötig.
+
+- Das Archiv muss genau eine `.anl3`-Datei enthalten, entweder auf oberster Ebene oder in einem Verzeichnis. Fehlt sie, erscheint eine Fehlermeldung.
+- Ob eine Datei ein zip-Archiv ist, wird am Inhalt erkannt, nicht am Dateinamen. Daher funktionieren auch URLs ohne Endung `.zip`.
+- Der Name der enthaltenen `.anl3`-Datei wird angezeigt und beim Export von Bildern verwendet.
+- Nicht unterstützt werden verschlüsselte Archive und zip64 (Archive über 4 GB).
+- Das Entpacken erfolgt im Browser mit `DecompressionStream`; es wird keine zusätzliche Bibliothek benötigt.
 
 ### Tipp zum Export als svg
 
@@ -93,7 +103,7 @@ Der Filter wird über dynamische Anpassung der CSS-Klassen von SVG-Gruppenelemen
 
 Die Interaktion mit dem Inventar-Programm und der Export Bridge erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel).
 
-Das Laden der Anlage-Datei von einer URL erfolgt mit `fetch`. Bei einer URL auf einem anderen Server muss dieser CORS-Zugriffe erlauben; `file://` funktioniert nicht.
+Das Laden der Anlage-Datei von einer URL erfolgt mit `fetch`. Bei einer URL auf einem anderen Server muss dieser CORS-Zugriffe erlauben; `file://` funktioniert nicht. Schlägt das Laden fehl, wird eine rote Fehlermeldung mit der wahrscheinlichen Ursache angezeigt (z. B. HTTP-Status, fehlende Verbindung, CORS, Mixed Content).
 
 In 2026 wurden mit Hilfe der Claude AI mehrere Korrekturen und Performance-Verbesserungen erarbeitet.
 
@@ -111,7 +121,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 
 [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html")
 
-Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, virtuellen Verbindungen, Zugverbände, Depots, Rollmaterialien, Gleisstile, Gleisobjekte und Kameras ausgegeben. Außerdem werden die Gleisbildstellpulte gezeigt. Die Anlage-Datei kann per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Inventar.html?url=<Adresse der .anl3-Datei>`) geladen werden. Das Programm kann leicht für andere Daten erweitert werden werden.
+Zur Zeit wird eine Liste der Weichen, Signale, Kontakte, virtuellen Verbindungen, Zugverbände, Depots, Rollmaterialien, Gleisstile, Gleisobjekte und Kameras ausgegeben. Außerdem werden die Gleisbildstellpulte gezeigt. Die Anlage-Datei (`.anl3` oder `.zip` mit genau einer `.anl3`-Datei, siehe [Zip-Dateien](#zip-dateien)) kann per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Inventar.html?url=<Adresse der .anl3- oder .zip-Datei>`) geladen werden. Das Programm kann leicht für andere Daten erweitert werden werden.
 
 ### Interaktive Funktionen
 
@@ -129,7 +139,7 @@ Wenn man in einem weiteren Fenster oder einer weiteren Karteikarte des Browsers 
 
 ### Technik
 
-Dieses Programm nutzt die Javascript-Funktion [`DOMParser`](https://www.w3schools.com/xml/xml_parser.asp), um eine`.anl3`-Datei von EEP, die aus [XML](https://www.w3schools.com/xml/xml_tree.asp) aufgebaut ist, zu interpretieren und in das [Document Object Model (DOM)](https://www.w3schools.com/xml/xml_dom.asp) umzuwandeln.
+Dieses Programm nutzt die Javascript-Funktion [`DOMParser`](https://www.w3schools.com/xml/xml_parser.asp), um eine `.anl3`-Datei von EEP, die aus [XML](https://www.w3schools.com/xml/xml_tree.asp) aufgebaut ist, zu interpretieren und in das [Document Object Model (DOM)](https://www.w3schools.com/xml/xml_dom.asp) umzuwandeln.
 
 Zusätzlich wird die GitHub-Bibliothek [`TableFilter`](https://github.com/koalyptus/TableFilter) verwendet, um interaktive Funktionen zur Anzeige der Tabellen anzubieten.
 
