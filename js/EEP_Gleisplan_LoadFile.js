@@ -153,10 +153,23 @@ function loadFileInner(file) {
 			//fr.FileReader.result = null; 	// we do not need the file content anymore, but in strict mode we cannot unset the property directly
 			delete fr.FileReader;			// however, we can remove the whole thing (see http://perfectionkills.com/understanding-delete/ )
 
+			// Prüfung auf gültiges XML: Suche im Ergebnis nach einem <parsererror>-Element bzw. nach dem ersten Element sutrackp.
+			const errorNode = xmlDoc.querySelector("parsererror");
+			if (errorNode) {
+				console.error("Parsing-Fehler:", errorNode.textContent);
+				return;
+			}
+			const rootElement = xmlDoc.documentElement;
+			if (rootElement.nodeName !== "sutrackp") {
+        console.error(`Fehler: Ungültiges Root-Element! Erwartet wird 'sutrackp', gefunden wurde '${rootElement.nodeName}'.`);
+				return;
+			}
+
 			global.timestamp.fileParsed = Date.now();
 			console.log('parse file:' + (global.timestamp.fileParsed - global.timestamp.fileLoaded) / 1000 + 'sec');
 
 			return xmlDoc;
+			
 		}).then(function(xmlDoc) {
 			let progress = document.getElementById("progress");
 

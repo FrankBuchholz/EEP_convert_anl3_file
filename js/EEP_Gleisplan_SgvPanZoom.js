@@ -57,7 +57,7 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 
 	const beforePan = function(oldPan, newPan) {
 		msg();
-		return; // Zoom-in near the border does not work well if we limt pan with fixed gutter
+		return; // Zoom-in near the border does not work well if we limit pan with fixed gutter
 
 		// Limit pan to keep SVG content visible by not allowing panning over SVG borders.
 		const gutterWidth = 100,

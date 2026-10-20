@@ -2,7 +2,8 @@
 "use strict";
 /* global
 	EEP_Texts:readonly,
-	global:readonly
+	global:readonly,
+	scheduleLabelLayout:readonly
 */
 /* Interface
 required standard objects:
@@ -10,7 +11,9 @@ required standard objects:
 	document
 required global data:
 	EEP_Texts
-	global
+	global (global.fontSize wird hier gesetzt)
+required functions:
+	scheduleLabelLayout (js/EEP_Gleisplan_LabelLayout.js)
 public api:
 	changeHeightRange
 	changeStrokeWidth
@@ -42,6 +45,9 @@ function toggleElements(selector, visible) {
 			ele.classList.add("hidden");
 		}
 	}
+
+	// Ausgeblendete Texte stören nicht, eingeblendete schon
+	scheduleLabelLayout();
 }
 
 // Toggle visibility of marker
@@ -182,6 +188,10 @@ function changefontSize(value) {
 		`svg {
 			--normal-font-size: ${4 * factor}px;
 		}`;
+
+	// Schriftgröße in Weltkoordinaten merken und Texte neu entzerren
+	global.fontSize = 4 * factor;
+	scheduleLabelLayout();
 }
 
 function changeHeightRange(valueLow, valueHigh) {
@@ -213,6 +223,9 @@ function changeHeightRange(valueLow, valueHigh) {
 			}
 		}
 	}
+
+	// Texte außerhalb des Höhenbereichs stören nicht
+	scheduleLabelLayout();
 }
 
 function showRoutes(GleissystemID, SignalID, flag) {

@@ -1,11 +1,25 @@
-// DOM2SVG
+// DOM2SVG: Erzeugung der SVG-Elemente des Gleisplans
 "use strict";
 /* global
-	global:readonly, 
-	matrix:readonly, 
+	global:readonly,
+	matrix:readonly,
 	convexhull:readonly,
-	_:readonly, 
-	getKontaktIcon:readonly
+	_:readonly,
+	getKontaktIcon:readonly,
+	TrackSystemText:readonly,
+	getGleisInterval:readonly,
+	loadStaticTexts:readonly,
+	prepareGleissysteme:readonly,
+	calcBezierCurve:readonly,
+	calcBezierPoint:readonly,
+	calcClothoidCurve:readonly,
+	calcHelixCurve:readonly,
+	calcRotatorCurve:readonly,
+	getArcLength3D:readonly,
+	projectFrame:readonly,
+	projectPoint:readonly,
+	registerLabel:readonly,
+	resetLabels:readonly
 */
 /* Interface
 required standard objects:
@@ -15,196 +29,34 @@ required global data:
 	global
 	matrix
 required functions:
-	_
+	_ (js/EEP_Texts.js)
 	convexhull (js/convexhull.js)
-	getKontaktIcon (js/EEP_Gleisplan_DOM2SVG.js)
-global data which is defined here:
-	global.activeTracks
-	global.Couplings
-	global.EEPversion
-	global.EndRouteSignals
-	global.GebaeudesammlungText
-	global.GleisDataText
-	global.Gleisart
-	global.Gleisobjekte
-	global.Gleissysteme
-	global.KameraSet
-	global.KontaktZiele
-	global.Kontakte
-	global.Meldungen
-	global.Rollmaterial
-	global.Routen
-	global.Sounds
-	global.timestamp
-	global.TrackSystem
-	global.TrackSystemCode
-	global.TrackSystemTexts
-	global.Weichen
-	global.WeichenstellungText
-	global.Zugverband
-	global.unsichtbar
-	global.usedArea
-	global.waitingTrains
-	global.__showCircles__ (debugging feature)
-	...
+	getKontaktIcon (js/EEP_Gleisplan_InfoPopup.js)
+	TrackSystemText, getGleisInterval, loadStaticTexts, prepareGleissysteme (js/EEP_Gleisplan_Data.js)
+	calcBezierCurve, calcBezierPoint, calcClothoidCurve, calcHelixCurve, calcRotatorCurve,
+	getArcLength3D, projectFrame, projectPoint (js/EEP_Gleisplan_Geometry.js)
+	registerLabel, resetLabels (js/EEP_Gleisplan_LabelLayout.js)
+public api:
+	createSVG
+global data which is changed here:
+	global.Kontakte, global.KameraSet, global.usedArea, global.timestamp.svgCreated
+	global.__showCircles__ (debugging feature, wird nur gelesen)
 */
 (function(api) {
-// public functions
-api.TrackSystemText = TrackSystemText;
+// public api
 api.createSVG = createSVG;
-api.getCouplingText = getCouplingText;
 
-// Process root node (sutrackp)
-// EEP: Static texts
-
-function TrackSystemText(GleissystemID) {
-	return global.TrackSystemTexts[global.TrackSystem[GleissystemID]];
-}
-	
-function loadStaticTexts() {
-
-global.TrackSystemTexts = { 			// per TrackSystemNumber 1-6 (caution: GleissystemID could show other numbers, too) 
-	1 : _('Eisenbahn'),
-	2 : _('Strassenbahn'),
-	3 : _('Strasse'),
-	4 : _('Wasserwege'),
-	5 : _('Steuerstrecken'),		// nicht in EEP 9
-	6 : _('GBS'),					// nicht in EEP 9
-};
-
-global.Gleisart = { 					// clsid
-	"2E25C8E2-ADCD-469A-942E-7484556FF932" : _('Normal'),
-	"C889EADB-63B5-44A2-AAB9-457424CFF15F" : _('Weiche'),
-	"B0818DD8-5DFD-409F-8022-993FD3C90759" : _('3-Weg-Weiche'),
-	"06D80C90-4E4B-469B-BFE0-509A573EBC99" : _('Prellbock'),
-};
-
-// GleisData
-global.GleisDataText = {
-	1	: _('Oberleitung'),											// 1
-	2	: _('Weichenlaterne verstecken'),							// 2
-	3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),	// 1 + 2 
-	4	: _('Weichenlaterne rechts'),								// 4
-	5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),		// 1 + 4
-	8	: _('Weichenlaterne links'),								// 8
-	9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),		// 1 + 8
-	16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),		//
-	18	: _('Doppelkreuzungsweiche'),								// 
-	19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 
-	20	: _('Straßen-T-Kreuzung'),									// 
-	64	: _('Spezial'),																	//         64 ?
-	65	: _('Oberleitung') + ', ' + _('Spezial'),										// 1 +     64 ?
-	69	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts') + ', ' + _('Spezial'),	// 1 + 4 + 64 ?
-	73	: _('Oberleitung') + ', ' + _('Weichenlaterne links')  + ', ' + _('Spezial'),	// 1 + 8 + 64 ?
-};
-
-// Weichenstellung
-global.WeichenstellungText = {
-	1 : _('Durchfahrt'),
-	2 : _('Abzweig'),
-	3 : _('KoAbzweig'),
-	5 : _('Spezial'),
-};
-
-global.GebaeudesammlungText = {		// GebaeudesammlungID : Text,
-	1 : _('Eisenbahn'),
-	2 : _('Strassenbahn'),
-	3 : _('Strasse'),
-	4 : _('Immobilien'),
-	5 : _('Landschaftselemente'),
-	6 : _('Sonstiges'),			//  (Wasserwege)
-};
-
-} // end function loadStaticTexts
-
-global.TrackSystemCode = { 			// TracksystemID : Code,
-	1 : "Eisenbahn",
-	2 : "Strassenbahn",
-	3 : "Strasse",
-	4 : "Wasserwege",
-	5 : "Steuerstrecken",			// nicht in EEP 9
-	6 : "GBS",						// nicht in EEP 9
-};
-
-/* Gleisstile:
-http://up.picr.de/33875489iu.pdf
-http://bahn.hersacher.de/splinekatalog/spkat_intro.htm
-*/
-global.unsichtbar = [			// unsichtbare Gleisstile
-17,		// \Gleisstile\Sonstiges\Wasserweg_unsichtbar.3dm
-28,		// Gleis
-35,		// Straßenbahn
-34,		// \Gleisstile\Sonstiges\Wasserweg_unsichtbar.3dm
-36,		// \Gleisstile\Strassen\unsichtbar.3dm
-562,	// Gleis
-1309, 	// \Gleisstile\Gleise\Unsichtbar_LW1.3dm
-1346,	// Gleis
-2052,	// \Gleisstile\Gleise\Unsichtbares_Gleis_m_OL_UB3.3dm
-3425, 	// \Gleisstile\Strassen\1Spur_unsichtbar_AS3.3dm
-5100,	// \Gleisstile\Gleise\Unsichtbar_RB2.3dm
-100000,	// Kamerafahrweg
-/*
-18,		// \Gleisstile\Sonstiges\telegraph.3dm
-70,		// \Gleisstile\Sonstiges\Stuetzmauer_Lauscha.3dm
-85,		// \Gleisstile\Strassen\Leitplanke.3dm
-92,		// \Gleisstile\Gleise\Bahnsteig.3dm
-102,	// \Gleisstile\Sonstiges\Gitterzaun.3dm
-134,	// \Gleisstile\Gleise\Bahnsteig_KoelnHbf.3dm
-184,	// \Gleisstile\Sonstiges\Gelaender.3dm
-264,	// \Gleisstile\Gleise\Bahnsteig_Hohenfels.3dm
-731,	// \Gleisstile\Gleise\Bhst900_Kreihnsdoerp.3dm
-732,	// \Gleisstile\Gleise\Bhst1350_Kreihnsdoerp.def
-851,	// \Gleisstile\Sonstiges\851_Gelaender_mit_Stuetze_AF1.3dm
-927,	// \Gleisstile\Sonstiges\Schallschutzwand.3dm
-1246,	// \Gleisstile\Sonstiges\Sicherheitszaun.3dm
-1307,	// \Gleisstile\Sonstiges\Gleis_Abdeckung_C_LW1.3dm
-1380,	// \Gleisstile\Sonstiges\Fuehrungsschiene_R_LW1.3dm
-1381,	// \Gleisstile\Sonstiges\Nur Fahrdraht_MM_LW1.3dm
-1393,	// \Gleisstile\Sonstiges\LW1_Gleis_Fahrdraht_mitte.3dm
-1399,	// \Gleisstile\Sonstiges\LW1_Gleis_Fahrdraht_ende.3dm
-1401,	// \Gleisstile\Sonstiges\LW1_Gleis_Quertraeger_unten.3dm
-1402,	// \Gleisstile\Sonstiges\LW1_Gleis_Quertraeger_oben.3dm
-1412,	// \Gleisstile\Sonstiges\LW1_Gleis_Fahrdraht_anf.3dm
-1414,	// \Gleisstile\Sonstiges\LW1_Gleis_Fahrdraht_spann.3dm
-1445,	// \Gleisstile\Sonstiges\LW1_Gleis_Quertraeger_Stahl_LW1.3dm
-1448,	// \Gleisstile\Sonstiges\LW1_Gleis_Quertraeger_leer.3dm
-1449,	// \Gleisstile\Sonstiges\LW1_Gleis_Schallschutz_Stuetzmauer_LW1.3dm
-1450,	// \Gleisstile\Sonstiges\LW1_Gleis_Spannungsver_A.3dm
-1601,	// \Gleisstile\Sonstiges\1601_Gelaender_mit_Stuetze_AF1.3dm
-1738,	// \Gleisstile\Sonstiges\Kabelkanal1_MA1.3dm
-1958,	// \Gleisstile\Sonstiges\3DVersion\Lattenzaun-3D_SM1.3dm
-1959,	// \Gleisstile\Sonstiges\3DVersion\Jaegerzaun-3D_SM1.3dm
-1974,	// \Gleisstile\Sonstiges\Steinmauer3_SM1.3dm
-1978,	// \Gleisstile\Sonstiges\Arkadenmauer-2gl_SM1.3dm
-1979,	// \Gleisstile\Sonstiges\Arkadenmauer-4gl_SM1.3dm
-1982,	// \Gleisstile\Sonstiges\3DVersion\Arkadenmauer-einseitig-3D_SM1.3dm
-1995,	// \Gleisstile\Sonstiges\Schutzmauer_2_MA1.3dm
-2304,	// \Gleisstile\Sonstiges\DB-Gelaender_SB3.3dm
-2381,	// \Gleisstile\Sonstiges\DB-Gelaender_10_SB3.3dm
-2386,	// \Gleisstile\Sonstiges\Schallschutzwand_grau_SB3.3dm
-2387,	// \Gleisstile\Sonstiges\Schallschutzwand_gruen_SB3.3dm
-2581,	// \Gleisstile\Sonstiges\BMauer_eben_0_HW1.3dm
-5008,	// \Gleisstile\Sonstiges\3DVersion\Sicherheitszaun_mit_Stacheldragt_3D.3dm
-5085,	// \Gleisstile\Sonstiges\3DVersion\Hedge_1m_Cypress.3dm
-5138,	// \Gleisstile\Sonstiges\3DVersion\ParkHotel_Harz_Zaun.3dm
-5145, 5146, 5147, // Farm track
-5213,	// \Gleisstile\Sonstiges\3DVersion\Ebrzgl.3dm
-5261,	// \Gleisstile\Sonstiges\3DVersion\Schutzplanke_einfach_MA1.3dm
-5262,	// \Gleisstile\Sonstiges\3DVersion\Schutzplanke_zweifach_MA1.3dm
-5263,	// \Gleisstile\Sonstiges\3DVersion\Schutzplanke_doppel_MA1.3dm
-5271,	// \Gleisstile\Sonstiges\IndZaun_Zaun_AE1.3dm
-5272,	// \Gleisstile\Sonstiges\IndZaun_Zaun_TT1_AE1.3dm
-5274,	// \Gleisstile\Sonstiges\IndZaun_Zaun_TT3_AE1.3dm
-5602,	// Fence
-7411,	// \Gleisstile\Strassen\Leitpl_3D_mit_Pf_UFS_DH1.3dm
-7412,	// \Gleisstile\Sonstiges\Doppel_T_Trg_30x30_blau_DH1.3dm
-*/
-];
 
 function createSVG(sutrackp, initProgress, incrementProgress) {
+	resetLabels();
 	loadStaticTexts();
 
 	const Gleissysteme = prepareGleissysteme(sutrackp);
+
+	// Zeige die Checkbox für den Kurventyp nur bei Dateien ab EEP 16
+	if (global.EEPversion >= 16) {
+		document.getElementById("CheckboxCurveType").classList.remove("hidden");
+	}
 
 	// Append new svg elements to this root node which we append to the svg node later
 	const SVGfragment = document.createDocumentFragment();
@@ -229,701 +81,6 @@ function createSVG(sutrackp, initProgress, incrementProgress) {
 		return;
 	});
 } // end function createSVG
-
-function prepareGleissysteme(sutrackp) {
-
-	// Verwendeter Bereich der Anlage
-	global.usedArea = {
-		min : {x : 0, y : 0, z : 0},
-		max : {x : 0, y : 0, z : 0},
-	};
-
-	const Version = sutrackp.getElementsByTagName("Version")[0];
-	if (Version) {
-		global.EEPversion = Version.getAttribute("EEP");
-		if (global.EEPversion >= 16) {
-			document.getElementById("CheckboxCurveType").classList.remove("hidden");
-		}
-	}
-
-	// Collections for direct access
-	global.Gleissysteme 	= {};	// Verwendung: Gleis = global.Gleissysteme[GleissystemID][GleisID];
-	global.Meldungen 		= {};
-	global.waitingTrains 	= [], 	// ID (des Zugverbandes), speed
-	global.Weichen 			= {};
-	global.Kontakte			= {};
-	global.KontaktZiele		= {};
-	global.EndRouteSignals	= {};	// Start-route-signals of end-route-signals 
-	global.KameraSet 		= {};	// Verwendung: Kamera = global.KameraSet[index];
-	global.Zugverband 		= {};	// Verwendung: Train = global.Zugverband[GleissystemID][trainName];
-	global.Gleisobjekte		= {};
-	global.Rollmaterial		= {};	// Verwendung: global.Rollmaterial[name] = {clsid, vUeberhang, hUeberhang}
-	global.Routen			= {};
-	global.Sounds			= {};
-	
-	// Schaltverbindungen zwischen Signalen und/oder Weichen
-	global.Couplings 		= {}; 	// SignalData, Schaltverbindung zu einem anderen Signal bzw. Weiche
-	
-	// <Options RouteItems="5" SndId_0="6" SndName_0="ZIEGEN.WAV" SoundItems="1" RouteId_0="1" RouteName_0="Nahverkehr" RouteId_1="2" RouteName_1="Schnellzug" RouteId_2="3" RouteName_2="Gueter" RouteId_3="4" RouteName_3="Nebenbahn" RouteId_4="5" RouteName_4="Sonderzug"/>
-	const Options = sutrackp.getElementsByTagName("Options")[0];
-	const RouteItems = +Options.getAttribute("RouteItems");
-	for (let i = 0; i < RouteItems; i++) {
-		const RouteID	= Options.getAttribute("RouteId_" + i);
-		const RouteName = Options.getAttribute("RouteName_" + i);
-
-		global.Routen[RouteID] = RouteName;
-	}
-	const SoundItems 	= +Options.getAttribute("SoundItems");
-	for (let i = 0; i < SoundItems; i++) {
-		const SoundID 	= Options.getAttribute("SndId_" + i);
-		const SoundName = Options.getAttribute("SndName_" + i);
-
-		global.Sounds[SoundID] = SoundName;
-	}
-
-	// Preparation: Collect "active" tracks
-	const activeTracks = [];		// Gleise, auf denen Züge stehen oder die Kontakte enthalten (Signale werden ignoriert)
-									// oder die mit solchen Gleisen verbunden sind
-	// Preparation: Collect connected tracks
-	const trackConnections = [];	// Gleisverbindungen
-
-	// Preparation: Collect signals on tracks
-	const trackSignals = [];		// Vor- und Hauptsignale
-	// Start-route-signals of end-route-signals 
-
-	const Gleissysteme 	= sutrackp.getElementsByTagName("Gleissystem");
-	for (const Gleissystem of Gleissysteme) {
-		// Use both attributes GleissystemID and TrackSystemNumber if available
-		let GleissystemID     = Gleissystem.getAttribute('GleissystemID');
-		let TrackSystemNumber = Gleissystem.getAttribute('TrackSystemNumber');
-		if (GleissystemID && !TrackSystemNumber) {
-			TrackSystemNumber = GleissystemID;
-		} else if (!GleissystemID && TrackSystemNumber) {
-			GleissystemID = TrackSystemNumber;
-		}
-		
-		// Store relationship between GleissystemID and TrackSystemNumber 
-		if (!global.TrackSystem) {
-			global.TrackSystem = {};
-		}
-		if (!global.TrackSystem[GleissystemID]) {
-			global.TrackSystem[GleissystemID] = TrackSystemNumber;
-		}
-
-		global.Gleissysteme[GleissystemID] = {};
-		activeTracks[GleissystemID] = [];
-		trackSignals[GleissystemID] = [];
-
-		const Gleise 			= Gleissystem.getElementsByTagName("Gleis");
-		for (const Gleis of Gleise) {
-			const GleisID 	= Gleis.getAttribute("GleisID");
-			Gleis.GleissystemID = GleissystemID;
-			global.Gleissysteme[GleissystemID][GleisID] = Gleis;
-
-			// Weichen
-			const WeicheID = Number(Gleis.getAttribute("Key_Id"));
-			if (WeicheID > 0) {
-				Gleis.WeicheID = WeicheID;
-				global.Weichen[WeicheID] = Gleis;
-				//console.log("global.Weichen["+WeicheID+"] on "+GleissystemID+"-"+GleisID)
-				
-				// Schaltverbindung zu einem anderen Signal bzw. Weiche
-				collectCouplings( Gleis, WeicheID );				
-			}
-
-			// Weichen mit KontaktZiel
-			//const KontaktZielEntry 	= Gleis.getElementsByTagName("KontaktZiel")[0]; // Die könnte auch Kontaktziele von Meldungen finden
-			const KontaktZielEntry = Array.from(Gleis.children).find(el => el.tagName === "KontaktZiel");
-			if (KontaktZielEntry) {
-				const KontaktZiel 	= KontaktZielEntry.textContent;
-				if (KontaktZiel != "" && KontaktZiel != 0) {
-					global.KontaktZiele[KontaktZiel] = {
-						Typ				: _('Weiche'),
-						Code				: 'W',	// 1st letter is used to show an svg text.
-						ID				: WeicheID,
-						GleissystemID 	: GleissystemID,
-						GleisID			: GleisID,
-					};
-				}
-			}
-
-			// Collect Meldungen to be able to create individual symbols for Vor- and Hauptsignal
-			for (const Meldung of Gleis.getElementsByTagName("Meldung")) {
-				const SignalID = Number(Meldung.getAttribute("Key_Id"));
-				Meldung.GleissystemID = GleissystemID;
-				Meldung.GleisID = GleisID;
-				global.Meldungen[SignalID] = Meldung;
-
-				if (!trackSignals[GleissystemID][GleisID]) {
-					 trackSignals[GleissystemID][GleisID] = [];
-				}
-				trackSignals[GleissystemID][GleisID].push({Meldung : Meldung});
-				
-				// Signale mit wartenden Zügen 
-				for (const Wartender of Meldung.getElementsByTagName('Wartender')) {
-					const ZugID 		= Wartender.getAttribute('zugverbandID');
-					const targetSpeed 	= +Wartender.getAttribute('sollgeschwindigkeit') * 3600 / 1000; // km/h
-
-					global.waitingTrains[ZugID] = {
-						SignalID		: SignalID,
-						targetSpeed		: targetSpeed,
-					};					
-				}
-				
-				// Signale mit KontaktZiel
-				const KontaktZielEntry 	= Meldung.getElementsByTagName("KontaktZiel")[0];
-				if (KontaktZielEntry) {
-					const KontaktZiel 	= KontaktZielEntry.textContent;
-					if (KontaktZiel != null && KontaktZiel != 0) {
-						global.KontaktZiele[KontaktZiel] = {
-							Typ 			: _('Signal'),
-						Code				: 'S',	// 1st letter is used to show an svg text.
-							ID				: SignalID,
-							GleissystemID 	: GleissystemID,
-							GleisID			: GleisID,
-						};
-					}
-				}
-				
-				// Signale für Fahrstraßen: Suche Start-Signale zu Ende-Signalen 
-				const Routes		= Meldung.getAttribute('Routes');
-				const RouteList	 	= Meldung.getElementsByTagName("Route");
-				let RoutesText = '';
-				for (const Route of RouteList) {
-					const Target 	= Route.getAttribute('Target');
-					const Color 	= Route.getAttribute('Color');
-					
-					if (!global.EndRouteSignals[Target]) {
-						global.EndRouteSignals[Target] = [];
-					}
-					global.EndRouteSignals[Target].push({
-							GleissystemID : GleissystemID,
-							StartSignal : SignalID,
-							Color : Color,
-							Route : Route,
-					});
-				}
-
-				// Schaltverbindung zu einem anderen Signal bzw. Weiche
-				const Signal = Meldung.getElementsByTagName('Signal')[0];
-				collectCouplings( Signal, SignalID );
-			}
-
-			// Signale, die nur zur Anzeige dienen und keine Züge beeinflussen sollen werden gerne auf "inaktive" Gleise gesetzt.
-			// Alternativ könnte man nicht-verbundene Einzelgleise als "inaktive" interpretieren.
-			// A track having a Signal is an "active" track
-			/*
-			for (const Meldung of Gleis.getElementsByTagName("Meldung")) {
-				if (!activeTracks[GleissystemID].includes(GleisID)) {
-					 activeTracks[GleissystemID].push(GleisID);
-				}
-			}
-			*/
-
-			// Kontakte
-			// A track having a Kontakt is an "active" track
-			for (const Kontakt of Gleis.getElementsByTagName("Kontakt")) {
-				if (!activeTracks[GleissystemID].includes(GleisID)) {
-					 activeTracks[GleissystemID].push(GleisID);
-				}
-			}
-		} // Gleise
-
-		// Gleisverbindungen
-		trackConnections[GleissystemID] = [];
-		const Gleisverbindungen = Gleissystem.getElementsByTagName("Gleisverbindung");
-		for (const Gleisverbindung of Gleisverbindungen) {
-			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang" Flags="1"/>
-			// Verwendung:
-			// prevGleisID   		= trackConnections[GleissystemID][GleisID].Anfang.GleisID
-			// prevGleisAnschluss 	= trackConnections[GleissystemID][GleisID].Anfang.Anschluss
-			// nextGleisID   		= trackConnections[GleissystemID][GleisID].Ende.GleisID
-			// nextGleisAnschluss	= trackConnections[GleissystemID][GleisID].Ende.Anschluss
-			// ..
-			const GleisID1 		= Gleisverbindung.getAttribute("GleisID1");
-			const Anschluss1 	= Gleisverbindung.getAttribute("Anschluss1");
-			const GleisID2 		= Gleisverbindung.getAttribute("GleisID2");
-			const Anschluss2 	= Gleisverbindung.getAttribute("Anschluss2");
-			const Flags 		= Gleisverbindung.getAttribute("Flags");		// undefined: normal connection, 1: virtual connection
-
-			// Store relation GleisID1 -> GleisID2
-			if (!trackConnections[GleissystemID][GleisID1]) {
-				 trackConnections[GleissystemID][GleisID1] = {};
-			}
-			trackConnections[GleissystemID][GleisID1][Anschluss1] = { GleisID : GleisID2, Anschluss : Anschluss2, Flags : Flags, Direction : 1 };
-
-			// Store relation GleisID2 -> GleisID1
-			if (!trackConnections[GleissystemID][GleisID2]) {
-				 trackConnections[GleissystemID][GleisID2] = {};
-			}
-			trackConnections[GleissystemID][GleisID2][Anschluss2] = { GleisID : GleisID1, Anschluss : Anschluss1, Flags : Flags, Direction : 2 };
-		}
-	}
-	// Now we are able to show connections on detail popups
-	global.trackConnections = trackConnections;
-
-	// Meldungen analysieren um Fahrstraßen sowie Vor- zu Hauptsignele zu separieren
-	for (const GleissystemID in trackSignals) {
-		for (const GleisID in trackSignals[GleissystemID]) {
-			for (const entry of trackSignals[GleissystemID][GleisID]) {
-				if (entry.signalType) { continue; } // we have added the entry during the loop, however, for..of does not process new entries anyway
-
-				let currentGleisID 	= GleisID;	// Let's start with the current track
-
-				const SignalID		= entry.Meldung.getAttribute("Key_Id");
-				let   Position		= entry.Meldung.getAttribute("Position") / 100; 	// Wert zwischen 0 und Gleis.Laenge
-				let   ParaOderAnti 	= entry.Meldung.getAttribute("ParaOderAnti"); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
-				const Distanz		= entry.Meldung.getElementsByTagName("Signal")[0].getAttribute("wirkungsdistanz") / 100; // immmer positiv
-
-				const Name 			= entry.Meldung.getAttribute("name"); // Fahrstraßen: name = "system\Route_SignalS.3ds" bzw. "system\Route_SignalZ.3ds"
-				const Routes		= entry.Meldung.getAttribute("Routes"); // Fahrstraßen Start: Routes > 0
-
-				// Store signal data
-				entry.SignalID		= SignalID;
-				entry.Position 		= Position;
-				entry.ParaOderAnti 	= ParaOderAnti;
-
-				// Für Fahrstraßen gilt: name="system\Route_SignalS.3ds" für den Start bzw. name="system\Route_SignalZ.3ds" für das Ziel
-				// (Außerdem besitzt die Meldung zu Beginn einer Fahrstraße weitere Elemente <Route> usw.
-				if (Name === "system\\Route_SignalS.3ds") {
-					entry.signalType 	= "FStart";					// Fahrstraße Start
-					continue;
-				} else if (Name === "system\\Route_SignalZ.3ds") {
-					entry.signalType 	= "FZiel";					// Fahrstraße Ziel
-					continue;
-				} else if (Distanz === 0) {
-					entry.signalType 	= "single";					// Einzel-Signal
-					continue;
-				}
-
-				// Store Vorsignal
-				entry.signalType 	= "pre";						// Vorsignal
-
-				// Now we can follow the tracks to find the position of the main signal on the track
-				let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
-				let { near, far, Laenge } = getGleisInterval(Gleis);
-
-				// Do we find the main signal on the same track?
-				Position = Position + Distanz * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
-				if (Position >= 0 && Position <= Laenge) {
-					// The main signal is on the same track
-					trackSignals[GleissystemID][currentGleisID].push({
-						Meldung 		: entry.Meldung,
-						SignalID		: SignalID,
-						signalType 		: "main",
-						Position 		: Position,
-						ParaOderAnti	: ParaOderAnti,
-					});
-					continue;
-				}
-
-				if (Position > Laenge) { 					// look forward
-					Position	= Position - Laenge;		// remaining position on next track
-				} else {									// look backward
-					Position	= -Position;				// remaining position on previous track
-				}
-
-				// The main signal is on a different track
-				while (Position > 0) {
-					let nextGleisID, Anschluss;
-
-					if (!trackConnections[GleissystemID][currentGleisID]) { // should not happen
-						console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}`);
-						break;
-					}
-
-					if (ParaOderAnti == 1) { // look forward
-
-						if (trackConnections[GleissystemID][currentGleisID].Ende) { 
-							nextGleisID		= trackConnections[GleissystemID][currentGleisID].Ende.GleisID;
-							Anschluss		= trackConnections[GleissystemID][currentGleisID].Ende.Anschluss;
-							ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
-						
-						} else if (trackConnections[GleissystemID][currentGleisID].EndeAbzweig) {  // should not happen
-							console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Ende`);
-							nextGleisID		= trackConnections[GleissystemID][currentGleisID].EndeAbzweig.GleisID;
-							Anschluss		= trackConnections[GleissystemID][currentGleisID].EndeAbzweig.Anschluss;
-							ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
-						
-						} else {
-							console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.EndeAbzweig`);
-							break;
-						}
-
-					} else {				// look backward
-
-						if (!trackConnections[GleissystemID][currentGleisID].Anfang) { // should not happen
-							console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Anfang`);
-							break;
-						}
-
-						nextGleisID		= trackConnections[GleissystemID][currentGleisID].Anfang.GleisID;
-						Anschluss		= trackConnections[GleissystemID][currentGleisID].Anfang.Anschluss;
-						ParaOderAnti	= (Anschluss !== "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
-					}
-
-					Gleis 	= global.Gleissysteme[GleissystemID][nextGleisID];
-					if (!Gleis) { // should not happen
-						console.log(`Error: Signal ${SignalID} no track for ${GleissystemID}-${nextGleisID}`);
-						break;
-					}
-
-					let { near, far, Laenge } = getGleisInterval(Gleis);
-
-					if (Position <= Laenge) {
-						// The main signal is on the this track
-						if (!trackSignals[GleissystemID][nextGleisID]) {
-							 trackSignals[GleissystemID][nextGleisID] = [];
-						}
-						trackSignals[GleissystemID][nextGleisID].push({
-							Meldung 		: entry.Meldung,
-							SignalID		: SignalID,
-							signalType 		: "main",
-							Position 		: (Anschluss === "Anfang" ? Position : Laenge - Position),
-							ParaOderAnti	: ParaOderAnti,
-						});
-						break;
-
-					} else {
-						// keep going
-						currentGleisID 	= nextGleisID;
-						Position 		= Position - Laenge;
-					}
-				} // while searching for tracks
-
-				// Now we can follow the tracks to find the position of the stop point on the track (duplicate code as above)
-				const StopAt 	= entry.Meldung.getElementsByTagName("Signal")[0].getAttribute("StopAt") / 100; // immmer positiv
-				if (StopAt > 0) {
-					let currentGleisID 	= GleisID;	// Let's start with the current track
-					let Position		= entry.Meldung.getAttribute("Position") / 100; 	// Wert zwischen 0 und Gleis.Laenge
-					let ParaOderAnti 	= entry.Meldung.getAttribute("ParaOderAnti"); 	//Gleisrichtung: 0 = Ende -> Anfang, 1 = Anfang -> Ende
-					let Gleis 	= global.Gleissysteme[GleissystemID][currentGleisID];	// current track
-					let { near, far, Laenge } = getGleisInterval(Gleis);
-					// Do we find the stop position on the same track?
-					Position = Position + (Distanz - StopAt) * (ParaOderAnti == 1 ? 1 : -1) * (near > far ? -1 : 1);	//###
-					if (Position >= 0 && Position <= Laenge) {
-						// The stop point is on the same track
-						trackSignals[GleissystemID][currentGleisID].push({
-							Meldung 		: entry.Meldung,
-							SignalID		: SignalID,
-							signalType 		: "StopAt",
-							Position 		: Position,
-							ParaOderAnti	: ParaOderAnti,
-						});
-						continue;
-					}
-
-					if (Position > Laenge) { 					// look forward
-						Position	= Position - Laenge;		// remaining position on next track
-					} else {									// look backward
-						Position	= -Position;				// remaining position on previous track
-					}
-
-					// The stop point is on a different track
-					while (Position > 0) {
-						let nextGleisID, Anschluss;
-
-						if (!trackConnections[GleissystemID][currentGleisID]) { // should not happen
-							console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}`);
-							break;
-						}
-
-						if (ParaOderAnti == 1) { // look forward
-
-							if (trackConnections[GleissystemID][currentGleisID].Ende) { 
-								nextGleisID		= trackConnections[GleissystemID][currentGleisID].Ende.GleisID;
-								Anschluss		= trackConnections[GleissystemID][currentGleisID].Ende.Anschluss;
-								ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
-							
-							} else if (trackConnections[GleissystemID][currentGleisID].EndeAbzweig) {  // should not happen
-								console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Ende`);
-								nextGleisID		= trackConnections[GleissystemID][currentGleisID].EndeAbzweig.GleisID;
-								Anschluss		= trackConnections[GleissystemID][currentGleisID].EndeAbzweig.Anschluss;
-								ParaOderAnti	= (Anschluss === "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
-							
-							} else {
-								console.log(`Error: no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.EndeAbzweig`);
-								break;
-							}
-
-						} else {				// look backward
-
-							if (!trackConnections[GleissystemID][currentGleisID].Anfang) { // should not happen
-								console.log(`Error: Signal ${SignalID} no connected track for ${TrackSystemText(GleissystemID)} ${currentGleisID}.Anfang`);
-								break;
-							}
-
-							nextGleisID		= trackConnections[GleissystemID][currentGleisID].Anfang.GleisID;
-							Anschluss		= trackConnections[GleissystemID][currentGleisID].Anfang.Anschluss;
-							ParaOderAnti	= (Anschluss !== "Anfang" ? ParaOderAnti : 1-ParaOderAnti);
-						}
-
-						Gleis 	= global.Gleissysteme[GleissystemID][nextGleisID];
-						if (!Gleis) { // should not happen
-							console.log(`Error: Signal ${SignalID} no track for ${GleissystemID}-${nextGleisID}`);
-							break;
-						}
-
-						let { near, far, Laenge } = getGleisInterval(Gleis);
-
-						if (Position <= Laenge) {
-							// The main signal is on the this track
-							if (!trackSignals[GleissystemID][nextGleisID]) {
-								 trackSignals[GleissystemID][nextGleisID] = [];
-							}
-							trackSignals[GleissystemID][nextGleisID].push({
-								Meldung 		: entry.Meldung,
-								SignalID		: SignalID,
-								signalType 		: "StopAt",
-								Position 		: (Anschluss === "Anfang" ? Position : Laenge - Position),
-								ParaOderAnti	: ParaOderAnti,
-							});
-							break;
-
-						} else {
-							// keep going
-							currentGleisID 	= nextGleisID;
-							Position 		= Position - Laenge;
-						}
-					} // while searching for tracks
-				}
-
-
-			} // Signale
-		} // Gleise
-	} // Gleissysteme
-
-	// Now we are able to show all signals in the svg-output
-	global.trackSignals = trackSignals;
-
-	// Analyse Fuhrpark to identify "active" tracks
-	const Fuhrpark = sutrackp.getElementsByTagName("Fuhrpark")[0];
-	if (Fuhrpark) {
-	for (const Zugverband of Fuhrpark.getElementsByTagName("Zugverband")) {
-		// <Gleisort gleissystemID="3" gleisID="41" parameter="1177.944" ausrichtung="0"/>
-		const Gleisort		= Zugverband.getElementsByTagName("Gleisort")[0];
-		const GleissystemID	= Gleisort.getAttribute("gleissystemID");
-		const GleisID		= Gleisort.getAttribute("gleisID");
-
-		// A track with a Zugverband is an "active" track
-		if (!activeTracks[GleissystemID].includes(GleisID)) {
-			 activeTracks[GleissystemID].push(GleisID);
-		}
-		
-		// Store Zugverband (used by blockControl)
-		if (!global.Zugverband[GleissystemID]) {
-			global.Zugverband[GleissystemID] = {};
-		}
-		const trainName		= Zugverband.getAttribute("name");
-
-		// Current speed
-		const currentSpeed 	= +Zugverband.getAttribute('Geschwindigkeit') * 3600 / 1000;		// km/h
-		const lastDir 		= Zugverband.getAttribute('LastDir');	// if currentSpeed is zero: currentSpeed = (lastDir == 1 ? '+0' : '-0')
-
-		// Target speed as long as the train is not influenced by a signal
-		let targetSpeed 	= +Zugverband.getAttribute('sollgeschwindigkeit') * 3600 / 1000;	// km/h
-
-		// Target speed for trains which are influenced by a signal
-		// <Signal>...<Wartender fuhrparkID="1" zugverbandID="7" sollgeschwindigkeit="11.11111"/>
-		const ZugID			= Zugverband.getAttribute('ZugID');
-		const waitingTrain 	= global.waitingTrains[ZugID];
-		if (waitingTrain && waitingTrain.speed != 0) {
-			targetSpeed = waitingTrain.targetSpeed;
-		}
-		
-		const depot			= Zugverband.getAttribute("Hide");
-
-		const position		= Gleisort.getAttribute("parameter") / 100; 	// m
-		const direction		= Gleisort.getAttribute("ausrichtung");
-
-		const routeID		= Zugverband.getAttribute("Route");
-		const routeName		= global.Routen[routeID] || "";
-
-		// Rollmaterial: vorderer und hinterer Überhang (in der Datei in cm, hier in m)
-		// clsid	Legt die Art des Rollmaterials fest
-		//   16095510-0EAB-46AF-B294-CBB6D3516007	angetrieben
-		//   7B0D0A3A-0882-44D6-B3E7-45D933A70F74	nicht angetrieben
-		// vUeberhang	Vorderer Überhang in cm (ausgehend vom vorderen Radsatz)
-		// hUeberhang	Hinterer Überhang in cm (ausgehend ebenfalls vom vorderen Radsatz)
-		/* Beispiel
-		<Rollmaterial clsid="16095510-0EAB-46AF-B294-CBB6D3516007" ausrichtung="1" bremsung="0" Flags="12" Masse="87000" Reibung="25" maxbremsung="150" vUeberhang="979" hUeberhang="979" TotalDist="0" name="Lokomotion 189.917 EpVI" typ="SCHIENE\LOKOMOTIVEN\LM_189-917_VI_SB3.3dm" LightStat="-218234880" Hook="0" Active="1" RollIdx="34" Favorite="0" ActCabin="1" ImmoIdx="0" zuStellung="0" Wartender="0" LockEd="0">
-		
-		Anlage:
-		EEP15_Bitte-Einsteigen Export.anl3
-		
-		#Zug Rheingold, Länge: 113.6m, Fahrzeuge: 6
-		<Zugverband ZugID="30" Geschwindigkeit="2.427589" autopilot="1" sollgeschwindigkeit="0" sollgeschwindigkeit_kp="0" wirkungsdistanz="2207.184" kupplungvorn="2" kupplunghinten="2" Route="0" LastDir="1" StepStop="-1" clsid="6FE10FB0-A974-4620-B7A5-D7D047A7903B" name="#Zug Rheingold" LightStat="0" Hide="-1" Favorite="1">
-
-		Schlepptenderlok, Länge: 13.69m, Ausrichtung: vorwärts
-		<Rollmaterial clsid="16095510-0EAB-46AF-B294-CBB6D3516007" ausrichtung="1" bremsung="0.8604586" Flags="12" Masse="85000" Reibung="15" maxbremsung="97" vUeberhang="705" hUeberhang="663.793" TotalDist="4407" name="Bayerische S 3/6 (BR 18 478)" typ="SCHIENE\LOKOMOTIVEN\BAYERISCHES3-6_SM2.3dm" LightStat="-214040512" Hook="0" Active="1" RollIdx="64" Favorite="0" ImmoIdx="0" zuStellung="0" Wartender="0" LockEd="0">
- 
-		Tender, Länge: 9.21m, Ausrichtung: vorwärts
-		<Rollmaterial clsid="7B0D0A3A-0882-44D6-B3E7-45D933A70F74" ausrichtung="1" bremsung="0.8604585" Flags="12" Masse="63000" Reibung="8" maxbremsung="56" vUeberhang="419.81" hUeberhang="501" TotalDist="4392" name="Bayerische S 3/6 - Tender (BR 18 478)" typ="SCHIENE\TENDER\BAYERISCHES3-6_TNDR_SM2.3dm" LightStat="-214040512" Hook="0" Active="1" RollIdx="65" Favorite="0" ImmoIdx="0" zuStellung="0" Wartender="0" LockEd="0">
-
-		Personenwaggon, Länge: 23.65m, Ausrichtung: vorwärts
-		<Rollmaterial clsid="7B0D0A3A-0882-44D6-B3E7-45D933A70F74" ausrichtung="1" bremsung="0.8604585" Flags="12" Masse="63000" Reibung="8" maxbremsung="56" vUeberhang="419.81" hUeberhang="501" TotalDist="4392" name="Bayerische S 3/6 - Tender (BR 18 478)" typ="SCHIENE\TENDER\BAYERISCHES3-6_TNDR_SM2.3dm" LightStat="-214040512" Hook="0" Active="1" RollIdx="65" Favorite="0" ImmoIdx="0" zuStellung="0" Wartender="0" LockEd="0">
-
-		*/
-		for (const Rollmaterial of Zugverband.getElementsByTagName("Rollmaterial")) {
-			const rName = Rollmaterial.getAttribute("name");
-			if (rName) {
-				global.Rollmaterial[rName] = {
-					angetrieben : Rollmaterial.getAttribute("clsid") == "16095510-0EAB-46AF-B294-CBB6D3516007",
-					vUeberhang : (+Rollmaterial.getAttribute("vUeberhang") || 0) / 100,
-					hUeberhang : (+Rollmaterial.getAttribute("hUeberhang") || 0) / 100,
-				};
-			}
-		}
-
-		global.Zugverband[GleissystemID][trainName] = {
-			// train data
-			routeName		: routeName,
-
-			currentSpeed	: currentSpeed,
-			lastDir			: lastDir,		
-
-			targetSpeed		: targetSpeed,
-
-			// position of train
-			GleisID		: GleisID,
-			position	: position,
-			direction	: direction,
-			depot		: depot,
-		}
-		
-	}
-	}
-
-	// Lade Kollektor-Einträge, die Gleise miteinander verbinden, z.B. bei bestimmten Drehscheiben
-	/* Beispiel:
-	<Kollektor id="8">
-		<Gleis gleisID="171" gleissystemID="1"/>
-		<Gleis gleisID="172" gleissystemID="1"/>
-		<Gleis gleisID="173" gleissystemID="1"/>
-		...
-	</Kollektor>
-	*/
-	const Gleisobjekte = {};
-	let countGleisobjekte = 0;
-	const KollektorTracks = {};
-	for (const Kollektor of sutrackp.getElementsByTagName("Kollektor")) {
-		const KollektorID = Kollektor.getAttribute("id");
-
-		const Dreibein 	= Kollektor.getElementsByTagName("Dreibein")[0];
-		const Vektor 	= Dreibein.getElementsByTagName("Vektor")[0];
-		const PosX 		= +Vektor.getAttribute("x") / 100;
-		const PosY 		= +Vektor.getAttribute("y") / 100;
-		const PosZ 		= +Vektor.getAttribute("z") / 100;
-
-		const Kollektors = Kollektor.getElementsByTagName("Gleis");
-
-		for (const Gleis of Kollektors) {
-			const GleissystemID = Gleis.getAttribute("gleissystemID");
-			const GleisID 		= Gleis.getAttribute("gleisID");
-
-			// First entry of Kollektor
-			if (!Gleisobjekte[KollektorID]) {
-				countGleisobjekte += 1;
-				Gleisobjekte[KollektorID] = {
-					GleissystemID 	: GleissystemID,
-					PosX 			: PosX,
-					PosY 			: PosY,
-					PosZ 			: PosZ,
-					Gleise 			: [],
-				};
-			}
-			// Store Gleis of Kollektor
-			Gleisobjekte[KollektorID].Gleise.push({GleissystemID : GleissystemID, GleisID : GleisID, });
-
-			// connected tracks
-			// First entry of Gleissystem
-			if (!KollektorTracks[GleissystemID]) {
-				KollektorTracks[GleissystemID] = {};
-			}
-			// New Gleis (we assume that a Gleis is part of exactly 1 Gleisobjekt only)
-			KollektorTracks[GleissystemID][GleisID] = [];
-			KollektorTracks[GleissystemID][GleisID].KollektorID = KollektorID;
-			// connected tracks
-			for (const Gleis of Kollektor.getElementsByTagName("Gleis")) {
-				const GleissystemID2 = Gleis.getAttribute("gleissystemID");
-				const GleisID2 		 = Gleis.getAttribute("gleisID");
-				if (GleisID !== GleisID2) {
-					KollektorTracks[GleissystemID][GleisID].push({
-						GleissystemID : GleissystemID2,
-						GleisID : GleisID2,
-					});
-				}
-			}
-		}
-	}
-
-	// Load Immobilien if there exist Gleisobjekte
-	if (countGleisobjekte > 0) { //# How to identity empty objects?
-		for (const Gebaeudesammlung of sutrackp.getElementsByTagName("Gebaeudesammlung")) {
-			const GebaudesammlungID = Gebaeudesammlung.getAttribute("GebaudesammlungID");
-			for (const Immobile of Gebaeudesammlung.getElementsByTagName("Immobile")) {
-				const KollektorID 	= Immobile.getAttribute("kollektorID");
-				if (KollektorID) {
-					const ImmoIdx 	= Immobile.getAttribute("ImmoIdx");
-					const gsbname 	= Immobile.getAttribute("gsbname");
-
-					// Take care of inconsistend data: Immobilie without Kollektor
-					if (!Gleisobjekte[KollektorID]) {
-						Gleisobjekte[KollektorID] = { Error : 'missing Collector', };
-					}
-
-					Gleisobjekte[KollektorID].GebaudesammlungID	= GebaudesammlungID;
-					Gleisobjekte[KollektorID].ImmoIdx 			= ImmoIdx;
-					Gleisobjekte[KollektorID].gsbname 			= gsbname;
-				}
-			}
-		}
-	}
-	global.Gleisobjekte = Gleisobjekte;
-	global.KollektorTracks = KollektorTracks;
-
-	// Add connected tracks as "active" tracks because they can be reached by trains as well
-	for (const GleissystemID in activeTracks) {
-		const usedGleiseArray = activeTracks[GleissystemID];
-
-		// Extend "active" tracks
-		for (let i = 0; i < usedGleiseArray.length; i++){ // old-fashioned for statement because we need to extend the array within the loop
-			const GleisID1 = usedGleiseArray[i];
-
-			// Get connected tracks of "active" tracks
-			const connectedTracks = trackConnections[GleissystemID][GleisID1];
-			if (connectedTracks) {
-				for (const Anschluss in connectedTracks) {
-					// Add new connected tracks
-					// These tracks will be processed, too
-					if (!activeTracks[GleissystemID].includes(connectedTracks[Anschluss].GleisID)) {
-						 activeTracks[GleissystemID].push(connectedTracks[Anschluss].GleisID);
-					}
-				}
-			}
-
-			// Get related tracks from Kollektors
-			if (KollektorTracks[GleissystemID]) {
-				const collectedTracks = KollektorTracks[GleissystemID][GleisID1];
-				if (collectedTracks) {
-					for (const Gleis of collectedTracks) {
-						// Add new connected tracks
-						// These tracks will be processed, too
-						if (!activeTracks[Gleis.GleissystemID].includes(Gleis.GleisID)) {
-							 activeTracks[Gleis.GleissystemID].push(Gleis.GleisID);
-						}
-					}
-				}
-			}
-
-
-		}
-	}
-	// Now we are able to mark all "active" tracks in the svg-output
-	global.activeTracks = activeTracks;
-
-	return Gleissysteme;
-} // end function prepareGleissysteme
 
 function createSVGforGleissystem(Gleissystem, SVGfragment) {
 
@@ -2230,7 +1387,7 @@ if (near > far) { //###
 			let Code = "W";
 			if (GleisData == 18 || GleisData == 19) { Code = "DWK"; }
 			if (GleisData == 20 || GleisData == 21) { Code = "T-W"; }
-			svgAppend(svgGleisGroup, {
+			registerLabel(svgAppend(svgGleisGroup, {
 				svg_tag			: `text`,
 				id				: `W${Key_Id}`,
 				text			: `${Code}${Key_Id}`,
@@ -2238,7 +1395,7 @@ if (near > far) { //###
 				"class"			: `WeicheText` + (near > far ? "" : ` text-anchor-end`),	//###
 				transform 		: matrixToTransform(Gleis.mEnd)
 								  + flipText,
-			});
+			}), { kind: "weiche", anchor: (near > far ? "start" : "end") });	// Text kann bei Überlappung verschoben werden (EEP_Gleisplan_LabelLayout.js)
 		}
 
 		// Calculate mid point
@@ -2343,7 +1500,7 @@ if (CurveType == "Helix" ) {
 		});
 		
 		// show GleisID in the middle above the track (left-adjusted)
-		svgAppend(svgGleisMid, {
+		registerLabel(svgAppend(svgGleisMid, {
 			svg_tag				: `text`,
 			text				: `${GleisID}` + flipInfo,
 			dx					: `-0.5em`, 	// Shift text left to move it a little bit towards the center
@@ -2351,10 +1508,10 @@ if (CurveType == "Helix" ) {
 			"class"				: `GleisID`,
 			//transform			: matrixToTransform(Gleis.mMid) 
  			//					  + flipText,
-		});
+		}), { kind: "gleis", anchor: "start" });
 		// show CurveType in the middle above the track (right-adjusted)
 		if (CurveType != 'classic' && CurveType != 'EEPCurve') {
-		svgAppend(svgGleisMid, {
+		registerLabel(svgAppend(svgGleisMid, {
 			svg_tag				: `text`,
 			text				: `${CurveType}`,
 			dx					: `-0.7em`, 	// Shift text left to get away from GleisID
@@ -2362,10 +1519,10 @@ if (CurveType == "Helix" ) {
 			"class"				: `CurveType`,
 			//transform			: matrixToTransform(Gleis.mMid) 
  			//					  + flipText,
-		});
+		}), { kind: "gleis", anchor: "end" });
 		}
 		// show Gleisstil in the middle below the track (right-adjusted)
-		svgAppend(svgGleisMid, {
+		registerLabel(svgAppend(svgGleisMid, {
 			svg_tag				: `text`,
 			text				: `${stil}`,
 			dx					: `-0.1em`, 	// Shift text left a little bit
@@ -2373,9 +1530,9 @@ if (CurveType == "Helix" ) {
 			"class"				: `Stil`,
 			//transform			: matrixToTransform(Gleis.mMid) 
  			//					  + flipText,
-		});
+		}), { kind: "gleis", anchor: "end" });
 		// show Hoehe in the middle below the track (left-adjusted)
-		svgAppend(svgGleisMid, {
+		registerLabel(svgAppend(svgGleisMid, {
 			svg_tag				: `text`,
 			text				: `[${mMatrix[posZ].toFixed(2)}m]`,
 			dx					: `+0.1em`, 	// Shift text right a little bit
@@ -2383,7 +1540,7 @@ if (CurveType == "Helix" ) {
 			"class"				: `Hoehe`,
 			//transform			: matrixToTransform(Gleis.mMid) 
  			//					  + flipText,
-		});
+		}), { kind: "gleis", anchor: "start" });
 
 		if (global.__showCircles__) {	// debugging feature
 			if (Gleis.BezierPoints) { // Debugging for CurveType: Cubic, Spline, PolygonalChain, Rotator
@@ -2571,7 +1728,7 @@ if (CurveType == "Helix" ) {
 			
 			// Show text of Signal / Fahrstraße
 			if (signalType !== "pre") { // do not show any text for pre-signals or stop points
-			svgAppend(svgSignalGroup, {
+			registerLabel(svgAppend(svgSignalGroup, {
 				svg_tag				: `text`,
 				text				: (	  signalType === "FStart"	? _('FStartKurz')
 										: signalType === "FZiel"	? _('FZielKurz')
@@ -2582,11 +1739,11 @@ if (CurveType == "Helix" ) {
 										+ SignalID
 										+ (signalType === "pre" ? ` ${Distanz.toFixed(0)}m` : ``)
 										,
-				"dy"				: `-2.3`, 									// Shift text above the symbol
+				"dy"				: `-2.3`, 								// Shift text above the symbol (fixed distance: the baseline matches the fixed height of the symbol)
 				transform 			: //matrixToTransform(Meldung.mPos)
 										//+ 
 										flipText,
-			});
+			}), { kind: "signal", anchor: "middle" });
 			} // do not show any text for pre-signals
 
 		}} // Signale
@@ -2725,15 +1882,15 @@ if (CurveType == "Helix" ) {
 			
 			// Show text on one side only
 			if (KontaktTypText != "") {
-				svgAppend(svgKontaktGroup, {
+				registerLabel(svgAppend(svgKontaktGroup, {
 					svg_tag				: `text`,
 					text				:  KontaktTypText,
-					"dy"				: `-2.3`, 													// Shift text above the symbol
+					"dy"				: `-2.3`, 												// Shift text above the symbol (fixed distance: the baseline matches the fixed height of the symbol)
 					transform 			: //matrixToTransform(Kontakt.mPos)
 											//+ 
 											(ParaOderAnti !== fireOnPara ? ` rotate(180)` :"")		// Rotate text to the side of the symbol
 											+ flipText,
-				});
+				}), { kind: "kontakt", anchor: "middle" });
 			}
 
 		} // Kontakte
@@ -3199,26 +2356,6 @@ function createSVGforRahmen(SVGfragment, sutrackp) {
 	});
 }
 
-// Claude AI: near/far/Laenge werden pro Gleis an mehreren Stellen erneut aus dem DOM gelesen (Haupt-Rendering, Vorsignal->Hauptsignal-Suche, StopAt-Suche). Bei jedem Zugriff wird erneut 
-// getElementsByTagName("Interval") bzw. "Charakteristik" durchsucht. Für große Anlagen mit tausenden Gleisen und langen Signal-Suchketten summiert sich das spürbar.
-// Fix: Ergebnis einmalig am Gleis-Objekt selbst zwischenspeichern (DOM-Elemente erlauben beliebige zusätzliche Eigenschaften, wie es der Code an anderer Stelle bereits mit 
-// Gleis.CurveType, Gleis.mPos usw. tut).
-function getGleisInterval(Gleis) {
-	if (Gleis.near === undefined) {	// Erstzugriff: einmalig berechnen und cachen
-		if (global.EEPversion && global.EEPversion >= 16) { /* EEP 16 */
-			const Interval = Gleis.getElementsByTagName("Interval")[0];
-			Gleis.near = +Interval.getAttribute("near");
-			Gleis.far  = +Interval.getAttribute("far");
-		} else {  /* EEP 15 */
-			const Charakteristik = Gleis.getElementsByTagName("Charakteristik")[0];
-			Gleis.near = 0;
-			Gleis.far  = +Charakteristik.getAttribute("Laenge") / 100;
-		}
-		Gleis.Laenge = Math.abs(Gleis.far - Gleis.near);
-	}
-	return { near: Gleis.near, far: Gleis.far, Laenge: Gleis.Laenge };
-}
-
 // Generate matrix command for svg
 function matrixToTransform(m) {
 	//       `matrix(${DirX} ${DirY} ${NorX} ${NorY} ${PosX} ${PosY})`
@@ -3240,404 +2377,6 @@ transform="matrix(cos(α),sin(α),-sin(α),cos(α),x,y) matrix(1,0,0,1,-x,-y)" e
 			BinX, BinY, BinZ, b0,
 			PosX, PosY, PosZ, scale ] = m;
 	return `matrix(${DirX} ${-DirY} ${NorX} ${-NorY} ${PosX} ${-PosY})`;	// svg: mirrored y-coordinate
-}
-
-// Claude AI: Projiziert einen lokalen Punkt [x, y, z] vollständig über das 3D-Frame (Dir/Nor/Bin + Pos) des Gleises in Welt-Koordinaten.
-// Im Unterschied zu matrixToTransform() geht hier auch der Bin-Anteil (lokales z) korrekt ein - relevant bei stark gekippten Frames (steile Rotator/Helix-Abschnitte).
-function projectPoint(mMatrix, point) {
-	// point = [x, y, z] in lokalen Koordinaten des Gleises
-	const mPoint = matrix.multiply(mMatrix, matrix.translate(point[0], point[1], point[2]));
-	return [ mPoint[12], -mPoint[13] ];	// svg: gespiegelte y-Koordinate, wie in matrixToTransform()
-}
-
-// Claude AI: Projiziert einen lokalen Punkt [x, y, z] + Rotationswinkel über das 3D-Frame (mMatrix) in eine vollständige Welt-Matrix (Position + Orientierung). 
-// Wird für Kurvenmittelpunkt, Signal- und Kontaktpositionen verwendet, deren Winkel je nach CurveType aus Bezier-, Arc- oder Clothoid-Berechnung stammen kann.
-function projectFrame(mMatrix, point, angle) {
-	return [
-			mMatrix,
-			matrix.translate(point[0], point[1], point[2]),
-			matrix.rotateZ(angle),
-		].reduce(matrix.multiply);
-}
-
-// Claude AI: 3D-Bogenlänge einer kubischen Bezierkurve (statt bisher nur 2D über getArcLength(xs, ys)).
-// Notwendig, weil bei stark geneigten Gleisabschnitten (z.B. Rotator/Helix mit hohem lokalem z-Anteil) die reale 3D-Länge spürbar von der reinen xy-Projektion abweicht. 
-// Da diese Länge in calcBezierPoint() zur Positionierung von Signalen/Kontakten entlang der Strecke verwendet wird,
-// führte die 2D-Näherung dort zu leicht falsch platzierten Symbolen.
-// Eine Gauss-Legendre-Quadratur mit 8 Stützstellen ist für glatte kubische Bezierkurven ausreichend genau.
-function getArcLength3D(xs, ys, zs) {
-	const GAUSS_LEGENDRE_8 = [ // [Gewicht, Abszisse] auf Intervall [-1, 1]
-		[0.362683783378362, -0.181901910219818],
-		[0.362683783378362,  0.181901910219818],
-		[0.313706645877887, -0.539981529582510],
-		[0.313706645877887,  0.539981529582510],
-		[0.222381034453374, -0.906179845938664],
-		[0.222381034453374,  0.906179845938664],
-		[0.101228536290376, -0.973906528517172],
-		[0.101228536290376,  0.973906528517172],
-	];
-
-	// xs, ys, zs = [P0, P1, P2, P3] je Achse (kubische Bezier-Kontrollpunkte)
-	function derivative(t, P0, P1, P2, P3) {
-		// P'(t) = 3(1-t)^2 (P1-P0) + 6(1-t)t (P2-P1) + 3t^2 (P3-P2)
-		const mt = 1 - t;
-		return 3*mt*mt*(P1-P0) + 6*mt*t*(P2-P1) + 3*t*t*(P3-P2);
-	}
-
-	let length = 0;
-	for (const [weight, x] of GAUSS_LEGENDRE_8) {
-		const t  = 0.5 * (x + 1);				// von [-1,1] auf [0,1] abbilden
-		const dx = derivative(t, xs[0], xs[1], xs[2], xs[3]);
-		const dy = derivative(t, ys[0], ys[1], ys[2], ys[3]);
-		const dz = derivative(t, zs[0], zs[1], zs[2], zs[3]);
-		length += weight * Math.hypot(dx, dy, dz);
-	}
-	return length * 0.5;	// Faktor 0.5 aus der Intervall-Transformation [-1,1] -> [0,1]
-}
-
-function calcBezierPoint(BezierPointsArray, position, near, far) {
-	// find position on bezier curve
-	let lengthPrevSegments = 0.0;
-	for (let I = 0; I < BezierPointsArray.length; I++) {
-	
-		const Index = (near > far ? BezierPointsArray.length - 1 - I : I);	// reverse / normal
-		const BezierPoints = BezierPointsArray[Index];
-
-		// BezierPoints = [ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z], arcLength ];
-		const arcLength = BezierPoints[4];
-
-		if ( I + 1 == BezierPointsArray.length || 			// assertion to end the loop in case of rounding issues
-			 lengthPrevSegments + arcLength >= position		// does this segment contains the position?
-		   ) {
-			// find relative position on this segment		// assertion to stay in interval [0, 1]
-			const t = Math.min( Math.max( (position - lengthPrevSegments) / arcLength , 0), 1);
-			// [DeltaX, DeltaY, DeltaZ, Winkel] calcBezierCurve(BezierPoints, t); 
-			return calcBezierCurve(BezierPoints, t); 
-
-		} else {
-			// continue with next segment
-			lengthPrevSegments += arcLength;
-		}
-	}
-}
-
-function calcBezierCurve(BezierPoints, t) {
-	// BezierPoints = [ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z], arcLength ];
-	const B1X = BezierPoints[0][0]; // = aX;
-	const B1Y = BezierPoints[0][1]; // = aY;
-	const B1Z = BezierPoints[0][2]; // = aZ;
-	const B2X = BezierPoints[1][0]; // = aX +bX/3;
-	const B2Y = BezierPoints[1][1]; // = aX +bY/3;
-	const B2Z = BezierPoints[1][2]; // = aX +bZ/3;
-	const B3X = BezierPoints[2][0]; // = aX +bX*2/3 +cX/3;
-	const B3Y = BezierPoints[2][1]; // = aX +bY*2/3 +cY/3;
-	const B3Z = BezierPoints[2][2]; // = aX +bZ*2/3 +cZ/3;
-	const B4X = BezierPoints[3][0]; // = aX +bX     +cX   +dX;
-	const B4Y = BezierPoints[3][1]; // = aX +bY     +cY   +dY;
-	const B4Z = BezierPoints[3][2]; // = aX +bZ     +cZ   +dZ;
-	//const arcLength = BezierPoints[4];
-
-	// Split the Bezier curve into two parts to calculate the position of the point
-	// https://pomax.github.io/bezierinfo/#matrixsplit
-	// P(t) = (1-t)^3*B1 + 3t(1-t)^2*B2 + 3t^2(1-t)*B3 + t^3*B4
-	const DeltaX = (1-t)**3*B1X + 3*t*(1-t)**2*B2X + 3*t**2*(1-t)*B3X + t**3*B4X;
-	const DeltaY = (1-t)**3*B1Y + 3*t*(1-t)**2*B2Y + 3*t**2*(1-t)*B3Y + t**3*B4Y;
-	const DeltaZ = (1-t)**3*B1Z + 3*t*(1-t)**2*B2Z + 3*t**2*(1-t)*B3Z + t**3*B4Z;
-
-	// Rotation = Winkel of Tangent
-	// P(t)     = (1-t)^3*B1    + 3t(1-t)^2*B2             + 3t^2(1-t)*B3         + t^3*B4
-	// dP(t)/dt = -3(1-t)^2*B1  + 3(1-t)^2*B2 - 6(1-t)t*B2 + 6t(1-t)*B3 - 3t^2*B3 + 3t^2*B4
-	const dPX = -3*B1X*(1-t)**2  + B2X*3*(1-t)**2 - B2X*6*(1-t)*t  + B3X*6*(1-t)*t - B3X*3*t**2  + 3*B4X*t**2;
-	const dPY = -3*B1Y*(1-t)**2  + B2Y*3*(1-t)**2 - B2Y*6*(1-t)*t  + B3Y*6*(1-t)*t - B3Y*3*t**2  + 3*B4Y*t**2;
-	const dPZ = -3*B1Z*(1-t)**2  + B2Z*3*(1-t)**2 - B2Z*6*(1-t)*t  + B3Z*6*(1-t)*t - B3Z*3*t**2  + 3*B4Z*t**2;
-	const Winkel = Math.atan2(dPY, dPX);
-
-	return [DeltaX, DeltaY, DeltaZ, Winkel];
-}
-
-function calcClothoidCurve(A, L1, L2, RotationCCW) {
-	// Approximate clothoid line
-	/*	R = radius
-		L = length
-		A^2 = R*L
-
-		x  = integral[L1,L2](cos(φ) dl)
-		dx = cos(φ) dl
-		y  = integral[L1,L2](sin(φ) dl)
-		dy = cos(φ) dl
-
-		φ is a function of l
-		dφ/dL = 1/R = L/A^2
-		φ = L^2/(2*A^2) = ( L/(A*sqrt(2)) )^2
-
-		let
-		s = L/(A*sqrt(2))
-
-		then
-		φ = s^2
-		l = s*A*sqrt(2)
-		dl = ds*A*sqrt(2)
-
-		x = A*sqrt(2) * integral[s1,s2](cos(s^2) ds)
-		y = A*sqrt(2) * integral[s1,s2](sin(s^2) ds)
-	*/
-
-	const STEPCOUNT = 1000;
-
-	const sign 	= RotationCCW;
-
-	const a 	= A*Math.sqrt(2);
-
-	const s1 	= (L1<L2 ? L1 : L2)/a;				// curvature = 1/radius at start point
-	const s2 	= (L1<L2 ? L2 : L1)/a;				// curvature = 1/radius at end point
-
-	let   s 	= 0;				// curvature at current point (we have to start at 0 0)
-	const s0 	= s*s;				// angle at start point
-	let   w;
-	let   ds 	= s2/STEPCOUNT;		// delta curvature per step
-	const ads	= a * ds;			// factor used in loop
-
-	let   p2 	= {x:0,y:0};		// next point
-	let   p		= p2;				// current point
-
-	let   dx, dy;					// delta between points
-
-	let   b1, b2, b3, b4;			// Bezier points
-
-	const pathPoints = [];
-
-	for (let i = 1; i <= STEPCOUNT; i++) {
-		p.x = p2.x;													// Set current point
-		p.y = p2.y;
-
-		w = s*s-s0;
-		p2.x += dx =        ads * Math.cos(w);						// Calculate next point
-		p2.y += dy = sign * ads * Math.sin(w);
-
-		if (!b1 && ( Math.abs(s)>=Math.abs(s1) || i === STEPCOUNT ) ) {
-			b1 = {x: p.x,   y: p.y,	  dx: dx,  dy: dy,  w: w, };			// first 1. Bezier point
-
-			pathPoints.push( {x: b1.x,   y: -b1.y,  z: 0,  w: b1.w, } );	// first 1. Bezier point
-		}
-
-		const f = 4;	// limit 4: max 45°, 3: max 60°
-		if ( (b1 && Math.abs(w - b1.w) > (Math.PI / f)) 			// Draw new curve if difference of the angles exceeds limit
-			|| i === STEPCOUNT )  {									// or to cover the last point
-			// if yes, draw the next part
-
-			b4 = { x: p2.x,  y: p2.y,  dx: dx,  dy: dy,  w: w, };			// 4. Bezier point
-																			// 3. Bezier point on intersection of tangents
-			if ( ( (b1.dy / b1.dx) == (b4.dy / b4.dx) ) || ( (b4.dy / b4.dx) == (b1.dy / b1.dx) ) ) {
-				b3 = {	// dummy point if the tangents are equal
-						x: b4.x,
-						y: b4.y,
-					};
-			} else {
-				b3 = {
-						x: b1.x + ( (b4.x - b1.x) - (b4.y - b1.y) / (b4.dy / b4.dx) ) / ( 1 - ( (b1.dy / b1.dx) / (b4.dy / b4.dx)) ),
-						y: b1.y + ( (b4.y - b1.y) - (b4.x - b1.x) * (b4.dy / b4.dx) ) / ( 1 - ( (b4.dy / b4.dx) / (b1.dy / b1.dx)) ),
-					};
-			}
-			b2 = {															// 2. Bezier point on tangent near B1
-					x: b1.x + (b3.x - b1.x) / f,							// works fine with f=4, but not with f=3
-					y: b1.y + (b3.y - b1.y) / f,							// (I guess we should calculate the factor dependant on s or a)
-				};
-
-			if (L1 < L2) {	// forward
-				pathPoints.push( 	{x: b2.x,   y: -b2.y, } );					// 2. Bezier point
-				pathPoints.push( 	{x: b3.x,   y: -b3.y, } );					// 3. Bezier point
-				pathPoints.push( 	{x: b4.x,   y: -b4.y,  z: 0,  w: b4.w, } );	// 4. Bezier point
-			} else {		// backward
-				pathPoints.unshift( {x: b2.x,   y: -b2.y, } );					// 2. Bezier point
-				pathPoints.unshift( {x: b3.x,   y: -b3.y, } );					// 3. Bezier point
-				pathPoints.unshift( {x: b4.x,   y: -b4.y,  z: 0,  w: b4.w, } );	// 4. Bezier point
-			}
-
-			// Prepare next part
-			b1 = { x: b4.x,  y: b4.y,  dx: dx,  dy: dy,  w: w, };	// next 1. Bezier point
-		}
-
-		// next
-		s += ds;
-	}
-
-	// Create svg path command
-	let i;
-	let svgBezierPath  = "M "  + pathPoints[0].x   + " " + pathPoints[0].y; // Complete path e.g. "M 60 -100 C 100 100 421 154 406 249 C ..."
-	for (i=1; i<pathPoints.length; i=i+3) {
-		svgBezierPath += " C " + pathPoints[i].x   + " " + pathPoints[i].y
-					  +  " "   + pathPoints[i+1].x + " " + pathPoints[i+1].y
-					  +  " "   + pathPoints[i+2].x + " " + pathPoints[i+2].y;
-	}
-
-	// Get start and end point
-	const points = {};									// Result points
-	i = 0;
-	points.Pos		= {								 	// Start point
-		x: 		pathPoints[i].x,
-		y: 		pathPoints[i].y,
-		z: 		pathPoints[i].z,
-		Winkel: pathPoints[i].w + (L1<L2 ? 0 : Math.PI), };
-	i = pathPoints.length-1;
-	points.End		= {								 	// End point
-		x: 		pathPoints[i].x,
-		y: 		pathPoints[i].y,
-		z: 		pathPoints[i].z,
-		Winkel: pathPoints[i].w + (L1<L2 ? 0 : Math.PI), };
-
-	return [points, svgBezierPath];
-}
-
-/* Optimization by Claude AI.
-
-	Calculate a 3D rotator curve (a helix) with the given parameters.
-	https://en.wikipedia.org/wiki/Helix
-	https://en.wikipedia.org/wiki/Parametric_equation
-	https://en.wikipedia.org/wiki/Parametric_curve
-	https://en.wikipedia.org/wiki/Parametric_surface
-	https://en.wikipedia.org/wiki/Parametric_surface#Helicoid
-	https://en.wikipedia.org/wiki/Parametric_surface#Helicoid
-
-	a = rotation speed around the z-axis (radians per unit length)
-	b = rotation speed around the x-axis (radians per unit length)
-	near = start position along the curve
-	far = end position along the curve
-
-	The function returns an array of Bezier points for each segment of the curve.
-	Each element in the array is an array of 5 elements:
-	[ [B1X, B1Y, B1Z], [B2X, B2Y, B2Z], [B3X, B3Y, B3Z], [B4X, B4Y, B4Z], arcLength ]
-	where B1, B2, B3, B4 are the control points of the Bezier curve segment,
-	and arcLength is the length of the segment in 2D (x,y) space.
-*/
-function calcRotatorCurve(a, b, near, far) {
-	// Segmentanzahl: max. 45° Änderung von a*s ODER b*s pro Segment
-	const totalAngleA = Math.abs(a) * Math.abs(far - near);
-	const totalAngleB = Math.abs(b) * Math.abs(far - near);
-	const maxAngle = Math.max(totalAngleA, totalAngleB);
-	const segments = Math.max(1, Math.ceil(maxAngle / (Math.PI/4)));
-
-	function sincTerm(k, s) {
-		return (Math.abs(k) < 1e-9) ? s : Math.sin(k*s)/k;
-	}
-	function cosTerm(k, s) {
-		return (Math.abs(k) < 1e-9) ? 0 : (1-Math.cos(k*s))/k;
-	}
-	function position(s) {
-		const p = a-b, q = a+b;
-		return [
-			0.5*(sincTerm(p,s) + sincTerm(q,s)),
-			0.5*(cosTerm(p,s) + cosTerm(q,s)),
-			cosTerm(b,s),
-		];
-	}
-	function tangent(s) {
-		return [
-			Math.cos(a*s)*Math.cos(b*s),
-			Math.sin(a*s)*Math.cos(b*s),
-			Math.sin(b*s),
-		];
-	}
-
-	const BezierPoints = [];
-	const step = (far-near) / segments;
-	let P0 = position(near), T0 = tangent(near);
-
-	for (let i = 0; i < segments; i++) {
-		const s1 = near + (i+1)*step;
-		const P1 = position(s1);
-		const T1 = tangent(s1);
-
-		// Sehnenlänge als Kontrollpunkt-Skalierung (wie im bestehenden PolygonalChain-Code)
-		const chord = Math.hypot((P1[0]-P0[0]), (P1[1]-P0[1]), (P1[2]-P0[2]));
-		const d = chord/3;
-
-		const B1 = P0;
-		const B2 = [P0[0]+d*T0[0], P0[1]+d*T0[1], P0[2]+d*T0[2]];
-		const B3 = [P1[0]-d*T1[0], P1[1]-d*T1[1], P1[2]-d*T1[2]];
-		const B4 = P1;
-
-		const arcLength3D = getArcLength3D(
-			[B1[0],B2[0],B3[0],B4[0]],
-			[B1[1],B2[1],B3[1],B4[1]],
-			[B1[2],B2[2],B3[2],B4[2]]
-		);
-
-		BezierPoints.push([B1, B2, B3, B4, arcLength3D]);
-		P0 = P1; T0 = T1;
-	}
-	return BezierPoints;
-}
-
-// Claude AI: Segmentierte 3D-Bezier-Näherung einer Helix-Kurve (analog zu calcRotatorCurve).
-// Ersetzt die bisherige Einzelsegment-Näherung (ein Cubic für das gesamte near..far-Intervall),
-// die bei größerem Drehwinkel "eckig" wirkte (GleisID 129), sowie die fehlerhafte dDiff-Prüfung,
-// die den Endpunkt in manchen Fällen komplett verfehlen ließ, weil sie die Differenzen der
-// Achsen addierte statt sie zu quadrieren und daher den 3D-Effekt der Kippung von
-// mFrame/mVectorBundle2/mOrientation nicht korrekt erfasste (GleisID 575).
-//
-// Rückgabe: { BezierPoints, mPos }
-// - BezierPoints: wie bei Cubic/Rotator, jedoch relativ zu mPos gespeichert (siehe Aufrufstelle)
-// - mPos: die Welt-Frame-Matrix am Startpunkt (w=wPos), dient als Referenzpunkt
-function calcHelixCurve(mFrame, mVectorBundle2, mOrientation, a, b, near, far) {
-	const r = Math.hypot(a, b);
-
-	// Die lokale Funktion pointMatrix(w) verwendet dieselbe Formel, die bisher nur für w=wPos/wMid/wEnd
-	// (Gleis.Helix.mPos/mMid/mEnd) ausgewertet wurde - hier verallgemeinert auf beliebige w,
-	// um mehrere Zwischenpunkte für die Segmentierung zu erhalten.
-	function pointMatrix(w) {
-		return [
-				mFrame,
-				mVectorBundle2,
-				mOrientation,
-				matrix.rotateZ(w),
-				matrix.translate(a, 0, b*w),
-				matrix.swapXY(),
-			].reduce(matrix.multiply);
-	}
-
-	const wPos = (-near) / r;
-	const wEnd = (far)   / r;
-
-	// Segmentanzahl: max. 45° w-Änderung pro Segment, analog zu calcRotatorCurve.
-	// Falls trotz kleinem Gesamtwinkel weiterhin "eckig" - Schwelle (Math.PI/4) ggf. verkleinern.
-	const totalAngle = Math.abs(wEnd - wPos);
-	const segments = Math.max(1, Math.ceil(totalAngle / (Math.PI/16)));
-
-	const posX = 12, posY = 13, posZ = 14;
-
-	const mPos = pointMatrix(wPos);	// Referenzpunkt: alle BezierPoints relativ dazu gespeichert
-
-	const BezierPoints = [];
-	const step = (wEnd - wPos) / segments;
-	let M0 = mPos;
-
-	for (let i = 0; i < segments; i++) {
-		const w1 = wPos + (i+1)*step;
-		const M1 = pointMatrix(w1);
-
-		const f = Math.abs(step) / 2;	// Tangentenskalierung, analog zur bisherigen Formel (dort: |far-near|/2/r für das ganze Intervall)
-
-		const mB1 = M0;
-		const mB2 = matrix.multiply(M0, matrix.translate( a*f, 0,  b*f));
-		const mB3 = matrix.multiply(M1, matrix.translate(-a*f, 0, -b*f));
-		const mB4 = M1;
-
-		const B1 = [mB1[posX]-mPos[posX], mB1[posY]-mPos[posY], mB1[posZ]-mPos[posZ]];
-		const B2 = [mB2[posX]-mPos[posX], mB2[posY]-mPos[posY], mB2[posZ]-mPos[posZ]];
-		const B3 = [mB3[posX]-mPos[posX], mB3[posY]-mPos[posY], mB3[posZ]-mPos[posZ]];
-		const B4 = [mB4[posX]-mPos[posX], mB4[posY]-mPos[posY], mB4[posZ]-mPos[posZ]];
-
-		const arcLength3D = getArcLength3D(
-			[B1[0],B2[0],B3[0],B4[0]],
-			[B1[1],B2[1],B3[1],B4[1]],
-			[B1[2],B2[2],B3[2],B4[2]]
-		);
-
-		BezierPoints.push([B1, B2, B3, B4, arcLength3D]);
-		M0 = M1;
-	}
-
-	return { BezierPoints, mPos };
 }
 
 function svgAppend(svg_node, obj) {
@@ -3711,88 +2450,6 @@ function svgAppend(svg_node, obj) {
 	svg_node.appendChild(element);
 	return element;
 }
-
-// Schaltverbindungen zwischen Signalen und/oder Weichen
-	function collectCouplings( Object, SourceID ) {
-		const TargetID = +Object.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal bzw. Weiche
-		if (TargetID) {
-			const Connections = [];
-			// gekoppelte Stellungen für Signale
-			const Count = Object.getAttribute('Count');		// Anzahl der Attribute Fn01, Fn02,...
-			if (Count) {
-				for (let i = 1; i <= Count; i++) {
-					const SourcePos = i;
-					const TargetPos = Object.getAttribute('Fn' + i.toString().padStart(2, '0'));	// gekoppelte Stellung
-					if (TargetPos && TargetPos != 0) {
-						Connections.push({ SourcePos : SourcePos, TargetPos : +TargetPos, });
-					}
-				}
-			}
-			// Gekoppelte Stellungen für Weichen 
-			for (let i = 1; i <= 5; i++) { // Attribute NextSigFn1 (gerade), NextSigFn2 (Abzweig), NextSigFn3, NextSigFn4, NextSigFn5
-				const SourcePos = i;
-				const TargetPos = Object.getAttribute('NextSigFn' + i);	// gekoppelte Stellung
-				if (TargetPos && TargetPos != 0) {
-					Connections.push({ SourcePos : SourcePos, TargetPos : +TargetPos, });
-				}
-			}			
-
-			if (!global.Couplings[SourceID]) {
-				global.Couplings[SourceID] = [];
-			}
-			global.Couplings[SourceID].push({ TargetID : TargetID, Connections : Connections, });
-
-			if (!global.Couplings[TargetID]) {
-				global.Couplings[TargetID] = [];
-			}
-			global.Couplings[TargetID].push({ SourceID : SourceID, Connections : Connections, });
-		}
-	} // function collectCouplings
-
-	function getCouplingText( SourceID ) {
-		let Text = '';
-		for (const i in global.Couplings[SourceID]) {
-			//if (Text) {
-					Text += '<br>';
-			//} else {
-			//	Text = '';
-			//}
-
-			const Coupling = global.Couplings[SourceID][i]
-			let ID;
-			let GleissystemID;
-			let GleisID;
-			if (Coupling.TargetID) { // Signal/Weiche schaltet ein anderes Signal/Weiche
-				ID = Coupling.TargetID;
-				Text += _('Schaltet') + ' ';
-			}	
-			if (Coupling.SourceID) { // Signal/Weiche wird von einem anderen Signal/Weiche geschaltet
-				ID = Coupling.SourceID;
-				Text += _('Wird geschaltet von') + ' ';			
-			}
-			const Weiche = global.Weichen[ID];
-			if (Weiche) {
-				Text += _('Weiche') + ' ' 
-					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Weiche.mEnd}]);">${ID}<\/a>`
-			}
-			const Meldung = global.Meldungen[ID];
-			if (Meldung) {
-				Text += _('Signal') + ' ' 
-					+ `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${Meldung.mPos}]);">${ID}<\/a>` 
-			}
-			Text += ' (';
-			for (const i in Coupling.Connections) {
-				const Connection = Coupling.Connections[i];
-				if ( i > 0 ) {
-					Text += ', ';
-				} 
-				//Text += Connection.SourcePos + (Connection.TargetPos > 0 ? '-' + Connection.TargetPos : '');
-				Text += Connection.SourcePos + '-' + Connection.TargetPos;
-			}
-			Text += ')';
-		}
-		return Text;
-	} // function getCouplingText	
 
 /* Not used anymore
 function svgAppendTextPath(svg_node, obj) {

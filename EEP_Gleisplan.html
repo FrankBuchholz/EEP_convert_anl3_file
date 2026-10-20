@@ -188,6 +188,7 @@ Adapter les couleurs des systèmes de voie
 <p lang="de">	<!-- Referenzen / verwandte Programme -->
 <small><strong>Referenzen / verwandte Programme</strong><br>
 Diskussionsbeitrag im <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br>
+Dokumentation auf <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/" target="_blank">GitHub</a><br>
 Entwicklungsprojekt auf <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
 Anzeige einer <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">Inventarliste</a> zu einer EEP-Anlage<br>
 Übersicht zu den <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">Signalstellungen</a> anhand der extrahierten .ini-Dateien zu Signalen (siehe EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
@@ -195,6 +196,7 @@ Anzeige einer <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP
 <p lang="en">
 <small><strong>References / related programs</strong><br>
 Thread in the <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP Forum</a><br>
+Documentation at <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/" target="_blank">GitHub</a><br>
 Development project at <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
 Show <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">inventory list</a> of an EEP file<br>
 Overview about <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">signal positions</a> according to the extracted data from the .ini files of signals (see EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
@@ -202,6 +204,7 @@ Overview about <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EE
 <p lang="fr">
 <small><strong>Références / Programmes associés</strong><br>
 Discussions dans le <a href="https://www.eepforum.de/forum/thread/26770-eep-gleisplan-im-browser-anzeigen-javascript-projekt" target="_blank">EEP-Forum</a><br>
+Documentation sur <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/" target="_blank">GitHub</a><br>
 Projet de développement sur <a href="https://github.com/FrankBuchholz/EEP_convert_anl3_file" target="_blank">GitHub</a><br>
 Afficher une <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html" target="_blank">liste de l‘inventaire</a> d‘un réseau EEP<br>
 Aperçu des <a href="https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Signale.html" target="_blank">positions de signaux</a> à l‘aide des données extraites des fichiers *.ini des signaux (voir EEP &rarr; Extras &rarr; Ressourcen-Extraktor)</small></p>
@@ -256,15 +259,13 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 /* ]]> */
 </style>
 
-<script type="text/javascript" src="js/matrix.js"></script> <!-- Matrix operations optimized for this program -->
-<!-- <script type="text/javascript" src="js/bezier_curve_arc_length.js"></script> Claude AI: getArcLength of Bezier Curve not needed anymore */-->
-<script type="text/javascript" src="js/convexhull.js"></script> <!-- Convex hull algorithm --> 
-
-<!-- Load and process file -->
-<script type="text/javascript" src="js/EEP_Gleisplan_LoadFile.js"></script>
-
-<!-- DOM2SVG --> 
-<script type="text/javascript" src="js/EEP_Gleisplan_DOM2SVG.js"></script>
+<script type="text/javascript" src="js/matrix.js"></script> 									<!-- Matrix operations optimized for this program -->
+<script type="text/javascript" src="js/convexhull.js"></script> 							<!-- Convex hull algorithm --> 
+<script type="text/javascript" src="js/EEP_Gleisplan_LoadFile.js"></script>		<!-- Load and process file -->
+<script type="text/javascript" src="js/EEP_Gleisplan_LabelLayout.js"></script>	<!-- Überlappende Texte entzerren (wird von DOM2SVG, MainScreen verwendet) -->
+<script type="text/javascript" src="js/EEP_Gleisplan_Geometry.js"></script>		<!-- Reine Geometrie ohne Zugriff auf DOM oder SVG -->
+<script type="text/javascript" src="js/EEP_Gleisplan_Data.js"></script>				<!-- Aufbereitung der Daten der Anlage-Datei (ohne SVG) -->
+<script type="text/javascript" src="js/EEP_Gleisplan_DOM2SVG.js"></script>		<!-- Erzeugung der SVG-Elemente des Gleisplans --> 
 
 </section>  <!-- Selection screen -->
 
@@ -567,6 +568,8 @@ It does not work if I put span elements inside of the options.
 	<input type="checkbox" name="Kamera" 	    checked autocomplete="off" onchange="toggleElements('#Kamera', this.checked)"><span lang="de">Kameras</span><span lang="en">Cameras</span><span lang="fr">Caméras</span></label></div>
 	<div class="item"><label>
 	<input type="checkbox" name="general" 	    checked autocomplete="off" onchange="toggleElements('.general', this.checked)"><span lang="de">Rahmen</span><span lang="en">Frame</span><span lang="fr">Cadre</span></label>,</div>
+	<div class="item"><label>	<!-- Überlappende Texte (Signale, Weichen, Kontakte) entzerren -->
+	<input type="checkbox" name="labelLayout" 	checked autocomplete="off" onchange="setLabelLayoutEnabled(this.checked)"><span lang="de">Texte entzerren</span><span lang="en">Declutter texts</span><span lang="fr">Désencombrer les textes</span></label></div>
 
 	<div class="item">
 		<label>
@@ -932,6 +935,17 @@ svg {
 .FS7 > path, .FS7.Signal { stroke: var(--FS7-color); } .FS7 > text { fill: var(--FS7-color); }
 
 /* versteckte Elemente */
+
+/* Hilfslinien zu verschobenen Texten (js/EEP_Gleisplan_LabelLayout.js) */
+.leader {
+	stroke-width: var(--narrow-stroke-width);
+	stroke-opacity: 0.6;
+	stroke-dasharray: none;
+	marker-start: none;
+	marker-mid: none;
+	marker-end: none;
+	pointer-events: none;
+}
 
 .hidden, .hiddenZ {
 	display: none !important;
