@@ -60,6 +60,7 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 		return; // Zoom-in near the border does not work well if we limit pan with fixed gutter
 
 		// Limit pan to keep SVG content visible by not allowing panning over SVG borders.
+		/*
 		const gutterWidth = 100,
 			  gutterHeight = 100;
 
@@ -74,6 +75,7 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 		customPan.y = Math.max(topLimit,  Math.min(bottomLimit, newPan.y));
 
 		return customPan;
+		*/
 	};
 
 	const onZoom = function(newZoom) {
@@ -159,6 +161,21 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 		//panZoom.center();
 		showArea(panZoom);
 	});
+
+	// Die Größe des SVG-Bereichs kann sich auch ohne window-resize ändern (z.B. wenn der Kopfbereich
+	// durch neue Texte höher wird). svg-pan-zoom cached die Größe, daher bei jeder Änderung neu einlesen.
+	if (typeof ResizeObserver === "function") {
+		let lastWidth = 0, lastHeight = 0;
+		new ResizeObserver(function() {
+			const rect = document.getElementById("svg").getBoundingClientRect();
+			if (!(rect.width > 0 && rect.height > 0)) { return; }	// ausgeblendet: nichts tun
+			if (rect.width === lastWidth && rect.height === lastHeight) { return; }
+			lastWidth  = rect.width;
+			lastHeight = rect.height;
+			panZoom.resize();
+			showArea(panZoom);
+		}).observe(document.getElementById("svg"));
+	}
 
 	// arrow keys trigger page scrolling, + - trigger zooming
 	// another solution to deal with multiple keys at same time:
@@ -325,6 +342,13 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 		msg();
 		ev.preventDefault();
 		showColorPickerWindow();
+	});
+
+	// Eingabefeld für anzuzeigendes Objekt
+	document.getElementById("number").addEventListener("change", function(ev) { // "input" bei Wertänderung, "change" erst bei verlassen des Feldes oder Enter-Taste
+		msg();
+		ev.preventDefault();
+		centerItem();
 	});
 
 	// Button centerItem
@@ -542,9 +566,11 @@ function centerItem() {
 }
 
 function centerPosition(Position) {
-	const width 	= panZoom.getSizes().width;
-	const height	= panZoom.getSizes().height;
-	const realZoom	= panZoom.getSizes().realZoom;
+	panZoom.resize();	// Größe des SVG-Bereichs neu einlesen (Kopfbereich kann sich nach dem Laden geändert haben)
+	const sizes		= panZoom.getSizes();
+	const width 	= sizes.width;
+	const height	= sizes.height;
+	const realZoom	= sizes.realZoom;
 	
 	let PosX, PosY, PosZ;
 	if (Position.length == 16) { 	// Matrix
@@ -810,11 +836,13 @@ if (false) { // Experiment for testing targets
 function showUsedArea(panZoom, pan) {
 	// Pan and zoom to used area
 	// zoomAtPoint(scale, {x:0,y:0});   or   pan({x:0,y:0}); zoom(scale);
-	const width 		= panZoom.getSizes().width;
-	const height		= panZoom.getSizes().height;
+	//panZoom.resize();	// Größe des SVG-Bereichs hier nicht neu einlesen (auch wenn der Kopfbereich sich nach dem Laden geändert haben kann)
+	const sizes		= panZoom.getSizes();
+	const width 	= sizes.width;
+	const height	= sizes.height;
+	const realZoom	= sizes.realZoom;
 	const usedwidth 	= global.usedArea.max.x - global.usedArea.min.x;
 	const usedheight	= global.usedArea.max.y - global.usedArea.min.y;
-	const realZoom		= panZoom.getSizes().realZoom;
 
 	const panX 			= width/2  - ( global.usedArea.min.x + usedwidth/2  ) * realZoom;
 	const panY 			= height/2 + ( global.usedArea.max.y - usedheight/2 ) * realZoom;	// svg: mirrored y-coordinate
