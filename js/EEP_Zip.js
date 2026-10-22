@@ -7,9 +7,14 @@
 /* Interface
 public api:
 	EEP_Zip.resolve
+	EEP_Zip.setStatus
+	EEP_Zip.describeError
 */
 
 (function(api) {
+api.setStatus = setStatus;
+api.describeError = describeError;
+api.resolve = resolve;
 
 // Liefert true, wenn die Datei ein ZIP-Archiv ist (Signatur am Anfang)
 function isZipSignature(b) {
@@ -149,7 +154,4 @@ function describeError(err, url) {
 	return T.prefix + ": " + msg;	// z.B. Fehler beim Entpacken der zip-Datei
 }
 
-api.setStatus = setStatus;
-api.describeError = describeError;
-api.resolve = resolve;
 })(window.EEP_Zip = window.EEP_Zip || {}); // end module

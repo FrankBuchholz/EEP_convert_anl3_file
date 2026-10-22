@@ -113,32 +113,95 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 		, onPan: onPan
 		// , customEventsHandler: { init : function(options){}, destroy : function(options){} }
 		, customEventsHandler: {
+			// Use custom event handler for touch events (pinch to zoom, two finger pan) instead of browser default behavior (scroll, zoom)
+			haltEventListeners: ["touchstart", "touchend", "touchmove", "touchleave", "touchcancel"],
+			// init and destroy functions are called once when the plugin is initialized and destroyed
 			init : function(options) {
+				const inst = options.instance;
+				const svg  = options.svgElement;
+				const pointers = new Map();     // pointerId -> {x, y}
+				let moved = false;              // Finger wurde bewegt: folgenden Klick unterdrücken
+				const stats = function() {      // Mittelpunkt und Abstand der ersten zwei Finger
+					const p = Array.from(pointers.values());
+					if (p.length < 2) { return { x: p[0].x, y: p[0].y, d: 0 }; }
+					return { 
+						x: (p[0].x + p[1].x) / 2, 
+						y: (p[0].y + p[1].y) / 2, 
+						d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) 
+					};
+				};
+				let last = null;
+
 				this.listeners = {
-					mouseenter: function(ev) {
-						showPosition(options.instance, ev);
-						showArea(options.instance, ev);
+					// mouse events
+					mouseenter: function(ev) { 
+						showPosition(inst, ev); 
+						showArea(inst, ev); 
 					},
-					click: function(ev) {
-						showArea(options.instance, ev);
-						showElement(options.instance, ev);
+					click: function(ev) { 
+						showArea(inst, ev); 
+						showElement(inst, ev); 
 					},
-					mousemove: function(ev) {
-						showPosition(options.instance, ev);
+					mousemove: function(ev) { 
+						showPosition(inst, ev); 
 					},
-					mouseleave: function(ev) {
-						document.getElementById("cursorPosition").textContent = "";
+					mouseleave: function(ev) { 
+						document.getElementById("cursorPosition").textContent = ""; 
+					},
+					// touch events
+					pointerdown: function(ev) {
+						if (ev.pointerType !== "touch") { return; }
+						pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+						if (pointers.size === 1) { moved = false; }
+						last = stats();
+					},
+					pointermove: function(ev) {
+						if (ev.pointerType !== "touch" || !pointers.has(ev.pointerId)) { return; }
+						pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+						const now = stats();
+						const dx = now.x - last.x, dy = now.y - last.y;
+						if (Math.hypot(dx, dy) > 0 || now.d !== last.d) {
+							if (Math.hypot(dx, dy) > 3 || pointers.size > 1) { moved = true; }
+							if (moved) {
+								inst.panBy({ x: dx, y: dy });
+								if (pointers.size > 1 && last.d > 0 && now.d > 0) {
+									const r = svg.getBoundingClientRect();
+									inst.zoomAtPointBy(now.d / last.d, { x: now.x - r.left, y: now.y - r.top });
+								}
+								last = now;
+							}
+						}
+					},
+					pointerup: function(ev) {
+						if (ev.pointerType !== "touch") { return; }
+						pointers.delete(ev.pointerId);
+						if (pointers.size) { last = stats(); }
+					},
+					pointercancel: function(ev) {
+						pointers.delete(ev.pointerId);
+						if (pointers.size) { last = stats(); }
 					},
 				};
 				for (const eventName in this.listeners) {
-					options.svgElement.addEventListener(eventName, this.listeners[eventName]);
+					svg.addEventListener(eventName, this.listeners[eventName]);
 				}
+
+				// Nach Verschieben/Zoomen mit dem Finger kein Info-Popup öffnen
+				this.clickGuard = function(ev) {
+					if (moved) { 
+						moved = false; 
+						ev.stopPropagation(); 
+						ev.preventDefault(); 
+					}
+				};
+				svg.addEventListener("click", this.clickGuard, true);
 			},
 			destroy: function(options) {
 				for (const eventName in this.listeners) {
 					options.svgElement.removeEventListener(eventName, this.listeners[eventName]);
 				}
-			}
+				options.svgElement.removeEventListener("click", this.clickGuard, true);
+			}		
 		}
 		// , eventsListenerElement: SVGElement
 		// , onUpdatedCTM: function(){}

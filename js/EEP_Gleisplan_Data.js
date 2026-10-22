@@ -55,8 +55,6 @@ api.getGleisInterval = getGleisInterval;
 api.loadStaticTexts = loadStaticTexts;
 api.prepareGleissysteme = prepareGleissysteme;
 
-
-
 function TrackSystemText(GleissystemID) {
 	return global.TrackSystemTexts[global.TrackSystem[GleissystemID]];
 }
