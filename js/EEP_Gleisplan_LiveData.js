@@ -9,14 +9,17 @@
 	showInfoWindow:readonly
 */
 /* Interface
-required glogal functions:
+required global functions:
 	_
 	msg
 	TrackSystemText
 	showInfoWindow
+public api (window):
+	getCommandHtml   Bedienelemente für Befehle an EEP (wird von js/EEP_Gleisplan_InfoPopup.js verwendet)
 required global data:
 	Signalstellung
-	global (u.a. global.Gleissysteme, global.TrackSystem, global.trackConnections, global.Meldungen, global.SvgPanZoom)
+	global (u.a. global.Gleissysteme, global.TrackSystem, global.trackConnections, global.Meldungen, global.KameraSet, 
+	global.SvgPanZoom)
 */
 (function(){
 const ch = new BroadcastChannel("EEP_LIVE"), NS = "http://www.w3.org/2000/svg";
@@ -25,6 +28,20 @@ const SIGNAL_COLORS = {halt:"rgb(220,0,0)" /* red */, fahrt:"rgb(0,170,0)" /* gr
 const SWITCH_COLORS = {1:"rgb(0,110,200)" /* blue */, 2:"rgb(220,120,0)" /* orange */, 3:"rgb(160,0,200)" /* purple */};
 const TRAIN_COLOR   = "rgb(255,140,0)" /* orange */;
 const GEARS_COLOR   = "rgb(100,40,0)" /* brown */;
+const CAMERA_COLORS = {0: "rgb(0,110,200)" /* statisch: blau */, 1: "rgb(160,0,200)" /* dynamisch: purple */}; // "var(--Kamera-color)"; // Kamerafarbe der konfigurierten Farbe
+const FOLLOW_CAMERA_COLOR = "rgb(160,0,200)" /* Verfolgerkamera: purple */;
+const FOLLOW_CAMERA_POSITION = 7;   // automatische Kamera, die dem ausgewählten Fahrzeugverband am nächsten steht
+/* mögliche Kamera-Positionen:
+1 = direkt auf die linke Seite des Fahrzeugverbandes,
+2 = direkt auf die rechte Seite des Fahrzeugverbandes,
+3 = seitlich von oben auf die linke Seite des Fahrzeugverbandes,
+4 = seitlich von oben auf die rechte Seite des Fahrzeugverbandes,
+5 = von der Front des Fahrzeugverbandes in Fahrtrichtung,
+6 = von vorne auf die Front des Fahrzeugverbandes,
+7 = aktiviert diejenige automatische Kamera, die dem im SteuerDialog ausgewählten Fahrzeugverband am nächsten steht,
+8 = aus dem Führerstand,
+9 = oberhalb des Fahrzeugverbandes
+*/
 
 // Meldung nur einmal ausgeben (Debugging ohne Log-Flut bei jedem Datensatz)
 const warned = {};
@@ -85,15 +102,18 @@ function signalInfo(ids){
 		const Meldung = global.Meldungen[id];
 		if (!Meldung) continue;
 
+		const tip = Meldung.getAttribute("TipTxt") || "";
 		const d = sigDef(Meldung.getAttribute("name"));
-		if (!d) continue;
+		if (!d && !tip) continue;
 
 		const pos = {};
-		for (const n in d.Pos) {
-			const t = txt(d.Pos[n]);
-			pos[n] = {text: t, cls: classify(t)};
+		if (d) {
+			for (const n in d.Pos) {
+				const t = txt(d.Pos[n]);
+				pos[n] = {text: t, cls: classify(t)};
+			}
 		}
-		out[id] = {name: txt(d.Name), pos: pos};
+		out[id] = {name: d ? txt(d.Name) : "", tip: tip, pos: pos};
 	}
 	return out;
 }
@@ -174,8 +194,8 @@ function fractionOf(v, G){
 // len Meter über das Gleisnetz. vx/vy: bekannter Startpunkt in Weltkoordinaten.
 // Liefert Punkte [{x, y, s}] mit s = zurückgelegte Strecke in m, oder null.
 // Wo sich das Gleisnetz verzweigt, wird das Gleis bevorzugt, auf dem Fahrzeuge des Zuges stehen (onTrain), sonst gilt die Weichenstellung.
-// Ist die Gleisverbindung virtuell (Flags = 1)?
-const isVirtual = connection => !!(connection && connection.Flags != null && Number(connection.Flags) === 1);
+// Ist die Gleisverbindung virtuell (Flags ungleich 0)?
+const isVirtual = connection => !!(connection && connection.Flags != null && Number(connection.Flags) !== 0);
 
 // Endpunkt: läuft ab Punkt f (0..1 von mPos nach mEnd) in Richtung sgn (+1/-1) len Meter über das Gleisnetz.
 // Virtuelle Verbindungen werden nicht überschritten (Ende = Verbindungsstelle).
@@ -216,6 +236,8 @@ function endPoint(system, gleisID, f, sgn, len, hint) {
 }
 
 // Ende eines Fahrzeuges (Anfang = vehicle.position)
+/*
+// Variante 0
 function vehicleEnd(vehicle, nextV) {
 	const track = vehicle.track;
 	if (!track || !vehicle.position) return null;
@@ -226,6 +248,61 @@ function vehicleEnd(vehicle, nextV) {
 	const hint = (nextV && nextV.track && nextV.track.system === track.system) ? nextV.track.id : null;
 	return endPoint(track.system, track.id, fractionOf(vehicle, G), sgn, vehicle.length || 0, hint);
 }
+*/
+/* 
+// Variante 1
+function vehicleEnd(vehicle, nextV) {
+	const track = vehicle.track;
+	if (!track || !vehicle.position) return null;
+	const G = geom(track.system, track.id);
+	if (!G) return null;
+	// Richtung vom Anfang zum Ende aus Gleisrichtung und Ausrichtung des Fahrzeuges
+	const sgn = (track.direction === 1 ? 1 : -1) * (vehicle.forward === false ? -1 : 1) > 0 ? -1 : 1;
+	const hint = (nextV && nextV.track && nextV.track.system === track.system) ? nextV.track.id : null;
+	const end = endPoint(track.system, track.id, fractionOf(vehicle, G), sgn, vehicle.length || 0, hint);
+	if (end && vehicle.position && dist(end, vehicle.position) > (vehicle.length || 0) + 1) {
+		warnOnce("far" + vehicle.name, `Fahrzeug ${vehicle.name}: berechnetes Ende ${dist(end, vehicle.position).toFixed(0)}m entfernt (Länge ${vehicle.length}m), Gleis ${track.system}-${track.id}`);
+		//return null; // Zunächst nur warnen
+	}
+	return end;
+}
+*/
+///*
+// Variante 2
+function vehicleEnd(vehicle, nextV) {
+	const track = vehicle.track;
+	if (!track || !vehicle.position) return null;
+	const G = geom(track.system, track.id);
+	if (!G) return null;
+	const len  = vehicle.length || 0;
+	const hint = (nextV && nextV.track && nextV.track.system === track.system) ? nextV.track.id : null;
+
+	// Passt die Weltposition zum angegebenen Gleispunkt?
+	const f0 = fractionOf(vehicle, G);
+	if (dist(at(G, f0), vehicle.position) > 2) {
+		// Nein: Das Fahrzeug steht über einer virtuellen Verbindung. Auf dem angrenzenden Gleis neu verankern.
+		const conns = (global.trackConnections && global.trackConnections[track.system] && global.trackConnections[track.system][track.id]) || {};
+		for (const name in conns) {
+			const c = conns[name];
+			if (!isVirtual(c)) continue;
+			const N = geom(track.system, c.GleisID);
+			if (!N) continue;
+			for (const fe of [0, 1]) {
+				const d = dist(at(N, fe), vehicle.position);
+				if (d < 3) {
+					// Kopf liegt an Ende fe von N: das Fahrzeug erstreckt sich von dort weg
+					return endPoint(track.system, c.GleisID, fe, fe === 1 ? -1 : 1, Math.max(len - d, 0), hint);
+				}
+			}
+		}
+		warnOnce("mismatch" + vehicle.name, `Fahrzeug ${vehicle.name}: Position passt nicht zu Gleis ${track.system}-${track.id}`);
+		//return null; // Zunächst nur warnen
+	}
+
+	const sgn = (track.direction === 1 ? 1 : -1) * (vehicle.forward === false ? -1 : 1) > 0 ? -1 : 1;
+	return endPoint(track.system, track.id, f0, sgn, len, hint);
+}
+//*/
 
 // ---- Zeichnen -------------------------------------------------------------------
 let liveLayer;
@@ -233,8 +310,12 @@ let liveLayer;
 function draw(d){
 	// Ohne geladene Anlage-Datei gibt es nichts, worauf gezeichnet werden könnte
 	if (!isLoaded()) return;
-	cur = d;
-	const root = document.getElementById("sutrackpSVG");
+
+ 	cur = d;  // zuletzt empfangene Daten (für die Signal- und Weichenstellungen und die Zugverbände)
+
+	refreshCommandUI();  // Aktualisiere die Bedienelemente, da sich die Stellungen der Signale und Weichen geändert haben können
+
+ const root = document.getElementById("sutrackpSVG");
 
 	// Ändere die Farbe von Signalen
 	const info = signalInfo(Object.keys(d.signals || {})) || {};
@@ -350,27 +431,35 @@ function draw(d){
 }
 
 // ---- Info-Popup für Züge und Fahrzeuge ---------------------------------------
+// HTML-Text für die Bedienelemente (Buttons, Eingabefelder) für Befehle an EEP
 const escH = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Zahl auf n Nachkommastellen, sonst "–"
 const num  = (n, d = 1) => (typeof n === "number" ? n.toFixed(d) : "–");
 // Übersetzter Text zu modelType (1-15), sonst der Rohwert
 const modelTypeText = t => (t >= 1 && t <= 15) ? _('modelType_' + t) : (t != null ? escH(t) : "–");
+// Übersetzter Text zu Kupplung (1-3), sonst der Rohwert
 const couplingText  = t => (t >= 1 && t <= 3)  ? _('coupling_' + t)  : (t != null ? escH(t) : "–");
 
+// Übersetzter Text zu Gleissystem, sonst "Gleissystem <id>"
 function sysText(id){
 	try { return TrackSystemText(String(id)) || ("Gleissystem " + id); } catch (e) { return "Gleissystem " + id; }
 }
+// Links zu Positionen und Gleisen
 function posLink(p){
 	if (!p) return "–";
 	return `<a href="javascript:void(0);" onclick="javascript:global.SvgPanZoom.centerPosition([${+p.x},${+p.y},${+p.z || 0}]);">${num(p.x, 0)}m, ${num(p.y, 0)}m</a>`;
 }
+// Gleis-Link: Gleissystem + GleisID + Position
 function trackLink(k){
 	if (!k) return "–";
 	return `<a href="javascript:void(0);" onclick="javascript:showGleisInfo('${Number(k.system)}','${Number(k.id)}');">${escH(sysText(k.system))} ${escH(k.id)}</a> @ ${num(k.position, 0)}m`;
 }
 
+// Zeige Info-Popup für einen Zugverband (mit optionaler Fahrzeugliste)
 function showTrainInfo(name, withVehicles, highlightVehicle){
 	const t = cur && cur.trains && cur.trains[name];
 	if (!t) return;
+
 	const active = cur.global && cur.global.activeTrain === name;
 	//console.log(t);
 
@@ -380,6 +469,7 @@ function showTrainInfo(name, withVehicles, highlightVehicle){
 		+ (active ? `<br><b>${_('aktiverZugverband')}</b>` : "")
 		+ `<br><i>${_('Position')}: ${posLink(t.position)} ${_('auf')} ${_('Gleis')} ${trackLink(t.track)}</i>`
 		+ `<i>, ${_('Höhe')} ${num(t.position && t.position.z, 2)}m</i>`
+		+ getCommandHtml("train", name) // Platzhalter für die Bedienelemente (Buttons, Eingabefelder) für Befehle an EEP
 		;
 
 	if (withVehicles) {
@@ -408,23 +498,327 @@ function showTrainInfo(name, withVehicles, highlightVehicle){
 	});
 }
 
+// ---- Befehle an EEP (über die Export Bridge) -------------------------------------
+// Der Gleisplan sendet nie selbst an EEP: Befehle gehen über den Kanal EEP_LIVE an die Bridge (EEP_Export_Bridge.html).
+// Die Bridge prüft sie (Whitelist), sendet sie an den Webserver und antwortet mit "cmdResult".
+// Bedienelemente erscheinen nur, wenn die Bridge "cmdState" ok melden (Webserver nimmt Befehle an).
+let cmdOK = false;
+let cmdSeq = 0;
+const cmdPending = {};   // seq -> Timer für "keine Antwort"
+
+// CSS für die Bedienelemente (Buttons, Eingabefelder) für Befehle an EEP erzeugen und in <head> einfügen
+(function(){
+	const style = document.createElement("style");
+	style.textContent =
+		".eepCmd:not(:empty) { margin-top: 0.3em; }" +
+		".eepCmd .cb { --c: #888; min-width: 2em; margin: 0 3px 3px 0; padding: 1px 6px; border: 2px solid var(--c); border-radius: 3px; background: transparent; color: inherit; cursor: pointer; }" +
+		".eepCmd .cb.on { background: var(--c); color: #fff; }" +
+		".eepCmd .cin { width: 5em; }" +
+		".eepCmd select { max-width: 10em; }";
+	document.head.appendChild(style);
+})();
+
+// Liefere eine Zahl, die bei jedem String anders ist (Cache-Kollisionsvermeidung bei Befehlen an EEP)
+const hashOf = s => { let h = 0; for (let i = 0; i < s.length; i++) { h = (h*31 + s.charCodeAt(i)) | 0; } return h; };
+
+// Sende einen Befehl an EEP (über die Bridge) und warte auf die Antwort (cmdResult)
+function sendCommand(fn, args){
+	const seq = ++cmdSeq;
+	cmdPending[seq] = setTimeout(() => { delete cmdPending[seq]; msg("", _('CmdKeineAntwort')); }, 3000);
+	ch.postMessage({type: "command", seq: seq, fn: fn, args: args});
+}
+
+// Erzeuge einen Button für einen Befehl an EEP (über die Bridge)
+function cmdButton(fn, id, value, label, title, color, on){
+	return `<button type="button" class="cb${on ? " on" : ""}" data-fn="${fn}" data-id="${escH(id)}" data-v="${value}"`
+		+ (title ? ` title="${escH(title)}"` : "")
+		+ ` style="--c:${color}">${escH(label)}</button>`;
+}
+
+// Stellungen eines Signals: aus den Signaldaten, sonst aus dem Export, sonst aus Count, sonst 1-2
+function signalPositions(id){
+	const Meldung = global.Meldungen && global.Meldungen[id];
+	if (!Meldung) return [];
+
+	const def = sigDef(Meldung.getAttribute("name"));
+	let list = (def && def.Pos) ? Object.keys(def.Pos).map(Number) : [];
+	if (!list.length) {
+		const f = cur && cur.signals && cur.signals[id] && cur.signals[id].functions;
+		list = f ? Object.values(f).map(x => x.position) : [];
+	}
+	if (!list.length) {
+		const n = +Meldung.getElementsByTagName("Signal")[0].getAttribute("Count");
+		list = n > 0 ? Array.from({length: n}, (e, i) => i + 1) : [1, 2];
+	}
+	return list.filter(Number.isInteger).sort((a, b) => a - b).slice(0, 8);
+}
+
+// Stellungen einer Weiche: 3-Weg-Weiche 1-3, DKW 1-4, sonst 1-2
+function switchPositions(id){
+	const Gleis = global.Weichen && global.Weichen[id];
+	if (!Gleis) return [];
+
+	const data = +Gleis.getAttribute("data") || 0;
+	if (Gleis.getAttribute("clsid") === "B0818DD8-5DFD-409F-8022-993FD3C90759") return [1, 2, 3];   // 3-Weg-Weiche
+	if (data === 18 || data === 19) return [1, 2, 3, 4];                                           // DKW
+	return [1, 2];
+}
+
+const SWITCH_NAMES = {1: 'Durchfahrt', 2: 'Abzweig', 3: 'KoAbzweig'};
+
+// Inhalt der Bedienelemente; leer, wenn keine Befehle möglich sind
+function commandInner(kind, id){
+	if (!cmdOK) return "";
+
+	// Bedienelemente für Signale, Weichen (jeweils Buttons für Stellungen) und Züge (Eingabefeld Geschwindigkeit, Auswahl Route)
+	if (kind === "signal") {
+		const Meldung = global.Meldungen && global.Meldungen[id];
+		if (!Meldung) return "";
+
+		const def = sigDef(Meldung.getAttribute("name"));
+		const state = cur && cur.signals && cur.signals[id] ? Number(cur.signals[id].state) : NaN;
+		return `${_('CmdStellungSetzen')}: ` + signalPositions(id).map(p => {
+			const t = (def && def.Pos) ? txt(def.Pos[p]) : "";
+			return cmdButton("EEPSetSignal", id, p, String(p), t ? `${p}: ${t}` : "", SIGNAL_COLORS[classify(t) || "none"], state === p);
+		}).join("");
+
+	} else if (kind === "switch") {
+		const state = cur && cur.switches && cur.switches[id] ? Number(cur.switches[id].state) : NaN;
+		return `${_('CmdStellungSetzen')}: ` + switchPositions(id).map(p =>
+			cmdButton("EEPSetSwitch", id, p, String(p), SWITCH_NAMES[p] ? _(SWITCH_NAMES[p]) : "", SWITCH_COLORS[p] || "rgb(128,128,128)", state === p)
+		).join("");
+
+	} else if (kind === "train") {
+		const t = cur && cur.trains && cur.trains[id];
+		if (!t) return "";
+		const routes = Object.values(global.Routen || {});
+		if (t.route && !routes.includes(t.route)) routes.unshift(t.route);
+		return `${_('Geschwindigkeit')} km/h: `
+			+ `<input class="cin" type="number" step="any" data-fn="EEPSetTrainSpeed" data-id="${escH(id)}" value="${typeof t.targetSpeed === "number" ? +t.targetSpeed.toFixed(1) : ""}"> `
+			+ cmdButton("EEPSetTrainSpeed", id, 0, _('Halt'), "", "rgb(220,0,0)", false)
+			+ `<br>${_('Route')}: `
+			+ `<select data-fn="EEPSetTrainRoute" data-id="${escH(id)}"><option value=""></option>`
+			+ routes.map(r => `<option value="${escH(r)}"${r === t.route ? " selected" : ""}>${escH(r)}</option>`).join("")
+			+ `</select>`
+			+ `<br>` + cmdButton("EEPSetPerspectiveCamera", id, FOLLOW_CAMERA_POSITION, _('Verfolgerkamera'),
+				`EEPSetPerspectiveCamera ${FOLLOW_CAMERA_POSITION}`, FOLLOW_CAMERA_COLOR, false);
+			
+	} else if (kind === "camera") {
+		// id = KameraID. Der Kameratyp steht in der Anlage-Datei (Attribut Dynamic: 0 = statisch, 1 = dynamisch)
+		const K = global.KameraSet && global.KameraSet[id];
+		if (!K) return "";
+		
+		const type = Number(K.Dynamic) === 1 ? 1 : 0;
+		return cmdButton("EEPSetCamera", K.Name, type, _('KameraAufrufen'),
+			`EEPSetCamera ${type}: ${_(type === 1 ? 'dynamisch' : 'statisch')}`, CAMERA_COLORS[type], false);
+	}
+	
+	return "";
+}
+
+// Wird von js/EEP_Gleisplan_InfoPopup.js und showTrainInfo() aufgerufen. Ein leerer Rahmen ist immer vorhanden,
+// damit refreshCommandUI() ihn später füllen oder leeren kann (Bridge verbindet sich nach dem Öffnen des Popups).
+function getCommandHtml(kind, id){
+	const inner = commandInner(kind, id);
+	return `<div class="eepCmd" data-kind="${kind}" data-id="${escH(id)}" data-sig="${hashOf(inner)}">${inner}</div>`;
+}
+window.getCommandHtml = getCommandHtml;
+
+// Alle offenen Bedienelemente an den aktuellen Zustand anpassen (nach jedem Datensatz und bei cmdState)
+function refreshCommandUI(){
+	for (const box of document.querySelectorAll(".eepCmd")) {
+		// Nur ein Eingabefeld bzw. eine Auswahlliste mit Fokus wird nicht überschrieben (laufende Eingabe).
+		// Buttons sperren nie: ein Klick auf einen Button setzt den Fokus dorthin, daher wird er nach dem Senden entfernt (blur).
+		const a = document.activeElement;
+		if (a && box.contains(a) && a.matches("input, select")) continue;
+		const inner = commandInner(box.dataset.kind, box.dataset.id);
+		const sig = String(hashOf(inner));
+		if (box.dataset.sig !== sig) { box.innerHTML = inner; box.dataset.sig = sig; }
+	}
+}
+
+// Liefere die Ziel-ID für einen Befehl an EEP: Signal- oder Weichen-ID als Zahl, Zugverband-Name als String
+const cmdTargetId = el => (el.dataset.fn === "EEPSetSignal" || el.dataset.fn === "EEPSetSwitch" ? Number(el.dataset.id) : el.dataset.id);
+
+// Buttons in den Info-Popups (liegen außerhalb des SVG)
+document.addEventListener("click", ev => {
+	const b = ev.target.closest && ev.target.closest(".eepCmd button[data-fn]");
+	if (!b) return;
+
+	if (b.dataset.fn === "EEPSetCamera" || b.dataset.fn === "EEPSetPerspectiveCamera") {
+		sendCommand(b.dataset.fn, [Number(b.dataset.v), b.dataset.id]);   // EEPSetCamera|Typ|Name bzw. EEPSetPerspectiveCamera|Position|Zugname
+	} else {
+		sendCommand(b.dataset.fn, [cmdTargetId(b), Number(b.dataset.v)]);
+	}
+	if (b.closest("#eepCtxMenu")) hideMenu();
+	b.blur();   // Fokus abgeben, damit die Anzeige wieder live nachgeführt wird
+});
+// Eingabefeld Geschwindigkeit und Auswahl Route: Befehl bei Enter bzw. Verlassen des Feldes
+document.addEventListener("change", ev => {
+	const c = ev.target.closest && ev.target.closest(".eepCmd [data-fn]");
+	if (!c) return;
+
+	if (c.dataset.fn === "EEPSetTrainSpeed") {
+		const v = parseFloat(String(c.value).replace(",", "."));
+		if (Number.isFinite(v)) sendCommand(c.dataset.fn, [c.dataset.id, v]);
+
+	} else if (c.dataset.fn === "EEPSetTrainRoute" && c.value) {
+		sendCommand(c.dataset.fn, [c.dataset.id, c.value]);
+	}
+	if (c.closest("#eepCtxMenu")) hideMenu();
+	c.blur();   // Eingabe ist abgeschlossen: Fokus abgeben, damit die Anzeige wieder live nachgeführt wird
+});
+
 // Ein Listener für alle Züge (die Ebene wird bei jedem Datensatz neu aufgebaut)
 document.getElementById("sutrackpSVG").addEventListener("click", ev => {
 	const target = ev.target.closest && ev.target.closest("[data-train]");
 	if (!target) return;
 	
-	global.shiftDown = ev.shiftKey;     // showInfoWindow wertet global.shiftDown aus
+	global.shiftDown = ev.shiftKey;     // showInfoWindow wertet global.shiftDown aus, um zu entscheiden ob ein neues Popup erzeugt werden soll oder das bestehende Popup aktualisiert wird
+	global.strgDown  = ev.ctrlKey;
 	global.altDown   = ev.altKey;
-	showTrainInfo(target.getAttribute("data-train"), ev.altKey, target.getAttribute("data-vehicle"));
+	const withVehicles = ev.altKey;     // Alt+Klick Fahrzeugliste anzeigen
+	showTrainInfo(target.getAttribute("data-train"), withVehicles, target.getAttribute("data-vehicle"));
 	ev.stopPropagation();               // verhindert die Gleis-Auswertung in showElement()
 });
+
+// ---- Kontextmenü: Control+Klick, Rechtsklick, Langdruck (Touch) ----------------------------
+// Zeigt dieselben Bedienelemente wie das Info-Popup (Signal, Weiche, Zug, Kamera) als Mini-Menü.
+// Ein normaler Klick bleibt "Info", damit nichts versehentlich schaltet.
+const LONG_PRESS_MS = 450;
+const svgRoot = document.getElementById("svg");
+let ctxMenu = null, lpTimer = null, lpStart = null, longPressed = false;
+
+(function(){
+	const style = document.createElement("style");
+	style.textContent =
+		"#eepCtxMenu { position: fixed; z-index: 100000; max-width: 90vw; padding: 4px 8px 6px; font: 14px Arial, sans-serif;" +
+		" background: var(--body-background-color, #f5f5f5); color: var(--body-text-color, #000);" +
+		" border: 1px solid #888; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.35); }" +
+		"#eepCtxMenu .eepCtxTitle { font-weight: bold; margin-bottom: 2px; }" +
+		"#eepCtxMenu .eepCmd .cb { min-width: 2.6em; min-height: 2.2em; }" +
+		"#svg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }";
+	document.head.appendChild(style);
+})();
+
+function hideMenu(){
+	if (ctxMenu) { ctxMenu.remove(); ctxMenu = null; }
+}
+function cancelLongPress(){
+	if (lpTimer !== null) { clearTimeout(lpTimer); lpTimer = null; }
+}
+
+// Welches bedienbare Objekt liegt unter dem Element? -> {kind, id, title} oder null
+function ctxTarget(target){
+	if (!target || !target.closest) return null;
+
+	const train = target.closest("[data-train]");
+	if (train) {
+		const name = train.getAttribute("data-train");
+		return {kind: "train", id: name, title: `${_('Zugverband')} ${name}`};
+	}
+	const signal = target.closest("g.Signal");
+	if (signal && /^[SPH]\d+$/.test(signal.id)) {
+		const id = signal.id.substring(1);
+		return {kind: "signal", id: id, title: `${_('Signal')} ${id}`};
+	}
+	const sw = target.closest("text.WeicheText");
+	if (sw && /^W\d+$/.test(sw.id)) {
+		const id = sw.id.substring(1);
+		return {kind: "switch", id: id, title: `${_('Weiche')} ${id}`};
+	}
+	const cam = target.closest("#Kamera > g");
+	if (cam && global.KameraSet && global.KameraSet[cam.id]) {
+		return {kind: "camera", id: cam.id, title: `📷 ${global.KameraSet[cam.id].Name}`};
+	}
+	return null;
+}
+
+function showMenu(found, x, y, touch){
+	hideMenu();
+	if (!commandInner(found.kind, found.id)) return false;
+
+	ctxMenu = document.createElement("div");
+	ctxMenu.id = "eepCtxMenu";
+	ctxMenu.innerHTML = `<div class="eepCtxTitle">${escH(found.title)}</div>` + getCommandHtml(found.kind, found.id);
+	document.body.appendChild(ctxMenu);
+
+	// Position: bei Touch oberhalb des Fingers, sonst unterhalb des Mauszeigers; im sichtbaren Bereich halten
+	const r = ctxMenu.getBoundingClientRect();
+	const left = Math.min(Math.max(4, x - r.width / 2), Math.max(4, window.innerWidth - r.width - 4));
+	let top = touch ? y - r.height - 24 : y + 12;
+	if (top < 4) top = y + 24;
+	if (top + r.height > window.innerHeight - 4) top = Math.max(4, window.innerHeight - r.height - 4);
+	ctxMenu.style.left = left + "px";
+	ctxMenu.style.top  = top + "px";
+	return true;
+}
+
+// true: Ereignis ist erledigt (Menü gezeigt bzw. Hinweis ausgegeben)
+function openMenu(found, x, y, touch){
+	if (!cmdOK) { msg("", _('CmdNichtVerfuegbar')); return true; }
+	return showMenu(found, x, y, touch);
+}
+
+// Control+Klick (Windows/Linux, Mac mit Cmd): Menü statt Info. Läuft vor dem Klick-Handler von svg-pan-zoom.
+svgRoot.addEventListener("click", ev => {
+	if (longPressed) {                       // Klick nach einem Langdruck unterdrücken
+		longPressed = false;
+		ev.stopPropagation(); ev.preventDefault();
+		return;
+	}
+	if (!(ev.ctrlKey || ev.metaKey)) return;
+	const found = ctxTarget(ev.target);
+	if (!found) return;
+	ev.stopPropagation(); ev.preventDefault();
+	openMenu(found, ev.clientX, ev.clientY, false);
+}, true);
+
+// Rechtsklick, Control+Klick auf dem Mac, Langdruck bei Android
+svgRoot.addEventListener("contextmenu", ev => {
+	const found = ctxTarget(ev.target);
+	if (found && openMenu(found, ev.clientX, ev.clientY, ev.pointerType === "touch")) {
+		ev.preventDefault();
+	}
+}, true);
+
+// Langdruck (Touch, z.B. iOS): Timer starten; bei Bewegung (Verschieben, Zoomen) abbrechen
+document.addEventListener("pointerdown", ev => {
+	longPressed = false;
+	cancelLongPress();
+	if (ctxMenu && !ctxMenu.contains(ev.target)) hideMenu();      // Klick außerhalb schließt das Menü
+	if (ev.pointerType !== "touch" || !svgRoot.contains(ev.target)) return;
+
+	const found = ctxTarget(ev.target);
+	if (!found) return;
+	lpStart = {x: ev.clientX, y: ev.clientY};
+	lpTimer = setTimeout(() => {
+		lpTimer = null;
+		if (openMenu(found, lpStart.x, lpStart.y, true)) longPressed = true;
+	}, LONG_PRESS_MS);
+}, true);
+document.addEventListener("pointermove", ev => {
+	if (lpTimer !== null && Math.hypot(ev.clientX - lpStart.x, ev.clientY - lpStart.y) > 10) cancelLongPress();
+}, true);
+document.addEventListener("pointerup", cancelLongPress, true);
+document.addEventListener("pointercancel", cancelLongPress, true);
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") hideMenu(); });
 
 // BroadcastChannel EEP_LIVE
 let pendingData = null;   // Daten, die vor dem Laden der Anlage-Datei eintrafen
 ch.onmessage = function(ev){
 	const m = ev.data;
 	
-	if (m.type === "center") { // Ansicht auf eine bestimmte Position zentrieren
+	if (m.type === "cmdState") {   // Bridge: Befehle an EEP möglich?
+		cmdOK = !!m.ok;
+		refreshCommandUI();
+
+	} else if (m.type === "cmdResult") {   // Bridge: Ergebnis eines Befehls
+		clearTimeout(cmdPending[m.seq]);
+		delete cmdPending[m.seq];
+		msg("", m.text || "");
+
+	} else if (m.type === "center") { // Ansicht auf eine bestimmte Position zentrieren
 		if (window.global && global.SvgPanZoom) {
 			global.SvgPanZoom.centerPosition([m.x, m.y, 0]);
 		}
@@ -432,7 +826,7 @@ ch.onmessage = function(ev){
 	} else if (m.type === "signalQuery") { // Klassifikation der Signalstellungen erfragen
 		ch.postMessage({type: "signalInfo", signals: signalInfo(m.ids || [])});
 		
-	}	else if (m.type === "showTrack") {   // Gleis-Info ausrufen
+	}	else if (m.type === "showTrack") {   // Gleis-Info aufrufen
 		const GleissystemID =  String(m.GleissystemID);
 		const GleisID =  String(m.GleisID);
 		const Gleis = isLoaded() && getGleis(GleissystemID, GleisID);
@@ -441,7 +835,7 @@ ch.onmessage = function(ev){
 			if (window.showGleisInfo) { window.showGleisInfo(GleissystemID, GleisID); }
 		}
 		
-	}	else if (m.type === "data") {
+	}	else if (m.type === "data") {  // Live-Daten für Signale, Weichen, Züge, Fahrzeuge
 		pendingData = m.data;
 		draw(m.data);
 	}

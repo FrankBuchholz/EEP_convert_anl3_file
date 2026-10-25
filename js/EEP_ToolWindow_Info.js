@@ -6,7 +6,7 @@
 */
 /* Interface
 required global data:
-	global
+	global.shiftDown
 required functions:
 	ToolWindow
 public api:

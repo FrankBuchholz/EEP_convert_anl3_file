@@ -27,13 +27,15 @@ EEP + EepExport.lua ──► eep_export.json ─┐
 
 Alle drei Varianten liefern die Dateien gleich aus:
 
-- Ausgeliefert werden **nur `.json` und `.anl3`** (nur `GET`, `HEAD`, `OPTIONS`). Alles andere liefert 404 bzw. 405, ebenso Verzeichnislisten.
+- Ausgeliefert werden **nur `.json` und `.anl3`** (nur `GET`, `HEAD`, `OPTIONS`). Alles andere liefert 404 bzw. 405, ebenso Verzeichnislisten. Einzige Ausnahme: Python und Node.js nehmen mit der Option `-ActivateCommands` zusätzlich `POST` auf `/send-command` an (siehe „Befehle an EEP“ in Abschnitt 2).
 - **CORS** nur für `localhost`, das lokale Netzwerk (10.x, 172.16–31.x, 192.168.x, `*.local`, PC-Name) und die GitHub-Origin (Standard: `https://frankbuchholz.github.io`, änderbar mit `-GitHubOrigins`).
 - `Access-Control-Allow-Private-Network: true` wird nur gesendet, wenn der Browser es per Preflight anfragt und die Origin erlaubt ist.
 - **HTTPS** mit selbstsigniertem Zertifikat (gültig für `localhost`, PC-Name und die lokalen IP-Adressen), HSTS, mindestens TLS 1.2.
 - **Standard ist `-HttpPort 0`:** Es gibt nur einen HTTPS-Port, keinen HTTP-Port und keine Umleitung. Mit `-HttpPort 3000` kommt ein HTTP-Port dazu, der auf HTTPS umleitet.
 - **WebSocket (nur Python und Node.js):** Unter derselben Adresse wie die Datei (`wss://…/eep_export.json`) schickt der Server die Datei sofort beim Verbinden und danach nach jeder Änderung. Die Bridge muss dann nicht mehr abfragen (siehe Abschnitt „WebSocket“ in 2). Die IIS-Variante liefert die Datei nur per HTTPS.
+- **Befehle an EEP (nur Python und Node.js, optional):** Mit `-ActivateCommands` nimmt der Server per `POST /send-command` Befehle an und schreibt sie in eine Textdatei im Datenordner (siehe „Befehle an EEP“ in Abschnitt 2). Der **IIS unterstützt das nicht**, der Aufwand wäre zu groß.
 - **Vorprüfungen** vor jeder Änderung (Administratorrechte, Parameter, Ports, Voraussetzungen) und **Abschlusstests** (CORS, Dateityp-Sperre, Ports, Umleitung, bei Python und Node.js zusätzlich WebSocket).
+- **Test- und Beispieldateien** (`daten.json`, `beispiel.anl3`, `wstest.json`) liegen im Unterordner `exchange` des Datenordners, nicht im Datenordner selbst. Bei Python und Node.js liegt dort auch die Kommando-Datei. Diese wird nie ausgeliefert, weil `.txt` gesperrt ist.
 - **Fremde Webserver und Programme werden nie beendet oder verändert.** Belegt ein anderes Programm einen Port, bricht das Skript vor jeder Änderung ab.
 
 ---
@@ -53,7 +55,7 @@ Alle drei Varianten liefern die Dateien gleich aus:
 | Software | IIS-Features (werden aktiviert) und das Modul *URL Rewrite* (wird installiert) | Python 3.9+ für alle Benutzer (wird bei Bedarf per `winget` installiert), Paket `cryptography` (per `pip`) | **Node.js 18 oder neuer muss bereits installiert sein.** Fehlt es, bricht das Skript sofort ab, ohne etwas zu ändern |
 | Internet | ja (Download von URL Rewrite) | ja (`winget`, `pip`), nur beim ersten Mal | nein |
 | Eingriff ins System | groß: Windows-Features, Dienst, TLS-Einstellungen (Registry) | klein: Ordner unter `C:\ProgramData`, ggf. Python | klein: Ordner unter `C:\ProgramData` |
-| Datei im Datenordner (`-SitePath`) | `web.config` (steuert Dateityp-Sperre und CORS) | keine (nur Beispieldateien) | keine (nur Beispieldateien) |
+| Dateien im Datenordner (`-SitePath`) | `web.config` (steuert Dateityp-Sperre und CORS) und Unterordner `exchange` mit Beispieldateien | Unterordner `exchange` (Beispieldateien, mit `-ActivateCommands` zusätzlich die Kommando-Datei) | Unterordner `exchange` (Beispieldateien, mit `-ActivateCommands` zusätzlich die Kommando-Datei) |
 
 ---
 
@@ -71,9 +73,10 @@ Alle drei Varianten liefern die Dateien gleich aus:
 
 - Größter Eingriff ins System: IIS-Features, URL-Rewrite-Modul, systemweite TLS-Härtung (SSL und TLS 1.0/1.1 für Serverdienste deaktiviert, wirksam nach einem Neustart; abschaltbar mit `-SkipTlsHardening`).
 - Braucht Internet für URL Rewrite.
-- Schreibt eine `web.config` in den Datenordner.
+- Schreibt eine `web.config` in den Datenordner und legt den Unterordner `exchange` mit Beispieldateien an (Name fest, kein `-ExchangePath`).
 - Konflikte mit anderen IIS-Websites auf demselben Port sind möglich (werden erkannt, aber nicht verändert).
 - Hat kein `-Uninstall`; die Website wird von Hand entfernt (siehe Abschnitt 3.9).
+- Kennt weder WebSocket noch Befehle an EEP (`-ActivateCommands`, `-ExchangePath`, `-ExchangeFile`): Das wäre zu aufwendig. Wer das braucht, nimmt Python oder Node.js.
 
 ### Python
 
@@ -110,6 +113,7 @@ Alle drei Varianten liefern die Dateien gleich aus:
 - **Dauerbetrieb ohne Handgriffe:** IIS.
 - **Wenige Änderungen am System, Internet vorhanden:** Python.
 - **Node.js ist ohnehin installiert oder es gibt kein Internet:** Node.js.
+- **Befehle von der Bridge an EEP senden:** Python oder Node.js (der IIS unterstützt das nicht).
 
 ### WebSocket (Python und Node.js)
 
@@ -121,6 +125,26 @@ Die Bridge liest die Exportdatei zuerst per HTTPS und öffnet dann eine WebSocke
 - **Grenzen:** höchstens 50 gleichzeitige WebSocket-Verbindungen (weitere erhalten `503`), Ping alle 25 Sekunden, Clients, die nichts mehr abnehmen oder antworten, werden getrennt.
 - **IIS:** Diese Variante liefert nur per HTTPS aus, ein WebSocket wäre hier zu aufwendig. Die Bridge fragt dann im eingestellten Intervall ab.
 - **Hinweis für kleine Anlagen:** Mit WebSocket (Python, Node.js) ist die Übertragung so effizient, dass in `EepExport.lua` `interval = 0` gewählt werden kann (Export bei jedem Aufruf von `run()`, das sind 5 Aufrufe je Sekunde). Bei großen Anlagen kostet der häufige Export Rechenzeit in EEP; dann ein größeres Intervall wählen.
+
+### Befehle an EEP (Python und Node.js, optional)
+
+Python und Node.js können Befehle annehmen, die die Bridge (oder `curl`) an EEP schicken will. Der Server ist dabei nur der Überbringer: Er hängt die Befehle zeilenweise an eine Textdatei im Datenordner an. Das Lesen und Auswerten der Datei übernimmt ein Lua-Skript in EEP und ist nicht Teil der Installationsskripte. Der **IIS unterstützt diese Funktion nicht** (zu aufwendig), seine Skriptoptionen `-ActivateCommands`, `-ExchangePath` und `-ExchangeFile` gibt es nicht.
+
+- **Aktivierung:** Bei der Installation mit `-ActivateCommands` oder beim Start des Servers mit `--activateCommands` (siehe 3.3). Ohne Aktivierung antwortet der Server auf `POST` mit 405.
+- **Schnittstelle:** `POST https://<Host>:<Port>/send-command`, Text im Body, ein Befehl je Zeile, höchstens 64 KB und 500 Zeichen je Zeile. Leerzeilen werden übergangen, Steuerzeichen sind nicht erlaubt. Die Antwort ist `{"status": "success", "lines": n}`.
+- **Zieldatei:** `<SitePath>\<ExchangePath>\<ExchangeFile>`, Standard `exchange\commands-to-eep.txt` im Datenordner. Der Ordner wird bei Bedarf angelegt, neue Befehle werden angehängt. Die Datei wird als **ANSI (Windows-1252)** mit `CRLF` geschrieben, so liest EEP sie. Der Body darf UTF-8 oder ANSI sein; Zeichen, die in Windows-1252 nicht darstellbar sind, werden mit 400 abgelehnt. Die Datei darf nicht auf `.json` oder `.anl3` enden, damit sie nicht ausgeliefert wird.
+- **Wer darf senden:** Browser-Seiten (die Bridge) nur von erlaubten Origins, also GitHub-Origin, lokales Netz und `localhost`, gleiche Regeln wie bei CORS und WebSocket. Eine fremde Origin erhält 403. Eine Bridge als lokale Datei (`file://`) braucht zusätzlich `-AllowNullOrigin`. Anfragen **ohne Origin** (z. B. `curl`) werden nur von diesem Rechner angenommen.
+- **Nur HTTPS:** Auf dem HTTP-Port (`-HttpPort`) werden nie Befehle angenommen.
+- **Fehlercodes:** 400 (leerer Body, ungültige Zeilen oder Zeichen), 403 (Origin nicht erlaubt), 404 (falscher Pfad), 411 (`Content-Length` fehlt), 413 (mehr als 64 KB), 500 (Kommando-Datei nicht beschreibbar).
+
+Beispiele von diesem Rechner aus:
+
+```powershell
+curl.exe --data-binary "Befehl" https://localhost:3001/send-command
+curl.exe --data-binary "@befehle.txt" https://localhost:3001/send-command
+```
+
+**Sicherheit:** Wer den Server erreichen darf, kann Befehle für EEP einreichen. Nur in vertrauenswürdigen Netzen aktivieren. Zusammen mit `-AllowNullOrigin` kann auch jede Seite in einem Sandbox-Frame (Origin `null`) Befehle senden. Ist die Bridge nicht lokal gestartet, `-AllowNullOrigin` weglassen. Die Skripte zeigen dazu beim Start entsprechende Warnungen.
 
 ---
 
@@ -169,7 +193,7 @@ Ohne Parameter aufgerufen, zeigt jedes Skript nur die wichtigsten Optionen (`-Si
 .\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001
 ```
 
-Das Skript prüft zuerst die Voraussetzungen (beim Node.js-Skript als Erstes, ob `node` vorhanden ist), führt dann die Installation durch und endet mit den Abschlusstests. Alle Zeilen müssen `[OK]` zeigen. Bei Python und Node.js gehört dazu ein WebSocket-Test: Er legt kurz die Datei `wstest.json` im Datenordner an und löscht sie wieder. Fehlt im Datenordner noch eine `.json`- oder `.anl3`-Datei, legt das Skript Beispieldateien `daten.json` und `beispiel.anl3` an, mit denen die Tests laufen.
+Das Skript prüft zuerst die Voraussetzungen (beim Node.js-Skript als Erstes, ob `node` vorhanden ist), führt dann die Installation durch und endet mit den Abschlusstests. Alle Zeilen müssen `[OK]` zeigen. Bei Python und Node.js gehört dazu ein WebSocket-Test: Er legt kurz die Datei `wstest.json` im Ordner `exchange` an und löscht sie wieder. Mit `-ActivateCommands` kommen Tests für `POST /send-command` hinzu (Origin-Prüfung, ANSI-Kodierung, Schreiben der Kommando-Datei). Sie legen die Kommando-Datei kurz an und löschen sie wieder; existiert sie schon, werden die Schreibtests mit einer Warnung übersprungen, damit keine Befehle verloren gehen oder ausgelöst werden. Das Skript legt im Unterordner `exchange` (bei Python und Node.js über `-ExchangePath` änderbar) die Beispieldateien `daten.json` und `beispiel.anl3` an, mit denen die Tests laufen. Die Tests prüfen also diesen Unterordner und nicht, ob `eep_export.json` und die `.anl3`-Datei im `-SitePath` liegen.
 
 ### 3.3 Server starten (nur Python und Node.js)
 
@@ -187,11 +211,21 @@ npm start --prefix "C:\ProgramData\EEP-Node-Server"
 
 Beim IIS ist nichts zu starten, der Dienst läuft bereits.
 
+Die Annahme von Befehlen (nur Python und Node.js) lässt sich auch ohne Neuinstallation einschalten, indem man beim Start `--activateCommands` anhängt:
+
+```powershell
+# Python
+& "C:\ProgramData\EEP-Python-Server\venv\Scripts\python.exe" "C:\ProgramData\EEP-Python-Server\server.py" --activateCommands
+
+# Node.js
+& "C:\Program Files\nodejs\node.exe" "C:\ProgramData\EEP-Node-Server\server.js" --activateCommands
+```
+
 ### 3.4 Prüfen
 
 Im Browser auf dem EEP-Rechner:
 
-- `https://localhost:3001/daten.json` zeigt die Beispieldatei.
+- `https://localhost:3001/exchange/daten.json` zeigt die Beispieldatei.
 - `https://localhost:3001/eep_export.json` zeigt den Export, sobald EEP ihn geschrieben hat.
 - `https://localhost:3001/test.txt` oder `https://localhost:3001/` liefern 404 (gewollt).
 - Python und Node.js: Verbindet sich die Bridge per WebSocket, erscheint im Protokoll eine Zeile `"WS /eep_export.json" 101` und die Statuszeile der Bridge zeigt „WebSocket“ statt „HTTP“.
@@ -226,7 +260,7 @@ Die `.anl3`-Datei wird vom Gleisplan nur einmalig geladen. Wurde die Anlage in E
    .\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001 -OpenFirewall
    ```
 
-2. Die erzeugte Datei `EEP Export.cer` (liegt neben dem Skript) auf den anderen Rechner kopieren und dort als **vertrauenswürdige Stammzertifizierungsstelle** (Zertifikatsspeicher *Lokaler Computer*) importieren. Sonst meldet der Browser einen Zertifikatsfehler.
+2. Die erzeugte Datei `<SiteName> <Variante> (<PC-Name>).cer`, z. B. `EEP Export Node.js (MEIN-PC).cer` (liegt neben dem Skript; Varianten: `IIS`, `Python`, `Node.js`) auf den anderen Rechner bzw. das Tablet kopieren und dort als **vertrauenswürdige Stammzertifizierungsstelle** importieren (unter Windows Zertifikatsspeicher *Lokaler Computer*). Sonst meldet der Browser einen Zertifikatsfehler. Schritt-für-Schritt-Anleitungen für Windows, macOS, iOS/iPadOS und Android stehen in [`README_Zertifikatsverteilung_Heimnetzwerk`](README_Zertifikatsverteilung_Heimnetzwerk.md "README_Zertifikatsverteilung_Heimnetzwerk.md").
 3. Im Browser oder in der Bridge die IP-Adresse des EEP-Rechners verwenden, z. B. `https://192.168.0.115:3001/eep_export.json`, und im Gleisplan entsprechend `https://192.168.0.115:3001/MeineAnlage.anl3`.
 
 Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. Ändert sich die IP-Adresse (DHCP), das Skript einfach erneut ausführen (oder dem EEP-Rechner eine feste IP geben) und die `.cer`-Datei neu importieren.
@@ -239,7 +273,7 @@ Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. 
 .\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001 -AllowNullOrigin
 ```
 
-**Achtung:** Die Origin `null` sendet der Browser auch bei Seiten in Sandbox-Frames fremder Websites. Mit dieser Option kann also jede solche Seite die Daten lesen (sofern der Browser den Server erreicht). Nur verwenden, wenn die Bridge wirklich lokal läuft. Die Alternative ist, die Bridge über GitHub Pages zu öffnen.
+**Achtung:** Die Origin `null` sendet der Browser auch bei Seiten in Sandbox-Frames fremder Websites. Mit dieser Option kann also jede solche Seite die Daten lesen (sofern der Browser den Server erreicht). Das gilt auch für Befehle an EEP: Zusammen mit `-ActivateCommands` kann jede solche Seite Befehle senden. Nur verwenden, wenn die Bridge wirklich lokal läuft. Die Alternative ist, die Bridge über GitHub Pages zu öffnen.
 
 ### 3.8 Weitere Optionen
 
@@ -249,7 +283,10 @@ Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. 
 | `-HttpsPort <Port>` | HTTPS-Port (Standard 443) | alle |
 | `-HttpPort <Port>` | optionaler HTTP-Port mit Umleitung auf HTTPS (Standard 0 = keiner) | alle |
 | `-GitHubOrigins "https://name.github.io"` | erlaubte GitHub-Origin(s), nur Schema und Host | alle |
-| `-AllowNullOrigin` | Origin `null` erlauben, bei Python und Node.js auch `file://` für WebSocket (Bridge als lokale Datei) | alle |
+| `-AllowNullOrigin` | Origin `null` erlauben, bei Python und Node.js auch `file://` für WebSocket und Befehle (Bridge als lokale Datei) | alle |
+| `-ActivateCommands` | erlaubt `POST /send-command`: Befehle der Bridge (bzw. `curl` von diesem Rechner) werden an die Kommando-Datei für EEP angehängt (siehe „Befehle an EEP“ in 2). Beim Serverstart entspricht `--activateCommands` | Python, Node.js |
+| `-ExchangePath <Pfad>` | relativer Unterordner von `-SitePath` für die Kommando-Datei sowie die Test- und Beispieldateien (Standard `exchange`) | Python, Node.js |
+| `-ExchangeFile <Name>` | Dateiname der Kommando-Datei (Standard `commands-to-eep.txt`), darf nicht auf `.json` oder `.anl3` enden | Python, Node.js |
 | `-OpenFirewall` | Firewall-Regel für den/die Port(s) (Privat, Domäne) | alle |
 | `-PfxPath <Datei>` `-PfxPassword` | eigenes Zertifikat statt selbstsigniert | alle |
 | `-SiteName <Name>` | Name der Website bzw. der Firewall-Regel (Standard `EEP Export`) | alle |
@@ -257,13 +294,15 @@ Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. 
 | `-InstallPath <Pfad>` | Ort von Server, Zertifikat und Log (Standard unter `C:\ProgramData`) | Python, node.js |
 | `-Uninstall` | Server, Firewall-Regel und `InstallPath` entfernen | Python, node.js |
 
+Die Optionen `-ActivateCommands`, `-ExchangePath` und `-ExchangeFile` kennt das IIS-Skript nicht (es nutzt für die Beispieldateien fest den Ordner `exchange`).
+
 Alle Optionen mit Erklärung: `Get-Help .\<Skript>.ps1 -Detailed`.
 
 ### 3.9 Erneut ausführen, aktualisieren, entfernen
 
 - **Erneut ausführen:** Das Skript aktualisiert die bestehende Installation auf die aktuellen Angaben. Beim IIS wird eine Website gleichen Namens auf die neuen Angaben konfiguriert, andere Websites bleiben unberührt.
-- **Python / node entfernen:** `.\Install-Python-web-server.ps1 -Uninstall` bzw. `.\Install-node-web-server.ps1 -Uninstall`. Das entfernt den Server, die Firewall-Regel und den Installationsordner. Unverändert bleiben der Datenordner (`-SitePath`), Python bzw. Node.js und das Zertifikat im Windows-Speicher (`certlm.msc` → *Vertrauenswürdige Stammzertifizierungsstellen*).
-- **IIS entfernen:** Website `EEP Export` im IIS-Manager löschen, die Firewall-Regel `IIS EEP Export` entfernen und die `web.config` aus dem Datenordner löschen.
+- **Python / node entfernen:** `.\Install-Python-web-server.ps1 -Uninstall` bzw. `.\Install-node-web-server.ps1 -Uninstall`. Das entfernt den Server, die Firewall-Regel und den Installationsordner. Unverändert bleiben der Datenordner (`-SitePath`, auch eine darin angelegte Kommando-Datei und der Ordner `exchange` mit den Beispieldateien), Python bzw. Node.js und das Zertifikat im Windows-Speicher (`certlm.msc` → *Vertrauenswürdige Stammzertifizierungsstellen*).
+- **IIS entfernen:** Website `EEP Export` im IIS-Manager löschen, die Firewall-Regel `IIS EEP Export` entfernen und die `web.config` aus dem Datenordner löschen. Der Ordner `exchange` mit den Beispieldateien kann ebenfalls gelöscht werden.
 
 ---
 
@@ -278,13 +317,19 @@ Alle Optionen mit Erklärung: `Get-Help .\<Skript>.ps1 -Detailed`.
 | „Node.js (node.exe) wurde nicht gefunden" | Node.js LTS installieren (`winget install OpenJS.NodeJS.LTS` oder <https://nodejs.org>), neue PowerShell als Administrator öffnen, Skript erneut starten. |
 | Chrome: „blocked by CORS policy … from origin 'null'" | Bridge wurde als lokale Datei geöffnet. Entweder über GitHub Pages öffnen oder `-AllowNullOrigin` verwenden (siehe 3.7). |
 | Chrome: Hinweis zum lokalen Netzwerk („privileged network position") | Kein Fehler. Berechtigung einmal erteilen (siehe 3.5). |
-| Zertifikatswarnung auf einem anderen Gerät | `EEP Export.cer` dort als vertrauenswürdige Stammzertifizierungsstelle importieren (siehe 3.6). |
+| Zertifikatswarnung auf einem anderen Gerät | Die `.cer`-Datei (z. B. `EEP Export Node.js (MEIN-PC).cer`) dort als vertrauenswürdige Stammzertifizierungsstelle importieren (siehe 3.6 und [`README_Zertifikatsverteilung_Heimnetzwerk`](README_Zertifikatsverteilung_Heimnetzwerk.md "README_Zertifikatsverteilung_Heimnetzwerk.md")). |
 | Bridge zeigt „Fehler: Failed to fetch" | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat nicht vertraut oder Origin nicht erlaubt (CORS). |
 | Gleisplan zeigt bei **URL laden** „Fehler: …" | Wie zuvor. Zusätzlich: Die `.anl3`-Datei liegt nicht im `-SitePath`, oder der Dateiname in der URL stimmt nicht. |
 | Log: `"WS …" 403 Forbidden (Origin: …)` (Python, Node.js) | Die Origin der Bridge ist nicht erlaubt. Bridge von GitHub Pages oder aus dem lokalen Netz öffnen, bei einer lokalen Datei `-AllowNullOrigin` verwenden (siehe 3.7). Die Bridge fragt in der Zwischenzeit weiter per HTTPS ab. |
 | Statuszeile der Bridge zeigt dauernd „HTTP“ statt „WebSocket“ | Kein WebSocket möglich: IIS-Variante, Quelle ist keine `http(s)`-URL, Verbindung abgelehnt (`403`, `404`, `503` bei mehr als 50 Verbindungen) oder ein älterer Server ohne WebSocket (Skript erneut ausführen). Die Daten kommen trotzdem per Abfrage, die Bridge versucht alle 5 Sekunden eine neue Verbindung. |
-| Abschlusstest „WebSocket: …“ schlägt fehl | Details stehen hinter der Meldung. Meist ist die Datei im `-SitePath` nicht beschreibbar (der Test legt `wstest.json` an) oder ein Sicherheitsprogramm blockiert die Verbindung. |
-| Aufruf funktioniert nicht, obwohl der Test `[OK]` zeigt | `eep_export.json` bzw. die `.anl3`-Datei liegt nicht im `-SitePath`, oder der Server (Python/Node.js) läuft nicht mehr. |
+| Abschlusstest „WebSocket: …“ schlägt fehl | Details stehen hinter der Meldung. Meist ist der Ordner `exchange` im `-SitePath` nicht beschreibbar (der Test legt dort `wstest.json` an) oder ein Sicherheitsprogramm blockiert die Verbindung. |
+| Befehle: `POST` liefert 405 | Befehlsannahme nicht aktiviert (Skript mit `-ActivateCommands` ausführen oder Server mit `--activateCommands` starten), IIS-Variante (unterstützt keine Befehle) oder Anfrage an den HTTP-Port (dort werden nie Befehle angenommen). |
+| Log: `"POST /send-command" 403 Forbidden (Origin: …)` (Python, Node.js) | Die Origin ist nicht erlaubt. Bridge von GitHub Pages oder aus dem lokalen Netz öffnen, bei einer lokalen Datei `-AllowNullOrigin` verwenden (siehe 3.7). Anfragen ohne Origin (z. B. `curl`) werden nur von diesem Rechner angenommen. |
+| Befehle: 400 „Ungültige Zeilen“ oder „Zeichen nicht in ANSI“ | Body leer, Zeile länger als 500 Zeichen, Steuerzeichen enthalten oder Zeichen, das Windows-1252 nicht kennt. |
+| Befehle: 411 oder 413 | `Content-Length` fehlt bzw. der Body ist größer als 64 KB. |
+| Befehle: Antwort 200, aber EEP reagiert nicht | Das Log zeigt „… Befehl(e) … nach … geschrieben“. Prüfen, ob die Kommando-Datei (Standard `<SitePath>\exchange\commands-to-eep.txt`, siehe `-ExchangePath` und `-ExchangeFile`) die erwartete Zeile enthält und ob das Lua-Skript in EEP dieselbe Datei liest. |
+| Warnung „Die Kommando-Datei … existiert bereits“ bei der Installation | Kein Fehler. Die Schreibtests für Befehle wurden übersprungen, damit keine vorhandenen Befehle verloren gehen oder ausgelöst werden. |
+| Aufruf funktioniert nicht, obwohl der Test `[OK]` zeigt | `eep_export.json` bzw. die `.anl3`-Datei liegt nicht im `-SitePath`, oder der Server (Python/Node.js) läuft nicht mehr. Die Tests nutzen nur die Beispieldateien im Unterordner `exchange`. |
 
 **Protokolle**
 

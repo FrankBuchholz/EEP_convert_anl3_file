@@ -59,7 +59,7 @@ const REFINE_PASSES = 2;     // Durchgänge, um Texte wieder näher an den Urspr
 const LEADER_MIN    = 1.0;   // Hilfslinie ab dieser Verschiebung (in em = eine Zeilenhöhe)
 const LEADER_GAP    = 0.3;   // Hilfslinien kürzer als diese Länge (in em) werden weggelassen
 const DELAY         = 120;   // Wartezeit (ms), bevor nach einer Änderung neu berechnet wird
-const PRIORITY      = { kontakt: 3, signal: 2, weiche: 1, gleis: 0, fixed: 0 };  // höhere Priorität behält ihren Platz
+const PRIORITY      = { kontakt: 3, signal: 2, weiche: 1, kamera: 1, gleis: 0, fixed: 0 };  // höhere Priorität behält ihren Platz
 
 // ---------------------------------------------------------------------------------------------
 // Teil 1: 2D-Transformationen als Array [a, b, c, d, e, f] wie in SVG matrix(a b c d e f)
@@ -477,7 +477,7 @@ function resetLabels() {
 /* Text für das Layout anmelden. Aufruf direkt nach dem Erzeugen des text-Elementes, wenn die Gruppen
    mit ihren transform-Attributen bereits vorhanden sind.
 	el					text-Element (mit Attributen transform, dx, dy)
-	options.kind		"kontakt", "signal", "weiche", "gleis" (werden verschoben) oder "fixed" (feste Hindernisse)
+	options.kind		"kontakt", "signal", "weiche", "kamera", "gleis" (werden verschoben) oder "fixed" (feste Hindernisse)
 	options.anchor		"start", "middle", "end" (text-anchor)
 */
 function registerLabel(el, options) {

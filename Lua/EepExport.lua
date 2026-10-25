@@ -2,7 +2,10 @@
 --- Modul zum Export aktueller Zustandsdaten einer EEP-Anlage als JSON-Datei.
 --- Einbindung per require im Hauptskript der Anlage (siehe Beispiel).
 ---
---- Objekte werden ueber die add...()-Funktionen angemeldet. Alle add...()-Funktionen verstehen
+--- Die Zustandsdaten werden im Standard je nach Version von EEP in die Datei <Anlagenpfad>\exchange\eep_export.json 
+--- bzw. in <EEP-Installationspfad>\exchange\eep_export.json geschrieben.
+---
+--- Objekte koennen ueber die add...()-Funktionen angemeldet werden. Alle add...()-Funktionen verstehen
 --- drei Eingabeformen und pruefen dabei, ob das Objekt wirklich existiert:
 ---   a) ein einzelner Wert:        EepExport.addSignals(12)
 ---   b) eine Liste von Werten:     EepExport.addSignals({ 1, 2, 3 })
@@ -44,7 +47,7 @@ local EepExport = require("EepExport")
 
 --- Optional: Konfiguration (nicht erforderlich)
 EepExport.configure({ 
-  --outputFile       = nil,    -- Vollstaendiger Pfad der Ausgabedatei; Standard: <Anlagenpfad>\eep_export.json
+  --outputFile       = nil,    -- Vollstaendiger Pfad der Ausgabedatei; Standard: <Anlagenpfad>\exchange\eep_export.json
   --interval         = 5,      -- Export-Intervall in EEP-Sekunden (-1 = nur manuell per M.export(), 0 = bei jedem Aufruf), Standard: 5
   pretty             = true,   -- true = eingerueckte, lesbare JSON-Ausgabe, Standard: false
   --global           = true,   -- Zeit, Jahreszeit, Wetter, Kamera exportieren, Standard: true
@@ -121,7 +124,7 @@ M.lastError = nil
 -- Konfiguration
 -- ---------------------------------------------------------------------------------------------
 local config = {
-  outputFile       = nil,   -- Vollstaendiger Pfad der Ausgabedatei; Standard: <Anlagenpfad>\eep_export.json
+  outputFile       = nil,   -- Vollstaendiger Pfad der Ausgabedatei; Standard: <Anlagenpfad>\exchange\eep_export.json
   interval         = 5,     -- Export-Intervall in EEP-Sekunden (-1 = nur manuell per M.export(), 0 = bei jedem Aufruf)
   pretty           = false, -- true = eingerueckte, lesbare JSON-Ausgabe
   global           = true,  -- Zeit, Jahreszeit, Wetter, Kamera exportieren
@@ -191,6 +194,21 @@ function M.range(first, last)
   local t = {}
   for i = first, last do t[#t + 1] = i end
   return t
+end
+
+-- Statische Daten (aendern sich nie): werden je Objekt und Feld nur einmal ermittelt.
+-- kategorie -> name -> { feld = wert }
+local staticCache = { signals = {}, rollingstock = {}, structures = {}, goods = {} }
+
+--- Liefert den gecachten Wert; fehlt er noch, wird fn(...) einmal aufgerufen und bei Erfolg gespeichert.
+local function cachedStatic(store, key, field, fn, ...)
+  local st = store[key]
+  if not st then st = {}; store[key] = st end
+  if st[field] == nil then
+    local ok, value = try(fn, ...)
+    if ok then st[field] = value end
+  end
+  return st[field]
 end
 
 -- ---------------------------------------------------------------------------------------------
@@ -623,9 +641,10 @@ local function pruneAuto(key)
     if set[value] and not cat.exists(value) then
       if config.debug then print(string.format("EepExport auto removal: %s %s", key, value)) end
 
-      table.remove(cat.list, i)
+			table.remove(cat.list, i)
       set[value] = nil
       vehicleCount[value] = nil
+      if staticCache[key] then staticCache[key][value] = nil end
     end
   end
 end
@@ -822,13 +841,58 @@ local function collectGlobal()
   return g
 end
 
---- Signale
+-- Signale
 local function collectSignal(id)
   local s = { state = try(EEPGetSignal, id) or nil }
-  
-  local okC, count = try(EEPGetSignalFunctions, id)
-  if okC then s.functionCount = count end
-  
+
+  -- STATIC: je Feld nur einmal ermitteln (Fehlschlaege werden beim naechsten Export erneut versucht)
+  local cache = staticCache.signals
+  local count = cachedStatic(cache, id, "functionCount", EEPGetSignalFunctions, id) -- AB EEP 17.3 Plug-in 3
+  local itemName = cachedStatic(cache, id, "itemName", EEPGetSignalItemName, id)    -- AB EEP 17.3 Plug-in 3
+  s.functionCount = count
+  if itemName ~= "" then s.itemName = itemName end
+
+  -- Stellungstexte: erst ablegen, wenn alle Funktionen gelesen werden konnten
+  local st = cache[id]
+  if type(count) == "number" and count > 0 and st.functions == nil then
+    local functions = {}
+    for i = 1, count do
+      local okF, position, text = try(EEPGetSignalFunction, id, i)  -- AB EEP 17.3 Plug-in 3
+      if okF then functions[#functions + 1] = { index = i, position = position, text = text } end
+    end
+    if #functions == count then
+      st.functions = functions
+      if config.debug then
+        print(string.format("EepExport: Signal %s: %s, %d Stellungen gelesen", tostring(id), tostring(itemName), count))
+      end
+    end
+  end
+  s.functions = st and st.functions or nil
+	
+	
+-- Simulation weil die Funktionen in meiner EEP-Version noch nicht zur Verfügung stehen
+-- Anlage: Einsteigen
+if id == 21 then
+	s.functionCount = 3
+	s.itemName = "HpSig_E_V40_69_V7"
+	s.functions = { 
+		{ index = 1, position = 2,    text = "Halt" }, 
+		{ index = 2, position = 1,    text = "Fahrt" }, 
+		{ index = 3, position = 1040, text = "Fahrt mit 40kmh" }, 
+	}
+end
+if id == 32 then
+	s.functionCount = 4
+	s.itemName = "HpSig_A_V40_69_V7"
+	s.functions = { 
+		{ index = 1, position = 2,    text = "Halt" }, 
+		{ index = 2, position = 1,    text = "Fahrt" }, 
+		{ index = 3, position = 1040, text = "Fahrt mit 40kmh" }, 
+		{ index = 4, position = 999,  text = "Sh1 - Rangierfahrt" }, 
+	}
+end
+
+
   local n = try(EEPGetSignalTrainsCount, id)
   if n then
     s.trainsCount = n
@@ -839,13 +903,13 @@ local function collectSignal(id)
     end
     s.trains = names
   end
-  
+
   local okD, dist = try(EEPGetSignalStopDistance, id)
   if okD then s.stopDistance = dist end
-  
+
   local okT, tag = try(EEPSignalGetTagText, id)
   if okT and tag ~= "" then s.tag = tag end
-  
+
   return s
 end
 
@@ -895,7 +959,7 @@ end
 
 -- Züge
 local function collectTrain(name)
-  local okS, speed = try(EEPGetTrainSpeed, name)
+  local okS, speed = try(EEPGetTrainSpeed, name) -- aktuelle Geschwindigkeit
   if not okS then
     -- Zug existiert evtl. nur im Depot
     local okY, depot = try(EEPIsTrainInTrainyard, name)
@@ -904,7 +968,7 @@ local function collectTrain(name)
   end
   local t = { exists = true, speed = speed }
   
-  local okT, target = try(EEPGetTrainSpeed, name, true)
+  local okT, target = try(EEPGetTrainSpeed, name, true) -- Sollgeschwindigkeit
   if okT then t.targetSpeed = target end
   
   local okR, route = try(EEPGetTrainRoute, name)
@@ -975,12 +1039,11 @@ local function collectRollingstock(name)
   -- Länge des Fahrzeugs von Kupplung zu Kupplung in Meter
   local okL, len = try(EEPRollingstockGetLength, name)
   if okL then r.length = len end
-  
-  -- Anzahl der Getriebegänge, die das Fahrzeug besitzt. Nicht motorisierte Fahrzeuge haben 0 Gänge.
-  local okM, gears = try(EEPRollingstockGetMotor, name)
-  if okM then r.gears = gears end
-  
-  -- ModelType DE / EN
+
+  -- STATIC Anzahl der Getriebegaenge (0 = nicht motorisiert)
+  r.gears = cachedStatic(staticCache.rollingstock, name, "gears", EEPRollingstockGetMotor, name)
+
+  -- STATIC ModelType DE / EN
   -- 1 = Tenderlok / tank locomotive
   -- 2 = Schlepptenderlok / tender locomotive
   -- 3 = Tender / tender
@@ -996,8 +1059,7 @@ local function collectRollingstock(name)
   -- 13 = Wasserfahrzeug / ships
   -- 14 = LKW / trucks
   -- 15 = PKW / cars
-  local okY, mtype = try(EEPRollingstockGetModelType, name)
-  if okY then r.modelType = mtype end
+  r.modelType = cachedStatic(staticCache.rollingstock, name, "modelType", EEPRollingstockGetModelType, name)
   
   -- zurückgelegte Strecke des Rollmaterials seit dem Einsetzen in EEP
   local okKm, mileage = try(EEPRollingstockGetMileage, name)
@@ -1043,8 +1105,8 @@ local function collectStructure(name)
   local okR, rx, ry, rz = try(EEPStructureGetRotation, name)
   if okR then s.rotation = { x = rx, y = ry, z = rz } end
   
-  local okY, mtype = try(EEPStructureGetModelType, name)
-  if okY then s.modelType = mtype end
+	-- STATIC
+  s.modelType = cachedStatic(staticCache.structures, name, "modelType", EEPStructureGetModelType, name)
   
   local okS, smoke = try(EEPStructureGetSmoke, name)
   if okS then s.smoke = smoke end
@@ -1070,8 +1132,8 @@ local function collectGoods(name)
   local okR, rx, ry, rz = try(EEPGoodsGetRotation, name)
   if okR then g.rotation = { x = rx, y = ry, z = rz } end
   
-  local okY, mtype = try(EEPGoodsGetModelType, name)
-  if okY then g.modelType = mtype end
+	-- STATIC
+  g.modelType = cachedStatic(staticCache.goods, name, "modelType", EEPGoodsGetModelType, name)
   
   local okT, tag = try(EEPGoodsGetTagText, name) -- Ab EEP 18.0
   if okT and tag ~= "" then g.tag = tag end
@@ -1152,8 +1214,8 @@ local function outputPath()
   if (not base or base == "") and savedPath then
     base = savedPath:match("^(.*)[/\\\\][^/\\\\]*$")   -- Ordner aus dem in EEPOnSaveAnl gemerkten Pfad
   end
-  if base and base ~= "" then return base .. "\\eep_export.json" end
-  return "eep_export.json"
+  if base and base ~= "" then return base .. "\\exchange\\eep_export.json" end
+  return "exchange\\eep_export.json"
 end
 
 --- Sammelt die Daten und schreibt sie als JSON-Datei. Gibt true, Pfad oder false, Fehlermeldung zurueck.

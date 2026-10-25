@@ -3,10 +3,12 @@
 .SYNOPSIS
     Installiert und konfiguriert einen Python-Webserver unter Windows 11:
     - liefert nur .json und .anl3 Dateien aus
+    - optional (-ActivateCommands): nimmt per POST auf /send-command Befehle fuer EEP an und haengt sie als ANSI an
+      <SitePath>\<ExchangePath>\<ExchangeFile> an. Absender: die Bridge (erlaubte Origins) bzw. curl von diesem Rechner (ohne Origin)
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
     - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
     - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
-    - HTTPS (Zertifikat, HSTS, TLS 1.2 als Minimum); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
+    - HTTPS (Zertifikat mit sprechendem Namen, HSTS, TLS 1.2 als Minimum); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
     - WebSocket (wss://) auf derselben URL wie die Datei: Der Server ueberwacht die Datei und sendet jede Aenderung,
       sodass die Bridge nicht mehr pollen muss (Origin-Pruefung wie bei CORS)
     - Vorpruefungen (Ports, Parameter, Python, Internet) VOR jeder Aenderung
@@ -23,8 +25,12 @@
     (zusaetzlich HTTP-Port 3000 mit Umleitung auf HTTPS)
 .EXAMPLE
     .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -AllowNullOrigin
+		(erlaube Clients, die mit file:// lokal in einem Browser aufgerufen werden)
 .EXAMPLE
     .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -GitHubOrigins "https://meinname.github.io" -OpenFirewall
+.EXAMPLE
+    .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands -AllowNullOrigin
+    (Befehle der Bridge erlauben, auch wenn die Bridge als lokale Datei file:// gestartet wird)
 .EXAMPLE
     .\Install-Python-web-server.ps1 -Uninstall
 .NOTES
@@ -44,6 +50,14 @@
     Der Server sendet die komplette Datei sofort und danach nach jeder Aenderung (nur gueltiges JSON).
     Python kennt in der Standardbibliothek keine Datei-Benachrichtigung: Ein Thread prueft die Datei 10 mal pro
     Sekunde (os.stat, sehr billig) und nur solange mindestens ein WebSocket-Client verbunden ist.
+    Befehle fuer EEP (-ActivateCommands, beim Start des Servers auch --activateCommands):
+    Der Server nimmt per POST auf /send-command Befehle an (ein Befehl je Zeile, hoechstens 64 KB) und haengt sie als ANSI
+    (Windows-1252, so liest EEP) an <SitePath>\<ExchangePath>\<ExchangeFile> an. Ohne Aktivierung antwortet der Server auf POST mit 405.
+    Absender ist die Bridge (Seite von GitHub, aus dem lokalen Netz oder aus einer lokalen Datei file://, letzteres nur mit -AllowNullOrigin):
+    Die Origin muss erlaubt sein, sonst 403. Anfragen ohne Origin (z.B. curl) werden nur von diesem Rechner angenommen.
+    Auf dem HTTP-Port (-HttpPort) werden nie Befehle angenommen. Beispiele von diesem Rechner:
+      curl.exe --data-binary "Befehl" https://localhost:3001/send-command
+      curl.exe --data-binary "@befehle.txt" https://localhost:3001/send-command
     Es gibt keinen Autostart. Der Server wird mit diesem Python-Kommando gestartet:
     & "<InstallPath>\venv\Scripts\python.exe" "<InstallPath>\server.py"
 #>
@@ -52,12 +66,15 @@ param(
     [string]$SiteName          = "EEP Export", # Name der WebSite
     [string]$SitePath          = "SITEPATH",   # Verzeichnis, das die Daten der WebSite enthaelt, hier also das Installationsverzeichnis von EEP
     [string]$InstallPath       = (Join-Path $env:ProgramData "EEP-Python-Server"),  # server.py, venv, Zertifikat, Log
+    [string]$ExchangePath      = "exchange",   # relatives Verzeichnis, in dem die Kommando-Datei liegt
+    [string]$ExchangeFile      = "commands-to-eep.txt",   # Name der Kommando-Datei 
     [int]$HttpPort             = 0,      # 0 = kein HTTP-Port (nur HTTPS)
     [int]$HttpsPort            = 443,
     [string[]]$GitHubOrigins   = @("https://frankbuchholz.github.io"), # "https://USERNAME.github.io"
     [string]$PfxPath,                 # optional: eigenes Zertifikat statt selbstsigniert
     [securestring]$PfxPassword,
     [switch]$AllowNullOrigin,         # CORS auch fuer Origin "null" (Seite aus lokaler Datei file://)
+    [switch]$ActivateCommands,        # POST /send-command erlauben (Befehle der Bridge an EEP)
     [switch]$OpenFirewall,
     [switch]$Uninstall                # Firewall-Regel und InstallPath entfernen
 )
@@ -79,10 +96,12 @@ if ($PSBoundParameters.Count -eq 0) {
     Write-Host "  -HttpPort  <Port>  optional: Port fuer HTTP, wird auf HTTPS umgeleitet (0 = kein HTTP)  [Standard: $HttpPort]"
     Write-Host "  -HttpsPort <Port>  Port fuer HTTPS                             [Standard: $HttpsPort]"
     Write-Host "  -AllowNullOrigin   CORS auch fuer Origin 'null' (Seite wird aus einer lokalen Datei geoeffnet)"
+    Write-Host "  -ActivateCommands  POST /send-command erlauben (Befehle der Bridge bzw. curl von diesem Rechner an EEP)"
     Write-Host ""
     Write-Host "Beispiele:" -ForegroundColor Cyan
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001"
-    Write-Host "  .\$self -SitePath C:\EEP17 -HttpPort 3000 -HttpsPort 3001"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -AllowNullOrigin"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands"
     Write-Host "  .\$self -Uninstall"
     Write-Host ""
     Write-Host "Alle Optionen: Get-Help .\$self -Detailed"
@@ -98,6 +117,7 @@ $ErrorActionPreference = "Stop"
 # Schraegstriche vereinheitlichen (C:/EEP17 wird zu C:\EEP17)
 $SitePath = $SitePath.Replace("/", "\")
 $InstallPath = $InstallPath.Replace("/", "\")
+$ExchangePath = $ExchangePath.Replace("/", "\")
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $script:failed = 0
 
@@ -127,6 +147,49 @@ function Write-Utf8NoBom([string]$Path, [string]$Text) {
     [IO.File]::WriteAllText($Path, $Text, (New-Object System.Text.UTF8Encoding $false))
 }
 
+# Sprechender Name des Zertifikats (CN) statt "localhost", z.B. "EEP Export Node.js (MEIN-PC)". Der CN ist auf 64 Zeichen begrenzt.
+function Get-CertCommonName([string]$Variant) {
+    $n = ("$SiteName $Variant ($env:COMPUTERNAME)") -replace '[,+=;"<>\\#]', '_'
+    if ($n.Length -gt 64) { $n = $n.Substring(0, 64) }
+    return $n
+}
+
+# Name (CN) eines vorhandenen Zertifikats
+function Get-CertCN($Cert) {
+    return $Cert.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+}
+
+# Zeigt die wichtigsten Daten eines Zertifikats an (neu erzeugt oder wiederverwendet)
+function Show-CertInfo($Cert, [string]$Title) {
+    $days = [int][math]::Floor(($Cert.NotAfter - (Get-Date)).TotalDays)
+    $key  = "$($Cert.PublicKey.Oid.FriendlyName)"
+    try { $key += " " + $Cert.PublicKey.Key.KeySize + " Bit" } catch { }
+    $ext  = $Cert.Extensions | Where-Object { $_.Oid.Value -eq "2.5.29.17" } | Select-Object -First 1
+    $san  = @()
+    if ($ext) { $san = @($ext.Format($true) -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
+    $trusted = Test-Path "Cert:\LocalMachine\Root\$($Cert.Thumbprint)"
+    $row = { param($k, $v) Write-Host ("      {0,-20}{1}" -f ($k + ":"), $v) }
+    Write-Host "   $Title" -ForegroundColor Cyan
+    & $row "Name (CN)" (Get-CertCN $Cert)
+    if ($Cert.FriendlyName) { & $row "Anzeigename" $Cert.FriendlyName }
+    $typ = if ($Cert.Subject -eq $Cert.Issuer) { "selbstsigniert" } else { "ausgestellt von " + $Cert.Issuer }
+    & $row "Typ" $typ
+    & $row "Gueltig ab" $Cert.NotBefore.ToString("yyyy-MM-dd HH:mm")
+    & $row "Gueltig bis" ("{0} (noch {1} Tage)" -f $Cert.NotAfter.ToString("yyyy-MM-dd HH:mm"), $days)
+    if ($san.Count -gt 0) {
+        & $row "Gueltig fuer" $san[0]
+        foreach ($s in ($san | Select-Object -Skip 1)) { & $row " " $s }
+    }
+    & $row "Schluessel" $key
+    & $row "Signatur" $Cert.SignatureAlgorithm.FriendlyName
+    & $row "Seriennummer" $Cert.SerialNumber
+    & $row "Fingerabdruck" $Cert.Thumbprint
+    $tr = if ($trusted) { "ja (Stammzertifizierungsstellen dieses PCs)" } else { "nein (auf diesem PC nicht als Stammzertifikat eingetragen)" }
+    & $row "Vertrauenswuerdig" $tr
+    if ($days -lt 0)      { Write-Host "      ACHTUNG: Das Zertifikat ist abgelaufen." -ForegroundColor Red }
+    elseif ($days -lt 30) { Write-Host "      Hinweis: Das Zertifikat laeuft in weniger als 30 Tagen ab." -ForegroundColor Yellow }
+}
+
 # Liefert Status und Header, auch bei 3xx/4xx; folgt keiner Umleitung
 function Invoke-Probe([string]$Uri, [hashtable]$Headers = @{}, [string]$Method = "GET") {
     $resp = $null
@@ -142,6 +205,41 @@ function Invoke-Probe([string]$Uri, [hashtable]$Headers = @{}, [string]$Method =
         $resp = $req.GetResponse()
     } catch [System.Net.WebException] {
         $resp = $_.Exception.Response      # 4xx/5xx liefern eine Antwort
+        $err  = $_.Exception.Message
+    } catch {
+        $err  = $_.Exception.Message
+    }
+    if ($resp) {
+        $h = @{}
+        foreach ($k in $resp.Headers.AllKeys) { $h[$k] = $resp.Headers[$k] }
+        $status = [int]$resp.StatusCode
+        $resp.Close()
+        return [pscustomobject]@{ Status = $status; Headers = $h; Error = "" }
+    }
+    return [pscustomobject]@{ Status = 0; Headers = @{}; Error = $err }
+}
+
+# Wie Invoke-Probe, sendet aber einen Body (UTF-8)
+function Invoke-Post([string]$Uri, [string]$Body, [hashtable]$Headers = @{}) {
+    $resp = $null
+    $err  = ""
+    try {
+        $bytes = [Text.Encoding]::UTF8.GetBytes($Body)
+        $req = [System.Net.HttpWebRequest]::Create($Uri)
+        $req.Method = "POST"
+        $req.AllowAutoRedirect = $false
+        $req.KeepAlive = $false
+        $req.Timeout = 15000
+        $req.ServicePoint.Expect100Continue = $false
+        $req.ContentType = "text/plain; charset=utf-8"
+        $req.ContentLength = $bytes.Length
+        foreach ($k in $Headers.Keys) { $req.Headers.Add($k, $Headers[$k]) }
+        $s = $req.GetRequestStream()
+        $s.Write($bytes, 0, $bytes.Length)
+        $s.Close()
+        $resp = $req.GetResponse()
+    } catch [System.Net.WebException] {
+        $resp = $_.Exception.Response
         $err  = $_.Exception.Message
     } catch {
         $err  = $_.Exception.Message
@@ -189,7 +287,7 @@ if ($Uninstall) {
     if (Test-Path $serverPy) { Remove-Item $InstallPath -Recurse -Force }
     elseif (Test-Path $InstallPath) { Write-Warning "$InstallPath enthaelt keine server.py und wurde nicht geloescht." }
     Write-Host "Entfernt: laufender Server, Firewall-Regel, $InstallPath." -ForegroundColor Green
-    Write-Host "Unveraendert: $SitePath, Python und das Zertifikat im Windows-Speicher (certlm.msc, Vertrauenswuerdige Stammzertifizierungsstellen)."
+    Write-Host "Unveraendert: $SitePath, $ExchangePath, Python und das Zertifikat im Windows-Speicher (certlm.msc, Vertrauenswuerdige Stammzertifizierungsstellen)."
     exit 0
 }
 
@@ -220,6 +318,15 @@ if ($InstallPath -notmatch '^[A-Za-z]:\\.+') {
     $errors.Add("InstallPath muss ein lokaler absoluter Pfad sein (z.B. C:\ProgramData\EEP-Python-Server).")
 } elseif (-not (Test-Path $InstallPath.Substring(0,2))) {
     $errors.Add("Das Laufwerk von InstallPath ($InstallPath) existiert nicht.")
+}
+# ExchangePath: relativer Pfad innerhalb von SitePath (leer = SitePath selbst); ExchangeFile: reiner Dateiname
+if ($ExchangePath -match '[:*?"<>|]' -or $ExchangePath.StartsWith('\') -or $ExchangePath -match '(^|\\)\.\.(\\|$)') {
+    $errors.Add("ExchangePath muss ein relativer Pfad innerhalb von SitePath sein (z.B. exchange, ohne .. und ohne fuehrenden Backslash).")
+}
+if ($ExchangeFile -notmatch '^[A-Za-z0-9._-]+$' -or $ExchangeFile -match '^\.+$|[. ]$') {
+    $errors.Add("ExchangeFile muss ein reiner Dateiname sein (z.B. commands-to-eep.txt).")
+} elseif ($ExchangeFile -match '\.(json|anl3)$') {
+    $errors.Add("ExchangeFile darf nicht auf .json oder .anl3 enden (diese Dateitypen liefert der Server aus).")
 }
 if ($PfxPath -and -not (Test-Path $PfxPath -PathType Leaf)) { $errors.Add("PfxPath nicht gefunden: $PfxPath") }
 foreach ($g in $GitHubOrigins) {
@@ -287,6 +394,14 @@ if ($AllowNullOrigin) {
     $warnings.Add("-AllowNullOrigin: Die Origins 'null' und 'file://' werden freigegeben. Sie stammen von file://-Seiten (Chrome sendet bei WebSockets 'file://'), aber 'null' auch von Sandbox-Frames fremder Seiten.")
 }
 
+if ($ActivateCommands) {
+    $warnings.Add("-ActivateCommands: POST /send-command schreibt Befehle (ANSI) nach '$(Join-Path $ExchangePath $ExchangeFile)' unterhalb von SitePath, wo EEP sie liest. Erlaubt sind Browser-Seiten der zugelassenen Origins (lokales Netz, GitHub) und Anfragen ohne Origin (z.B. curl) nur von diesem Rechner. Nur in vertrauenswuerdigen Netzen verwenden.")
+    if ($AllowNullOrigin) {
+        $warnings.Add("-ActivateCommands zusammen mit -AllowNullOrigin: Auch jede Seite in einem Sandbox-Frame (Origin 'null') kann Befehle an EEP senden. Wird die Bridge nicht aus einer lokalen Datei (file://) gestartet, -AllowNullOrigin weglassen.")
+    } else {
+        $warnings.Add("Hinweis: Wird die Bridge aus einer lokalen Datei (file://) gestartet, ist zusaetzlich -AllowNullOrigin noetig, sonst lehnt der Server ihre Befehle ab.")
+    }
+}
 foreach ($w in $warnings) { Write-Warning $w }
 if ($errors.Count -gt 0) {
     foreach ($e in $errors) { Write-Host "   [FEHLER]  $e" -ForegroundColor Red }
@@ -336,14 +451,19 @@ Write-Host "3/6 Konfiguration und Zertifikat ..." -ForegroundColor Cyan
 $ips = @(Get-NetIPAddress -AddressFamily IPv4 |
          Where-Object { $_.IPAddress -notlike "169.254.*" -and $_.IPAddress -notlike "127.*" } |
          Select-Object -ExpandProperty IPAddress)
+$certCN = Get-CertCommonName "Python"   # sprechender Name (CN) des selbst erzeugten Zertifikats
 $config = [ordered]@{
     site_name       = $SiteName
+    cert_name       = $certCN
     site_path       = $SitePath
+    exchange_path   = $ExchangePath
+    exchange_file   = $ExchangeFile
     http_port       = $HttpPort
     https_port      = $HttpsPort
     github_origins  = @($GitHubOrigins | Where-Object { $_ -notmatch "USERNAME" } | ForEach-Object { $_.TrimEnd("/") })
     computer_name   = $env:COMPUTERNAME
     allow_null_origin = [bool]$AllowNullOrigin
+    activate_commands = [bool]$ActivateCommands
     cert_file       = (Join-Path $certDir "server.crt")
     key_file        = (Join-Path $certDir "server.key")
     cer_file        = (Join-Path $certDir "server.cer")
@@ -372,6 +492,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE, "config.json"), encoding="utf-8-sig") as f:
     CFG = json.load(f)
 CERT, KEY, CER = CFG["cert_file"], CFG["key_file"], CFG["cer_file"]
+CERT_NAME = CFG["cert_name"]    # sprechender Name (CN) statt "localhost"
 UTC = datetime.timezone.utc
 
 
@@ -423,7 +544,8 @@ try:
     san = old.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
     have_dns = {d.lower() for d in san.get_values_for_type(x509.DNSName)}
     have_ips = {str(i) for i in san.get_values_for_type(x509.IPAddress)}
-    if (old.issuer == old.subject and want_dns <= have_dns and want_ips <= have_ips
+    cn = old.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+    if (old.issuer == old.subject and cn and cn[0].value == CERT_NAME and want_dns <= have_dns and want_ips <= have_ips
             and expiry(old) > now + datetime.timedelta(days=30) and os.path.exists(KEY)):
         print("vorhandenes Zertifikat weiterverwendet")
         sys.exit(0)
@@ -433,7 +555,7 @@ except Exception:
     pass
 
 key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
+name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, CERT_NAME)])
 alt = ([x509.DNSName(d) for d in sorted(want_dns)] +
        [x509.IPAddress(ipaddress.ip_address(i)) for i in sorted(want_ips)])
 cert = (x509.CertificateBuilder()
@@ -475,11 +597,12 @@ try     { $r = Invoke-Native $venvPy @($makeCertPy) }
 finally { Remove-Item Env:EEP_PFX_PATH, Env:EEP_PFX_PASSWORD -ErrorAction SilentlyContinue }
 if ($r.ExitCode -ne 0) { throw "Zertifikat konnte nicht erstellt werden: $($r.Output)" }
 Write-Host "   $($r.Output)"
+$certReused = [bool]($r.Output -match "weiterverwendet")
 
 if (-not $PfxPath) {
     # Auf diesem PC als vertrauenswuerdig eintragen und .cer fuer andere Geraete bereitstellen
     $baseDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
-    $cerPath = Join-Path $baseDir "$SiteName.cer"
+    $cerPath = Join-Path $baseDir "$certCN.cer" # "$SiteName.cer"
     Copy-Item $config.cer_file $cerPath -Force
     $thumb = (New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $cerPath).Thumbprint
     if (-not (Test-Path "Cert:\LocalMachine\Root\$thumb")) {
@@ -492,20 +615,40 @@ if (-not $PfxPath) {
     Write-Host "   Zertifikat exportiert: $cerPath (auf Geraeten im LAN importieren)"
 }
 
+$shownCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $config.cer_file
+$certTitle = if ($PfxPath) { "Zertifikat: eigenes Zertifikat (PFX) uebernommen" }
+             elseif ($certReused) { "Zertifikat: vorhandenes Zertifikat wird weiterverwendet" }
+             else { "Zertifikat: neu erzeugt (selbstsigniert)" }
+Show-CertInfo $shownCert $certTitle
+Write-Host "   Ablage:" -ForegroundColor Cyan
+Write-Host "      Server-Zertifikat (PEM):          $($config.cert_file)"
+Write-Host "      privater Schluessel (PEM):        $($config.key_file)"
+Write-Host "      oeffentlicher Teil (.cer):        $($config.cer_file)"
+if (-not $PfxPath) {
+    Write-Host "      Kopie fuer andere Geraete:        $cerPath"
+    Write-Host "      Vertrauensspeicher dieses PCs:    Lokaler Computer > Vertrauenswuerdige Stammzertifizierungsstellen (certlm.msc), Name '$certCN'"
+}
+
 # ---------------------------------------------------------------- 4. Server + Inhalt
 Write-Host "4/6 Server und Webseiten-Inhalt ..." -ForegroundColor Cyan
+# Test- und Beispieldaten liegen in <SitePath>\<ExchangePath> (gleicher Ordner wie die Kommando-Datei)
+$exDir = Join-Path $SitePath $ExchangePath
+$exUrl = (($ExchangePath -split '\\' | Where-Object { $_ } | ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/')
+$exUrl = if ($exUrl) { "/$exUrl" } else { "" }
 $serverCode = @'
 # -*- coding: utf-8 -*-
 """EEP Export - schlanker HTTPS-Server (nur Python-Standardbibliothek).
 
 Liefert ausschliesslich .json und .anl3 aus (GET, HEAD, OPTIONS), mit CORS,
 HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung.
+Optional (--activateCommands oder activate_commands in config.json): POST /send-command haengt Befehle fuer EEP als ANSI an eine Datei an.
 WebSocket (wss://, gleiche URL wie die Datei): sendet die Datei beim Verbinden und nach jeder Aenderung.
 Konfiguration: config.json neben dieser Datei
 (wird von Install-Python-web-server.ps1 erzeugt).
 """
 import base64
 import hashlib
+import ipaddress
 import json
 import logging
 import logging.handlers
@@ -541,6 +684,24 @@ _lan = (r"localhost|127\.0\.0\.1|\[::1\]|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\
         r"|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|[a-z0-9-]+\.local|" + re.escape(CFG["computer_name"]))
 ALLOW_NULL = bool(CFG.get("allow_null_origin"))   # Origin "null": Seite wird aus einer lokalen Datei (file://) geoeffnet
 ORIGIN_RE = re.compile(r"(https?://(" + _lan + r")(:\d+)?)" + (("|(" + _gh + ")") if _gh else ""), re.I)
+
+# Befehle fuer EEP: POST /send-command (nur mit -ActivateCommands bei der Installation ("activate_commands" in config.json)
+# oder --activateCommands beim Start). Ohne Aktivierung antwortet der Server auf POST mit 405.
+ACTIVATE_COMMANDS = bool(CFG.get("activate_commands")) or any(a.lower() in ("--activatecommands", "-activatecommands") for a in sys.argv[1:])
+POST_PATH = "/send-command"
+POST_MAX_BYTES = 65536       # groesster erlaubter Body
+POST_MAX_LINE = 500          # laengste erlaubte Zeile
+POST_LOCK = threading.Lock() # ThreadingHTTPServer: gleichzeitige POSTs duerfen sich nicht mischen
+EXCHANGE_DIR = os.path.realpath(os.path.join(SITE_ROOT, CFG.get("exchange_path") or ""))
+EXCHANGE_FILE = os.path.join(EXCHANGE_DIR, CFG.get("exchange_file") or "commands-to-eep.txt")
+if ACTIVATE_COMMANDS:
+    ALLOWED_METHODS = "GET, HEAD, OPTIONS, POST"
+    try:
+        _inside = os.path.normcase(os.path.commonpath([SITE_ROOT, EXCHANGE_DIR])) == os.path.normcase(SITE_ROOT)
+    except ValueError:
+        _inside = False
+    if not _inside:
+        sys.exit("exchange_path liegt ausserhalb von site_path: " + EXCHANGE_DIR)
 
 # Protokoll schreiben
 # --- FARB-FORMATTER FUER DIE KONSOLE DEFINIEREN ---
@@ -590,6 +751,17 @@ def clean(text):
 def origin_allowed(origin):
     # Lokale Datei (file://): CORS-Anfragen senden die Origin "null", Chrome sendet bei WebSockets "file://"
     return bool(origin) and (bool(ORIGIN_RE.fullmatch(origin)) or (ALLOW_NULL and origin in ("null", "file://")))
+
+
+def is_loopback(addr):
+    # Anfrage kommt von diesem Rechner (127.0.0.1, ::1, auch als ::ffff:127.0.0.1)
+    try:
+        ip = ipaddress.ip_address(str(addr).split("%", 1)[0])
+    except ValueError:
+        return False
+    if getattr(ip, "ipv4_mapped", None):
+        ip = ip.ipv4_mapped
+    return ip.is_loopback
 
 
 # ---- WebSocket (RFC 6455, nur Standardbibliothek)
@@ -999,7 +1171,67 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Connection", "close")
         self.end_headers()
 
-    do_POST = do_PUT = do_DELETE = do_PATCH = _not_allowed
+    def do_POST(self):
+        self._begin()
+        self.close_connection = True          # Verbindung nach der Antwort schliessen
+        addr = self.client_address[0]
+        # Body zuerst lesen (bis zur Obergrenze), damit eine Ablehnung nicht an einer zurueckgesetzten Verbindung scheitert
+        try:
+            length = int(self.headers.get("Content-Length", ""))
+        except ValueError:
+            length = -1
+        raw = b""
+        if 0 < length <= POST_MAX_BYTES:
+            try:
+                raw = self.rfile.read(length)
+            except (OSError, ssl.SSLError):
+                return
+        if not ACTIVATE_COMMANDS:
+            return self._not_allowed()
+        if self.path.split("?", 1)[0] != POST_PATH:
+            return self.send_error(404)
+        origin = self.headers.get("Origin")
+        if origin is not None:
+            # Browser (Bridge): die Origin muss erlaubt sein, gleiche Regeln wie bei CORS und WebSocket
+            if not origin_allowed(origin):
+                LOG.warning("%s \"POST %s\" 403 Forbidden (Origin: %s%s)", addr, clean(self.path), clean(origin) or "leer",
+                            "" if ALLOW_NULL else ", file:// und null nur mit -AllowNullOrigin")
+                return self.send_error(403)
+        elif not is_loopback(addr):
+            # kein Browser (z.B. curl): nur von diesem Rechner
+            LOG.warning("%s \"POST %s\" 403 Forbidden (ohne Origin nur von diesem Rechner)", addr, clean(self.path))
+            return self.send_error(403)
+        if length < 0:
+            return self.send_error(411)
+        if length == 0:
+            return self.send_error(400)
+        if length > POST_MAX_BYTES:
+            return self.send_error(413)
+        text = decode_text(raw)              # UTF-8 (Bridge), sonst ANSI (z.B. curl in der Windows-Konsole)
+        lines = [l.strip() for l in text.lstrip("\ufeff").splitlines() if l.strip()]
+        if not lines or any(len(l) > POST_MAX_LINE or re.search(r"[\x00-\x08\x0b-\x1f\x7f]", l) for l in lines):
+            return self.send_error(400, "Ungueltige Zeilen")
+        try:
+            data = "".join(l + "\r\n" for l in lines).encode("cp1252")      # EEP liest ANSI
+        except UnicodeEncodeError:
+            return self.send_error(400, "Zeichen nicht in ANSI (Windows-1252) darstellbar")
+        try:
+            os.makedirs(EXCHANGE_DIR, exist_ok=True)
+            with POST_LOCK, open(EXCHANGE_FILE, "ab") as f:
+                f.write(data)
+        except OSError as exc:
+            LOG.error("Fehler beim Schreiben der Kommando-Datei: %s", clean(exc))
+            return self.send_error(500)
+        body = b'{"status": "success", "lines": %d}' % len(lines)
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        LOG.info("%s %d Befehl(e) von Origin %s nach %s geschrieben", addr, len(lines),
+                 clean(origin) if origin is not None else "(ohne)", clean(EXCHANGE_FILE))
+
+    do_PUT = do_DELETE = do_PATCH = _not_allowed
 
 
 class RedirectHandler(Handler):
@@ -1024,6 +1256,9 @@ class RedirectHandler(Handler):
 
     def do_OPTIONS(self):
         self._serve(False)
+
+    # auf dem HTTP-Port (unverschluesselt) nie Befehle annehmen
+    do_POST = do_PUT = do_DELETE = do_PATCH = Handler._not_allowed
 
 
 class BaseServer(ThreadingHTTPServer):
@@ -1085,6 +1320,12 @@ def main():
         http = make_server(BaseServer, HTTP_PORT, RedirectHandler)
         threading.Thread(target=http.serve_forever, daemon=True).start()
     LOG.info("Server gestartet (mit WebSocket): HTTPS Port %d, HTTP Port %s, Inhalt %s", HTTPS_PORT, HTTP_PORT or "aus", SITE_ROOT)
+    if ACTIVATE_COMMANDS:
+        LOG.info("Befehle fuer EEP aktiv: POST %s -> %s (Browser: nur erlaubte Origins, ohne Origin nur von diesem Rechner)", POST_PATH, EXCHANGE_FILE)
+        if ALLOW_NULL:
+            LOG.warning("Origin null/file:// ist erlaubt: auch Seiten in Sandbox-Frames koennten Befehle senden")
+    else:
+        LOG.info("Befehle (POST) sind nicht aktiviert (--activateCommands)")
     try:
         https.serve_forever()
     except KeyboardInterrupt:
@@ -1100,9 +1341,9 @@ if __name__ == "__main__":
 '@
 Write-Utf8NoBom $serverPy $serverCode
 
-New-Item -ItemType Directory -Path $SitePath -Force | Out-Null
-if (-not (Test-Path "$SitePath\daten.json"))    { Write-Utf8NoBom "$SitePath\daten.json" '{ "status": "ok" }' }
-if (-not (Test-Path "$SitePath\beispiel.anl3")) { Write-Utf8NoBom "$SitePath\beispiel.anl3" 'Beispiel' }
+New-Item -ItemType Directory -Path $exDir -Force | Out-Null   # legt bei Bedarf auch $SitePath an; Test- und Beispieldaten nur im Unterordner
+if (-not (Test-Path "$exDir\daten.json"))    { Write-Utf8NoBom "$exDir\daten.json" '{ "status": "ok" }' }
+if (-not (Test-Path "$exDir\beispiel.anl3")) { Write-Utf8NoBom "$exDir\beispiel.anl3" 'Beispiel' }
 
 # ---------------------------------------------------------------- 5. Firewall
 Write-Host "5/6 Firewall ..." -ForegroundColor Cyan
@@ -1148,6 +1389,7 @@ public static class EepTrust {
 $portSuffix = if ($HttpsPort -eq 443) { "" } else { ":$HttpsPort" }
 $httpSuffix = if ($HttpPort -eq 80) { "" } else { ":$HttpPort" }
 $baseUrl    = "https://localhost$portSuffix"
+$testBase    = "$baseUrl$exUrl"   # Test- und Beispieldaten liegen im Unterordner
 $acao       = "Access-Control-Allow-Origin"
 $ownPids    = @(Get-OwnProcesses | ForEach-Object { $_.ProcessId })
 
@@ -1159,55 +1401,92 @@ foreach ($port in @($HttpPort, $HttpsPort | Where-Object { $_ -gt 0 })) {
 
 # Inhalt ueber HTTPS + CORS
 $localOrigin = "http://localhost:3000"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $localOrigin }
 Write-Check ($r.Status -eq 200) "HTTPS daten.json: Status $($r.Status) $($r.Error)"
 Write-Check ("$($r.Headers['Content-Type'])" -like "application/json*") "daten.json hat den Typ application/json"
 Write-Check ([bool]$r.Headers["Strict-Transport-Security"]) "HSTS-Header wird gesendet"
 Write-Check ($r.Headers[$acao] -eq $localOrigin) "CORS: localhost erlaubt"
 
 $lanOrigin = "https://192.168.1.50"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $lanOrigin }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $lanOrigin }
 Write-Check ($r.Headers[$acao] -eq $lanOrigin) "CORS: lokales Netzwerk erlaubt ($lanOrigin)"
 
 foreach ($g in $GitHubOrigins) {
     $gh = $g.TrimEnd("/")
     if ($gh -match "USERNAME") { continue }
-    $r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $gh }
+    $r = Invoke-Probe "$testBase/daten.json" @{ Origin = $gh }
     Write-Check ($r.Headers[$acao] -eq $gh) "CORS: GitHub-Origin erlaubt ($gh)"
 }
 
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "https://fremde-seite.example" }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = "https://fremde-seite.example" }
 Write-Check (-not $r.Headers[$acao]) "CORS: fremde Origin wird NICHT freigegeben"
 
 # Origin "null": gesendet bei lokalen Dateien (file:///) und sandboxed iframes
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "null" }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = "null" }
 if ($AllowNullOrigin) { Write-Check ($r.Headers[$acao] -eq "null") "CORS: Origin 'null' (lokale Datei) erlaubt" }
 else                  { Write-Check (-not $r.Headers[$acao])      "CORS: Origin 'null' (lokale Datei) wird NICHT freigegeben" }
 
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
 Write-Check ($r.Status -eq 204 -and $r.Headers[$acao] -eq $localOrigin) "CORS-Preflight (OPTIONS): Status $($r.Status)"
 
 # Private Network Access: Header nur bei entsprechender Preflight-Anfrage und erlaubter Origin
 $pna = "Access-Control-Allow-Private-Network"
 $pre = @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET"; "Access-Control-Request-Private-Network" = "true" }
-$r = Invoke-Probe "$baseUrl/daten.json" $pre "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" $pre "OPTIONS"
 Write-Check ($r.Headers[$pna] -eq "true") "PNA: Preflight mit Private-Network-Anfrage wird freigegeben"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
 Write-Check (-not $r.Headers[$pna]) "PNA: ohne Anfrage des Browsers wird der Header nicht gesendet"
 $pre["Origin"] = "https://fremde-seite.example"
-$r = Invoke-Probe "$baseUrl/daten.json" $pre "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" $pre "OPTIONS"
 Write-Check (-not $r.Headers[$pna]) "PNA: fremde Origin wird NICHT freigegeben"
 
-$r = Invoke-Probe "$baseUrl/daten.json" @{} "POST"
-Write-Check ($r.Status -eq 405) "POST ist gesperrt: Status $($r.Status)"
+# POST /send-command (Befehle fuer EEP)
+if (-not $ActivateCommands) {
+    $r = Invoke-Probe "$testBase/daten.json" @{} "POST"
+    Write-Check ($r.Status -eq 405) "POST ist gesperrt (ohne -ActivateCommands): Status $($r.Status)"
+} else {
+    $postUrl    = "$baseUrl/send-command"
+    $exFull     = Join-Path $exDir $ExchangeFile
+    $existed    = Test-Path $exFull
+    $dirExisted = Test-Path $exDir
+
+    $r = Invoke-Probe $postUrl @{ Origin = $localOrigin; "Access-Control-Request-Method" = "POST"; "Access-Control-Request-Private-Network" = "true" } "OPTIONS"
+    Write-Check ("$($r.Headers['Access-Control-Allow-Methods'])" -like "*POST*" -and $r.Headers["Access-Control-Allow-Private-Network"] -eq "true") "POST-Preflight (OPTIONS) wird freigegeben: Status $($r.Status)"
+    $r = Invoke-Post $postUrl "-- Selbsttest" @{ Origin = "https://fremde-seite.example" }
+    Write-Check ($r.Status -eq 403) "POST: fremde Origin wird abgelehnt: Status $($r.Status) $($r.Error)"
+    if (-not $AllowNullOrigin) {
+        $r = Invoke-Post $postUrl "-- Selbsttest" @{ Origin = "null" }
+        Write-Check ($r.Status -eq 403) "POST: Origin 'null' (lokale Datei) wird abgelehnt: Status $($r.Status) $($r.Error)"
+    }
+    if ($existed) {
+        Write-Warning "Die Kommando-Datei $exFull existiert bereits: Die Schreibtests werden uebersprungen, damit keine Befehle verloren gehen oder ausgeloest werden."
+    } else {
+        try {
+            $ansiText = "-- Selbsttest " + [char]0xE4 + [char]0xFC
+            $r = Invoke-Post $postUrl $ansiText @{ Origin = $localOrigin }
+            Write-Check ($r.Status -eq 200 -and $r.Headers[$acao] -eq $localOrigin) "POST: Origin localhost erlaubt: Status $($r.Status) $($r.Error)"
+            $bytes = if (Test-Path $exFull) { [IO.File]::ReadAllBytes($exFull) } else { @() }
+            Write-Check (($bytes -contains 0xE4) -and ($bytes -contains 0xFC) -and -not ($bytes -contains 0xC3)) "POST: Befehle werden als ANSI (Windows-1252) geschrieben"
+            $r = Invoke-Post $postUrl "-- Selbsttest curl"
+            Write-Check ($r.Status -eq 200) "POST: ohne Origin (wie curl) von diesem Rechner erlaubt: Status $($r.Status) $($r.Error)"
+            if ($AllowNullOrigin) {
+                $r = Invoke-Post $postUrl "-- Selbsttest" @{ Origin = "null" }
+                Write-Check ($r.Status -eq 200) "POST: Origin 'null' (lokale Datei) erlaubt: Status $($r.Status) $($r.Error)"
+            }
+        } finally {
+            if (Test-Path $exFull) { Remove-Item $exFull -Force -ErrorAction SilentlyContinue }
+            if (-not $dirExisted -and (Test-Path $exDir) -and -not (Get-ChildItem $exDir -Force)) { Remove-Item $exDir -Force -ErrorAction SilentlyContinue }
+        }
+    }
+}
 
 # Nur .json und .anl3
-$r = Invoke-Probe "$baseUrl/beispiel.anl3"
+$r = Invoke-Probe "$testBase/beispiel.anl3"
 Write-Check ($r.Status -eq 200) "beispiel.anl3 wird ausgeliefert: Status $($r.Status)"
 
-$testFile = Join-Path $SitePath "pruefung.txt"
+$testFile = Join-Path $exDir "pruefung.txt"
 'test' | Set-Content $testFile
-try { $r = Invoke-Probe "$baseUrl/pruefung.txt" } finally { Remove-Item $testFile -Force -ErrorAction SilentlyContinue }
+try { $r = Invoke-Probe "$testBase/pruefung.txt" } finally { Remove-Item $testFile -Force -ErrorAction SilentlyContinue }
 Write-Check ($r.Status -eq 404) "Andere Dateitypen (.txt) sind gesperrt: Status $($r.Status)"
 
 $r = Invoke-Probe "$baseUrl/"
@@ -1215,17 +1494,21 @@ Write-Check ($r.Status -eq 404) "Verzeichnisauflistung ist gesperrt: Status $($r
 
 # HTTP -> HTTPS (nur wenn ein HTTP-Port konfiguriert ist)
 if ($HttpPort -gt 0) {
-    $r = Invoke-Probe "http://localhost$httpSuffix/daten.json"
+    $r = Invoke-Probe "http://localhost$httpSuffix$exUrl/daten.json"
     Write-Check ($r.Status -eq 301 -and "$($r.Headers['Location'])" -like "https://*") "HTTP wird auf HTTPS umgeleitet: Status $($r.Status) $($r.Headers['Location']) $($r.Error)"
+    if ($ActivateCommands) {
+        $r = Invoke-Probe "http://localhost$httpSuffix/send-command" @{} "POST"
+        Write-Check ($r.Status -eq 405) "POST auf dem HTTP-Port wird nicht angenommen: Status $($r.Status) $($r.Error)"
+    }
 }
 
 # WebSocket: Handshake, sofortige Datei, Push bei Aenderung, fremde Origin wird abgelehnt (Testclient in Python)
-$wsFile = Join-Path $SitePath "wstest.json"
+$wsFile = Join-Path $exDir "wstest.json"
 $wsPy   = Join-Path $InstallPath "ws-selftest.py"
 $wsCode = @'
 import base64, json, os, socket, ssl, struct, sys
 
-port, origin, path = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+port, origin, path, url = int(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4]
 A, B = json.dumps({"n": 1}), json.dumps({"n": 2})
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
@@ -1236,8 +1519,8 @@ def open_ws(org):
     s = ctx.wrap_socket(socket.create_connection(("localhost", port), 10), server_hostname="localhost")
     s.settimeout(10)
     key = base64.b64encode(os.urandom(16)).decode()
-    s.sendall(("GET /wstest.json HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n"
-               "Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: %s\r\nOrigin: %s\r\n\r\n" % (key, org)).encode())
+    s.sendall(("GET %s HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n"
+               "Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: %s\r\nOrigin: %s\r\n\r\n" % (url, key, org)).encode())
     buf = b""
     while b"\r\n\r\n" not in buf:
         d = s.recv(4096)
@@ -1294,7 +1577,7 @@ except Exception as exc:
     sys.exit("%s" % exc)
 '@
 Write-Utf8NoBom $wsPy $wsCode
-try { $r = Invoke-Native $venvPy @($wsPy, "$HttpsPort", $localOrigin, $wsFile) }
+try { $r = Invoke-Native $venvPy @($wsPy, "$HttpsPort", $localOrigin, $wsFile, "$exUrl/wstest.json") }
 finally { Remove-Item $wsPy, $wsFile -Force -ErrorAction SilentlyContinue }
 Write-Check ($r.ExitCode -eq 0 -and $r.Output -match 'OK') "WebSocket: Datei beim Verbinden, Push bei Aenderung, fremde Origin abgelehnt $(if ($r.ExitCode -ne 0) { $r.Output })"
 
@@ -1312,5 +1595,13 @@ if ($script:failed -gt 0) {
 Write-Host "`nFertig. Alle Pruefungen bestanden; der Testserver wurde wieder beendet (kein Autostart)." -ForegroundColor Green
 Write-Host "Server starten (Strg+C beendet ihn):"
 Write-Host "  & `"$venvPy`" `"$serverPy`"" -ForegroundColor Yellow
-Write-Host "Danach erreichbar unter: $baseUrl/daten.json   (WebSocket mit wss statt https)"
+if ($ActivateCommands) {
+    Write-Host "Befehle fuer EEP sind aktiv (POST $baseUrl/send-command -> $(Join-Path (Join-Path $SitePath $ExchangePath) $ExchangeFile))." -ForegroundColor Green
+    Write-Host "  Test von diesem Rechner: curl.exe --data-binary `"Befehl`" $baseUrl/send-command"
+} else {
+    Write-Host "Befehle (POST) sind nicht aktiviert: -ActivateCommands bei der Installation oder --activateCommands beim Serverstart."
+}
+Write-Host "Danach erreichbar unter: $testBase/daten.json   (WebSocket mit wss statt https)"
 Write-Host "Log: $logFile    Deinstallation: .\Install-Python-web-server.ps1 -Uninstall"
+Write-Host "Zertifikat: $certCN, Ablage in $certDir"
+if (-not $PfxPath) { Write-Host "Zum Import auf anderen Geraeten: $cerPath" }

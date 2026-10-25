@@ -8,7 +8,7 @@ Dieses Projekt enthält verschiedene Programme zur Analyse, Darstellung und Konv
 | [`EEP_Inventar.html`](EEP_Inventar.html "EEP_Inventar.html") | Inventarlisten einer Anlage | [dieser Text](https://frankbuchholz.github.io/EEP_convert_anl3_file/ "dieser Text") |
 | [`EEP_Signale.html`](EEP_Signale.html "EEP_Signale.html") | Signalstellungen | [dieser Text](https://frankbuchholz.github.io/EEP_convert_anl3_file/ "dieser Text") |
 | [`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html") + [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") | Live-Zustand einer laufenden Anlage (Züge, Signale, Weichen, Zeit, Wetter) | [`README_Export_Bridge`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html "README_Export_Bridge") |
-| Webserver-Skripte (IIS, Python, Node.js) | liefern `eep_export.json` und `.anl3` an andere Rechner aus | [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer") |
+| Webserver-Skripte (IIS, Python, Node.js) | liefern `exchange\eep_export.json` und `.anl3` an andere Rechner aus | [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer") |
 
 Die Programme können direkt mit den angegebenen Links im Browser (Chrome, Firefox oder MS Edge) gestartet werden. In diesem Fall ist eine aktive Internetverbindung notwendig.
 
@@ -169,7 +169,7 @@ Die Ausgabe erfolgt gruppiert nach der Stellungskombination. Dafür wird je Komb
 
 ## Programm: EEP_Export_Bridge.html (Live-Anzeige einer laufenden EEP-Anlage)
 
-Das Programm [`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html") zeigt den aktuellen Zustand einer laufenden EEP-Anlage im Browser: Züge, Rollmaterial, Signal- und Weichenstellungen, Uhrzeit und Wetter. Die Daten kommen aus dem Lua-Modul [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua"), das sie regelmäßig als JSON-Datei (`eep_export.json`) ausgibt.
+Das Programm [`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html") zeigt den aktuellen Zustand einer laufenden EEP-Anlage im Browser: Züge, Rollmaterial, Signal- und Weichenstellungen, Uhrzeit und Wetter. Die Daten kommen aus dem Lua-Modul [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua"), das sie regelmäßig als JSON-Datei (`exchange\eep_export.json`) ausgibt.
 
 Die Bridge leitet die Daten zusätzlich an den Gleisplan weiter. Dort werden Züge (mit Infobox bei Klick), Signal- und Weichenstellungen dynamisch dargestellt.
 
@@ -188,16 +188,16 @@ Das Programm, das Lua-Modul und die Live-Erweiterung des Gleisplans wurden in 20
    end
    ```
 
-   Signale, Weichen, Depots, Züge und Rollmaterial werden automatisch erkannt. Die Datei `eep_export.json` entsteht im Anlagenordner (sonst im Installationsordner von EEP).
+   Signale, Weichen, Depots, Züge und Rollmaterial werden automatisch erkannt. Die Datei `exchange\eep_export.json` entsteht im Anlagenordner (sonst im Installationsordner von EEP).
 2. **Bridge öffnen** ([Aufruf](EEP_Export_Bridge.html "EEP_Export_Bridge.html")) und die JSON-Datei verbinden.
 3. **Gleisplan öffnen** (Knopf in der Bridge) und die `.anl3`-Datei **derselben** Anlage laden.
 
 ### Wie kommen die Dateien in den Browser?
 
-| Situation | Zugriff auf `eep_export.json` und `.anl3` | Webserver? |
+| Situation | Zugriff auf `exchange\eep_export.json` und `.anl3` | Webserver? |
 | --- | --- | --- |
 | EEP und Browser auf **demselben Rechner** | Bridge: *Datei live verfolgen* (Chrome/Edge); Gleisplan: Datei-Auswahl oder Drag&Drop | nicht nötig |
-| EEP und Browser auf **verschiedenen Rechnern** (zweiter PC, Tablet) oder Bridge/Gleisplan **im Web** geöffnet | per URL, z. B. `https://192.168.0.115:3001/eep_export.json` | **ja**: HTTPS-Webserver auf dem EEP-Rechner |
+| EEP und Browser auf **verschiedenen Rechnern** (zweiter PC, Tablet) oder Bridge/Gleisplan **im Web** geöffnet | per URL, z. B. `https://192.168.0.115:3001/exchange/eep_export.json` | **ja**: HTTPS-Webserver auf dem EEP-Rechner |
 
 Wenn EEP und Bridge nicht auf demselben Rechner laufen, kann der Browser die JSON-Datei und die `.anl3`-Datei nicht direkt lesen. Dann richtet man auf dem EEP-Rechner einen kleinen Webserver ein, der nur diese beiden Dateitypen ausliefert. Drei Varianten stehen zur Auswahl:
 

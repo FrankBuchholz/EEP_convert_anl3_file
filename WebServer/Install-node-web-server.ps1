@@ -3,10 +3,15 @@
 .SYNOPSIS
     Installiert und konfiguriert einen Node.js-Webserver unter Windows 11:
     - liefert nur .json und .anl3 Dateien aus
+    - optional (-ActivateCommands): nimmt per POST auf /send-command Befehle fuer EEP an und haengt sie als ANSI an
+      <SitePath>\<ExchangePath>\<ExchangeFile> an. Absender: die Bridge (erlaubte Origins) bzw. curl von diesem Rechner (ohne Origin)
+    - optional (-ProxyGitHub): alle Anfragen, die keine lokale .json/.anl3-Datei sind (z.B. /EEP_Gleisplan oder
+      /EEP_convert_anl3_file/EEP_Gleisplan.html), werden per GET/HEAD von der ersten GitHub-Origin unter -ProxyPath geholt
+      und ausgeliefert. Bridge, Gleisplan und Daten haben dann dieselbe Origin (kein CORS, kein Mixed Content, keine PNA-Rueckfrage)
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
     - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
     - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
-    - HTTPS (Zertifikat, HSTS, TLS 1.2 als Minimum); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
+    - HTTPS (Zertifikat mit sprechendem Namen, HSTS, TLS 1.2 als Minimum); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
     - WebSocket (wss://) auf derselben URL wie die Datei: Der Server ueberwacht die Datei und sendet jede Aenderung,
       sodass die Bridge nicht mehr pollen muss (Origin-Pruefung wie bei CORS)
     - Pruefung zu Beginn: Node.js muss bereits installiert sein, sonst Abbruch (ohne Aenderung)
@@ -27,6 +32,13 @@
 .EXAMPLE
     .\Install-node-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -GitHubOrigins "https://meinname.github.io" -OpenFirewall
 .EXAMPLE
+    .\Install-node-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands -AllowNullOrigin
+    (Befehle der Bridge erlauben, auch wenn die Bridge als lokale Datei file:// gestartet wird)
+.EXAMPLE
+    .\Install-node-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -ProxyGitHub
+    (Bridge und Gleisplan werden von GitHub Pages geholt und vom lokalen Server ausgeliefert:
+     https://localhost:3001/EEP_Export_Bridge?url=/eep_export.json)
+.EXAMPLE
     .\Install-node-web-server.ps1 -Uninstall
 .NOTES
     Als Administrator in Windows PowerShell 5.1 ausfuehren (nicht PowerShell 7).
@@ -45,6 +57,15 @@
     WebSocket: Die Bridge liest die Datei zuerst per HTTPS und oeffnet dann wss://<Host>:<Port>/<Datei>.json.
     Der Server sendet die komplette Datei sofort und danach nach jeder Aenderung (nur gueltiges JSON, Entprellung).
     Eingebaut mit der Node.js-Standardbibliothek (RFC 6455), es werden keine npm-Pakete benoetigt.
+    Befehle fuer EEP (-ActivateCommands, beim Start des Servers auch --activateCommands):
+    Der Server nimmt per POST auf /send-command Befehle an (ein Befehl je Zeile, hoechstens 64 KB) und haengt sie als ANSI
+    (Windows-1252, so liest EEP) an <SitePath>\<ExchangePath>\<ExchangeFile> an. Ohne Aktivierung antwortet der Server auf POST mit 405.
+    Absender ist die Bridge (Seite von GitHub, aus dem lokalen Netz oder aus einer lokalen Datei file://, letzteres nur mit -AllowNullOrigin):
+    Die Origin muss erlaubt sein, sonst 403. Anfragen ohne Origin (z.B. curl) werden nur von diesem Rechner angenommen.
+    Auf dem HTTP-Port (-HttpPort) werden nie Befehle angenommen. Beispiele von diesem Rechner:
+      curl.exe --data-binary "Befehl" https://localhost:3001/send-command
+      curl.exe --data-binary "@befehle.txt" https://localhost:3001/send-command
+    Die .json-Dateien werden einheitlich als UTF-8 ausgeliefert (liegt die Datei in ANSI vor, wird sie umgewandelt).
     Es gibt keinen Autostart. Der Server wird mit diesem Node-Kommando gestartet:
     & "<Pfad zu node.exe>" "<InstallPath>\server.js"
 #>
@@ -53,12 +74,17 @@ param(
     [string]$SiteName          = "EEP Export", # Name der WebSite
     [string]$SitePath          = "SITEPATH",   # Verzeichnis, das die Daten der WebSite enthaelt, hier also das Installationsverzeichnis von EEP
     [string]$InstallPath       = (Join-Path $env:ProgramData "EEP-Node-Server"),  # server.js, Zertifikat, Log
+    [string]$ExchangePath      = "exchange",   # relatives Verzeichnis (unter SitePath), in dem die Kommando-Datei liegt
+    [string]$ExchangeFile      = "commands-to-eep.txt",   # Name der Kommando-Datei
+    [string]$ProxyPath         = "/EEP_convert_anl3_file", # Pfad der Seiten auf der GitHub-Origin (nur mit -ProxyGitHub)
     [int]$HttpPort             = 0,      # 0 = kein HTTP-Port (nur HTTPS)
     [int]$HttpsPort            = 443,
     [string[]]$GitHubOrigins   = @("https://frankbuchholz.github.io"), # "https://USERNAME.github.io"
     [string]$PfxPath,                 # optional: eigenes Zertifikat statt selbstsigniert
     [securestring]$PfxPassword,
     [switch]$AllowNullOrigin,         # CORS auch fuer Origin "null" (Seite aus lokaler Datei file://)
+    [switch]$ActivateCommands,        # POST /send-command erlauben (Befehle der Bridge an EEP)
+    [switch]$ProxyGitHub,             # Seiten (Bridge, Gleisplan) von der GitHub-Origin holen und lokal ausliefern
     [switch]$OpenFirewall,
     [switch]$Uninstall                # Firewall-Regel und InstallPath entfernen
 )
@@ -80,10 +106,13 @@ if ($PSBoundParameters.Count -eq 0) {
     Write-Host "  -HttpPort  <Port>  optional: Port fuer HTTP, wird auf HTTPS umgeleitet (0 = kein HTTP)  [Standard: $HttpPort]"
     Write-Host "  -HttpsPort <Port>  Port fuer HTTPS                             [Standard: $HttpsPort]"
     Write-Host "  -AllowNullOrigin   CORS auch fuer Origin 'null' (Seite wird aus einer lokalen Datei geoeffnet)"
+    Write-Host "  -ActivateCommands  POST /send-command erlauben (Befehle der Bridge bzw. curl von diesem Rechner an EEP)"
+    Write-Host "  -ProxyGitHub       Bridge und Gleisplan von GitHub Pages holen und selbst ausliefern (gleiche Origin wie die Daten)"
     Write-Host ""
     Write-Host "Beispiele:" -ForegroundColor Cyan
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001"
-    Write-Host "  .\$self -SitePath C:\EEP17 -HttpPort 3000 -HttpsPort 3001"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -AllowNullOrigin"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands"
     Write-Host "  .\$self -Uninstall"
     Write-Host ""
     Write-Host "Alle Optionen: Get-Help .\$self -Detailed"
@@ -99,6 +128,8 @@ $ErrorActionPreference = "Stop"
 # Schraegstriche vereinheitlichen (C:/EEP17 wird zu C:\EEP17)
 $SitePath = $SitePath.Replace("/", "\")
 $InstallPath = $InstallPath.Replace("/", "\")
+$ExchangePath = $ExchangePath.Replace("/", "\")
+$ProxyPath = "/" + $ProxyPath.Replace("\", "/").Trim().Trim("/")
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $script:failed = 0
 
@@ -131,6 +162,49 @@ function Write-Utf8NoBom([string]$Path, [string]$Text) {
     [IO.File]::WriteAllText($Path, $Text, (New-Object System.Text.UTF8Encoding $false))
 }
 
+# Sprechender Name des Zertifikats (CN) statt "localhost", z.B. "EEP Export Node.js (MEIN-PC)". Der CN ist auf 64 Zeichen begrenzt.
+function Get-CertCommonName([string]$Variant) {
+    $n = ("$SiteName $Variant ($env:COMPUTERNAME)") -replace '[,+=;"<>\\#]', '_'
+    if ($n.Length -gt 64) { $n = $n.Substring(0, 64) }
+    return $n
+}
+
+# Name (CN) eines vorhandenen Zertifikats
+function Get-CertCN($Cert) {
+    return $Cert.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+}
+
+# Zeigt die wichtigsten Daten eines Zertifikats an (neu erzeugt oder wiederverwendet)
+function Show-CertInfo($Cert, [string]$Title) {
+    $days = [int][math]::Floor(($Cert.NotAfter - (Get-Date)).TotalDays)
+    $key  = "$($Cert.PublicKey.Oid.FriendlyName)"
+    try { $key += " " + $Cert.PublicKey.Key.KeySize + " Bit" } catch { }
+    $ext  = $Cert.Extensions | Where-Object { $_.Oid.Value -eq "2.5.29.17" } | Select-Object -First 1
+    $san  = @()
+    if ($ext) { $san = @($ext.Format($true) -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
+    $trusted = Test-Path "Cert:\LocalMachine\Root\$($Cert.Thumbprint)"
+    $row = { param($k, $v) Write-Host ("      {0,-20}{1}" -f ($k + ":"), $v) }
+    Write-Host "   $Title" -ForegroundColor Cyan
+    & $row "Name (CN)" (Get-CertCN $Cert)
+    if ($Cert.FriendlyName) { & $row "Anzeigename" $Cert.FriendlyName }
+    $typ = if ($Cert.Subject -eq $Cert.Issuer) { "selbstsigniert" } else { "ausgestellt von " + $Cert.Issuer }
+    & $row "Typ" $typ
+    & $row "Gueltig ab" $Cert.NotBefore.ToString("yyyy-MM-dd HH:mm")
+    & $row "Gueltig bis" ("{0} (noch {1} Tage)" -f $Cert.NotAfter.ToString("yyyy-MM-dd HH:mm"), $days)
+    if ($san.Count -gt 0) {
+        & $row "Gueltig fuer" $san[0]
+        foreach ($s in ($san | Select-Object -Skip 1)) { & $row " " $s }
+    }
+    & $row "Schluessel" $key
+    & $row "Signatur" $Cert.SignatureAlgorithm.FriendlyName
+    & $row "Seriennummer" $Cert.SerialNumber
+    & $row "Fingerabdruck" $Cert.Thumbprint
+    $tr = if ($trusted) { "ja (Stammzertifizierungsstellen dieses PCs)" } else { "nein (auf diesem PC nicht als Stammzertifikat eingetragen)" }
+    & $row "Vertrauenswuerdig" $tr
+    if ($days -lt 0)      { Write-Host "      ACHTUNG: Das Zertifikat ist abgelaufen." -ForegroundColor Red }
+    elseif ($days -lt 30) { Write-Host "      Hinweis: Das Zertifikat laeuft in weniger als 30 Tagen ab." -ForegroundColor Yellow }
+}
+
 # Liefert Status und Header, auch bei 3xx/4xx; folgt keiner Umleitung
 function Invoke-Probe([string]$Uri, [hashtable]$Headers = @{}, [string]$Method = "GET") {
     $resp = $null
@@ -146,6 +220,41 @@ function Invoke-Probe([string]$Uri, [hashtable]$Headers = @{}, [string]$Method =
         $resp = $req.GetResponse()
     } catch [System.Net.WebException] {
         $resp = $_.Exception.Response      # 4xx/5xx liefern eine Antwort
+        $err  = $_.Exception.Message
+    } catch {
+        $err  = $_.Exception.Message
+    }
+    if ($resp) {
+        $h = @{}
+        foreach ($k in $resp.Headers.AllKeys) { $h[$k] = $resp.Headers[$k] }
+        $status = [int]$resp.StatusCode
+        $resp.Close()
+        return [pscustomobject]@{ Status = $status; Headers = $h; Error = "" }
+    }
+    return [pscustomobject]@{ Status = 0; Headers = @{}; Error = $err }
+}
+
+# Wie Invoke-Probe, sendet aber einen Body (UTF-8)
+function Invoke-Post([string]$Uri, [string]$Body, [hashtable]$Headers = @{}) {
+    $resp = $null
+    $err  = ""
+    try {
+        $bytes = [Text.Encoding]::UTF8.GetBytes($Body)
+        $req = [System.Net.HttpWebRequest]::Create($Uri)
+        $req.Method = "POST"
+        $req.AllowAutoRedirect = $false
+        $req.KeepAlive = $false
+        $req.Timeout = 15000
+        $req.ServicePoint.Expect100Continue = $false
+        $req.ContentType = "text/plain; charset=utf-8"
+        $req.ContentLength = $bytes.Length
+        foreach ($k in $Headers.Keys) { $req.Headers.Add($k, $Headers[$k]) }
+        $s = $req.GetRequestStream()
+        $s.Write($bytes, 0, $bytes.Length)
+        $s.Close()
+        $resp = $req.GetResponse()
+    } catch [System.Net.WebException] {
+        $resp = $_.Exception.Response
         $err  = $_.Exception.Message
     } catch {
         $err  = $_.Exception.Message
@@ -188,12 +297,13 @@ function Stop-OwnServer {
 }
 
 # Vorhandenes selbstsigniertes Zertifikat weiterverwenden, solange es gueltig ist und alle Namen/IPs abdeckt
-function Test-ReusableCert([string]$Pass, [string[]]$Dns, [string[]]$Ips) {
+function Test-ReusableCert([string]$Pass, [string]$Cn, [string[]]$Dns, [string[]]$Ips) {
     if (-not ((Test-Path $pfxFile) -and (Test-Path $passFile))) { return $false }
     try {
         $c = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $pfxFile, $Pass
         if ($c.NotAfter -lt (Get-Date).AddDays(30)) { return $false }
         if ($c.Subject -ne $c.Issuer) { return $false }
+        if ((Get-CertCN $c) -ne $Cn) { return $false }   # anderer Name (z.B. frueher "localhost"): neu erzeugen
         $ext = $c.Extensions | Where-Object { $_.Oid.Value -eq "2.5.29.17" } | Select-Object -First 1
         if (-not $ext) { return $false }
         $san = $ext.Format($false)
@@ -261,6 +371,15 @@ if ($InstallPath -notmatch '^[A-Za-z]:\\.+') {
 } elseif (-not (Test-Path $InstallPath.Substring(0,2))) {
     $errors.Add("Das Laufwerk von InstallPath ($InstallPath) existiert nicht.")
 }
+# ExchangePath: relativer Pfad innerhalb von SitePath (leer = SitePath selbst); ExchangeFile: reiner Dateiname
+if ($ExchangePath -match '[:*?"<>|]' -or $ExchangePath.StartsWith('\') -or $ExchangePath -match '(^|\\)\.\.(\\|$)') {
+    $errors.Add("ExchangePath muss ein relativer Pfad innerhalb von SitePath sein (z.B. exchange, ohne .. und ohne fuehrenden Backslash).")
+}
+if ($ExchangeFile -notmatch '^[A-Za-z0-9._-]+$' -or $ExchangeFile -match '^\.+$|[. ]$') {
+    $errors.Add("ExchangeFile muss ein reiner Dateiname sein (z.B. commands-to-eep.txt).")
+} elseif ($ExchangeFile -match '\.(json|anl3)$') {
+    $errors.Add("ExchangeFile darf nicht auf .json oder .anl3 enden (diese Dateitypen liefert der Server aus).")
+}
 if ($PfxPath -and -not (Test-Path $PfxPath -PathType Leaf)) { $errors.Add("PfxPath nicht gefunden: $PfxPath") }
 foreach ($g in $GitHubOrigins) {
     if ($g.TrimEnd("/") -notmatch '^https?://[^/\s]+$') {
@@ -269,6 +388,21 @@ foreach ($g in $GitHubOrigins) {
 }
 if ($GitHubOrigins -match "USERNAME") {
     $warnings.Add("GitHub-Origin ist noch der Platzhalter und wird ignoriert. Mit -GitHubOrigins 'https://dein-name.github.io' anpassen.")
+}
+
+# Proxy: Ziel ist die erste GitHub-Origin (nur https, nur Host), Pfad fest unter -ProxyPath
+$proxyHost = ""
+if ($ProxyGitHub) {
+    if ($ProxyPath -notmatch '^/[A-Za-z0-9._~-]+(/[A-Za-z0-9._~-]+)*$' -or $ProxyPath -match '(^|/)\.\.?(/|$)') {
+        $errors.Add("ProxyPath '$ProxyPath' ist ungueltig (z.B. /EEP_convert_anl3_file).")
+    }
+    $po = "$(@($GitHubOrigins | Where-Object { $_ -notmatch 'USERNAME' } | Select-Object -First 1)[0])".TrimEnd("/")
+    if ($po -match '^https://([A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*)$') { $proxyHost = $Matches[1] }
+    else { $errors.Add("-ProxyGitHub braucht als erste GitHub-Origin eine Adresse der Form https://name.github.io (aktuell: '$po').") }
+    $warnings.Add("-ProxyGitHub: Der Server liefert Seiten und Skripte von https://$proxyHost$ProxyPath aus. Dieser Code laeuft dann in der Origin dieses Servers und hat Zugriff auf alle Daten (und mit -ActivateCommands auf die Befehle an EEP). Nur verwenden, wenn dem GitHub-Konto vertraut wird.")
+    if ($ActivateCommands) {
+        $warnings.Add("-ProxyGitHub zusammen mit -ActivateCommands: Wird die GitHub-Seite veraendert oder kompromittiert, kann deren Code same-origin Befehle an EEP senden. Die Origin-Pruefung schuetzt davor nicht.")
+    }
 }
 
 $webAdminOk = $null -ne (Get-Module -ListAvailable -Name WebAdministration)
@@ -308,6 +442,14 @@ if ($AllowNullOrigin) {
     $warnings.Add("-AllowNullOrigin: Die Origins 'null' und 'file://' werden freigegeben. Sie stammen von file://-Seiten (Chrome sendet bei WebSockets 'file://'), aber 'null' auch von Sandbox-Frames fremder Seiten.")
 }
 
+if ($ActivateCommands) {
+    $warnings.Add("-ActivateCommands: POST /send-command schreibt Befehle (ANSI) nach '$(Join-Path $ExchangePath $ExchangeFile)' unterhalb von SitePath, wo EEP sie liest. Erlaubt sind Browser-Seiten der zugelassenen Origins (lokales Netz, GitHub) und Anfragen ohne Origin (z.B. curl) nur von diesem Rechner. Nur in vertrauenswuerdigen Netzen verwenden.")
+    if ($AllowNullOrigin) {
+        $warnings.Add("-ActivateCommands zusammen mit -AllowNullOrigin: Auch jede Seite in einem Sandbox-Frame (Origin 'null') kann Befehle an EEP senden. Wird die Bridge nicht aus einer lokalen Datei (file://) gestartet, -AllowNullOrigin weglassen.")
+    } else {
+        $warnings.Add("Hinweis: Wird die Bridge aus einer lokalen Datei (file://) gestartet, ist zusaetzlich -AllowNullOrigin noetig, sonst lehnt der Server ihre Befehle ab.")
+    }
+}
 foreach ($w in $warnings) { Write-Warning $w }
 if ($errors.Count -gt 0) {
     foreach ($e in $errors) { Write-Host "   [FEHLER]  $e" -ForegroundColor Red }
@@ -342,11 +484,17 @@ $ipList   = @("127.0.0.1") + $ips
 $config = [ordered]@{
     site_name         = $SiteName
     site_path         = $SitePath
+    exchange_path     = $ExchangePath
+    exchange_file     = $ExchangeFile
     http_port         = $HttpPort
     https_port        = $HttpsPort
     github_origins    = @($GitHubOrigins | Where-Object { $_ -notmatch "USERNAME" } | ForEach-Object { $_.TrimEnd("/") })
     computer_name     = $env:COMPUTERNAME
     allow_null_origin = [bool]$AllowNullOrigin
+    activate_commands = [bool]$ActivateCommands
+    proxy_github      = [bool]$ProxyGitHub
+    proxy_host        = $proxyHost
+    proxy_path        = $ProxyPath
     pfx_file          = $pfxFile
     pass_file         = $passFile
     cer_file          = $cerFile
@@ -354,6 +502,8 @@ $config = [ordered]@{
 }
 Write-Utf8NoBom (Join-Path $InstallPath "config.json") ($config | ConvertTo-Json -Depth 4)
 
+$certCN     = Get-CertCommonName "Node.js"   # sprechender Name (CN) des selbst erzeugten Zertifikats
+$certReused = $false
 $oldThumb = $null
 if (Test-Path $cerFile) {
     try { $oldThumb = (New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $cerFile).Thumbprint } catch { }
@@ -380,7 +530,8 @@ if ($PfxPath) {
 } else {
     $pw = ""
     if (Test-Path $passFile) { $pw = [IO.File]::ReadAllText($passFile) }
-    if (Test-ReusableCert $pw $dnsNames $ipList) {
+    if (Test-ReusableCert $pw $certCN $dnsNames $ipList) {
+        $certReused = $true
         Write-Host "   vorhandenes Zertifikat weiterverwendet"
     } else {
         # Neues selbstsigniertes Zertifikat: erzeugen, als PFX exportieren (fuer Node.js), aus dem Windows-Speicher entfernen
@@ -389,7 +540,7 @@ if ($PfxPath) {
         $rng.GetBytes($bytes); $rng.Dispose()
         $pw = [Convert]::ToBase64String($bytes)
         $san = @($dnsNames | ForEach-Object { "DNS=$_" }) + @($ipList | ForEach-Object { "IPAddress=$_" })
-        $cert = New-SelfSignedCertificate -Subject "CN=localhost" -FriendlyName "EEP Node $SiteName" `
+        $cert = New-SelfSignedCertificate -Subject "CN=$certCN" -FriendlyName $certCN `
             -CertStoreLocation Cert:\LocalMachine\My -KeyAlgorithm RSA -KeyLength 2048 `
             -HashAlgorithm SHA256 -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(2) `
             -TextExtension @("2.5.29.17={text}" + ($san -join "&"))
@@ -413,7 +564,7 @@ if ($r.ExitCode -ne 0) { throw "Node.js kann das Zertifikat nicht lesen: $($r.Ou
 if (-not $PfxPath) {
     # Auf diesem PC als vertrauenswuerdig eintragen und .cer fuer andere Geraete bereitstellen
     $baseDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
-    $cerPath = Join-Path $baseDir "$SiteName.cer"
+    $cerPath = Join-Path $baseDir "$certCN.cer" # "$SiteName.cer"
     Copy-Item $cerFile $cerPath -Force
     $thumb = (New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $cerPath).Thumbprint
     if (-not (Test-Path "Cert:\LocalMachine\Root\$thumb")) {
@@ -426,8 +577,25 @@ if (-not $PfxPath) {
     Write-Host "   Zertifikat exportiert: $cerPath (auf Geraeten im LAN importieren)"
 }
 
+$shownCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $cerFile
+$certTitle = if ($PfxPath) { "Zertifikat: eigenes Zertifikat (PFX) uebernommen" }
+             elseif ($certReused) { "Zertifikat: vorhandenes Zertifikat wird weiterverwendet" }
+             else { "Zertifikat: neu erzeugt (selbstsigniert)" }
+Show-CertInfo $shownCert $certTitle
+Write-Host "   Ablage:" -ForegroundColor Cyan
+Write-Host "      Server (Zertifikat + Schluessel): $pfxFile (Passwort in $passFile)"
+Write-Host "      oeffentlicher Teil (.cer):        $cerFile"
+if (-not $PfxPath) {
+    Write-Host "      Kopie fuer andere Geraete:        $cerPath"
+    Write-Host "      Vertrauensspeicher dieses PCs:    Lokaler Computer > Vertrauenswuerdige Stammzertifizierungsstellen (certlm.msc), Name '$certCN'"
+}
+
 # ---------------------------------------------------------------- 4. Server + Inhalt
 Write-Host "4/6 Server und Webseiten-Inhalt ..." -ForegroundColor Cyan
+# Test- und Beispieldaten liegen in <SitePath>\<ExchangePath> (gleicher Ordner wie die Kommando-Datei)
+$exDir = Join-Path $SitePath $ExchangePath
+$exUrl = (($ExchangePath -split '\\' | Where-Object { $_ } | ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/')
+$exUrl = if ($exUrl) { "/$exUrl" } else { "" }
 $serverCode = @'
 #!/usr/bin/env node
 'use strict';
@@ -437,6 +605,8 @@ $serverCode = @'
  * Liefert ausschliesslich .json und .anl3 aus (GET, HEAD, OPTIONS), mit CORS,
  * HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung.
  * WebSocket (wss://, gleiche URL wie die Datei): sendet die Datei beim Verbinden und nach jeder Aenderung.
+ * Optional (--activateCommands oder activate_commands in config.json): POST /send-command haengt Befehle fuer EEP als ANSI an eine Datei an.
+ * Optional (proxy_github in config.json): alles, was keine lokale .json/.anl3-Datei ist, wird per GET/HEAD von proxy_host unter proxy_path geholt.
  * Konfiguration: config.json neben dieser Datei
  * (wird von Install-node-web-server.ps1 erzeugt).
  */
@@ -453,7 +623,22 @@ const SITE_ROOT = fs.realpathSync(CFG.site_path);
 const HTTP_PORT = parseInt(CFG.http_port, 10) || 0;
 const HTTPS_PORT = parseInt(CFG.https_port, 10);
 const ALLOWED_TYPES = { '.json': 'application/json', '.anl3': 'application/octet-stream' };
-const ALLOWED_METHODS = 'GET, HEAD, OPTIONS';
+// Befehle fuer EEP: POST /send-command (nur mit -ActivateCommands bei der Installation ("activate_commands" in config.json)
+// oder --activateCommands beim Start). Ohne Aktivierung antwortet der Server auf POST mit 405.
+const ACTIVATE_COMMANDS = !!CFG.activate_commands || process.argv.slice(2).some(a => /^--?activatecommands$/i.test(a));
+const POST_PATH = '/send-command';
+const POST_MAX_BYTES = 65536;     // groesster erlaubter Body
+const POST_MAX_LINE = 500;        // laengste erlaubte Zeile
+const EXCHANGE_DIR = path.resolve(SITE_ROOT, CFG.exchange_path || '');
+const EXCHANGE_FILE = path.join(EXCHANGE_DIR, CFG.exchange_file || 'commands-to-eep.txt');
+const ALLOWED_METHODS = ACTIVATE_COMMANDS ? 'GET, HEAD, OPTIONS, POST' : 'GET, HEAD, OPTIONS';
+if (ACTIVATE_COMMANDS) {
+  const rel = path.relative(SITE_ROOT, EXCHANGE_DIR);
+  if (rel === '..' || rel.startsWith('..' + path.sep) || path.isAbsolute(rel)) {
+    console.error('exchange_path liegt ausserhalb von site_path: ' + EXCHANGE_DIR);
+    process.exit(1);
+  }
+}
 const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 
 // Erlaubte Origins: localhost, private Netze (10.x, 172.16-31.x, 192.168.x), *.local, PC-Name, GitHub
@@ -467,6 +652,36 @@ const ALLOW_NULL = !!CFG.allow_null_origin;   // Origin "null": Seite wird aus e
 const ORIGIN_RE = new RegExp('^(?:https?://(?:' + lan + ')(?::\\d+)?' + (ghAlt ? '|' + ghAlt : '') + ')$', 'i');
 // Lokale Datei (file://): CORS-Anfragen senden die Origin "null", Chrome sendet bei WebSockets "file://"
 const originAllowed = origin => origin !== '' && (ORIGIN_RE.test(origin) || (ALLOW_NULL && (origin === 'null' || origin === 'file://')));
+
+// Anfrage kommt von diesem Rechner (127.x, ::1, auch als ::ffff:127.0.0.1)
+function isLoopback(addr) {
+  addr = String(addr || '').replace(/%.*$/, '').toLowerCase();
+  if (addr.startsWith('::ffff:')) addr = addr.slice(7);
+  return addr === '::1' || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(addr);
+}
+
+// Windows-1252 (ANSI): Zeichen 0x80..0x9F, der Rest entspricht Latin-1. EEP liest und schreibt ANSI.
+const CP1252 = '\u20AC\u0081\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u008D\u017D\u008F\u0090\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u009D\u017E\u0178';
+// Gueltiges UTF-8 bleibt, sonst wird ANSI (Windows-1252) angenommen
+function decodeText(buf) {
+  let t;
+  try { t = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) { t = buf.toString('latin1').replace(/[\x80-\x9f]/g, c => CP1252.charAt(c.charCodeAt(0) - 0x80)); }
+  return t.replace(/^\uFEFF/, '');
+}
+// Text als ANSI kodieren; null, wenn ein Zeichen nicht darstellbar ist
+function encodeAnsi(str) {
+  const out = Buffer.alloc(str.length);
+  let n = 0;
+  for (const ch of str) {
+    const c = ch.codePointAt(0);
+    if (c < 0x80 || (c >= 0xa0 && c <= 0xff)) { out[n++] = c; continue; }
+    const i = CP1252.indexOf(ch);
+    if (i < 0 || i === 1 || i === 13 || i === 15 || i === 16 || i === 29) return null;   // 0x81, 0x8D, 0x8F, 0x90, 0x9D sind in Windows-1252 nicht belegt
+    out[n++] = 0x80 + i;
+  }
+  return out.subarray(0, n);
+}
 
 // ---- Log (eine Datei, bei ueber 1 MB wird sie nach server.log.1 verschoben)
 function clean(text) { return String(text).replace(/[^\x20-\x7e]/g, '?'); }
@@ -533,36 +748,174 @@ function notFound(req, res) {
   res.end(req.method === 'HEAD' ? undefined : body);
 }
 
+// ---- Proxy (nur mit -ProxyGitHub): Seiten von GitHub Pages holen und selbst ausliefern
+// Ziel fest: https://<proxy_host><proxy_path>/... Nur GET/HEAD, keine Cookies/Origin/Referer an GitHub, Redirects nur innerhalb desselben Hosts.
+// .json/.anl3 werden nie von GitHub geholt, ausser unter proxy_path (dort zuerst lokal, z.B. relative URL "eep_export.json" der Bridge).
+const PROXY = !!CFG.proxy_github && /^[A-Za-z0-9.-]+$/.test(String(CFG.proxy_host || ''));
+const PROXY_HOST = PROXY ? String(CFG.proxy_host) : '';
+const PROXY_PATH = PROXY ? String(CFG.proxy_path || '').replace(/\/+$/, '') : '';
+const PROXY_PASS = ['accept', 'accept-language', 'user-agent', 'if-none-match', 'if-modified-since'];
+const PROXY_KEEP = ['content-type', 'content-length', 'last-modified', 'etag', 'cache-control', 'expires'];
+
+// Pfad auf dem Ziel: /EEP_Gleisplan -> <proxy_path>/EEP_Gleisplan.html, /css/x.css -> <proxy_path>/css/x.css; null = nicht erlaubt
+function proxyTarget(rawUrl) {
+  const raw = String(rawUrl).split('#')[0];
+  const qi = raw.indexOf('?');
+  let p = qi >= 0 ? raw.slice(0, qi) : raw;
+  const q = qi >= 0 ? raw.slice(qi) : '';
+  let dec;
+  try { dec = decodeURIComponent(p); } catch (e) { return null; }
+  if (p.charAt(0) !== '/' || p.startsWith('//') || /[\x00-\x1f\x7f\\]/.test(dec) || dec.split('/').includes('..')) return null;
+  if (!/^[\x21-\x7e]*$/.test(p + q)) return null;
+  if (dec === PROXY_PATH) { p = PROXY_PATH + '/'; dec = p; }
+  else if (!dec.startsWith(PROXY_PATH + '/')) { p = PROXY_PATH + p; dec = PROXY_PATH + dec; }
+  const last = dec.split('/').pop();
+  if (last !== '' && last.indexOf('.') < 0) p += '.html';
+  return p + q;
+}
+
+function proxyFail(req, res, code) {
+  const body = http.STATUS_CODES[code] || String(code);
+  res.writeHead(code, headersFor(req, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': Buffer.byteLength(body) }));
+  res.end(req.method === 'HEAD' ? undefined : body);
+}
+
+function proxy(req, res) {
+  const target = proxyTarget(req.url || '/');
+  if (!target) return notFound(req, res);
+  const headers = { 'accept-encoding': 'identity' };
+  for (const k of PROXY_PASS) if (req.headers[k]) headers[k] = req.headers[k];
+  const up = https.request({ host: PROXY_HOST, port: 443, method: req.method, path: target, headers: headers, timeout: 15000 }, ur => {
+    const sc = ur.statusCode;
+    if (sc === 301 || sc === 302 || sc === 307 || sc === 308) {
+      let loc = String(ur.headers['location'] || '');
+      const pre = 'https://' + PROXY_HOST;
+      if (loc.startsWith(pre + '/')) loc = loc.slice(pre.length);
+      ur.resume();
+      if (loc.charAt(0) !== '/' || loc.startsWith('//') || !/^[\x21-\x7e]+$/.test(loc)) return proxyFail(req, res, 502);   // nie auf fremde Hosts umleiten
+      res.writeHead(302, headersFor(req, { 'Location': loc, 'Content-Length': '0' }));
+      return res.end();
+    }
+    if (sc === 200 || sc === 304) {
+      const extra = {};
+      for (const k of PROXY_KEEP) if (ur.headers[k]) extra[k] = ur.headers[k];
+      res.writeHead(sc, headersFor(req, extra));
+      return ur.pipe(res);
+    }
+    ur.resume();
+    return sc === 404 ? notFound(req, res) : proxyFail(req, res, 502);
+  });
+  up.on('timeout', () => up.destroy(new Error('Zeitueberschreitung')));
+  up.on('error', e => {
+    log('Proxy-Fehler (' + PROXY_HOST + '): ' + clean(e && e.message), 'WARNING');
+    if (!res.headersSent) proxyFail(req, res, 502); else res.destroy();
+  });
+  up.end();
+}
+
+function proxyOrLocal(req, res) {
+  const rawUrl = String(req.url || '/');
+  let dec;
+  try { dec = decodeURIComponent(rawUrl.split('?')[0].split('#')[0]); } catch (e) { return notFound(req, res); }
+  const dataType = has(ALLOWED_TYPES, path.extname(dec.split('/').pop()).toLowerCase());
+  const under = rawUrl.startsWith(PROXY_PATH + '/');
+  if (dataType && !under) return notFound(req, res);               // Daten nur lokal
+  if (dataType) {
+    const local = resolvePath(rawUrl.slice(PROXY_PATH.length));    // <proxy_path>/eep_export.json -> <SitePath>/eep_export.json
+    if (local) return serveFile(req, res, local);
+  }
+  return proxy(req, res);
+}
+
+// ---- POST /send-command: Befehle fuer EEP (nur mit --activateCommands)
+function handlePost(req, res) {
+  const addr = req.socket.remoteAddress || '';
+  const reply = (code, text) => {
+    const body = text || http.STATUS_CODES[code] || String(code);
+    res.writeHead(code, headersFor(req, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': Buffer.byteLength(body), 'Connection': 'close' }));
+    res.end(body);
+  };
+  const declared = req.headers['content-length'] === undefined ? -1 : parseInt(req.headers['content-length'], 10);
+  const chunks = [];
+  const done = () => {
+    const url = String(req.url || '');
+    if (url.split('?')[0] !== POST_PATH) return reply(404);
+    const origin = req.headers['origin'];
+    if (origin !== undefined) {
+      // Browser (Bridge): die Origin muss erlaubt sein, gleiche Regeln wie bei CORS und WebSocket
+      if (!originAllowed(String(origin))) {
+        log(addr + ' "POST ' + clean(url) + '" 403 Forbidden (Origin: ' + (clean(origin) || 'leer') + (ALLOW_NULL ? '' : ', file:// und null nur mit -AllowNullOrigin') + ')', 'WARNING');
+        return reply(403);
+      }
+    } else if (!isLoopback(addr)) {
+      // kein Browser (z.B. curl): nur von diesem Rechner
+      log(addr + ' "POST ' + clean(url) + '" 403 Forbidden (ohne Origin nur von diesem Rechner)', 'WARNING');
+      return reply(403);
+    }
+    if (!(declared >= 0)) return reply(411);
+    if (declared > POST_MAX_BYTES) return reply(413);
+    if (declared === 0) return reply(400);
+    const text = decodeText(Buffer.concat(chunks));        // UTF-8 (Bridge), sonst ANSI (z.B. curl in der Windows-Konsole)
+    const lines = text.split(/\r\n|[\r\n\v\f\x1c-\x1e\x85\u2028\u2029]/).map(l => l.trim()).filter(l => l !== '');
+    if (lines.length === 0 || lines.some(l => l.length > POST_MAX_LINE || /[\x00-\x08\x0b-\x1f\x7f]/.test(l))) return reply(400, 'Ungueltige Zeilen');
+    const data = encodeAnsi(lines.map(l => l + '\r\n').join(''));   // EEP liest ANSI
+    if (data === null) return reply(400, 'Zeichen nicht in ANSI (Windows-1252) darstellbar');
+    try {
+      fs.mkdirSync(EXCHANGE_DIR, { recursive: true });
+      fs.appendFileSync(EXCHANGE_FILE, data);               // synchron: gleichzeitige Anfragen mischen sich nicht
+    } catch (e) {
+      log('Fehler beim Schreiben der Kommando-Datei: ' + clean(e && e.message), 'ERROR');
+      return reply(500);
+    }
+    const body = JSON.stringify({ status: 'success', lines: lines.length });
+    res.writeHead(200, headersFor(req, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'Connection': 'close' }));
+    res.end(body);
+    log(addr + ' ' + lines.length + ' Befehl(e) von Origin ' + (origin !== undefined ? clean(origin) : '(ohne)') + ' nach ' + clean(EXCHANGE_FILE) + ' geschrieben');
+  };
+  // Body zuerst lesen (bis zur Obergrenze), damit eine Ablehnung nicht an einer zurueckgesetzten Verbindung scheitert
+  if (declared >= 0 && declared <= POST_MAX_BYTES) {
+    req.on('data', c => chunks.push(c));
+    req.on('end', done);
+    req.on('error', () => { /* Verbindungsabbruch des Clients ignorieren */ });
+  } else {
+    req.resume();
+    done();
+  }
+}
+
 function handle(req, res) {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, headersFor(req, { 'Allow': ALLOWED_METHODS, 'Access-Control-Max-Age': '600', 'Content-Length': '0' }));
     return res.end();
   }
+  if (req.method === 'POST' && ACTIVATE_COMMANDS) return handlePost(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, headersFor(req, { 'Allow': ALLOWED_METHODS, 'Content-Length': '0', 'Connection': 'close' }));
     return res.end();
   }
   const full = resolvePath(req.url || '/');
-  if (!full) return notFound(req, res);
+  if (full) return serveFile(req, res, full);
+  if (PROXY) return proxyOrLocal(req, res);
+  return notFound(req, res);
+}
+
+function serveFile(req, res, full) {
   // Datei komplett lesen: EEP schreibt die Exportdatei laufend neu, so passen Content-Length und Inhalt immer zusammen
   fs.readFile(full, (err, buf) => {
-		if (err) return notFound(req, res);
-		const ext = path.extname(full).toLowerCase();
-		let type = ALLOWED_TYPES[ext];
-		if (ext === '.json') {            // einheitlich UTF-8 ausliefern
-			buf = Buffer.from(decodeText(buf).replace(/^\uFEFF/, ''), 'utf8');
-			type += '; charset=utf-8';
-		}
-		let mtime = new Date();
-		try { mtime = fs.statSync(full).mtime; } catch (e) { /* aktuelle Zeit */ }
-		res.writeHead(200, headersFor(req, {
-			'Content-Type': type,
-			'Content-Length': buf.length,
-			'Last-Modified': mtime.toUTCString(),
-			'Cache-Control': 'no-cache'
-		}));
-		res.end(req.method === 'HEAD' ? undefined : buf);
-	});
+    if (err) return notFound(req, res);
+    const ext = path.extname(full).toLowerCase();
+    let type = ALLOWED_TYPES[ext];
+    if (ext === '.json') { buf = Buffer.from(decodeText(buf), 'utf8'); type += '; charset=utf-8'; }   // einheitlich UTF-8 ausliefern
+    let mtime = new Date();
+    try { mtime = fs.statSync(full).mtime; } catch (e) { /* aktuelle Zeit */ }
+    res.writeHead(200, headersFor(req, {
+      'Content-Type': type,
+      'Content-Length': buf.length,
+      'Last-Modified': mtime.toUTCString(),
+      'Cache-Control': 'no-cache'
+    }));
+    res.end(req.method === 'HEAD' ? undefined : buf);
+  });
 }
 
 // ---- Port HTTP: leitet alles dauerhaft auf HTTPS um (nur wenn http_port > 0)
@@ -706,21 +1059,12 @@ function watchSchedule(w, ms) {
   w.timer = setTimeout(() => watchRead(w, null), ms);
 }
 
-// Datei-Inhalt als Text: gueltiges UTF-8 bleibt, sonst wird ANSI (Windows-1252) angenommen
-function decodeText(buf) {
-  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
-  catch (e) {
-    try { return new TextDecoder('windows-1252').decode(buf); }
-    catch (e2) { return buf.toString('latin1'); }   // Notfall, falls Node ohne ICU laeuft
-  }
-}
-
 // Datei lesen und senden. Unvollstaendiges JSON (EEP schreibt gerade) wird nicht gesendet, sondern kurz spaeter erneut gelesen.
 // target = neuer Client, der den Stand auch dann bekommt, wenn er sich nicht geaendert hat.
 function watchRead(w, target) {
-  fs.readFile(w.full, (err, buf) => {
+  fs.readFile(w.full, (err, data) => {
     if (err) return;
-    const text = decodeText(buf).replace(/^\uFEFF/, '');
+    const text = decodeText(data);          // UTF-8, sonst ANSI
     if (w.json) {
       try { JSON.parse(text); w.retry = 0; }
       catch (e) { if (w.retry++ < 10) watchSchedule(w, 150); return; }
@@ -828,6 +1172,13 @@ async function main() {
     await listen(prepare(http.createServer(logged(redirect))), HTTP_PORT);
   }
   log('Server gestartet (mit WebSocket): HTTPS Port ' + HTTPS_PORT + ', HTTP Port ' + (HTTP_PORT || 'aus') + ', Inhalt ' + SITE_ROOT);
+  if (PROXY) log('Proxy aktiv: andere Seiten kommen von https://' + PROXY_HOST + PROXY_PATH + '/ (nur GET/HEAD; .json/.anl3 nur lokal)', 'WARNING');
+  if (ACTIVATE_COMMANDS) {
+    log('Befehle fuer EEP aktiv: POST ' + POST_PATH + ' -> ' + EXCHANGE_FILE + ' (Browser: nur erlaubte Origins, ohne Origin nur von diesem Rechner)');
+    if (ALLOW_NULL) log('Origin null/file:// ist erlaubt: auch Seiten in Sandbox-Frames koennten Befehle senden', 'WARNING');
+  } else {
+    log('Befehle (POST) sind nicht aktiviert (--activateCommands)');
+  }
 }
 
 main().catch(err => {
@@ -851,9 +1202,9 @@ $packageCode = @'
 '@
 Write-Utf8NoBom $pkgJson $packageCode
 
-New-Item -ItemType Directory -Path $SitePath -Force | Out-Null
-if (-not (Test-Path "$SitePath\daten.json"))    { Write-Utf8NoBom "$SitePath\daten.json" '{ "status": "ok" }' }
-if (-not (Test-Path "$SitePath\beispiel.anl3")) { Write-Utf8NoBom "$SitePath\beispiel.anl3" 'Beispiel' }
+New-Item -ItemType Directory -Path $exDir -Force | Out-Null   # legt bei Bedarf auch $SitePath an; Test- und Beispieldaten nur im Unterordner
+if (-not (Test-Path "$exDir\daten.json"))    { Write-Utf8NoBom "$exDir\daten.json" '{ "status": "ok" }' }
+if (-not (Test-Path "$exDir\beispiel.anl3")) { Write-Utf8NoBom "$exDir\beispiel.anl3" 'Beispiel' }
 
 # ---------------------------------------------------------------- 5. Firewall
 Write-Host "5/6 Firewall ..." -ForegroundColor Cyan
@@ -899,6 +1250,7 @@ public static class EepTrust {
 $portSuffix = if ($HttpsPort -eq 443) { "" } else { ":$HttpsPort" }
 $httpSuffix = if ($HttpPort -eq 80) { "" } else { ":$HttpPort" }
 $baseUrl    = "https://localhost$portSuffix"
+$testBase    = "$baseUrl$exUrl"   # Test- und Beispieldaten liegen im Unterordner
 $acao       = "Access-Control-Allow-Origin"
 $ownPids    = @(Get-OwnProcesses | ForEach-Object { $_.ProcessId })
 
@@ -910,77 +1262,135 @@ foreach ($port in @($HttpPort, $HttpsPort | Where-Object { $_ -gt 0 })) {
 
 # Inhalt ueber HTTPS + CORS
 $localOrigin = "http://localhost:3000"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $localOrigin }
 Write-Check ($r.Status -eq 200) "HTTPS daten.json: Status $($r.Status) $($r.Error)"
 Write-Check ("$($r.Headers['Content-Type'])" -like "application/json*") "daten.json hat den Typ application/json"
 Write-Check ([bool]$r.Headers["Strict-Transport-Security"]) "HSTS-Header wird gesendet"
 Write-Check ($r.Headers[$acao] -eq $localOrigin) "CORS: localhost erlaubt"
 
 $lanOrigin = "https://192.168.1.50"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $lanOrigin }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $lanOrigin }
 Write-Check ($r.Headers[$acao] -eq $lanOrigin) "CORS: lokales Netzwerk erlaubt ($lanOrigin)"
 
 foreach ($g in $GitHubOrigins) {
     $gh = $g.TrimEnd("/")
     if ($gh -match "USERNAME") { continue }
-    $r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $gh }
+    $r = Invoke-Probe "$testBase/daten.json" @{ Origin = $gh }
     Write-Check ($r.Headers[$acao] -eq $gh) "CORS: GitHub-Origin erlaubt ($gh)"
 }
 
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "https://fremde-seite.example" }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = "https://fremde-seite.example" }
 Write-Check (-not $r.Headers[$acao]) "CORS: fremde Origin wird NICHT freigegeben"
 
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "null" }
+# Origin "null": gesendet bei lokalen Dateien (file:///) und sandboxed iframes
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = "null" }
 if ($AllowNullOrigin) { Write-Check ($r.Headers[$acao] -eq "null") "CORS: Origin 'null' (lokale Datei) erlaubt" }
 else                  { Write-Check (-not $r.Headers[$acao])      "CORS: Origin 'null' (lokale Datei) wird NICHT freigegeben" }
 
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
 Write-Check ($r.Status -eq 204 -and $r.Headers[$acao] -eq $localOrigin) "CORS-Preflight (OPTIONS): Status $($r.Status)"
 
 # Private Network Access: Header nur bei entsprechender Preflight-Anfrage und erlaubter Origin
 $pna = "Access-Control-Allow-Private-Network"
 $pre = @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET"; "Access-Control-Request-Private-Network" = "true" }
-$r = Invoke-Probe "$baseUrl/daten.json" $pre "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" $pre "OPTIONS"
 Write-Check ($r.Headers[$pna] -eq "true") "PNA: Preflight mit Private-Network-Anfrage wird freigegeben"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
 Write-Check (-not $r.Headers[$pna]) "PNA: ohne Anfrage des Browsers wird der Header nicht gesendet"
 $pre["Origin"] = "https://fremde-seite.example"
-$r = Invoke-Probe "$baseUrl/daten.json" $pre "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" $pre "OPTIONS"
 Write-Check (-not $r.Headers[$pna]) "PNA: fremde Origin wird NICHT freigegeben"
 
-$r = Invoke-Probe "$baseUrl/daten.json" @{} "POST"
-Write-Check ($r.Status -eq 405) "POST ist gesperrt: Status $($r.Status)"
+# POST /send-command (Befehle fuer EEP)
+if (-not $ActivateCommands) {
+    $r = Invoke-Probe "$testBase/daten.json" @{} "POST"
+    Write-Check ($r.Status -eq 405) "POST ist gesperrt (ohne -ActivateCommands): Status $($r.Status)"
+} else {
+    $postUrl    = "$baseUrl/send-command"
+    $exFull     = Join-Path $exDir $ExchangeFile
+    $existed    = Test-Path $exFull
+    $dirExisted = Test-Path $exDir
+
+    $r = Invoke-Probe $postUrl @{ Origin = $localOrigin; "Access-Control-Request-Method" = "POST"; "Access-Control-Request-Private-Network" = "true" } "OPTIONS"
+    Write-Check ("$($r.Headers['Access-Control-Allow-Methods'])" -like "*POST*" -and $r.Headers["Access-Control-Allow-Private-Network"] -eq "true") "POST-Preflight (OPTIONS) wird freigegeben: Status $($r.Status)"
+    $r = Invoke-Post $postUrl "-- Selbsttest" @{ Origin = "https://fremde-seite.example" }
+    Write-Check ($r.Status -eq 403) "POST: fremde Origin wird abgelehnt: Status $($r.Status) $($r.Error)"
+    if (-not $AllowNullOrigin) {
+        $r = Invoke-Post $postUrl "-- Selbsttest" @{ Origin = "null" }
+        Write-Check ($r.Status -eq 403) "POST: Origin 'null' (lokale Datei) wird abgelehnt: Status $($r.Status) $($r.Error)"
+    }
+    if ($existed) {
+        Write-Warning "Die Kommando-Datei $exFull existiert bereits: Die Schreibtests werden uebersprungen, damit keine Befehle verloren gehen oder ausgeloest werden."
+    } else {
+        try {
+            $ansiText = "-- Selbsttest " + [char]0xE4 + [char]0xFC
+            $r = Invoke-Post $postUrl $ansiText @{ Origin = $localOrigin }
+            Write-Check ($r.Status -eq 200 -and $r.Headers[$acao] -eq $localOrigin) "POST: Origin localhost erlaubt: Status $($r.Status) $($r.Error)"
+            $bytes = if (Test-Path $exFull) { [IO.File]::ReadAllBytes($exFull) } else { @() }
+            Write-Check (($bytes -contains 0xE4) -and ($bytes -contains 0xFC) -and -not ($bytes -contains 0xC3)) "POST: Befehle werden als ANSI (Windows-1252) geschrieben"
+            $r = Invoke-Post $postUrl "-- Selbsttest curl"
+            Write-Check ($r.Status -eq 200) "POST: ohne Origin (wie curl) von diesem Rechner erlaubt: Status $($r.Status) $($r.Error)"
+            if ($AllowNullOrigin) {
+                $r = Invoke-Post $postUrl "-- Selbsttest" @{ Origin = "null" }
+                Write-Check ($r.Status -eq 200) "POST: Origin 'null' (lokale Datei) erlaubt: Status $($r.Status) $($r.Error)"
+            }
+        } finally {
+            if (Test-Path $exFull) { Remove-Item $exFull -Force -ErrorAction SilentlyContinue }
+            if (-not $dirExisted -and (Test-Path $exDir) -and -not (Get-ChildItem $exDir -Force)) { Remove-Item $exDir -Force -ErrorAction SilentlyContinue }
+        }
+    }
+}
 
 # Nur .json und .anl3
-$r = Invoke-Probe "$baseUrl/beispiel.anl3"
+$r = Invoke-Probe "$testBase/beispiel.anl3"
 Write-Check ($r.Status -eq 200) "beispiel.anl3 wird ausgeliefert: Status $($r.Status)"
 
-$testFile = Join-Path $SitePath "pruefung.txt"
+$testFile = Join-Path $exDir "pruefung.txt"
 'test' | Set-Content $testFile
-try { $r = Invoke-Probe "$baseUrl/pruefung.txt" } finally { Remove-Item $testFile -Force -ErrorAction SilentlyContinue }
-Write-Check ($r.Status -eq 404) "Andere Dateitypen (.txt) sind gesperrt: Status $($r.Status)"
+try { $r = Invoke-Probe "$testBase/pruefung.txt" } finally { Remove-Item $testFile -Force -ErrorAction SilentlyContinue }
+if ($ProxyGitHub) { Write-Check ($r.Status -ne 200) "Lokale .txt-Dateien werden nicht ausgeliefert (Proxy fragt nur GitHub): Status $($r.Status)" }
+else { Write-Check ($r.Status -eq 404) "Andere Dateitypen (.txt) sind gesperrt: Status $($r.Status)" }
 
-$r = Invoke-Probe "$baseUrl/"
-Write-Check ($r.Status -eq 404) "Verzeichnisauflistung ist gesperrt: Status $($r.Status)"
+if (-not $ProxyGitHub) {
+    $r = Invoke-Probe "$baseUrl/"
+    Write-Check ($r.Status -eq 404) "Verzeichnisauflistung ist gesperrt: Status $($r.Status)"
+} else {
+    $r = Invoke-Probe "$baseUrl/fehlt.json"
+    Write-Check ($r.Status -eq 404) "Proxy: .json ausserhalb von $ProxyPath wird nie weitergeleitet: Status $($r.Status)"
+    $r = Invoke-Probe "$baseUrl$ProxyPath$exUrl/daten.json"
+    Write-Check ($r.Status -eq 200) "Proxy: $ProxyPath/... liefert Daten zuerst aus SitePath: Status $($r.Status)"
+    if (Test-NetConnection $proxyHost -Port 443 -InformationLevel Quiet -WarningAction SilentlyContinue) {
+        $r = Invoke-Probe "$baseUrl/EEP_Gleisplan"
+        Write-Check ($r.Status -eq 200 -and "$($r.Headers['Content-Type'])" -like "text/html*") "Proxy: /EEP_Gleisplan kommt von https://$proxyHost$ProxyPath/EEP_Gleisplan.html: Status $($r.Status) $($r.Error)"
+        $r = Invoke-Probe "$baseUrl/EEP_Gleisplan" @{} "POST"
+        Write-Check ($r.Status -ne 200) "Proxy: POST wird nicht weitergeleitet: Status $($r.Status)"
+    } else {
+        Write-Warning "$proxyHost ist nicht erreichbar: Der Proxy-Abrufetest wurde uebersprungen."
+    }
+}
 
 # HTTP -> HTTPS (nur wenn ein HTTP-Port konfiguriert ist)
 if ($HttpPort -gt 0) {
-    $r = Invoke-Probe "http://localhost$httpSuffix/daten.json"
+    $r = Invoke-Probe "http://localhost$httpSuffix$exUrl/daten.json"
     Write-Check ($r.Status -eq 301 -and "$($r.Headers['Location'])" -like "https://*") "HTTP wird auf HTTPS umgeleitet: Status $($r.Status) $($r.Headers['Location']) $($r.Error)"
+    if ($ActivateCommands) {
+        $r = Invoke-Probe "http://localhost$httpSuffix/send-command" @{} "POST"
+        Write-Check ($r.Status -eq 301 -or $r.Status -eq 405) "POST auf dem HTTP-Port wird nicht angenommen (nur Umleitung): Status $($r.Status) $($r.Error)"
+    }
 }
 
 # WebSocket: Handshake, sofortige Datei, Push bei Aenderung, fremde Origin wird abgelehnt (Testclient mit Node.js)
-$wsFile = Join-Path $SitePath "wstest.json"
+$wsFile = Join-Path $exDir "wstest.json"
 $wsJs   = Join-Path $InstallPath "ws-selftest.js"
 $wsCode = @'
 'use strict';
 const https = require('https'), crypto = require('crypto'), fs = require('fs');
-const port = Number(process.argv[2]), origin = process.argv[3], file = process.argv[4];
+const port = Number(process.argv[2]), origin = process.argv[3], file = process.argv[4], urlPath = process.argv[5];
 const A = JSON.stringify({ n: 1 }), B = JSON.stringify({ n: 2 });
 const fail = m => { console.log(m); process.exit(1); };
 setTimeout(() => fail('Zeitueberschreitung'), 10000);
 function open(org, onUp, onRes) {
-  const req = https.request({ host: 'localhost', port: port, path: '/wstest.json', rejectUnauthorized: false,
+  const req = https.request({ host: 'localhost', port: port, path: urlPath, rejectUnauthorized: false,
     headers: { Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13',
                'Sec-WebSocket-Key': crypto.randomBytes(16).toString('base64'), Origin: org } });
   req.on('upgrade', onUp); req.on('response', onRes); req.on('error', e => fail(e.message)); req.end();
@@ -1016,7 +1426,7 @@ function other() {
 }
 '@
 Write-Utf8NoBom $wsJs $wsCode
-try { $r = Invoke-Native $node.Path @($wsJs, "$HttpsPort", $localOrigin, $wsFile) }
+try { $r = Invoke-Native $node.Path @($wsJs, "$HttpsPort", $localOrigin, $wsFile, "$exUrl/wstest.json") }
 finally { Remove-Item $wsJs, $wsFile -Force -ErrorAction SilentlyContinue }
 Write-Check ($r.ExitCode -eq 0 -and $r.Output -match 'OK') "WebSocket: Datei beim Verbinden, Push bei Aenderung, fremde Origin abgelehnt $(if ($r.ExitCode -ne 0) { $r.Output })"
 
@@ -1035,5 +1445,18 @@ Write-Host "Server starten (Strg+C beendet ihn):"
 Write-Host "  & `"$($node.Path)`" `"$serverJs`"" -ForegroundColor Yellow
 Write-Host "oder (npm gehoert zu Node.js):"
 Write-Host "  npm start --prefix `"$InstallPath`"" -ForegroundColor Yellow
-Write-Host "Danach erreichbar unter: $baseUrl/daten.json   (WebSocket mit wss statt https)"
+if ($ActivateCommands) {
+    Write-Host "Befehle fuer EEP sind aktiv (POST $baseUrl/send-command -> $(Join-Path (Join-Path $SitePath $ExchangePath) $ExchangeFile))." -ForegroundColor Green
+    Write-Host "  Test von diesem Rechner: curl.exe --data-binary `"Befehl`" $baseUrl/send-command"
+} else {
+    Write-Host "Befehle (POST) sind nicht aktiviert: -ActivateCommands bei der Installation oder --activateCommands beim Serverstart."
+}
+if ($ProxyGitHub) {
+    Write-Host "Proxy aktiv: Bridge und Gleisplan kommen von https://$proxyHost$ProxyPath/ und werden hier ausgeliefert, z.B.:" -ForegroundColor Green
+    Write-Host "  $baseUrl/EEP_Export_Bridge?url=/eep_export.json"
+    Write-Host "  $baseUrl/EEP_Gleisplan?url=/MeineAnlage.anl3"
+}
+Write-Host "Danach erreichbar unter: $testBase/daten.json   (WebSocket mit wss statt https)"
 Write-Host "Log: $logFile    Deinstallation: .\Install-node-web-server.ps1 -Uninstall"
+Write-Host "Zertifikat: $certCN, Ablage in $certDir"
+if (-not $PfxPath) { Write-Host "Zum Import auf anderen Geraeten: $cerPath" }

@@ -6,10 +6,10 @@ Lua-Modul in EEP, das sie regelmäßig als JSON-Datei ausgibt.
 
 | Baustein | Aufgabe |
 | --- | --- |
-| **[`EepExport.lua`](Lua/EepExport.lua "EepExport.lua")** (in EEP) | schreibt den aktuellen Anlagenzustand in die Datei `eep_export.json` |
+| **[`EepExport.lua`](Lua/EepExport.lua "EepExport.lua")** (in EEP) | schreibt den aktuellen Anlagenzustand in die Datei `exchange\eep_export.json` |
 | **[`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html")** | liest die JSON-Datei, zeigt Züge, Signale, Weichen und Rollmaterial als Tabellen und leitet die Daten an den Gleisplan weiter |
 | **[`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html")** | zeigt den Gleisplan einer Anlage (`.anl3`) und zeichnet die Live-Daten der Bridge hinein |
-| **Webserver** (optional, siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer")) | liefert `eep_export.json` und die `.anl3`-Datei über das Netzwerk aus, wenn EEP und Browser nicht auf demselben Rechner laufen (Python/Node.js auch per WebSocket) |
+| **Webserver** (optional, siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer")) | liefert `exchange\eep_export.json` und die `.anl3`-Datei über das Netzwerk aus, wenn EEP und Browser nicht auf demselben Rechner laufen (Python/Node.js auch per WebSocket) |
 
 ```
 EEP (EepExport.lua) ──► Datei eep_export.json ──► EEP_Export_Bridge.html ──► EEP_Gleisplan.html
@@ -84,7 +84,7 @@ automatisch Folgendes:
    end
    ```
 
-3. **Anlage starten.** Nach dem Start entsteht die Datei `eep_export.json` und wird alle 5 EEP-Sekunden
+3. **Anlage starten.** Nach dem Start entsteht die Datei `exchange\eep_export.json` und wird alle 5 EEP-Sekunden
    aktualisiert. Sie liegt im Anlagenordner (neben der `.anl3`-Datei), sofern EEP ihn ermitteln kann
    (ab EEP 18.1 Plugin 1). Sonst wird der Ordner des zuletzt gespeicherten Anlagenpfads verwendet
    (bekannt, sobald die Anlage einmal gespeichert wurde) und zuletzt das Arbeitsverzeichnis, das ist der Installationsordner von EEP.
@@ -106,7 +106,7 @@ local EepExport = require("EepExport")
 
 -- Optional: Konfiguration (nur die Einträge entkommentieren und angeben, die du ändern willst)
 EepExport.configure({
-  --outputFile       = nil,    -- vollständiger Pfad der Ausgabedatei, Standard: <Anlagenordner>\eep_export.json
+  --outputFile       = nil,    -- vollständiger Pfad der Ausgabedatei, Standard: <Anlagenordner>\exchange\eep_export.json
   --interval         = 5,      -- Export-Intervall in EEP-Sekunden (-1 = nur manuell per EepExport.export(), 0 = bei jedem Aufruf), Standard: 5
   --pretty           = false,  -- true = eingerückte, lesbare JSON-Ausgabe, Standard: false
   --global           = true,   -- Zeit, Jahreszeit, Wetter, Kamera exportieren, Standard: true
@@ -158,7 +158,7 @@ end
 
 | Einstellung | Bedeutung | Standard |
 | --- | --- | --- |
-| `outputFile` | vollständiger Pfad der Ausgabedatei | `<Anlagenordner>\eep_export.json` (siehe unten) |
+| `outputFile` | vollständiger Pfad der Ausgabedatei | `<Anlagenordner>\exchange\eep_export.json` (siehe unten) |
 | `interval` | Export-Intervall in EEP-Sekunden; `-1` = nur manueller Export, `0` = bei jedem Aufruf von `run()` (5-mal pro Sekunde). Bei kleinen Anlagen und einem Server mit WebSocket (Python, Node.js) ist `0` wegen der effizienten Übertragung möglich; beim IIS (nur regelmäßige Abfrage) reicht ein größerer Wert | `5` |
 | `pretty` | `true` = eingerückte, lesbare JSON-Ausgabe (größere Datei) | `false` |
 | `global` | Zeit, Jahreszeit, Wetter und Kamera exportieren | `true` |
@@ -284,14 +284,14 @@ Es gibt zwei Wege, die JSON-Datei zu lesen:
 | Ändert sich die Datei? | wird alle *n* Sekunden neu gelesen | wird alle *n* Sekunden neu abgefragt; bei Servern mit WebSocket (Python, Node.js) kommt jede Änderung sofort |
 | Geeignet für | **ein Rechner**, EEP und Browser zusammen | auch **andere Geräte** im Heimnetz (Tablet, zweiter Rechner) und Seiten aus dem Web |
 
-> **EEP und Bridge auf verschiedenen Rechnern?** Dann kann der Browser die Datei `eep_export.json` nicht direkt
+> **EEP und Bridge auf verschiedenen Rechnern?** Dann kann der Browser die Datei `exchange\eep_export.json` nicht direkt
 > lesen, und der Gleisplan kann die `.anl3`-Datei nicht per Dateiauswahl laden. Richte auf dem EEP-Rechner einen
 > Webserver ein, der beide Dateien ausliefert (Abschnitt 2.2 und [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer")).
 
 ### 2.1 Dateizugriff auf die JSON-Datei
 
 1. Öffne `EEP_Export_Bridge.html` im Browser.
-2. Klicke auf **Datei live verfolgen** und wähle die Datei `eep_export.json` aus.
+2. Klicke auf **Datei live verfolgen** und wähle die Datei `exchange\eep_export.json` aus.
 3. Stelle bei **alle … s** das Abfrageintervall ein (Standard: 2 Sekunden).
 
 Die Bridge liest die Datei nun in diesem Takt neu. Der Browser fragt nur einmal nach der Erlaubnis.
@@ -327,7 +327,7 @@ Danach öffnest du auf dem zweiten Rechner (nachdem du dort das Zertifikat `EEP 
 siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 3.6):
 
 ```
-https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html?url=https://192.168.0.115:3001/eep_export.json
+https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html?url=https://192.168.0.115:3001/exchange/eep_export.json
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html?url=https://192.168.0.115:3001/MeineAnlage.anl3
 ```
 
@@ -361,7 +361,7 @@ npx http-server -p 8000 -c-1 -a 127.0.0.1 --cors
 ```
 
 Anschließend `http://localhost:8000/EEP_Export_Bridge.html` öffnen, im Feld **URL** den Pfad der
-JSON-Datei relativ zum Serverordner eintragen (z. B. `eep_export.json`) und **URL abfragen** klicken.
+JSON-Datei relativ zum Serverordner eintragen (z. B. `exchange/eep_export.json`) und **URL abfragen** klicken.
 Beenden mit `Strg+C`. `--bind 127.0.0.1` bzw. `-a 127.0.0.1` sorgt dafür, dass nur dein eigener Rechner den Server erreicht.
 Diese einfachen Server liefern **alle** Dateien des Ordners aus. Gib sie nie ins Internet frei und verwende sie
 nicht für den Zugriff aus dem Netzwerk. Dafür sind die Skripte aus [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer") gedacht.
@@ -371,14 +371,14 @@ nicht für den Zugriff aus dem Netzwerk. Dafür sind die Skripte aus [`README_We
 Die Bridge kann die Abfrage direkt beim Öffnen starten. Hänge dazu den Parameter `url` an die Adresse an:
 
 ```
-http://localhost:8000/EEP_Export_Bridge.html?url=eep_export.json
+http://localhost:8000/EEP_Export_Bridge.html?url=exchange/eep_export.json
 ```
 
 Die URL wird dann in das Feld **URL** eingetragen und die Abfrage startet sofort, als hättest du
 **URL abfragen** geklickt. Der Parameter hat Vorrang vor **Zuletzt: …**. Das Abfrageintervall stammt
 aus dem Feld **alle … s** (zuletzt gespeicherter Wert, sonst 2 Sekunden). Enthält die URL selbst
 Sonderzeichen wie `&`, `?` oder `#` (z. B. bei einer vollständigen Adresse mit Parametern), kodiere sie
-in der Adresszeile, etwa `?url=http%3A%2F%2F192.168.0.20%3A8000%2Feep_export.json`.
+in der Adresszeile, etwa `?url=http%3A%2F%2F192.168.0.20%3A8000%2Fexchangee%2Fep_export.json`.
 So lässt sich die Bridge als Lesezeichen mit fester Quelle ablegen.
 
 #### WebSocket statt Abfrage
@@ -619,13 +619,13 @@ Positionen (`x`, `y`, `z`) sind Meter im Koordinatensystem der Anlage.
 
 | Beobachtung | Mögliche Ursache und Abhilfe |
 | --- | --- |
-| Es entsteht keine `eep_export.json` | Prüfe das EEP-Ereignisfenster. Dort meldet `run()` Fehler wie „Datei nicht schreibbar", mit `debug = true` zusätzlich Details. Die letzte Meldung steht auch in `EepExport.lastError`. Die Datei liegt im Anlagenordner (ab EEP 18.1 Plugin 1), sonst im Installationsordner von EEP. Bei älteren EEP-Versionen oder wenn der Pfad nicht beschreibbar ist, `outputFile` setzen. Während die Anlage gespeichert wird, ist der Export pausiert. |
+| Es entsteht keine `exchange\eep_export.json` | Prüfe das EEP-Ereignisfenster. Dort meldet `run()` Fehler wie „Datei nicht schreibbar", mit `debug = true` zusätzlich Details. Die letzte Meldung steht auch in `EepExport.lastError`. Die Datei liegt im Anlagenordner (ab EEP 18.1 Plugin 1), sonst im Installationsordner von EEP. Bei älteren EEP-Versionen oder wenn der Pfad nicht beschreibbar ist, `outputFile` setzen. Während die Anlage gespeichert wird, ist der Export pausiert. |
 | Züge fehlen in der Datei | Züge werden über Signale und Depots oder die Anlagendatei erkannt. Prüfe, ob die Signale gefunden wurden (`discoverMax`) und ob deine Depots im Bereich `1..discoverDepotMax` liegen, sonst `addTrainyards()` verwenden. Ist `installCallbacks = false`, rufe `installCallbacks()` am Ende des Skripts auf. Alternativ mit `addTrains()` anmelden oder `anlFile` setzen, dann werden die Züge über die Fahrzeuge der Anlagendatei gefunden. |
 | Meldung „anl3-Datei …: Datei nicht lesbar“ | Der Pfad in `anlFile` stimmt nicht oder die Datei ist nicht lesbar. Vollständigen Pfad inklusive Dateiname prüfen. Der Export läuft trotzdem weiter, nur die Fahrzeuge aus der Datei fehlen. |
 | Statuszeile zeigt „keine Daten" | Quelle noch nicht gewählt. Datei verbinden, URL abfragen oder die Bridge mit `?url=…` aufrufen. |
 | „Ungültiges JSON" | Die Datei wird gerade geschrieben oder ist beschädigt. Beim nächsten Intervall erneut versuchen. |
 | „Kein EEP-Export (global/trains fehlen)" | Falsche Datei gewählt. |
-| „HTTP 404" bei URL | Pfad falsch oder Server im falschen Ordner gestartet. Beim HTTPS-Webserver aus [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html): Liegt `eep_export.json` im `-SitePath`? |
+| „HTTP 404" bei URL | Pfad falsch oder Server im falschen Ordner gestartet. Beim HTTPS-Webserver aus [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html): Liegt `exchange\eep_export.json` im `-SitePath`? |
 | „Fehler: Failed to fetch" bei URL | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat auf diesem Gerät nicht vertraut, Origin der Bridge vom Server nicht erlaubt (CORS) oder die Bridge kommt per HTTPS aus dem Web und die URL ist nur HTTP. Siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 4. |
 | Statuszeile zeigt dauernd „HTTP“ statt „WebSocket“ | Der Server unterstützt keinen WebSocket (IIS, einfacher lokaler Server, älteres Skript), die URL ist keine `http(s)`-Adresse, oder der Server lehnt die Origin ab (Log: `403 Forbidden`, siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 4). Die Daten kommen trotzdem per Abfrage. |
 | „Live-Lesen von Dateien braucht Chrome/Edge" | Anderen Browser verwenden oder URL-Zugriff nutzen. |

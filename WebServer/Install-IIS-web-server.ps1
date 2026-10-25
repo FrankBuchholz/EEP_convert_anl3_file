@@ -1,13 +1,13 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    File version: 2026-10-11
+    File version: 2026-10-22
 		Installiert und konfiguriert den IIS unter Windows 11:
     - liefert nur .json und .anl3 Dateien aus
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
     - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
     - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
-    - HTTPS (Zertifikat, Bindung, HSTS, TLS-Haertung); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
+    - HTTPS (Zertifikat mit sprechendem Namen, Bindung, HSTS, TLS-Haertung); HTTP-Port mit Umleitung auf HTTPS nur bei -HttpPort > 0
     - Vorpruefungen (Ports, Parameter, Internet) VOR jeder Aenderung
     - Abschlusstests (Dienst, Bindung, CORS, Dateityp-Sperre, Umleitung)
     Fremde Websites werden nie veraendert oder gestoppt. Existiert bereits eine
@@ -91,6 +91,59 @@ $script:failed = 0
 function Write-Check([bool]$Ok, [string]$Text) {
     if ($Ok) { Write-Host "   [OK]      $Text" -ForegroundColor Green }
     else     { Write-Host "   [FEHLER]  $Text" -ForegroundColor Red; $script:failed++ }
+}
+
+# Sprechender Name des Zertifikats (CN) statt "localhost", z.B. "EEP Export Node.js (MEIN-PC)". Der CN ist auf 64 Zeichen begrenzt.
+function Get-CertCommonName([string]$Variant) {
+    $n = ("$SiteName $Variant ($env:COMPUTERNAME)") -replace '[,+=;"<>\\#]', '_'
+    if ($n.Length -gt 64) { $n = $n.Substring(0, 64) }
+    return $n
+}
+
+# Name (CN) eines vorhandenen Zertifikats
+function Get-CertCN($Cert) {
+    return $Cert.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+}
+
+# Zeigt die wichtigsten Daten eines Zertifikats an (neu erzeugt oder wiederverwendet)
+function Show-CertInfo($Cert, [string]$Title) {
+    $days = [int][math]::Floor(($Cert.NotAfter - (Get-Date)).TotalDays)
+    $key  = "$($Cert.PublicKey.Oid.FriendlyName)"
+    try { $key += " " + $Cert.PublicKey.Key.KeySize + " Bit" } catch { }
+    $ext  = $Cert.Extensions | Where-Object { $_.Oid.Value -eq "2.5.29.17" } | Select-Object -First 1
+    $san  = @()
+    if ($ext) { $san = @($ext.Format($true) -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
+    $trusted = Test-Path "Cert:\LocalMachine\Root\$($Cert.Thumbprint)"
+    $row = { param($k, $v) Write-Host ("      {0,-20}{1}" -f ($k + ":"), $v) }
+    Write-Host "   $Title" -ForegroundColor Cyan
+    & $row "Name (CN)" (Get-CertCN $Cert)
+    if ($Cert.FriendlyName) { & $row "Anzeigename" $Cert.FriendlyName }
+    $typ = if ($Cert.Subject -eq $Cert.Issuer) { "selbstsigniert" } else { "ausgestellt von " + $Cert.Issuer }
+    & $row "Typ" $typ
+    & $row "Gueltig ab" $Cert.NotBefore.ToString("yyyy-MM-dd HH:mm")
+    & $row "Gueltig bis" ("{0} (noch {1} Tage)" -f $Cert.NotAfter.ToString("yyyy-MM-dd HH:mm"), $days)
+    if ($san.Count -gt 0) {
+        & $row "Gueltig fuer" $san[0]
+        foreach ($s in ($san | Select-Object -Skip 1)) { & $row " " $s }
+    }
+    & $row "Schluessel" $key
+    & $row "Signatur" $Cert.SignatureAlgorithm.FriendlyName
+    & $row "Seriennummer" $Cert.SerialNumber
+    & $row "Fingerabdruck" $Cert.Thumbprint
+    $tr = if ($trusted) { "ja (Stammzertifizierungsstellen dieses PCs)" } else { "nein (auf diesem PC nicht als Stammzertifikat eingetragen)" }
+    & $row "Vertrauenswuerdig" $tr
+    if ($days -lt 0)      { Write-Host "      ACHTUNG: Das Zertifikat ist abgelaufen." -ForegroundColor Red }
+    elseif ($days -lt 30) { Write-Host "      Hinweis: Das Zertifikat laeuft in weniger als 30 Tagen ab." -ForegroundColor Yellow }
+}
+
+# Prueft, ob das Zertifikat alle Namen und IP-Adressen abdeckt
+function Test-CertCovers($Cert, [string[]]$Dns, [string[]]$Ips) {
+    $ext = $Cert.Extensions | Where-Object { $_.Oid.Value -eq "2.5.29.17" } | Select-Object -First 1
+    if (-not $ext) { return $false }
+    $san = $ext.Format($false)
+    foreach ($d in $Dns) { if ($san -notmatch ("(?<![\w.-])" + [regex]::Escape($d) + "(?![\w.-])")) { return $false } }
+    foreach ($i in $Ips) { if ($san -notmatch ("(?<![\d.])" + [regex]::Escape($i) + "(?![\d.])")) { return $false } }
+    return $true
 }
 
 # Liefert Status und Header, auch bei 3xx/4xx; folgt keiner Umleitung
@@ -253,28 +306,36 @@ foreach ($o in $outbound) {
 
 # ---------------------------------------------------------------- 3. Zertifikat
 Write-Host "3/7 Zertifikat ..." -ForegroundColor Cyan
-$certName = "IIS $SiteName"
+$certName   = "IIS $SiteName"
+$certCN     = Get-CertCommonName "IIS"   # sprechender Name (CN) des selbst erzeugten Zertifikats
+$certReused = $false
+$cerPath    = $null
 if ($PfxPath) {
     $cert = Import-PfxCertificate -FilePath $PfxPath -CertStoreLocation Cert:\LocalMachine\My -Password $PfxPassword |
             Where-Object { $_.HasPrivateKey } | Select-Object -First 1
     if (-not $cert) { throw "Die PFX-Datei enthaelt kein Zertifikat mit privatem Schluessel." }
     if ($cert.NotAfter -lt (Get-Date)) { throw "Das Zertifikat aus der PFX-Datei ist abgelaufen ($($cert.NotAfter))." }
 } else {
+    $lanIps   = @(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "169.254.*" } | Select-Object -ExpandProperty IPAddress)
+    $dnsNames = @("localhost", $env:COMPUTERNAME)
+    # Vorhandenes selbstsigniertes Zertifikat weiterverwenden, solange es gueltig ist, den sprechenden Namen traegt und alle Namen/IPs abdeckt
     $cert = Get-ChildItem Cert:\LocalMachine\My |
-            Where-Object { $_.FriendlyName -eq $certName -and $_.NotAfter -gt (Get-Date).AddDays(30) } |
+            Where-Object { $_.FriendlyName -eq $certName -and $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date).AddDays(30) -and
+                           $_.Subject -eq $_.Issuer -and (Get-CertCN $_) -eq $certCN -and (Test-CertCovers $_ $dnsNames $lanIps) } |
             Sort-Object NotAfter -Descending | Select-Object -First 1
+    $certReused = [bool]$cert
     if (-not $cert) {
         $ips = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "169.254.*" } |
                Select-Object -ExpandProperty IPAddress
         $san = @("DNS=localhost", "DNS=$env:COMPUTERNAME") + ($ips | ForEach-Object { "IPAddress=$_" })
-        $cert = New-SelfSignedCertificate -Subject "CN=localhost" -FriendlyName $certName `
+        $cert = New-SelfSignedCertificate -Subject "CN=$certCN" -FriendlyName $certName `
             -CertStoreLocation Cert:\LocalMachine\My -KeyAlgorithm RSA -KeyLength 2048 `
             -HashAlgorithm SHA256 -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(2) `
             -TextExtension @("2.5.29.17={text}" + ($san -join "&"))
     }
     # Auf diesem PC als vertrauenswuerdig eintragen und .cer fuer andere Geraete exportieren
     $baseDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
-    $cerPath = Join-Path $baseDir "$SiteName.cer"
+    $cerPath = Join-Path $baseDir "$certCN.cer" # "$SiteName.cer"
     Export-Certificate -Cert $cert -FilePath $cerPath | Out-Null
     if (-not (Test-Path "Cert:\LocalMachine\Root\$($cert.Thumbprint)")) {
         Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
@@ -282,11 +343,29 @@ if ($PfxPath) {
     Write-Host "   Zertifikat exportiert: $cerPath (auf Geraeten im LAN importieren)"
 }
 
+$certTitle = if ($PfxPath) { "Zertifikat: eigenes Zertifikat (PFX) importiert" }
+             elseif ($certReused) { "Zertifikat: vorhandenes Zertifikat wird weiterverwendet" }
+             else { "Zertifikat: neu erzeugt (selbstsigniert)" }
+Show-CertInfo $cert $certTitle
+Write-Host "   Ablage:" -ForegroundColor Cyan
+Write-Host "      Zertifikat + Schluessel: Windows-Zertifikatsspeicher 'Lokaler Computer' > Eigene Zertifikate"
+Write-Host "                               (Cert:\LocalMachine\My, Programm certlm.msc), Name '$certCN'"
+if ($cerPath) {
+    Write-Host "      Kopie fuer andere Geraete: $cerPath"
+    Write-Host "      Vertrauensspeicher dieses PCs: Lokaler Computer > Vertrauenswuerdige Stammzertifizierungsstellen"
+}
+
 # ---------------------------------------------------------------- 4. Inhalt + web.config
 Write-Host "4/7 Webseite und web.config ..." -ForegroundColor Cyan
+$ExchangePath = "exchange"   # fester Unterordner fuer Test- und Beispieldaten
+# Test- und Beispieldaten liegen in <SitePath>\<ExchangePath> (gleicher Ordner wie die Kommando-Datei)
+$exDir = Join-Path $SitePath $ExchangePath
+$exUrl = (($ExchangePath -split '\\' | Where-Object { $_ } | ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/')
+$exUrl = if ($exUrl) { "/$exUrl" } else { "" }
 New-Item -ItemType Directory -Path $SitePath -Force | Out-Null
-if (-not (Test-Path "$SitePath\daten.json"))   { '{ "status": "ok" }' | Set-Content "$SitePath\daten.json" -Encoding UTF8 }
-if (-not (Test-Path "$SitePath\beispiel.anl3")) { 'Beispiel' | Set-Content "$SitePath\beispiel.anl3" -Encoding UTF8 }
+New-Item -ItemType Directory -Path $exDir -Force | Out-Null   # Test- und Beispieldaten nur im Unterordner
+if (-not (Test-Path "$exDir\daten.json"))    { '{ "status": "ok" }' | Set-Content "$exDir\daten.json" -Encoding UTF8 }
+if (-not (Test-Path "$exDir\beispiel.anl3")) { 'Beispiel' | Set-Content "$exDir\beispiel.anl3" -Encoding UTF8 }
 
 # Erlaubte Origins: localhost, private Netze (10.x, 172.16-31.x, 192.168.x), *.local, PC-Name, GitHub
 $ghAlt      = ($GitHubOrigins | ForEach-Object { [regex]::Escape($_.TrimEnd("/")) }) -join "|"
@@ -399,6 +478,16 @@ $sslKey = "IIS:\SslBindings\0.0.0.0!$HttpsPort"
 if (Test-Path $sslKey) { Remove-Item $sslKey -Force }
 (Get-WebBinding -Name $SiteName -Protocol https).AddSslCertificate($cert.Thumbprint, "My")
 
+# Fruehere, vom Skript erzeugte Zertifikate mit anderem Namen (z.B. "localhost") entfernen, sofern keine Bindung sie noch nutzt
+if (-not $PfxPath) {
+    $inUse = @(Get-ChildItem IIS:\SslBindings | ForEach-Object { $_.Thumbprint })
+    foreach ($old in @(Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.FriendlyName -eq $certName -and $_.Thumbprint -ne $cert.Thumbprint -and $inUse -notcontains $_.Thumbprint })) {
+        Remove-Item "Cert:\LocalMachine\Root\$($old.Thumbprint)" -Force -ErrorAction SilentlyContinue
+        Remove-Item "Cert:\LocalMachine\My\$($old.Thumbprint)" -Force -ErrorAction SilentlyContinue
+        Write-Host "   Frueheres Zertifikat '$(Get-CertCN $old)' ($($old.Thumbprint.Substring(0,8))...) entfernt."
+    }
+}
+
 # ---------------------------------------------------------------- 6. TLS-Haertung + Firewall
 Write-Host "6/7 TLS und Firewall ..." -ForegroundColor Cyan
 if (-not $SkipTlsHardening) {
@@ -429,6 +518,7 @@ if ((Get-WebsiteState -Name $SiteName).Value -ne "Started") {
 
 $httpSuffix = if ($HttpPort -eq 80) { "" } else { ":$HttpPort" }
 $baseUrl    = "https://localhost$portSuffix"
+$testBase    = "$baseUrl$exUrl"   # Test- und Beispieldaten liegen im Unterordner
 $acao       = "Access-Control-Allow-Origin"
 
 # Dienst, Website, Bindung, Ports
@@ -442,48 +532,48 @@ foreach ($port in @($HttpPort, $HttpsPort | Where-Object { $_ -gt 0 })) {
 
 # Inhalt ueber HTTPS + CORS
 $localOrigin = "http://localhost:3000"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $localOrigin }
 Write-Check ($r.Status -eq 200) "HTTPS daten.json: Status $($r.Status) $($r.Error)"
 Write-Check ("$($r.Headers['Cache-Control'])" -like "*no-cache*") "Cache-Control: no-cache (Exportdatei wird laufend aktualisiert)"
 Write-Check ($r.Headers[$acao] -eq $localOrigin) "CORS: localhost erlaubt"
 
 $lanOrigin = "https://192.168.1.50"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $lanOrigin }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $lanOrigin }
 Write-Check ($r.Headers[$acao] -eq $lanOrigin) "CORS: lokales Netzwerk erlaubt ($lanOrigin)"
 
 foreach ($g in $GitHubOrigins) {
     $gh = $g.TrimEnd("/")
     if ($gh -match "USERNAME") { continue }
-    $r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $gh }
+    $r = Invoke-Probe "$testBase/daten.json" @{ Origin = $gh }
     Write-Check ($r.Headers[$acao] -eq $gh) "CORS: GitHub-Origin erlaubt ($gh)"
 }
 
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "https://fremde-seite.example" }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = "https://fremde-seite.example" }
 Write-Check (-not $r.Headers[$acao]) "CORS: fremde Origin wird NICHT freigegeben"
 
 # Origin "null": gesendet bei lokalen Dateien (file:///) und sandboxed iframes
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = "null" }
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = "null" }
 if ($AllowNullOrigin) { Write-Check ($r.Headers[$acao] -eq "null") "CORS: Origin 'null' (lokale Datei) erlaubt" }
 else                  { Write-Check (-not $r.Headers[$acao]) "CORS: Origin 'null' (lokale Datei) wird NICHT freigegeben" }
 
 # Private Network Access: Header nur bei entsprechender Preflight-Anfrage und erlaubter Origin
 $pna = "Access-Control-Allow-Private-Network"
 $pre = @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET"; "Access-Control-Request-Private-Network" = "true" }
-$r = Invoke-Probe "$baseUrl/daten.json" $pre "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" $pre "OPTIONS"
 Write-Check ($r.Headers[$pna] -eq "true") "PNA: Preflight mit Private-Network-Anfrage wird freigegeben"
-$r = Invoke-Probe "$baseUrl/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" @{ Origin = $localOrigin; "Access-Control-Request-Method" = "GET" } "OPTIONS"
 Write-Check (-not $r.Headers[$pna]) "PNA: ohne Anfrage des Browsers wird der Header nicht gesendet"
 $pre["Origin"] = "https://fremde-seite.example"
-$r = Invoke-Probe "$baseUrl/daten.json" $pre "OPTIONS"
+$r = Invoke-Probe "$testBase/daten.json" $pre "OPTIONS"
 Write-Check (-not $r.Headers[$pna]) "PNA: fremde Origin wird NICHT freigegeben"
 
 # Nur .json und .anl3
-$r = Invoke-Probe "$baseUrl/beispiel.anl3"
+$r = Invoke-Probe "$testBase/beispiel.anl3"
 Write-Check ($r.Status -eq 200) "beispiel.anl3 wird ausgeliefert: Status $($r.Status)"
 
-$testFile = Join-Path $SitePath "pruefung.txt"
+$testFile = Join-Path $exDir "pruefung.txt"
 'test' | Set-Content $testFile
-try { $r = Invoke-Probe "$baseUrl/pruefung.txt" } finally { Remove-Item $testFile -Force -ErrorAction SilentlyContinue }
+try { $r = Invoke-Probe "$testBase/pruefung.txt" } finally { Remove-Item $testFile -Force -ErrorAction SilentlyContinue }
 Write-Check ($r.Status -eq 404) "Andere Dateitypen (.txt) sind gesperrt: Status $($r.Status)"
 
 $r = Invoke-Probe "$baseUrl/web.config"
@@ -491,7 +581,7 @@ Write-Check ($r.Status -eq 404) "web.config ist nicht abrufbar: Status $($r.Stat
 
 # HTTP -> HTTPS (nur wenn ein HTTP-Port konfiguriert ist)
 if ($HttpPort -gt 0) {
-    $r = Invoke-Probe "http://localhost$httpSuffix/daten.json"
+    $r = Invoke-Probe "http://localhost$httpSuffix$exUrl/daten.json"
     Write-Check ($r.Status -eq 301 -and "$($r.Headers['Location'])" -like "https://*") "HTTP wird auf HTTPS umgeleitet: Status $($r.Status) $($r.Headers['Location']) $($r.Error)"
 }
 
@@ -500,7 +590,9 @@ if ($script:failed -gt 0) {
     exit 1
 }
 
-Write-Host "`nFertig: $baseUrl/daten.json" -ForegroundColor Green
+Write-Host "`nFertig: $testBase/daten.json" -ForegroundColor Green
+Write-Host "Zertifikat: $certCN (Zertifikatsspeicher Lokaler Computer > Eigene Zertifikate)"
+if ($cerPath) { Write-Host "Zum Import auf anderen Geraeten: $cerPath" }
 if ($restartNeeded -or -not $SkipTlsHardening) {
     Write-Warning "Neustart empfohlen (IIS-Features bzw. TLS-Einstellungen werden erst danach vollstaendig wirksam)."
 }

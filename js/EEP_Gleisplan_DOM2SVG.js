@@ -134,9 +134,9 @@ function createSVGforGleissystem(Gleissystem, SVGfragment) {
 		const Key_Id	= Gleis.getAttribute("Key_Id"); 	// Id einer Weiche
 		const GleisData	= Gleis.getAttribute("data"); 		// Bitfeld einer Weiche
 															// 1: Oberleitung
-															// 18: DKW (Weichen und zentrale Gleise)
-															// 16: Zentrale Strecken einer Straßen-T-Kreuzung
-															// 20: Weichen einer Straßen-T-Kreuzung
+															// 16, 17: Zentrale Strecken einer Straßen-T-Kreuzung
+															// 18, 19: DKW (Weichen und zentrale Gleise)
+															// 20, 21: Weichen einer Straßen-T-Kreuzung
 
 		const { near, far, Laenge } = getGleisInterval(Gleis); // Charakteristik.Laenge bzw. Interval.far - Interval.near
 
@@ -2148,6 +2148,15 @@ function createSVGforKameras(SVGfragment, sutrackp) {
 		Hinter dem Zielobjekt:		11.96	DOFShiftFar
 		Objektentfernung:			100.0	DOFSubDist
 */
+	// Sichtwinkel der Kamera in Bogenmaß
+	function cameraFov(Kamera) {
+		const FOV_DEFAULT    = 45 * Math.PI / 180;   // EEP: FOV = 0 bedeutet Standard 45°
+		const FOV_MAX        = 140 * Math.PI / 180;  // EEP begrenzt auf 140°
+
+		const fov = +Kamera.getAttribute("FOV");
+		return (fov > 0 ? Math.min(fov, FOV_MAX) : FOV_DEFAULT);
+	}
+
 	let svgKamerasGroup;
 	const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
 	const Kameras = Kamerasammlung.getElementsByTagName("Kammera");
@@ -2185,6 +2194,7 @@ function createSVGforKameras(SVGfragment, sutrackp) {
 		<Kammera name="Anlage" DOF="0" Dynamic="0" FocalIdx="193" FStopIdx="13" SubDist="100" DOFSubDist="100" DOFShiftNear="9.65" DOFShiftFar="11.96" FOV="0.6981317" TakeSwitch="0">
 		*/
 		Kamera.Dynamic 	= Kamera.getAttribute("Dynamic");
+		Kamera.fov = cameraFov(Kamera);   // Bogenmaß, 0 -> 45°, max. 140°
 
 		let mMatrix;
 		let PosX, PosY, PosZ, DirX, DirY, DirZ, NorX, NorY, NorZ, BinX, BinY, BinZ;
@@ -2207,6 +2217,7 @@ function createSVGforKameras(SVGfragment, sutrackp) {
 		DirX /= norm;
 		DirY /= norm;
 		DirZ /= norm;
+		Kamera.dirLength = norm / 100;   // Länge des Roh-Dir-Vektors in m (nur aussagekräftig, wenn deutlich > 0,1 m)
 
 		NorX = +FrameNor.getAttribute("x");
 		NorY = +FrameNor.getAttribute("y");
@@ -2228,12 +2239,9 @@ function createSVGforKameras(SVGfragment, sutrackp) {
 	}
 }
 
+// Darstellung der Kameras
 function createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera) {
-
-	const Laenge = 40; // arbitrary length
-
 	if (!svgKamerasGroup) { // First Kamera
-		// Create svg group node
 		svgKamerasGroup = svgAppend(SVGfragment, {
 			svg_tag	: `g`,
 			id		: `Kamera`,
@@ -2241,48 +2249,68 @@ function createSVGforCamera(SVGfragment, svgKamerasGroup, Kamera) {
 		});
 	}
 
+	const isDynamic = Kamera.Dynamic == 1;
+	const px = Kamera.mPos[12], py = -Kamera.mPos[13], pz = Kamera.mPos[14];   // svg: mirrored y-coordinate
+	const yaw = Math.atan2(-Kamera.mPos[1], Kamera.mPos[0]) * 180 / Math.PI;   // Blickrichtung im Plan (Grad)
+
+	// Länge der Achse linear vom Sichtwinkel: 10° -> 60 m, 140° -> 20 m, 45° ergibt ca. 31 m
+	const CAMERA_LEN_MIN = 50,  CAMERA_FOV_MIN_DEG = 10;
+	const CAMERA_LEN_MAX = 20,  CAMERA_FOV_MAX_DEG = 140;
+	const deg = Kamera.fov * 180 / Math.PI;
+	const t   = (deg - CAMERA_FOV_MIN_DEG) / (CAMERA_FOV_MAX_DEG - CAMERA_FOV_MIN_DEG);
+	const len = CAMERA_LEN_MIN + Math.min(Math.max(t, 0), 1) * (CAMERA_LEN_MAX - CAMERA_LEN_MIN);
+console.log(deg, len)
 	const svgKameraGroup = svgAppend(svgKamerasGroup, {
 		svg_tag	: `g`,
 		id		: Kamera.KameraID,
+		"class"	: `${isDynamic ? "cam-dynamic" : "cam-static"} height=${pz.toFixed(2)}`,
 	});
 
-	// Show circle at Point
+	const place = `translate(${px} ${py}) rotate(${yaw})`;   // Ursprung = Kamera, x-Achse = Blickrichtung
+
+	// Sichtfeld als transparenter Kreissektor (bei FOV > 180° wäre das Large-Arc-Flag nötig, das gibt es hier wegen der Grenze von 140° nicht)
+	const  h = Kamera.fov / 2, cx = len * Math.cos(h), cy = len * Math.sin(h);
 	svgAppend(svgKameraGroup, {
-		svg_tag				: `circle`,
-		r					: 2,
-		transform 			: matrixToTransform(Kamera.mPos),
+		svg_tag		: `path`,
+		"class"		: `camCone`,
+		d			: `M 0 0 L ${cx} ${-cy} A ${len} ${len} 0 0 1 ${cx} ${cy} Z`,
+		transform	: place,
 	});
 
-	// Draw Line
+	// Achse mit Pfeil
 	svgAppend(svgKameraGroup, {
-		svg_tag				: `path`,
-		d 					: `M 2 0 H ${Laenge}`,
-		transform 			: matrixToTransform(Kamera.mPos)
+		svg_tag		: `path`,
+		"class"		: `camAxis`,
+		d			: `M 2 0 H ${len}`,
+		transform	: place,
 	});
 
-	//Show Name
+	// Kamerakörper: statisch = kleiner gefüllter Kreis, dynamisch = Kreisring
 	svgAppend(svgKameraGroup, {
-		svg_tag			: `text`,
-		text			: Kamera.Name,			// 📷 \u1F4F7
-		dx				: `2`, 			// Shift text right
-		dy				: `-0.3em`, 	// Shift text up
-		//dy			: `1em`, 		// Shift text below the track
-		transform: matrixToTransform(Kamera.mPos)
-			+ ` scale(1 -1)`,																   
+		svg_tag		: `circle`,
+		r			: (isDynamic ? 2 : 1.2),
+		transform	: `translate(${px} ${py})`,
 	});
 
-	// show Hoehe in the middle below the track (left-adjusted)
-	svgAppend(svgKameraGroup, {
-		svg_tag			: `text`,
-		text			: `[${Kamera.mPos[14].toFixed(0)}m]`, // PosZ
-		dx				: `2`, 		// Shift text right a little bit
-		dy				: `1em`, 		// Shift text below the track
-		"class"			: `Hoehe`,
-		transform: matrixToTransform(Kamera.mPos)
-			+ ` scale(1 -1)`,
-	});				   
+	// Texte aufrecht neben der Kamera
+	registerLabel(svgAppend(svgKameraGroup, {
+		svg_tag		: `text`,
+		text		: Kamera.Name,
+		dx			: `3`,
+		dy			: `-0.3em`,
+		transform	: `translate(${px} ${py})`,
+	}), { kind: "kamera", anchor: "start" });
 
-	return svgKamerasGroup;									   
+	registerLabel(svgAppend(svgKameraGroup, {
+		svg_tag		: `text`,
+		text		: `[${pz.toFixed(0)}m]`,
+		dx			: `3`,
+		dy			: `1em`,
+		"class"		: `Hoehe`,
+		transform	: `translate(${px} ${py})`,
+	}), { kind: "kamera", anchor: "start" });
+
+	return svgKamerasGroup;
 }
 
 function createSVGforRahmen(SVGfragment, sutrackp) {

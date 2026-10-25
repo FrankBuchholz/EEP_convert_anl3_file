@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EEP Export Bridge</title>
+<script src="node_modules/tablefilter/dist/tablefilter/tablefilter.js"></script>
 <link rel="stylesheet" href="css/EEP_Texts.css">
 <style>
 :root{--bg:#f5f5f5;--fg:#111;--card:#fff;--line:#d0d7de;--acc:#4682b4}
@@ -21,15 +22,33 @@ section.wide{grid-column:1/-1}
 h2{font-size:14px;margin:0 0 6px}
 table{border-collapse:collapse;width:100%}
 th,td{text-align:left;padding:3px 8px 3px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+td.wrap{white-space:normal;min-width:12em;max-width:28em}
+.rdiv,.fltrow{user-select:none}
 button,input,select{font:inherit}
 button{cursor:pointer}
 .chip{display:inline-block;padding:0 7px;border-radius:9px;color:#fff;font-size:12px}
-.g{background:#1a9a1a}.r{background:#d22}.o{background:#e08000}.p{background:#9a2fc0}.b{background:#1565c0}.x{background:#808080}
+.g{background:#1a9a1a}
+.r{background:#d22}
+.o{background:#e08000}
+.p{background:#9a2fc0}
+.b{background:#1565c0}
+.x{background:#808080}
 tr.act td{font-weight:600}
 #st{font-size:12px;opacity:.9}
 .err{color:#c00}
 pre{background:rgba(127,127,127,.12);padding:8px;max-height:220px;overflow:auto;font-size:12px}
 small{opacity:.75}
+<!-- Command Execution --> 
+.cb{min-width:2em;padding:1px 6px}
+.cb.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.cb.sw{border:2px solid var(--c);background:transparent;color:var(--fg)}
+.cb.sw.on{background:var(--c);color:#fff}
+.cb.sw1{--c:#1565c0}
+.cb.sw2{--c:#e08000}
+.cb.sw3{--c:#9a2fc0}
+input.cin{width:6em}
+input.cin.rt{width:12em}
+#cst{font-size:12px}
 </style>
 </head>
 <body>
@@ -45,13 +64,16 @@ small{opacity:.75}
 <nav id="controls">
   <button id="bLast" hidden></button>
   <button id="bFile" data-t="Datei live verfolgen"></button>
-  <label><span data-t="oder einmalig"></span> <input type="file" id="fOnce" accept=".json"></label>
-  <label>URL <input id="url" value="eep_export.json" size="100"></label>
+  <!-- <label><span data-t="oder einmalig"></span> <input type="file" id="fOnce" accept=".json"></label> -->
+  <input type="file" id="fOnce" accept=".json" hidden> <!-- bleibt als Fallback für Firefox und Safari stehen -->
+  <label>URL <input id="url" value="exchange/eep_export.json" size="100"></label>
   <button id="bUrl" data-t="URL abfragen"></button>
   <label><span data-t="alle"></span> <input id="iv" type="number" value="2" min="0.2" step="0.2" style="width:55px"> s</label>
   <label><input type="checkbox" id="send" checked> <span data-t="an Gleisplan senden"></span></label>
   <button id="bPlan" data-t="Gleisplan öffnen"></button>
   <span id="st" data-t="keine Daten"></span>
+  <span id="cst" hidden></span>
+  <span id="raw" hidden><input id="rawCmd" size="50" autocomplete="off" placeholder="EEPSetSignal|6|1" title="Textbefehl ohne Whitelist-Prüfung der Bridge; das Lua-Modul entscheidet"> <button id="bRaw" data-t="Senden"></button></span>
 </nav>
 				 
 
@@ -59,7 +81,7 @@ small{opacity:.75}
   <section class="medium"><h2 data-t="ZeitWetter"></h2><div id="gl">–</div></section>
   <section class="wide"><h2><span data-t="Züge"></span> <small>
     <span data-t="Folgen"></span>: <select id="follow"><option value="" data-t="kein Zug"></option></select></small></h2><div id="trains"></div></section>
-  <section><h2><span data-t="Signale"></span> <small id="sigNote"></small></h2><div id="sigs"></div></section>
+    <section class="medium"><h2><span data-t="Signale"></span> <small id="sigNote"></small></h2><div id="sigs"></div></section>
   <section><h2 data-t="Weichen"></h2><div id="sws"></div></section>
   <section class="wide"><h2 data-t="Rollmaterialien"></h2><div id="rs"></div></section>
 </main>
@@ -78,6 +100,7 @@ const p2 = n => String(n).padStart(2, "0");
 
 let data = null, handle = null, timer = null, received = 0, trainKey = "";
 let sigInfo = null, askedKey = "";
+let cmdUrl = "", cmdOK = false, srcUrl = "", probeId = 0;   // Befehle an EEP: URL von /send-command, Server akzeptiert Befehle, aktuelle Daten-URL
 
 // ---- Letzte Quelle merken -------------------------------------------
 const LS = "eepBridge"; // Key in localStorage für letzte Quelle (src, url, file, iv, send)
@@ -133,17 +156,180 @@ function showLast() {
 $("iv").onchange = () => { lsSave({iv: $("iv").value}); if (timer) schedulePoll(); };
 $("send").onchange = () => { lsSave({send: $("send").checked}); if ($("send").checked) { push(); centerFollow(); } };
 
+// ---- Befehle an EEP (POST /send-command am Webserver) ------------------------
+let cstMsg = null, cstTimer = null;
+function updateCst() {
+  const s = $("cst");
+  $("raw").hidden = !cmdOK;
+  s.hidden = !cmdOK;
+  if (!cmdOK) return;
+  s.className = cstMsg && cstMsg.err ? "err" : "";
+  s.textContent = cstMsg ? cstMsg.t : "⚡ " + _("CmdAktiv");
+}
+function cstShow(t, err) {
+  cstMsg = {t: t, err: !!err}; updateCst();
+  clearTimeout(cstTimer);
+  cstTimer = setTimeout(() => { cstMsg = null; updateCst(); }, err ? 6000 : 3000);
+}
+
+function setCmd(ok, url) {
+  const changed = ok !== cmdOK;
+  cmdOK = ok; cmdUrl = ok ? url : "";
+  updateCst();
+  postCmdState();
+  if (changed && data) render();
+}
+// Dem Gleisplan melden, ob Befehle an EEP möglich sind (Bedienelemente nur dann anzeigen)
+function postCmdState() { live.postMessage({type: "cmdState", ok: cmdOK}); }
+
+// Prueft, ob der Webserver zur Daten-URL Befehle annimmt. Dazu wird ein leerer POST an /send-command gesendet:
+// 400 = Befehle aktiv (leerer Body wird abgelehnt, nichts wird geschrieben), 405 = nicht aktiviert,
+// 403/Netzwerkfehler = Origin nicht erlaubt bzw. kein Server. Nur dann werden die Bedienelemente angezeigt.
+async function probeCommands(dataUrl) {
+  const id = ++probeId;
+  let u;
+  try { u = new URL("/send-command", new URL(dataUrl, window.location.href)); } catch (e) { return setCmd(false); }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return setCmd(false);
+  let ok = false;
+  try {
+    const r = await fetch(u.href, {method: "POST", headers: {"Content-Type": "text/plain"}, body: "", cache: "no-store", redirect: "manual"});
+    ok = r.status === 400;
+  } catch (e) {}
+  if (id === probeId) setCmd(ok, u.href);
+}
+
+// Ein Argument fuer die Pipe-Syntax. Trennzeichen ( ) , | und Anfuehrungszeichen werden in Anfuehrungszeichen gesetzt.
+function cmdArg(v) {
+  const s = String(v);
+  if (/[\x00-\x1f\x7f]/.test(s)) return null;
+  if (!/[()|,"']/.test(s)) return s;
+  if (!s.includes('"')) return '"' + s + '"';
+  if (!s.includes("'")) return "'" + s + "'";
+  return null;
+}
+function buildCmd(fn, ...args) {
+  const a = args.map(cmdArg);
+  if (a.includes(null)) { cstShow(_("CmdZeichen"), true); return null; }
+  return [fn, ...a].join("|");
+}
+
+async function sendCmd(line) {
+  if (!cmdOK || !line) return false;
+  try {
+    const r = await fetch(cmdUrl, {method: "POST", headers: {"Content-Type": "text/plain; charset=utf-8"}, body: line, cache: "no-store", redirect: "manual"});
+    if (!r.ok) {
+      let m = ""; try { m = (await r.text()).slice(0, 80); } catch (e) {}
+      throw new Error("HTTP " + r.status + (m ? " " + m : ""));
+    }
+    cstShow(_("CmdGesendet") + ": " + line);
+    return true;
+  } catch (e) {
+    cstShow(_("CmdFehler") + ": " + e.message, true);
+    if (e instanceof TypeError && srcUrl) probeCommands(srcUrl);   // Server nicht erreichbar: Verfuegbarkeit neu pruefen
+    return false;
+  }
+}
+
+// ---- Befehle vom Gleisplan (Kanal EEP_LIVE, type "command") ---------------------
+// Der Gleisplan sendet nie selbst an EEP, sondern sendet sie über die Bridge. 
+// Erlaubt sind nur diese Befehlemit genau diesen Argumenten; alles andere wird abgelehnt.
+const CMD_RULES = {
+  EEPSetSignal:            ["id", "state"],
+  EEPSetSwitch:            ["id", "state"],
+  EEPSetTrainSpeed:        ["name", "speed"],
+  EEPSetTrainRoute:        ["name", "name"],
+  EEPSetCamera:            ["camType", "name"],
+  EEPSetPerspectiveCamera: ["camPos", "name"],
+};
+const CMD_CHECK = {
+  id:      v => Number.isInteger(v) && v > 0 && v < 100000,
+  state:   v => Number.isInteger(v) && v > 0 && v <= 99,
+  speed:   v => typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= 1000,
+  name:    v => typeof v === "string" && v.length > 0 && v.length <= 100,
+  camType: v => Number.isInteger(v) && v >= 0 && v <= 2,    // 0 statisch, 1 dynamisch, 2 mobil
+  camPos:  v => Number.isInteger(v) && v >= 1 && v <= 9,    // Perspektive der Verfolgerkamera
+};
+
+function cmdReply(m, ok, text) { live.postMessage({type: "cmdResult", seq: m.seq, ok: ok, text: text}); }
+async function runRemoteCmd(m) {
+  if (!cmdOK) return cmdReply(m, false, _("CmdNichtVerfuegbar"));
+  const rule = Object.hasOwn(CMD_RULES, m.fn) ? CMD_RULES[m.fn] : null;
+  if (!rule || !Array.isArray(m.args) || m.args.length !== rule.length || !rule.every((k, i) => CMD_CHECK[k](m.args[i]))) {
+    return cmdReply(m, false, _("CmdUngueltig"));
+  }
+  const line = buildCmd(m.fn, ...m.args);   // meldet ungültige Zeichen selbst in der Statuszeile
+  if (!line) return cmdReply(m, false, _("CmdZeichen"));
+  const ok = await sendCmd(line);
+  cmdReply(m, ok, (ok ? _("CmdGesendet") : _("CmdFehler")) + ": " + line);
+}
+
+// ---- Textbefehl (nur hier, nicht im Gleisplan) ----------------------------------
+// Die Zeile wird unverändert gesendet, ohne Whitelist der Bridge: Das Lua-Modul auf der EEP-Seite prüft selbst.
+// Verboten sind nur Steuerzeichen (z. B. Zeilenumbrüche) und sehr lange Zeilen. Pfeil hoch/runter blättert durch die letzten Befehle.
+let rawHist = (Array.isArray(lsLoad().raw) ? lsLoad().raw : []).slice(-20), rawPos = rawHist.length;
+async function sendRaw() {
+  const i = $("rawCmd"), line = i.value.trim();
+  if (!line) return;
+  if (/[\x00-\x1f\x7f]/.test(line) || line.length > 500) return cstShow(_("CmdZeichen"), true);
+  if (await sendCmd(line)) {
+    if (rawHist[rawHist.length - 1] !== line) { rawHist.push(line); rawHist = rawHist.slice(-20); lsSave({raw: rawHist}); }
+    rawPos = rawHist.length;
+    i.select();
+  }
+}
+$("bRaw").onclick = sendRaw;
+$("rawCmd").onkeydown = ev => {
+  if (ev.key === "Enter") { ev.preventDefault(); sendRaw(); }
+  else if (ev.key === "ArrowUp" && rawHist.length) { ev.preventDefault(); rawPos = Math.max(0, rawPos - 1); ev.target.value = rawHist[rawPos]; }
+  else if (ev.key === "ArrowDown" && rawHist.length) { ev.preventDefault(); rawPos = Math.min(rawHist.length, rawPos + 1); ev.target.value = rawHist[rawPos] || ""; }
+};
+
+// Anzahl der Signal-Buttons: bekannt und klein -> genau so viele, sonst 3
+const MAX_SIGBTN = 8;
+function sigPositions(id) {
+  const s = data.signals[id] || {};
+  const pos = list(s.functions).map(f => f.position).filter(Number.isFinite);
+  const n = Number(s.functionCount);
+  if (pos.length && pos.length <= MAX_SIGBTN) return pos;
+  if (Number.isInteger(n) && n > 0 && n <= MAX_SIGBTN) return Array.from({length: n}, (e, i) => i + 1);
+  return [1, 2, 3];
+}
+
+// Pushbuttons fuer die Stellungen vals (aktuelle Stellung hervorgehoben); cls(v) liefert optionale CSS-Klassen
+function cmdBtns(EEPFunction, id, currrentState, values, title, cls) {
+  let h = "";
+  for (const v of values) {
+    const t = title ? title(v) : "";
+    h += `<button class="cb${cls ? " " + cls(v) : ""}`
+			+ `${Number(currrentState) === v ? " on" : ""}"`
+			+ ` data-a="cmd"`
+			+ ` data-f="${EEPFunction}"`
+			+ ` data-i="${esc(id)}"`
+			+ ` data-v="${v}"`
+      + `${t ? ` title="${esc(t)}"` : ""}`
+			+ `>`
+			+ `${v}`
+			+ `</button>`;
+  }
+  return h;
+}
+
 // ---- Darstellung -----------------------------------------------------------
 const SWTXT = {1:["Durchfahrt","b"], 2:["Abzweig","o"], 3:["KoAbzweig","p"], 5:["Spezial","x"]};
 const swChip = s => { const e = SWTXT[s], t = e ? _(e[0]) : _("Stellung") + " " + s; return `<span class="chip ${e ? e[1] : "x"}">${esc(t)}</span>`; };
 
-// Ohne Info aus dem Gleisplan: neutral grau, mit Info aus dem Gleisplan: farbig
+// Mit Info aus dem Gleisplan: farbig. Sonst Text aus den Signalfunktionen des Exports (grau). Sonst neutral.
 function sigChip(id, s) {
   const p = sigInfo && sigInfo[id] && sigInfo[id].pos[s];
-  if (!p) return `<span class="chip x">${esc(_("Stellung"))} ${esc(s)}</span>`;
+  if (p) {
+    const c = {halt:"r", fahrt:"g", warn:"o"}[p.cls] || "x";
+    return `<span class="chip ${c}">${esc(s)}: ${esc(p.text || "?")}</span>`;
+  }
 
-  const c = {halt:"r", fahrt:"g", warn:"o"}[p.cls] || "x";
-  return `<span class="chip ${c}">${esc(s)}: ${esc(p.text || "?")}</span>`;
+  const fn = list(data.signals[id] && data.signals[id].functions).find(f => f.position === s);
+  if (fn && fn.text) return `<span class="chip x">${esc(s)}: ${esc(fn.text)}</span>`;
+
+  return `<span class="chip x">${esc(_("Stellung"))} ${esc(s)}</span>`;
 }
 
 // Hilfsfunktionen
@@ -199,11 +385,73 @@ live.onmessage = ev => {
   if (m.type === "ready") { 
     push(); 
     askSignals(true);
+    postCmdState();
+  } else if (m.type === "command") {
+    runRemoteCmd(m);
   } else if (m.type === "signalInfo" && m.signals) { 
       sigInfo = m.signals;
       if (data) render(); 
   }
 };
+
+// ---- TableFilter (wie in EEP_Inventar.html) -------------------------------------
+function tfConfig(caption) {
+  return {
+    base_path: "node_modules/tablefilter/dist/tablefilter/",
+    auto_filter: { delay: 500 },
+    state: { types: ["local_storage"], filters: true, filters_visibility: true },
+    alternate_rows: true,
+    mark_active_columns: { highlight_column: false },
+    grid_layout: false,
+    filters_row_index: 0,                 // Filterzeile über der Kopfzeile
+    toolbar: true,
+    rows_counter: { text: caption + ": " },
+    status_bar: { msg_filter: _("Filter aktiv") + " ...", toolbar_position: "center" },
+    btn_reset: { tooltip: _("Filter löschen"), toolbar_position: "right" },
+    locale: "de",
+    thousands_separator: ".",
+    decimal_separator: ",",
+    empty_operator: "[empty]",
+    nonempty_operator: "[nonempty]",
+    help_instructions: {
+      text: _("Filter-Operatoren") + ":<br> "
+        + `<b>&lt;</b>, <b>&lt;=</b>, <b>=</b>, <b>&gt;=</b>, <b>&gt;</b>, <br>`
+        + `<b>*</b>, <b>!</b> (${_("nicht")}), <b>{</b> (${_("beginnt mit")}), <b>}</b> (${_("endet mit")}), <br>`
+        + `<b>||</b> (${_("oder")}), <b>&amp;&amp;</b> (${_("und")}), <br>`
+        + `<b>[empty]</b>, <b>[nonempty]</b>, <b>rgx:</b><br>`
+        + `<a href="https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators" target="_blank">${_("Weitere Informationen")}</a><hr/>`,
+      btn_text: "?",
+    },
+    no_results_message: { content: _("Keine zum Filter passende Einträge vorhanden") },
+    loader: false,
+    watermark: [_("Filter") + " ..."],
+  };
+}
+
+const tfs = {}, lastHtml = {}, dirty = {};
+const filterFocused = box => { const a = document.activeElement; return !!(a && box.contains(a) && a.closest(".fltrow, .inf")); };
+
+// Tabelle in den Container boxId einsetzen und TableFilter anbinden.
+// Ergebnis: true, wenn die Tabelle neu aufgebaut wurde.
+function showTable(boxId, tableId, html, caption) {
+  const box = $(boxId);
+  if (lastHtml[boxId] === html) return false;                    // unverändert
+  if (filterFocused(box)) { dirty[boxId] = true; return false; } // Eingabe im Filter nicht stören
+  dirty[boxId] = false;
+  lastHtml[boxId] = html;
+  if (tfs[boxId]) { try { tfs[boxId].destroy(); } catch (e) {} tfs[boxId] = null; }
+  box.innerHTML = html;
+  if (window.TableFilter && box.querySelector("tbody tr")) {
+    const tf = new TableFilter($(tableId), tfConfig(caption));
+    tf.init();
+    tfs[boxId] = tf;
+  }
+  return true;
+}
+// Nach Verlassen eines Filterfeldes das zurückgestellte Update nachholen
+document.body.addEventListener("focusout", () => setTimeout(() => {
+  if (data && Object.values(dirty).some(Boolean)) render();
+}, 0));
 
 // Darstellung der Daten
 function render() {
@@ -211,6 +459,7 @@ function render() {
   const tm = g.time || {};
   const w = g.weather || {};
 
+  // Globale Information
   $("gl").innerHTML = `<b>${timeStr(tm)}</b> ${_("EEPZeit")}`
       + ` · EEP ${esc(g.eepVersion)}<br>`
       + `${_("Wolken")} ${w.cloudsIntensity}%`
@@ -221,8 +470,9 @@ function render() {
       + ` · ${_("Wind")} ${w.wind}<br>`
       + `<small>${_("Aktiver Zug")}: ${esc(g.activeTrain || "–")}</small>`;
 
+  // Züge
   const names = Object.keys(data.trains);
-  let h = `<table><tr>`
+  let h = `<table id="tblTrains"><thead><tr>`
       + `<th>${_("Zug")}</th>`
       + `<th>km/h</th>`
       + `<th>${_("Soll")}</th>`
@@ -231,21 +481,39 @@ function render() {
       + `<th>${_("Route")}</th>`
       + `<th>${_("Gleis")}</th>`
       + `<th></th>`
-      + `</tr>`;
+      + `</tr></thead><tbody>`;
   for (const n of names) {
     const t = data.trains[n], k = t.track || {};
     h += `<tr class="${n === g.activeTrain ? "act" : ""}">`
       + `<td>${esc(n)}</td>`
       + `<td>${fmt(t.speed)}</td>`
-      + `<td>${fmt(t.targetSpeed)}</td>`
+      + `<td>${cmdOK
+          ? `<input class="cin" type="number" step="any" data-cmd="speed" data-n="${esc(n)}" value="${typeof t.targetSpeed === "number" ? fmt(t.targetSpeed) : ""}">`
+          : fmt(t.targetSpeed)}</td>`
       + `<td>${t.vehicleCount}</td>`
-      + `<td>${fmt(t.length)} m</td><td>${esc(t.route || "")}</td>
-      <td>${k.system}-${k.id} @ ${fmt(k.position, 0)} m</td>
-      <td><button data-a="center" data-n="${esc(n)}">${_("Zeige")}</button>
-          <button data-a="track" data-gs="${k.system}" data-gi="${k.id}">${_("GleisInfo")}</button></td>`
+      + `<td>${fmt(t.length)} m</td>`
+      + `<td>${cmdOK
+          ? `<input class="cin rt" type="text" data-cmd="route" data-n="${esc(n)}" value="${esc(t.route || "")}">`
+          : esc(t.route || "")}</td>`
+      + `<td>${k.system}-${k.id} @ ${fmt(k.position, 0)} m</td>`
+      + `<td><button data-a="center" data-n="${esc(n)}">${_("Zeige")}</button>`
+      + `<button data-a="track" data-gs="${k.system}" data-gi="${k.id}">${_("GleisInfo")}</button></td>`
       + `</tr>`;
   }
-  $("trains").innerHTML = h + "</table>";
+  h += `</tbody></table>`;
+
+  // Eingabefeld mit Fokus (und evtl. noch nicht übernommener Eingabe) beim Neuaufbau erhalten
+  const ae = document.activeElement;
+  const keep = (ae && ae.dataset && ae.dataset.cmd && $("trains").contains(ae))
+    ? {c: ae.dataset.cmd, n: ae.dataset.n, v: ae.value, dirty: ae.value !== ae.defaultValue, s: ae.selectionStart, e: ae.selectionEnd} : null;
+  if (showTable("trains", "tblTrains", h, _("Züge")) && keep) {
+    const ni = Array.from($("trains").querySelectorAll("input[data-cmd]")).find(x => x.dataset.cmd === keep.c && x.dataset.n === keep.n);
+    if (ni) {
+      if (keep.dirty) ni.value = keep.v;
+      ni.focus();
+      try { ni.setSelectionRange(keep.s, keep.e); } catch (e) {}   // bei type=number nicht möglich
+    }
+  }
   const key = names.join("|");
   if (key !== trainKey) {
     trainKey = key; const cur = $("follow").value;
@@ -253,44 +521,71 @@ function render() {
     $("follow").value = names.includes(cur) ? cur : "";
   }
 
+  // Signale
   $("sigNote").textContent = sigInfo ? _("sigNoteGleisplan") : _("sigNoteNeutral");
-  h = `<table><tr>`
+  h = `<table id="tblSignals"><thead><tr>`
       + `<th>ID</th>`
       + `<th>${_("Stellung")}</th>`
+      + (cmdOK ? `<th>${esc(_("CmdStellungSetzen"))}</th>` : "")
+      + `<th>${_("TipTxt")}</th>`
       + `<th>${_("Züge")}</th>`
       + `<th></th>`
-      + `</tr>`;
+      + `</tr></thead><tbody>`;
   for (const id of Object.keys(data.signals || {}).sort(byNum)) {
     const s = data.signals[id], tr = list(s.trains);
+    const tip = sigInfo && sigInfo[id] && sigInfo[id].tip;      // Tipp-Text aus dem Gleisplan
     h += `<tr>`
-      + `<td>${id}</td><td>${sigChip(id, s.state)}</td><td>${tr.length ? esc(tr.join(", ")) : ""}</td>`
+      + `<td>${id}</td>`
+      + `<td>${sigChip(id, s.state)}</td>`
+      + (cmdOK
+          ? `<td>${cmdBtns(
+              "EEPSetSignal", id, s.state, sigPositions(id),
+              v => {
+                const p = sigInfo && sigInfo[id] && sigInfo[id].pos[v];
+                if (p && p.text) return p.text;
+                const f = list(s.functions).find(f => f.position === v);
+                return f && f.text || "";
+              }
+            )}</td>`
+          : "")
+      + `<td class="wrap">${tip ? esc(tip) : ""}</td>`
+      + `<td>${tr.length ? esc(tr.join(", ")) : ""}</td>`
       + `<td><button data-a="id" data-i="${id}">${_("Zeige")}</button></td>`
       + `</tr>`;
   }
-  $("sigs").innerHTML = h + "</table>";
+  showTable("sigs", "tblSignals", h + `</tbody></table>`, _("Signale"));
 
-  h = `<table><tr>`
+  // Weichen
+  h = `<table id="tblSwitches"><thead><tr>`
       + `<th>ID</th>`
       + `<th>${_("Stellung")}</th>`
+      + (cmdOK ? `<th>${esc(_("CmdStellungSetzen"))}</th>` : "")
       + `<th></th>`
-      + `</tr>`;
+      + `</tr></thead><tbody>`;
   for (const id of Object.keys(data.switches || {}).sort(byNum)) {
     h += `<tr>`
       + `<td>${id}</td>`
       + `<td>${swChip(data.switches[id].state)}</td>`
+      + (cmdOK ? `<td>${cmdBtns(
+            "EEPSetSwitch", id, data.switches[id].state, [1, 2, 3],
+            v => SWTXT[v] ? _(SWTXT[v][0]) : "",
+            v => "sw sw" + v
+          )}</td>`
+        : "")
       + `<td><button data-a="id" data-i="${id}">${_("Zeige")}</button></td>`
       + `</tr>`;
   }
-  $("sws").innerHTML = h + "</table>";
+  showTable("sws", "tblSwitches", h + `</tbody></table>`, _("Weichen"));
 
-  h = `<table><tr>`
+  // Rollmaterialien
+  h = `<table id="tblRolling"><thead><tr>`
       + `<th>${_("Name")}</th>`
       + `<th>${_("Zug")}</th>`
       + `<th>${_("Länge")}</th>`
       + `<th>${_("Gleis")}</th>`
       + `<th>${_("Position")} (x, y, z)</th>`
       + `<th>${_("KupplungVH")}</th>`
-      + `</tr>`;
+      + `</tr></thead><tbody>`;
   for (const n of Object.keys(data.rollingstock || {})) {
     const r = data.rollingstock[n], k = r.track || {}, p = r.position || {};
     h += `<tr>`
@@ -302,7 +597,7 @@ function render() {
       + `<td>${r.couplingFront}/${r.couplingRear}</td>`
       + `</tr>`;
   }
-  $("rs").innerHTML = h + "</table>";
+  showTable("rs", "tblRolling", h + `</tbody></table>`, _("Rollmaterialien"));
 }
 
 // Status: Uhrzeit und Zeit seit Empfang der Daten
@@ -327,6 +622,22 @@ document.body.addEventListener("click", ev => {
 
   } else if (a === "id") {
     cmd.postMessage({command: "showID", ID: Number(b.dataset.i)});
+
+  } else if (a === "cmd") {
+    sendCmd(buildCmd(b.dataset.f, Number(b.dataset.i), Number(b.dataset.v)));   // EEPSetSignal|ID|Stellung bzw. EEPSetSwitch|ID|Stellung
+  }
+});
+
+// Eingabefelder der Zugtabelle: Befehl bei Eingabe (Enter oder Feld verlassen)
+document.body.addEventListener("change", ev => {
+  const i = ev.target.closest && ev.target.closest("input[data-cmd]");
+  if (!i || !cmdOK) return;
+  if (i.dataset.cmd === "speed") {
+    const v = parseFloat(i.value.replace(",", "."));
+    if (Number.isFinite(v)) sendCmd(buildCmd("EEPSetTrainSpeed", i.dataset.n, v));
+  } else if (i.dataset.cmd === "route") {
+    const r = i.value.trim();
+    if (r) sendCmd(buildCmd("EEPSetTrainRoute", i.dataset.n, r));
   }
 });
 
@@ -369,7 +680,12 @@ function connectLive() {
 		return; 
 	}	
   ws = s;
-  s.onopen = () => { transport = "WebSocket"; clearInterval(timer); timer = null; };
+  s.onopen = () => { 
+		transport = "WebSocket"; 
+		clearInterval(timer); 
+		timer = null; 
+		if (!cmdOK && srcUrl) probeCommands(srcUrl); 
+	};
   s.onmessage = ev => { if (typeof ev.data === "string") ingest(ev.data); };
 	s.onerror = function(error) {
 		console.log("WebSocket-Verbindungsfehler abgefangen!");
@@ -411,6 +727,7 @@ function startPoll(fn, lu) {
 // Aktion verarbeiten: Datei live verfolgen
 function useHandle(h) {
   handle = h; 
+  srcUrl = ""; probeId++; setCmd(false);   // Datei: kein Webserver, keine Befehle
   lsSave({src: "file", file: h.name}); 
   showLast();
   idbSet("file", h).catch(() => {});
@@ -421,9 +738,9 @@ function useHandle(h) {
 // Aktion verarbeiten: Datei live verfolgen
 // Zeigt eine Datei-Auswahl an, die nur JSON-Dateien erlaubt. Wenn der Benutzer eine Datei auswählt, wird ein FileSystemFileHandle zurückgegeben.
 $("bFile").onclick = async () => {
-  if (!window.showOpenFilePicker) return status(_("LiveLesenChrome"), true);
-  // Zeige eine Datei-Auswahl an, die nur JSON-Dateien erlaubt. Wenn der Benutzer eine Datei auswählt, wird ein FileSystemFileHandle zurückgegeben.
-  try { useHandle((await showOpenFilePicker({id: "eep-export", types: [{accept: {"application/json": [".json"]}}]}))[0]); } catch (e) {}
+  if (!window.showOpenFilePicker)  { return $("fOnce").click(); }  // Fallback: Datei einmal laden
+
+   try { useHandle((await showOpenFilePicker({id: "eep-export", types: [{accept: {"application/json": [".json"]}}]}))[0]); } catch (e) {}
 };
 
 // Aktion verarbeiten: URL abfragen
@@ -431,6 +748,9 @@ $("bFile").onclick = async () => {
 $("bUrl").onclick = () => {
   lsSave({src: "url", url: $("url").value}); 
   showLast();
+  srcUrl = $("url").value;
+  setCmd(false);
+  probeCommands(srcUrl);   // Befehle nur anbieten, wenn der Webserver sie annimmt
   startPoll(async () => {
     const u = $("url").value, r = await fetch(u + (/\?/.test(u) ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
     if (!r.ok) throw new Error("HTTP " + r.status);
@@ -458,16 +778,29 @@ async function once(f) {
   stopLive();
   clearInterval(timer); 
   timer = null; 
+  srcUrl = ""; probeId++; setCmd(false);
   lsSave({src: "file", file: f.name}); 
   showLast();
 	ingest(EEP_decode(await f.arrayBuffer())); // incl. Konvertierung von ANSI wenn nötig
 }
 
 // Datei einmalig laden: Datei-Auswahl oder Drag&Drop
-$("fOnce").onchange = e => { if (e.target.files[0]) once(e.target.files[0]); };
-// Drag&Drop: Datei einmalig laden
+$("fOnce").onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (f) once(f);
+};
+// Drag&Drop: Mit Handle live, sonst Datei einmalig laden
 document.addEventListener("dragover", e => e.preventDefault());
-document.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer.files[0]) once(e.dataTransfer.files[0]); });
+document.addEventListener("drop", async e => {
+  e.preventDefault();
+  const item = e.dataTransfer.items && e.dataTransfer.items[0];
+  try {
+    const h = item && item.getAsFileSystemHandle ? await item.getAsFileSystemHandle() : null;
+    if (h && h.kind === "file") return useHandle(h);
+  } catch (err) {}
+  if (e.dataTransfer.files[0]) once(e.dataTransfer.files[0]);
+});
 
 // Aktion ausführen: Gleisplan öffnen
 // Öffnet die Seite EEP_Gleisplan.html in einem neuen Tab oder Fenster.
@@ -491,6 +824,8 @@ $("follow").onchange = centerFollow;
 function applyTexts() {
   document.querySelectorAll("[data-t]").forEach(e => { e.textContent = _(e.dataset.t); });
   showLast();
+  updateCst();
+	for (const k in lastHtml) delete lastHtml[k];
   trainKey = "";                       // Zug-Auswahl neu aufbauen (enthält übersetzten Text)
   if (data) render();
 }

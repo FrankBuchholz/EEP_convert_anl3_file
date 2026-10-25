@@ -7,8 +7,12 @@
 */
 /* Interface
 required standard objects:
+	Event
+	MutationObserver
 	console
 	document
+	localStorage
+	window
 required global data:
 	EEP_Texts
 	global (global.fontSize wird hier gesetzt)
@@ -21,6 +25,7 @@ public api:
 	msg
 	toggleElements
 	toggleMarker
+	setHeadingCollapsed
 	showRoutes
 */
 (function(api) {
@@ -32,6 +37,7 @@ api.msg = msg;
 api.toggleElements = toggleElements;
 api.toggleMarker = toggleMarker;
 api.showRoutes = showRoutes;
+api.setHeadingCollapsed = setHeadingCollapsed;
 
 // Toggle visibility of elements
 function toggleElements(selector, visible) {
@@ -306,5 +312,50 @@ function showRoute(GleissystemID, SignalID, Route, flag) {
 		}
 	}
 }	
+
+// Kopfbereich ein-/ausklappen (z.B. um auf einem Tablet mehr Platz für den Gleisplan zu haben)
+function setHeadingCollapsed(collapsed, userAction) {
+	const heading = document.getElementById("heading");
+	const button  = document.getElementById("toggleHeading");
+	const row     = document.getElementById("main").classList.contains("row");
+
+	const apply = function() { heading.classList.toggle("collapsed", collapsed); };
+	if (userAction && global.SvgPanZoom && global.SvgPanZoom.keepBottomRight) {
+		global.SvgPanZoom.keepBottomRight(apply);	// Gleisplan bleibt optisch stehen (rechte untere Ecke fix)
+	} else {
+		apply();
+	}
+
+	// Pfeil zeigt in die Richtung, in die der Kopfbereich ein- bzw. ausgeklappt wird
+	button.textContent = collapsed ? (row ? "▶" : "▼") : (row ? "◀" : "▲");
+	const text = EEP_Texts.getText("info", collapsed ? "Kopfbereich ausklappen" : "Kopfbereich einklappen");
+	button.title = text;
+	button.setAttribute("aria-label", text);
+	button.setAttribute("aria-expanded", String(!collapsed));
+
+	if (userAction) {
+		try { localStorage.setItem("headingCollapsed", String(collapsed)); } catch (e) {}
+	}
+}
+
+(function initHeadingToggle() {
+	const heading = document.getElementById("heading");
+	const button  = document.getElementById("toggleHeading");
+	const main    = document.getElementById("main");
+
+	let collapsed = false;
+	try { collapsed = localStorage.getItem("headingCollapsed") === "true"; } catch (e) {}
+	setHeadingCollapsed(collapsed, false);
+
+	button.addEventListener("click", function() {
+		setHeadingCollapsed(!heading.classList.contains("collapsed"), true);
+		button.blur();	// Fokus abgeben, damit die Pfeiltasten wieder den Plan verschieben
+	});
+
+	// Der Schalter "Tauschen" wechselt zwischen column und row: Pfeilrichtung anpassen
+	new MutationObserver(function() {
+		setHeadingCollapsed(heading.classList.contains("collapsed"), false);
+	}).observe(main, { attributes: true, attributeFilter: ["class"] });
+})();
 
 })(this); // end module

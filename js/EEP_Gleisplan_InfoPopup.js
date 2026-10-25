@@ -9,7 +9,8 @@
 	TrackSystemText:readonly,
 	msg:readonly,
 	showInfoWindow:readonly,
-	getCouplingText:readonly
+	getCouplingText:readonly,
+	getCommandHtml:readonly
 */
 /* Interface
 required standard objects:
@@ -29,6 +30,8 @@ required functions:
 	showInfoWindow
 	matrix
 	getCouplingText (js/EEP_Gleisplan_DOM2SVG.js)
+optional:
+	getCommandHtml (js/EEP_Gleisplan_LiveData.js, Bedienelemente für Befehle an EEP)
 public api functions:
 	getKontaktIcon
 	getKontaktText
@@ -60,6 +63,11 @@ function escapeHtml(str) {
 	return String(str).replace(/[&<>"']/g, c => ({
 		'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
 	}[c]));
+}
+
+// Bedienelemente für Befehle an EEP (Signal, Weiche). Ohne EEP-Live-Erweiterung bleibt der Text leer.
+function commandHtml(kind, id) {
+	return (typeof getCommandHtml === "function" ? getCommandHtml(kind, id) : "");
 }
 
 function objectToHTML(object) {
@@ -108,7 +116,6 @@ function showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss) {
 	);
 
 	// Ausführlich im Info Popup
-	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
 		code: "V" + GleissystemID + "-" + GleisID + "-" + Anschluss,
 		title: `${TrackSystemText(GleissystemID)} ${GleisID} ⇔ ${connection.GleisID} ${_('virtuell')}`,	// ☍ 260D ↝ 219D ↝ 2192 ↣ 21A3 ↦ 21A6 ⇄ 21C4 ⇔ 21D4 ⇿ 21FF
@@ -136,9 +143,9 @@ function showGleisInfo(GleissystemID, GleisID) {
 	const Key_Id	= Gleis.getAttribute("Key_Id"); 	// Id einer Weiche
 	const GleisData	= Gleis.getAttribute("data"); 		// Bitfeld einer Weiche
 														// 1: Oberleitung
-														// 18: DKW (Weichen und zentrale Gleise)
-														// 16: Zentrale Strecken einer Straßen-T-Kreuzung
-														// 20: Weichen einer Straßen-T-Kreuzung
+														// 16, 17: Zentrale Strecken einer Straßen-T-Kreuzung
+														// 18, 19: DKW (Weichen und zentrale Gleise)
+														// 20, 21: Weichen einer Straßen-T-Kreuzung
 
 	let GleisobjektText = "";
 	let KollektorID;
@@ -195,7 +202,6 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ " " + ( connections[connection].Flags ? _('virtuell') : "" );
 	}
 
-	const _i = "</i>", _a = "</a>";
 	showInfoWindow({
 		code: "Gleis " + GleissystemID + "-" + GleisID,
 		title: `${TrackSystemText(GleissystemID)} ${GleisID}`,
@@ -238,10 +244,10 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 	const weichenstellung = Gleis.getAttribute("weichenstellung");
 	const GleisData	= Gleis.getAttribute("data"); 		// Bitfeld einer Weiche
 														// 1: Oberleitung
-														// 18: DKW (Weichen und zentrale Gleise)
-														// 16: Zentrale Strecken einer Straßen-T-Kreuzung
-														// 20: Weichen einer Straßen-T-Kreuzung
-														
+														// 16, 17: Zentrale Strecken einer Straßen-T-Kreuzung
+														// 18, 19: DKW (Weichen und zentrale Gleise)
+														// 20, 21: Weichen einer Straßen-T-Kreuzung
+														1
 	const SignalData = Gleis.getAttribute('SignalData'); // Schaltverbindung zu einem anderen Signal
 	let cnt = 0;
 	for (let i = 1; i <= 5; i++) { // Attribute NextSigFn1 (Gerade), NextSigFn2 (Abzweig), NextSigFn3 (KoAbzweig), NextSigFn4, NextSigFn5
@@ -287,6 +293,7 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 				: ""
 			  )
 			+ `<br>${_('Weichenstellung')}: ${global.WeichenstellungText[weichenstellung]}`
+			+ commandHtml("switch", WeicheID)
 			+ `<br>${_('Stil')}: ${stil}`
 			+ (gsbname != null ? `<br>${_('Datei')}: ${escapeHtml(gsbname)}` : "")
 //			+ (SignalData != null 
@@ -474,6 +481,7 @@ console.log(
 			+ `<br>${_('Name')}: ${escapeHtml(File)}`
 			+ (Signalstellung[File] && File !== getSignalName(File) ? `<br>${getSignalName(File)}` : "")
 			+ `<br>${_('Signalstellung')} ${Stellung}: ${SignalstellungText}`
+			+ commandHtml("signal", SignalID)
 			+ (Distanz !=0 ? `<br>${(signalType == "pre" ? _('Distanz zum Hauptsignal') :  _('Distanz zum Vorsignal'))}: ${Distanz.toFixed(0)}m` : "")
 			+ (StopAt != 0 ? `<br>${_('Halteabstand')}: ${StopAt.toFixed(0)}m`: "")
 			+ `<br>${_('Gleisrichtung')}: ${ParaOderAnti} ` + (ParaOderAnti == 1 ? _('in Gleisrichtung') : _('gegen Gleisrichtung'))
@@ -823,21 +831,21 @@ function showKameraInfo(KameraID) {
 	// 	 gamma = sign(beta) * atan2( r[0][1], r[1][1] );
 
 /*
-Deep Ocean						X°					Y° 					Z°
-													Neigung					Richtung
-								atan2(NorZ, BinZ)	-asin(DirZ)			-acos( DirX/cos(angleY) )
-Anleger ELSA Kurhotel 			X: 0.0° 			Y: -2.4° 			Z: -72.0°
-Bhf Einstädt					X: 0.0° 			Y: 9.6° 			Z: -162.0°
-DANGER! Frachter 				X: 0.0° 			Y: 16.8° 			Z: -150.0°
-Des Käptn´s Häuschen 			X: 0.0° 			Y: 2.4° 			Z: -72.0°
-Industrieruine  				X: 0.0° 			Y: 12.0° 			Z: 36.0°
-Kamerarundblick 				X: 0.0° 			Y: 2.4° 			Z: -90.0°
-Kuhl bleiben 					X: 0.0° 			Y: -4.8° 			Z: -107.9°
-Leuchtturmidylle 				X: 0.0° 			Y: 31.2° 			Z: 126°
-Lokverladung in die VOGELFLUG 	X: 0.0° 			Y: 9.6° 			Z: -113.7°
-Motorbootanleger 				X: 0.0° 			Y: -2.4° 			Z: -138.0°
-Roofer 							X: 0.0° 			Y: 40.8° 			Z: -18.0°
-Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
+Deep Ocean                     X°            Y°            Z°
+                               Neigung       Richtung
+                       atan2(NorZ, BinZ)  -asin(DirZ)      -acos( DirX/cos(angleY) )
+Anleger ELSA Kurhotel          X: 0.0°       Y: -2.4°      Z: -72.0°
+Bhf Einstädt                   X: 0.0°       Y: 9.6°       Z: -162.0°
+DANGER! Frachter               X: 0.0°       Y: 16.8°      Z: -150.0°
+Des Käptn´s Häuschen           X: 0.0°       Y: 2.4°       Z: -72.0°
+Industrieruine                 X: 0.0°       Y: 12.0°      Z: 36.0°
+Kamerarundblick                X: 0.0°       Y: 2.4°       Z: -90.0°
+Kuhl bleiben                   X: 0.0°       Y: -4.8°      Z: -107.9°
+Leuchtturmidylle               X: 0.0°       Y: 31.2°      Z: 126°
+Lokverladung in die VOGELFLUG  X: 0.0°       Y: 9.6°       Z: -113.7°
+Motorbootanleger               X: 0.0°       Y: -2.4°      Z: -138.0°
+Roofer                         X: 0.0°       Y: 40.8°      Z: -18.0°
+Schuettgutverladung            X: 0.0°       Y: 7.2°       Z: -42.2°
 */
 
 	const angleY 	= -Math.asin( DirZ );
@@ -920,7 +928,11 @@ Schuettgutverladung 			X: 0.0° 			Y: 7.2° 			Z: -42.2°
 			+ " " + ['W', 'WNW', 'NW', 'NNW', 'N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W',].map(c => _('dir_' + c))[Math.floor(8+0.5+angleZ/Math.PI*8)] 
 			+ `<br>${_('Neigung')}: ` 				 + angle( angleY )			// Neigung Y
 			+ (angleX < -0.01 || angleX > 0.01 ? `<br>${_('Kippung')}: ` + angle( angleX ) : "")	// Neigung X
-			+ `<br>` + (Kamera.Dynamic == 1 ? _('dynamisch') : _('statisch') )	// Bug: the camera type is not defined by an attribute in EEP 6
+			+ `<br>${_('Sichtfeld')}: ` 
+				+ (Kamera.fov * 180 / Math.PI).toFixed(0) + "°" 
+				+ (+Kamera.getAttribute("FOV") > 0 ? "" : " (" + _('Standard') + ")")
+			+ `<br>` + (Kamera.Dynamic == 1 ? _('dynamisch') : _('statisch') )
+			+ commandHtml("camera", KameraID)
 			+ objectToHTML(Kamera)
 	});
 }

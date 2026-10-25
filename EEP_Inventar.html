@@ -3620,7 +3620,9 @@ const global = {};
 global.shiftDown 	= false;
 global.strgDown 	= false;
 global.altDown 		= false;
-document.addEventListener('keydown', function(event){
+// Activate key
+/*
+document.addEventListener("keydown", function(event){
     if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = true;
     } else if	(event.keyCode === 17 || event.charCode === 17){
@@ -3629,12 +3631,34 @@ document.addEventListener('keydown', function(event){
         global.altDown = true;
     }
 });
-document.addEventListener('keyup', function(event){
+*/
+document.addEventListener("keydown", function(event){
+    if (event.key === "Shift") {
+        global.shiftDown = true;
+    } else if (event.key === "Control") {
+        global.strgDown = true;
+    } else if (event.key === "Alt") {
+        global.altDown = true;
+    }
+});
+// Deactivate key
+/*
+document.addEventListener("keyup", function(event){
     if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = false;
     } else if	(event.keyCode === 17 || event.charCode === 17){
         global.strgDown = false;
     } else if	(event.keyCode === 18 || event.charCode === 18){
+        global.altDown = false;
+    }
+});
+*/
+document.addEventListener("keyup", function(event){
+    if (event.key === "Shift") {
+        global.shiftDown = false;
+    } else if (event.key === "Control") {
+        global.strgDown = false;
+    } else if (event.key === "Alt") {
         global.altDown = false;
     }
 });

@@ -350,6 +350,28 @@ Le programme fonctionne correctement avec les versions actuelles de Google Chrom
 	margin: 5px;
 }
 
+/* Kopfbereich ein-und ausklappen */
+#main #container {
+	position: relative;			/* Bezug für den schwebenden Schalter */
+}
+#heading.collapsed {
+	display: none !important;
+}
+#toggleHeading {
+	position: absolute;
+	top: 4px;
+	left: 4px;
+	z-index: 10;
+	min-width: 44px;			/* Touch-freundliche Größe */
+	min-height: 44px;
+	font-size: 18px;
+	opacity: 0.7;
+	cursor: pointer;
+}
+#toggleHeading:hover, #toggleHeading:focus {
+	opacity: 1;
+}
+
 #svg {
 	flex: 1;
 	height: 100%;
@@ -590,6 +612,10 @@ It does not work if I put span elements inside of the options.
 </section>  <!-- heading -->
 
 <section id="container"> <!-- The container takes the remaining part of the screen to show the graphic -->
+
+<!-- Ein- / ausklappen des Kopfbereiches, der Button zeigt in die passende Richtung --> 
+<button id="toggleHeading" type="button" class="no-select"></button>
+
 <!-- Das Auslagern des svg-Elements in eine separate Datei funktioniert nicht. Der Kopfbereich des Grafikbereiches würde dann nicht ausgeblendet werden. Außerdem werden Elemente dynamisch verändert und müssen daher direkt in DOM sein. Weiterhin erfordert der sgv-Export, dass die Definitionen hier stehn, da sie ansonsten nicht in den sgv-Export übernommen würden. -->
 <!--
 <object data="svg/EEP_Gleisplan.svg" type="image/svg+xml"></object>
@@ -598,7 +624,6 @@ It does not work if I put span elements inside of the options.
 svg editor: https://github.com/SVG-Edit/svgedit
 https://svgedit.netlify.app/editor/index.html
 -->
-
 <svg id="svg" xmlns="http://www.w3.org/2000/svg" version="1.1">
 
 <title id="svgTitle">EEP Gleisplan</title>
@@ -819,6 +844,20 @@ text.text-anchor-end {
 }
 #Kamera text {
 	fill: var(--Kamera-color);
+}
+/* Kameras: statisch = Vollkreis + durchgezogene Achse, dynamisch = Kreisring + gepunktete Achse */
+#Kamera .cam-static > circle { fill: var(--Kamera-color); }
+#Kamera .cam-dynamic > .camAxis {
+	stroke-dasharray: calc(var(--normal-stroke-width) * 1) calc(var(--normal-stroke-width) * 1.5);
+	stroke-linecap: round;
+}
+#Kamera .camCone {
+	fill: var(--Kamera-color);
+	fill-opacity: 0.12;
+	stroke-opacity: 0.4;
+	stroke-width: calc(var(--normal-stroke-width) * 0.5);
+	marker-end: none;
+	pointer-events: none;          /* die Fläche soll Klicks auf Gleise nicht abfangen */
 }
 
 /* Gleisobjekte werden als transparente Flächen in der Farbe der jeweiligen Gleissysteme dargestellt */

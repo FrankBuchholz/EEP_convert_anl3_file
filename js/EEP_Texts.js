@@ -213,6 +213,16 @@ info : {
 		EN : `Reset`, 
 		FR : `Réinitialiser`, 
 	},
+	'Kopfbereich einklappen' : {
+		DE : `Kopfbereich einklappen`,
+		EN : `Collapse header`,
+		FR : `Replier l'en-tête`,
+	},
+	'Kopfbereich ausklappen' : {
+		DE : `Kopfbereich ausklappen`,
+		EN : `Expand header`,
+		FR : `Déplier l'en-tête`,
+	},
 	Gleisobjekt : {
 		DE : `Gleisobjekt`, 
 		EN : `Track object`, 
@@ -612,6 +622,26 @@ info : {
 		DE : `dynamisch`, 
 		EN : `dynamic`, 
 		FR : `dynamique`, 
+	},
+	'Verfolgerkamera' : {
+		DE : `Verfolgerkamera`,
+		EN : `Follow camera`,
+		FR : `Caméra de suivi`,
+	},
+	'KameraAufrufen' : {
+		DE : `Kamera aufrufen`,
+		EN : `Show camera`,
+		FR : `Afficher la caméra`,
+	},
+	Sichtfeld : {
+		DE : `Sichtfeld`,
+		EN : `Field of view`,
+		FR : `Champ de vision`,
+	},
+	Standard : {
+		DE : `Standard`,
+		EN : `default`,
+		FR : `par défaut`,
 	},
 	nach : {
 		DE : `nach`, 
@@ -1650,14 +1680,9 @@ Seule la section sélectionnée est exportée.<\/dd>
 		FR : `Erreur`,
 	},
 	'Datei live verfolgen' : {
-		DE : `Datei live verfolgen`,
-		EN : `Follow file live`,
-		FR : `Suivre le fichier en direct`,
-	},
-	'oder einmalig' : {
-		DE : `oder einmalig:`,
-		EN : `or load once:`,
-		FR : `ou charger une fois :`,
+		DE : `Datei öffnen`, 		// `Datei live verfolgen`
+		EN : `Open file`,			// `Follow file live`
+		FR : `Ouvrir un fichier`,	// `Suivre le fichier en direct`
 	},
 	'alle' : {
 		DE : `alle`,
@@ -1814,12 +1839,53 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Export from EEP time $1, last change $2 s ago`,
 		FR : `Export de l'heure EEP $1, dernier changement il y a $2 s`,
 	},
-	'LiveLesenChrome' : {
-		DE : `Live-Lesen von Dateien braucht Chrome/Edge – alternativ URL oder einmaliges Laden`,
-		EN : `Live reading of files requires Chrome/Edge – alternatively use a URL or load once`,
-		FR : `La lecture en direct de fichiers nécessite Chrome/Edge – sinon utiliser une URL ou un chargement unique`,
-	},
 	
+	'CmdAktiv' : {
+		DE : `Befehle an EEP aktiv`,
+		EN : `Commands to EEP active`,
+		FR : `Commandes vers EEP actives`,
+	},
+	'CmdGesendet' : {
+		DE : `gesendet`,
+		EN : `sent`,
+		FR : `envoyé`,
+	},
+	'CmdFehler' : {
+		DE : `Befehl nicht gesendet`,
+		EN : `Command not sent`,
+		FR : `Commande non envoyée`,
+	},
+	'CmdZeichen' : {
+		DE : `Name oder Wert enthält nicht erlaubte Zeichen`,
+		EN : `Name or value contains invalid characters`,
+		FR : `Nom ou valeur avec caractères non autorisés`,
+	},
+	'CmdStellungSetzen' : {
+		DE : `Stellung setzen`,
+		EN : `Set position`,
+		FR : `Régler la position`,
+	},
+	'CmdNichtVerfuegbar' : {
+		DE : `Befehle an EEP sind nicht verfügbar`,
+		EN : `Commands to EEP are not available`,
+		FR : `Commandes vers EEP non disponibles`,
+	},
+	'CmdUngueltig' : {
+		DE : `Ungültiger Befehl`,
+		EN : `Invalid command`,
+		FR : `Commande invalide`,
+	},
+	'Senden' : {
+		DE : `Senden`,
+		EN : `Send`,
+		FR : `Envoyer`,
+	},
+	'CmdKeineAntwort' : {
+		DE : `Keine Antwort der Export Bridge (ist sie geöffnet?)`,
+		EN : `No answer from the Export Bridge (is it open?)`,
+		FR : `Pas de réponse de l'Export Bridge (est-elle ouverte ?)`,
+	},
+
 	allowedBlocks : {
 		DE : `Erlaubte Blöcke mit Wartezeit`, 
 		EN : `Allowed blocks with wait time`, 

@@ -225,10 +225,10 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 		showArea(panZoom);
 	});
 
-	// Die Größe des SVG-Bereichs kann sich auch ohne window-resize ändern (z.B. wenn der Kopfbereich
-	// durch neue Texte höher wird). svg-pan-zoom cached die Größe, daher bei jeder Änderung neu einlesen.
+	// Letzte bekannte Größe des SVG-Bereichs (wird auch von keepBottomRight() gesetzt,
+	// damit der ResizeObserver danach nicht erneut eingreift)
+	let lastWidth = 0, lastHeight = 0;
 	if (typeof ResizeObserver === "function") {
-		let lastWidth = 0, lastHeight = 0;
 		new ResizeObserver(function() {
 			const rect = document.getElementById("svg").getBoundingClientRect();
 			if (!(rect.width > 0 && rect.height > 0)) { return; }	// ausgeblendet: nichts tun
@@ -271,21 +271,21 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 		if 		  (ev.key === "ArrowUp") {
 			panZoom.panBy({
 				x: 0,
-				y: (global.shiftDown ? +sizes.height / 2 : +5),
+				y: (ev.shiftKey ? +sizes.height / 2 : +5),
 			});
 		} else if (ev.key === "ArrowDown") {
 			panZoom.panBy({
 				x: 0,
-				y: (global.shiftDown ? -sizes.height / 2 : -5),
+				y: (ev.shiftKey ? -sizes.height / 2 : -5),
 			});
 		} else if (ev.key === "ArrowLeft") {
 			panZoom.panBy({
-				x: (global.shiftDown ? +sizes.width  / 2 : +5),
+				x: (ev.shiftKey ? +sizes.width  / 2 : +5),
 				y: 0,
 			});
 		} else if (ev.key === "ArrowRight") {
 			panZoom.panBy({
-				x: (global.shiftDown ? -sizes.width  / 2 : -5),
+				x: (ev.shiftKey ? -sizes.width  / 2 : -5),
 				y: 0,
 			});
 		} else {
@@ -297,27 +297,15 @@ function SvgPanZoom() { // <!-- github.com/bumbu/svg-pan-zoom -->
 		return false;
 	});
 
-	// Button swap
+		// Button swap
 	document.getElementById("swap").addEventListener("click", function(ev) {
 		msg();
 		ev.preventDefault();
-		// Toogle between flex-direction: column and flex-direction: row
-		document.getElementById("main").classList.toggle("column");
-		document.getElementById("main").classList.toggle("row");
-
-		// If the svg element is hidden, then we would get zero height and width after panZoom.resize();
-		if (!document.getElementById("svg").classList.contains("hidden")) {
-			// Swapping changes the size of the svg element
-			const oldSizes = panZoom.getSizes();
-			panZoom.resize();
-			const newSizes = panZoom.getSizes();
-			// The top left point keeps its position. We need to pan to keep the center being centered.
-			panZoom.panBy({
-				x: (newSizes.width - oldSizes.width) 	/ 2 ,
-				y: (newSizes.height - oldSizes.height)	/ 2 ,
-			});
-			showArea(panZoom);
-		}
+		keepBottomRight(function() {
+			// Toogle between flex-direction: column and flex-direction: row
+			document.getElementById("main").classList.toggle("column");
+			document.getElementById("main").classList.toggle("row");
+		});
 	});
 
 	// Button Zoom-In
@@ -554,6 +542,7 @@ EEPchannel.onmessage = function(ev) {
 	return { // public interface
 		centerItem: centerItem,
 		centerPosition: centerPosition,
+		keepBottomRight: keepBottomRight,
 	};
 
 function centerItem() {
@@ -650,6 +639,41 @@ function centerPosition(Position) {
 	const panY 		= height/2	- (-PosY) * realZoom;	// svg: mirrored y-coordinate
 
 	panZoom.pan({x: panX, y: panY});
+}
+
+// Führt eine Änderung des Layouts (change) aus, die die Größe des SVG-Bereichs ändert
+// (Tauschen, Kopfbereich ein-/ausklappen). Der Gleisplan bleibt dabei optisch stehen:
+// Maßstab und rechte untere Ecke des SVG-Bereichs bleiben fix.
+function keepBottomRight(change) {
+	const svg = document.getElementById("svg");
+	if (svg.classList.contains("hidden")) { change(); return; }
+
+	const old = panZoom.getSizes();
+	const pan = panZoom.getPan();
+	if (!(old.realZoom > 0)) { change(); panZoom.resize(); return; }
+
+	// Welt-Koordinate (in Einheiten des Plans) an der rechten unteren Ecke
+	const worldX = (old.width  - pan.x) / old.realZoom;
+	const worldY = (old.height - pan.y) / old.realZoom;
+
+	change();
+
+	panZoom.resize();							// Größe neu einlesen
+	let sizes = panZoom.getSizes();
+	if (!(sizes.width > 0 && sizes.height > 0 && sizes.realZoom > 0)) { return; }
+
+	// Maßstab wiederherstellen, danach die Ecke wieder an dieselbe Stelle legen
+	panZoom.zoom(panZoom.getZoom() * old.realZoom / sizes.realZoom);
+	sizes = panZoom.getSizes();
+	panZoom.pan({
+		x: sizes.width  - worldX * sizes.realZoom,
+		y: sizes.height - worldY * sizes.realZoom,
+	});
+
+	const rect = svg.getBoundingClientRect();	// ResizeObserver soll nicht nochmals eingreifen
+	lastWidth  = rect.width;
+	lastHeight = rect.height;
+	showArea(panZoom);
 }
 
 // Show cursor position
@@ -932,6 +956,7 @@ window.addEventListener("focus", function(event) {
 });
 //window.addEventListener("blur", function(event) {});
 // Activate key
+/*
 document.addEventListener("keydown", function(event){
     if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = true;
@@ -941,7 +966,18 @@ document.addEventListener("keydown", function(event){
         global.altDown = true;
     }
 });
+*/
+document.addEventListener("keydown", function(event){
+    if (event.key === "Shift") {
+        global.shiftDown = true;
+    } else if (event.key === "Control") {
+        global.strgDown = true;
+    } else if (event.key === "Alt") {
+        global.altDown = true;
+    }
+});
 // Deactivate key
+/*
 document.addEventListener("keyup", function(event){
     if			(event.keyCode === 16 || event.charCode === 16){
         global.shiftDown = false;
@@ -951,5 +987,14 @@ document.addEventListener("keyup", function(event){
         global.altDown = false;
     }
 });
-
+*/
+document.addEventListener("keyup", function(event){
+    if (event.key === "Shift") {
+        global.shiftDown = false;
+    } else if (event.key === "Control") {
+        global.strgDown = false;
+    } else if (event.key === "Alt") {
+        global.altDown = false;
+    }
+});
 })(this); // end module
