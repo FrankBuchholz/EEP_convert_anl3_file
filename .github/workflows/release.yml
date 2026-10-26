@@ -19,8 +19,23 @@ jobs:
       uses: actions/checkout@v7
 
     - name: Build
-      run: zip -r ./dist/EEP_convert_anl3_file.zip EEP_Gleisplan.html EEP_Inventar.html EEP_Export_Bridge.html EEP_Signale.html EEP_blockControl.html js/ css/ Lua/ images/ WebServer/ README.md EEP_Export_Bridge.md
-
+      run: zip -r ./dist/EEP_convert_anl3_file.zip \
+            EEP_Gleisplan.html \
+            EEP_Inventar.html \
+            EEP_Export_Bridge.html \
+            EEP_Signale.html \
+            EEP_blockControl.html \
+            README.md \
+            EEP_Export_Bridge.md \
+            js/ \
+            css/ \
+            Lua/ \
+            images/ \
+            WebServer/ \
+            node_modules/toolwindow/dist/ \
+            node_modules/tablefilter/dist/tablefilter/ \
+            node_modules/svg-pan-zoom/dist/
+            
     - name: Create release
       uses: actions/github-script@v9
       with:

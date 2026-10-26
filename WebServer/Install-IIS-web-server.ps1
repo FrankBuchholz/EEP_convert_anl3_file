@@ -68,7 +68,8 @@ if ($PSBoundParameters.Count -eq 0) {
     Write-Host ""
     Write-Host "Beispiele:" -ForegroundColor Cyan
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001"
-    Write-Host "  .\$self -SitePath C:\EEP17 -HttpPort 3000 -HttpsPort 3001"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -AllowNullOrigin"
     Write-Host ""
     Write-Host "Alle Optionen: Get-Help .\$self -Detailed"
     if ($SitePath -match "SITEPATH") {

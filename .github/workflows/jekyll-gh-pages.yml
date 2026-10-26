@@ -54,13 +54,13 @@ jobs:
             EEP_Export_Bridge.html \
             EEP_Signale.html \
             EEP_blockControl.html \
+            README.md \
+            EEP_Export_Bridge.md \
             js/ \
             css/ \
             Lua/ \
             images/ \
             WebServer/ \
-            README.md \
-            EEP_Export_Bridge.md \
             node_modules/toolwindow/dist/ \
             node_modules/tablefilter/dist/tablefilter/ \
             node_modules/svg-pan-zoom/dist/

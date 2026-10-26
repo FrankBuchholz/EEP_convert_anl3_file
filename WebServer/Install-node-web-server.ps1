@@ -113,6 +113,7 @@ if ($PSBoundParameters.Count -eq 0) {
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001"
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -AllowNullOrigin"
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands -ProxyGitHub"
     Write-Host "  .\$self -Uninstall"
     Write-Host ""
     Write-Host "Alle Optionen: Get-Help .\$self -Detailed"

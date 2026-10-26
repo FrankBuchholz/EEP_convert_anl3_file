@@ -5,6 +5,9 @@
     - liefert nur .json und .anl3 Dateien aus
     - optional (-ActivateCommands): nimmt per POST auf /send-command Befehle fuer EEP an und haengt sie als ANSI an
       <SitePath>\<ExchangePath>\<ExchangeFile> an. Absender: die Bridge (erlaubte Origins) bzw. curl von diesem Rechner (ohne Origin)
+    - optional (-ProxyGitHub): alle Anfragen, die keine lokale .json/.anl3-Datei sind (z.B. /EEP_Gleisplan oder
+      /EEP_convert_anl3_file/EEP_Gleisplan.html), werden per GET/HEAD von der ersten GitHub-Origin unter -ProxyPath geholt
+      und ausgeliefert. Bridge, Gleisplan und Daten haben dann dieselbe Origin (kein CORS, kein Mixed Content, keine PNA-Rueckfrage)
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
     - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
     - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
@@ -31,6 +34,10 @@
 .EXAMPLE
     .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands -AllowNullOrigin
     (Befehle der Bridge erlauben, auch wenn die Bridge als lokale Datei file:// gestartet wird)
+.EXAMPLE
+    .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001 -ProxyGitHub
+    (Bridge und Gleisplan werden von GitHub Pages geholt und vom lokalen Server ausgeliefert:
+     https://localhost:3001/EEP_Export_Bridge?url=/eep_export.json)
 .EXAMPLE
     .\Install-Python-web-server.ps1 -Uninstall
 .NOTES
@@ -68,6 +75,7 @@ param(
     [string]$InstallPath       = (Join-Path $env:ProgramData "EEP-Python-Server"),  # server.py, venv, Zertifikat, Log
     [string]$ExchangePath      = "exchange",   # relatives Verzeichnis, in dem die Kommando-Datei liegt
     [string]$ExchangeFile      = "commands-to-eep.txt",   # Name der Kommando-Datei 
+    [string]$ProxyPath         = "/EEP_convert_anl3_file", # Pfad der Seiten auf der GitHub-Origin (nur mit -ProxyGitHub)
     [int]$HttpPort             = 0,      # 0 = kein HTTP-Port (nur HTTPS)
     [int]$HttpsPort            = 443,
     [string[]]$GitHubOrigins   = @("https://frankbuchholz.github.io"), # "https://USERNAME.github.io"
@@ -75,6 +83,7 @@ param(
     [securestring]$PfxPassword,
     [switch]$AllowNullOrigin,         # CORS auch fuer Origin "null" (Seite aus lokaler Datei file://)
     [switch]$ActivateCommands,        # POST /send-command erlauben (Befehle der Bridge an EEP)
+    [switch]$ProxyGitHub,             # Seiten (Bridge, Gleisplan) von der GitHub-Origin holen und lokal ausliefern
     [switch]$OpenFirewall,
     [switch]$Uninstall                # Firewall-Regel und InstallPath entfernen
 )
@@ -97,11 +106,13 @@ if ($PSBoundParameters.Count -eq 0) {
     Write-Host "  -HttpsPort <Port>  Port fuer HTTPS                             [Standard: $HttpsPort]"
     Write-Host "  -AllowNullOrigin   CORS auch fuer Origin 'null' (Seite wird aus einer lokalen Datei geoeffnet)"
     Write-Host "  -ActivateCommands  POST /send-command erlauben (Befehle der Bridge bzw. curl von diesem Rechner an EEP)"
+    Write-Host "  -ProxyGitHub       Bridge und Gleisplan von GitHub Pages holen und selbst ausliefern (gleiche Origin wie die Daten)"
     Write-Host ""
     Write-Host "Beispiele:" -ForegroundColor Cyan
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001"
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -AllowNullOrigin"
     Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands"
+    Write-Host "  .\$self -SitePath C:\EEP17 -HttpsPort 3001 -ActivateCommands -ProxyGitHub"
     Write-Host "  .\$self -Uninstall"
     Write-Host ""
     Write-Host "Alle Optionen: Get-Help .\$self -Detailed"
@@ -118,6 +129,7 @@ $ErrorActionPreference = "Stop"
 $SitePath = $SitePath.Replace("/", "\")
 $InstallPath = $InstallPath.Replace("/", "\")
 $ExchangePath = $ExchangePath.Replace("/", "\")
+$ProxyPath = "/" + $ProxyPath.Replace("\", "/").Trim().Trim("/")
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $script:failed = 0
 
@@ -338,6 +350,21 @@ if ($GitHubOrigins -match "USERNAME") {
     $warnings.Add("GitHub-Origin ist noch der Platzhalter und wird ignoriert. Mit -GitHubOrigins 'https://dein-name.github.io' anpassen.")
 }
 
+# Proxy: Ziel ist die erste GitHub-Origin (nur https, nur Host), Pfad fest unter -ProxyPath
+$proxyHost = ""
+if ($ProxyGitHub) {
+    if ($ProxyPath -notmatch '^/[A-Za-z0-9._~-]+(/[A-Za-z0-9._~-]+)*$' -or $ProxyPath -match '(^|/)\.\.?(/|$)') {
+        $errors.Add("ProxyPath '$ProxyPath' ist ungueltig (z.B. /EEP_convert_anl3_file).")
+    }
+    $po = "$(@($GitHubOrigins | Where-Object { $_ -notmatch 'USERNAME' } | Select-Object -First 1)[0])".TrimEnd("/")
+    if ($po -match '^https://([A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*)$') { $proxyHost = $Matches[1] }
+    else { $errors.Add("-ProxyGitHub braucht als erste GitHub-Origin eine Adresse der Form https://name.github.io (aktuell: '$po').") }
+    $warnings.Add("-ProxyGitHub: Der Server liefert Seiten und Skripte von https://$proxyHost$ProxyPath aus. Dieser Code laeuft dann in der Origin dieses Servers und hat Zugriff auf alle Daten (und mit -ActivateCommands auf die Befehle an EEP). Nur verwenden, wenn dem GitHub-Konto vertraut wird.")
+    if ($ActivateCommands) {
+        $warnings.Add("-ProxyGitHub zusammen mit -ActivateCommands: Wird die GitHub-Seite veraendert oder kompromittiert, kann deren Code same-origin Befehle an EEP senden. Die Origin-Pruefung schuetzt davor nicht.")
+    }
+}
+
 $webAdminOk = $null -ne (Get-Module -ListAvailable -Name WebAdministration)
 if ($webAdminOk) { Import-Module WebAdministration }
 
@@ -464,6 +491,9 @@ $config = [ordered]@{
     computer_name   = $env:COMPUTERNAME
     allow_null_origin = [bool]$AllowNullOrigin
     activate_commands = [bool]$ActivateCommands
+    proxy_github    = [bool]$ProxyGitHub
+    proxy_host      = $proxyHost
+    proxy_path      = $ProxyPath
     cert_file       = (Join-Path $certDir "server.crt")
     key_file        = (Join-Path $certDir "server.key")
     cer_file        = (Join-Path $certDir "server.cer")
@@ -643,11 +673,13 @@ Liefert ausschliesslich .json und .anl3 aus (GET, HEAD, OPTIONS), mit CORS,
 HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung.
 Optional (--activateCommands oder activate_commands in config.json): POST /send-command haengt Befehle fuer EEP als ANSI an eine Datei an.
 WebSocket (wss://, gleiche URL wie die Datei): sendet die Datei beim Verbinden und nach jeder Aenderung.
+Optional (proxy_github in config.json): alles, was keine lokale .json/.anl3-Datei ist, wird per GET/HEAD von proxy_host unter proxy_path geholt.
 Konfiguration: config.json neben dieser Datei
 (wird von Install-Python-web-server.ps1 erzeugt).
 """
 import base64
 import hashlib
+import http.client
 import ipaddress
 import json
 import logging
@@ -663,6 +695,7 @@ import sys
 import threading
 import time
 from email.utils import formatdate
+from urllib.parse import unquote
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -704,6 +737,37 @@ if ACTIVATE_COMMANDS:
         sys.exit("exchange_path liegt ausserhalb von site_path: " + EXCHANGE_DIR)
 
 # Protokoll schreiben
+# Proxy (nur mit -ProxyGitHub): Seiten von GitHub Pages holen und selbst ausliefern
+# Ziel fest: https://<proxy_host><proxy_path>/... Nur GET/HEAD, keine Cookies/Origin/Referer an GitHub, Redirects nur innerhalb desselben Hosts.
+# .json/.anl3 werden nie von GitHub geholt, ausser unter proxy_path (dort zuerst lokal, z.B. relative URL "eep_export.json" der Bridge).
+PROXY = bool(CFG.get("proxy_github")) and bool(re.fullmatch(r"[A-Za-z0-9.-]+", str(CFG.get("proxy_host") or "")))
+PROXY_HOST = str(CFG["proxy_host"]) if PROXY else ""
+PROXY_PATH = str(CFG.get("proxy_path") or "").rstrip("/") if PROXY else ""
+PROXY_PASS = ("Accept", "Accept-Language", "User-Agent", "If-None-Match", "If-Modified-Since")
+PROXY_KEEP = ("Content-Type", "Content-Length", "Last-Modified", "ETag", "Cache-Control", "Expires")
+
+
+def proxy_target(raw):
+    """Pfad auf dem Ziel: /EEP_Gleisplan -> <proxy_path>/EEP_Gleisplan.html; None = nicht erlaubt."""
+    p, sep, q = raw.split("#", 1)[0].partition("?")
+    q = sep + q
+    try:
+        dec = unquote(p, errors="strict")
+    except UnicodeDecodeError:
+        return None
+    if (not p.startswith("/") or p.startswith("//") or re.search(r"[\x00-\x1f\x7f\\]", dec)
+            or ".." in dec.split("/") or not re.fullmatch(r"[\x21-\x7e]*", p + q)):
+        return None
+    if dec == PROXY_PATH:
+        p = dec = PROXY_PATH + "/"
+    elif not dec.startswith(PROXY_PATH + "/"):
+        p, dec = PROXY_PATH + p, PROXY_PATH + dec
+    last = dec.rsplit("/", 1)[-1]
+    if last and "." not in last:
+        p += ".html"
+    return p + q
+
+
 # --- FARB-FORMATTER FUER DIE KONSOLE DEFINIEREN ---
 class ColorFormatter(logging.Formatter):
     # ANSI Escape Codes fuer Farben
@@ -1031,9 +1095,14 @@ class Handler(BaseHTTPRequestHandler):
     def _serve(self, send_body):
         self._begin()
         full = self._resolve(self.path)
+        if not full and PROXY:
+            return self._proxy_or_local(send_body)
         if not full:
             self.send_error(404)
             return
+        self._serve_file(full, send_body)
+
+    def _serve_file(self, full, send_body):
         try:
             f = open(full, "rb")
         except OSError:
@@ -1060,6 +1129,75 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(body)
                 else:
                     shutil.copyfileobj(f, self.wfile, 65536)
+
+    def _proxy_or_local(self, send_body):
+        raw = self.path
+        try:
+            path = unquote(raw.split("?", 1)[0].split("#", 1)[0], errors="strict")
+        except UnicodeDecodeError:
+            return self.send_error(404)
+        data_type = os.path.splitext(path.rsplit("/", 1)[-1])[1].lower() in ALLOWED_TYPES
+        under = raw.startswith(PROXY_PATH + "/")
+        if data_type and not under:             # Daten nur lokal
+            return self.send_error(404)
+        if data_type:
+            local = self._resolve(raw[len(PROXY_PATH):])    # <proxy_path>/eep_export.json -> <SitePath>/eep_export.json
+            if local:
+                return self._serve_file(local, send_body)
+        self._proxy(send_body)
+
+    def _proxy(self, send_body):
+        target = proxy_target(self.path)
+        if not target:
+            return self.send_error(404)
+        headers = {"Accept-Encoding": "identity"}
+        for k in PROXY_PASS:
+            v = self.headers.get(k)
+            if v:
+                headers[k] = v
+        started = False
+        conn = http.client.HTTPSConnection(PROXY_HOST, 443, timeout=15)
+        try:
+            conn.request(self.command, target, headers=headers)
+            ur = conn.getresponse()
+            sc = ur.status
+            if sc in (301, 302, 307, 308):
+                loc = ur.getheader("Location") or ""
+                pre = "https://" + PROXY_HOST
+                if loc.startswith(pre + "/"):
+                    loc = loc[len(pre):]
+                if not loc.startswith("/") or loc.startswith("//") or not re.fullmatch(r"[\x21-\x7e]+", loc):
+                    return self.send_error(502)             # nie auf fremde Hosts umleiten
+                self.send_response(302)
+                self.send_header("Location", loc)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            if sc in (200, 304):
+                self.send_response(sc)
+                for k in PROXY_KEEP:
+                    v = ur.getheader(k)
+                    if v:
+                        self.send_header(k, v)
+                if ur.getheader("Content-Length") is None:
+                    self.close_connection = True
+                started = True
+                self.end_headers()
+                if send_body and sc == 200:
+                    while True:
+                        chunk = ur.read(65536)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                return
+            self.send_error(404 if sc == 404 else 502)
+        except (OSError, http.client.HTTPException) as exc:
+            LOG.warning("Proxy-Fehler (%s): %s", PROXY_HOST, clean(exc))
+            self.close_connection = True
+            if not started:
+                self.send_error(502)
+        finally:
+            conn.close()
 
     def do_GET(self):
         if "websocket" in self.headers.get("Upgrade", "").lower():
@@ -1320,6 +1458,8 @@ def main():
         http = make_server(BaseServer, HTTP_PORT, RedirectHandler)
         threading.Thread(target=http.serve_forever, daemon=True).start()
     LOG.info("Server gestartet (mit WebSocket): HTTPS Port %d, HTTP Port %s, Inhalt %s", HTTPS_PORT, HTTP_PORT or "aus", SITE_ROOT)
+    if PROXY:
+        LOG.warning("Proxy aktiv: andere Seiten kommen von https://%s%s/ (nur GET/HEAD; .json/.anl3 nur lokal)", PROXY_HOST, PROXY_PATH)
     if ACTIVATE_COMMANDS:
         LOG.info("Befehle fuer EEP aktiv: POST %s -> %s (Browser: nur erlaubte Origins, ohne Origin nur von diesem Rechner)", POST_PATH, EXCHANGE_FILE)
         if ALLOW_NULL:
@@ -1487,10 +1627,26 @@ Write-Check ($r.Status -eq 200) "beispiel.anl3 wird ausgeliefert: Status $($r.St
 $testFile = Join-Path $exDir "pruefung.txt"
 'test' | Set-Content $testFile
 try { $r = Invoke-Probe "$testBase/pruefung.txt" } finally { Remove-Item $testFile -Force -ErrorAction SilentlyContinue }
-Write-Check ($r.Status -eq 404) "Andere Dateitypen (.txt) sind gesperrt: Status $($r.Status)"
+if ($ProxyGitHub) { Write-Check ($r.Status -ne 200) "Lokale .txt-Dateien werden nicht ausgeliefert (Proxy fragt nur GitHub): Status $($r.Status)" }
+else { Write-Check ($r.Status -eq 404) "Andere Dateitypen (.txt) sind gesperrt: Status $($r.Status)" }
 
-$r = Invoke-Probe "$baseUrl/"
-Write-Check ($r.Status -eq 404) "Verzeichnisauflistung ist gesperrt: Status $($r.Status)"
+if (-not $ProxyGitHub) {
+    $r = Invoke-Probe "$baseUrl/"
+    Write-Check ($r.Status -eq 404) "Verzeichnisauflistung ist gesperrt: Status $($r.Status)"
+} else {
+    $r = Invoke-Probe "$baseUrl/fehlt.json"
+    Write-Check ($r.Status -eq 404) "Proxy: .json ausserhalb von $ProxyPath wird nie weitergeleitet: Status $($r.Status)"
+    $r = Invoke-Probe "$baseUrl$ProxyPath$exUrl/daten.json"
+    Write-Check ($r.Status -eq 200) "Proxy: $ProxyPath/... liefert Daten zuerst aus SitePath: Status $($r.Status)"
+    if (Test-NetConnection $proxyHost -Port 443 -InformationLevel Quiet -WarningAction SilentlyContinue) {
+        $r = Invoke-Probe "$baseUrl/EEP_Gleisplan"
+        Write-Check ($r.Status -eq 200 -and "$($r.Headers['Content-Type'])" -like "text/html*") "Proxy: /EEP_Gleisplan kommt von https://$proxyHost$ProxyPath/EEP_Gleisplan.html: Status $($r.Status) $($r.Error)"
+        $r = Invoke-Probe "$baseUrl/EEP_Gleisplan" @{} "POST"
+        Write-Check ($r.Status -ne 200) "Proxy: POST wird nicht weitergeleitet: Status $($r.Status)"
+    } else {
+        Write-Warning "$proxyHost ist nicht erreichbar: Der Proxy-Abrufetest wurde uebersprungen."
+    }
+}
 
 # HTTP -> HTTPS (nur wenn ein HTTP-Port konfiguriert ist)
 if ($HttpPort -gt 0) {
@@ -1600,6 +1756,11 @@ if ($ActivateCommands) {
     Write-Host "  Test von diesem Rechner: curl.exe --data-binary `"Befehl`" $baseUrl/send-command"
 } else {
     Write-Host "Befehle (POST) sind nicht aktiviert: -ActivateCommands bei der Installation oder --activateCommands beim Serverstart."
+}
+if ($ProxyGitHub) {
+    Write-Host "Proxy aktiv: Bridge und Gleisplan kommen von https://$proxyHost$ProxyPath/ und werden hier ausgeliefert, z.B.:" -ForegroundColor Green
+    Write-Host "  $baseUrl/EEP_Export_Bridge?url=/eep_export.json"
+    Write-Host "  $baseUrl/EEP_Gleisplan?url=/MeineAnlage.anl3"
 }
 Write-Host "Danach erreichbar unter: $testBase/daten.json   (WebSocket mit wss statt https)"
 Write-Host "Log: $logFile    Deinstallation: .\Install-Python-web-server.ps1 -Uninstall"

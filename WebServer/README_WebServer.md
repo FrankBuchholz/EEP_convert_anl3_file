@@ -25,15 +25,18 @@ EEP + EepExport.lua ──► eep_export.json ─┐
                                                                                EEP_Gleisplan.html
 ```
 
+![Architektur: EEP-Rechner mit Datenordner und Webserver, Browser auf Laptop oder Tablet, GitHub Pages (Seiten direkt oder über den optionalen Proxy)](images/EEP_Szenario_C.svg "Szenario C")
+
 Alle drei Varianten liefern die Dateien gleich aus:
 
 - Ausgeliefert werden **nur `.json` und `.anl3`** (nur `GET`, `HEAD`, `OPTIONS`). Alles andere liefert 404 bzw. 405, ebenso Verzeichnislisten. Einzige Ausnahme: Python und Node.js nehmen mit der Option `-ActivateCommands` zusätzlich `POST` auf `/send-command` an (siehe „Befehle an EEP“ in Abschnitt 2).
 - **CORS** nur für `localhost`, das lokale Netzwerk (10.x, 172.16–31.x, 192.168.x, `*.local`, PC-Name) und die GitHub-Origin (Standard: `https://frankbuchholz.github.io`, änderbar mit `-GitHubOrigins`).
 - `Access-Control-Allow-Private-Network: true` wird nur gesendet, wenn der Browser es per Preflight anfragt und die Origin erlaubt ist.
 - **HTTPS** mit selbstsigniertem Zertifikat (gültig für `localhost`, PC-Name und die lokalen IP-Adressen), HSTS, mindestens TLS 1.2.
-- **Standard ist `-HttpPort 0`:** Es gibt nur einen HTTPS-Port, keinen HTTP-Port und keine Umleitung. Mit `-HttpPort 3000` kommt ein HTTP-Port dazu, der auf HTTPS umleitet.
+- **Standard ist `-HttpPort 0`:** Es gibt nur einen HTTPS-Port, keinen HTTP-Port und keine Umleitung. Mit `-HttpPort 3001` kommt ein HTTP-Port dazu, der auf HTTPS umleitet.
 - **WebSocket (nur Python und Node.js):** Unter derselben Adresse wie die Datei (`wss://…/eep_export.json`) schickt der Server die Datei sofort beim Verbinden und danach nach jeder Änderung. Die Bridge muss dann nicht mehr abfragen (siehe Abschnitt „WebSocket“ in 2). Die IIS-Variante liefert die Datei nur per HTTPS.
 - **Befehle an EEP (nur Python und Node.js, optional):** Mit `-ActivateCommands` nimmt der Server per `POST /send-command` Befehle an und schreibt sie in eine Textdatei im Datenordner (siehe „Befehle an EEP“ in Abschnitt 2). Der **IIS unterstützt das nicht**, der Aufwand wäre zu groß.
+- **Proxy für Bridge und Gleisplan (nur Python und Node.js, optional):** Mit `-ProxyGitHub` liefert der Server auch die Seiten selbst aus. Er holt sie von der GitHub-Origin (siehe 3.10). Der **IIS unterstützt das nicht**.
 - **Vorprüfungen** vor jeder Änderung (Administratorrechte, Parameter, Ports, Voraussetzungen) und **Abschlusstests** (CORS, Dateityp-Sperre, Ports, Umleitung, bei Python und Node.js zusätzlich WebSocket).
 - **Test- und Beispieldateien** (`daten.json`, `beispiel.anl3`, `wstest.json`) liegen im Unterordner `exchange` des Datenordners, nicht im Datenordner selbst. Bei Python und Node.js liegt dort auch die Kommando-Datei. Diese wird nie ausgeliefert, weil `.txt` gesperrt ist.
 - **Fremde Webserver und Programme werden nie beendet oder verändert.** Belegt ein anderes Programm einen Port, bricht das Skript vor jeder Änderung ab.
@@ -260,7 +263,7 @@ Die `.anl3`-Datei wird vom Gleisplan nur einmalig geladen. Wurde die Anlage in E
    .\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001 -OpenFirewall
    ```
 
-2. Die erzeugte Datei `<SiteName> <Variante> (<PC-Name>).cer`, z. B. `EEP Export Node.js (MEIN-PC).cer` (liegt neben dem Skript; Varianten: `IIS`, `Python`, `Node.js`) auf den anderen Rechner bzw. das Tablet kopieren und dort als **vertrauenswürdige Stammzertifizierungsstelle** importieren (unter Windows Zertifikatsspeicher *Lokaler Computer*). Sonst meldet der Browser einen Zertifikatsfehler. Schritt-für-Schritt-Anleitungen für Windows, macOS, iOS/iPadOS und Android stehen in [`README_Zertifikatsverteilung_Heimnetzwerk`](README_Zertifikatsverteilung_Heimnetzwerk.md "README_Zertifikatsverteilung_Heimnetzwerk.md").
+2. Die erzeugte Datei `<SiteName> <Variante> (<PC-Name>).cer`, z. B. `EEP Export Node.js (MEIN-PC).cer` (liegt neben dem Skript; Varianten: `IIS`, `Python`, `Node.js`) auf den anderen Rechner bzw. das Tablet kopieren und dort als **vertrauenswürdige Stammzertifizierungsstelle** (Zertifikatsspeicher *Lokaler Computer*) importieren. Sonst meldet der Browser einen Zertifikatsfehler.Schritt-für-Schritt-Anleitungen für Windows, macOS, iOS/iPadOS und Android stehen in [`README_Zertifikatsverteilung_Heimnetzwerk`](README_Zertifikatsverteilung_Heimnetzwerk.md "README_Zertifikatsverteilung_Heimnetzwerk.md").
 3. Im Browser oder in der Bridge die IP-Adresse des EEP-Rechners verwenden, z. B. `https://192.168.0.115:3001/eep_export.json`, und im Gleisplan entsprechend `https://192.168.0.115:3001/MeineAnlage.anl3`.
 
 Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. Ändert sich die IP-Adresse (DHCP), das Skript einfach erneut ausführen (oder dem EEP-Rechner eine feste IP geben) und die `.cer`-Datei neu importieren.
@@ -287,6 +290,8 @@ Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. 
 | `-ActivateCommands` | erlaubt `POST /send-command`: Befehle der Bridge (bzw. `curl` von diesem Rechner) werden an die Kommando-Datei für EEP angehängt (siehe „Befehle an EEP“ in 2). Beim Serverstart entspricht `--activateCommands` | Python, Node.js |
 | `-ExchangePath <Pfad>` | relativer Unterordner von `-SitePath` für die Kommando-Datei sowie die Test- und Beispieldateien (Standard `exchange`) | Python, Node.js |
 | `-ExchangeFile <Name>` | Dateiname der Kommando-Datei (Standard `commands-to-eep.txt`), darf nicht auf `.json` oder `.anl3` enden | Python, Node.js |
+| `-ProxyGitHub` | Bridge und Gleisplan von der ersten GitHub-Origin holen und selbst ausliefern (siehe 3.10) | Python, Node.js |
+| `-ProxyPath <Pfad>` | Pfad der Seiten auf der GitHub-Origin (Standard `/EEP_convert_anl3_file`), nur mit `-ProxyGitHub` | Python, Node.js |
 | `-OpenFirewall` | Firewall-Regel für den/die Port(s) (Privat, Domäne) | alle |
 | `-PfxPath <Datei>` `-PfxPassword` | eigenes Zertifikat statt selbstsigniert | alle |
 | `-SiteName <Name>` | Name der Website bzw. der Firewall-Regel (Standard `EEP Export`) | alle |
@@ -294,7 +299,7 @@ Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. 
 | `-InstallPath <Pfad>` | Ort von Server, Zertifikat und Log (Standard unter `C:\ProgramData`) | Python, node.js |
 | `-Uninstall` | Server, Firewall-Regel und `InstallPath` entfernen | Python, node.js |
 
-Die Optionen `-ActivateCommands`, `-ExchangePath` und `-ExchangeFile` kennt das IIS-Skript nicht (es nutzt für die Beispieldateien fest den Ordner `exchange`).
+Die Optionen `-ActivateCommands`, `-ExchangePath`, `-ExchangeFile`, `-ProxyGitHub` und `-ProxyPath` kennt das IIS-Skript nicht (es nutzt für die Beispieldateien fest den Ordner `exchange`).
 
 Alle Optionen mit Erklärung: `Get-Help .\<Skript>.ps1 -Detailed`.
 
@@ -303,6 +308,36 @@ Alle Optionen mit Erklärung: `Get-Help .\<Skript>.ps1 -Detailed`.
 - **Erneut ausführen:** Das Skript aktualisiert die bestehende Installation auf die aktuellen Angaben. Beim IIS wird eine Website gleichen Namens auf die neuen Angaben konfiguriert, andere Websites bleiben unberührt.
 - **Python / node entfernen:** `.\Install-Python-web-server.ps1 -Uninstall` bzw. `.\Install-node-web-server.ps1 -Uninstall`. Das entfernt den Server, die Firewall-Regel und den Installationsordner. Unverändert bleiben der Datenordner (`-SitePath`, auch eine darin angelegte Kommando-Datei und der Ordner `exchange` mit den Beispieldateien), Python bzw. Node.js und das Zertifikat im Windows-Speicher (`certlm.msc` → *Vertrauenswürdige Stammzertifizierungsstellen*).
 - **IIS entfernen:** Website `EEP Export` im IIS-Manager löschen, die Firewall-Regel `IIS EEP Export` entfernen und die `web.config` aus dem Datenordner löschen. Der Ordner `exchange` mit den Beispieldateien kann ebenfalls gelöscht werden.
+
+### 3.10 Bridge und Gleisplan vom eigenen Server (Proxy, nur Python und Node.js)
+
+Normalerweise öffnet man Bridge und Gleisplan von GitHub Pages, und sie holen die Daten vom lokalen Server. Dann sind es zwei Origins, und es braucht CORS, die Zusage des Browsers für den Zugriff auf das lokale Netz (Chrome) und HTTPS. Mit `-ProxyGitHub` liefert der Server auch die Seiten selbst aus. Er holt sie bei Bedarf von GitHub Pages. Seiten und Daten haben dann dieselbe Origin:
+
+```powershell
+.\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001 -OpenFirewall -ProxyGitHub
+```
+
+```
+https://192.168.0.115:3001/EEP_Export_Bridge?url=/exchange/eep_export.json
+https://192.168.0.115:3001/EEP_Gleisplan?url=/MeineAnlage.anl3
+```
+
+**Regeln**
+
+- **Lokal zuerst:** `.json`- und `.anl3`-Dateien kommen immer aus dem `-SitePath`. Die POST-Schnittstelle `/send-command` bleibt lokal.
+- **Alles andere von GitHub:** Jede andere Anfrage geht an `https://<erste GitHub-Origin><ProxyPath>/…`. `/EEP_Gleisplan` wird zu `<ProxyPath>/EEP_Gleisplan.html`, `/css/…` und `/js/…` bekommen den Pfad vorangestellt.
+- **Relative Daten-URL:** `<ProxyPath>/exchange/eep_export.json` wird ebenfalls aus dem `-SitePath` geliefert. Der Vorgabewert `exchange/eep_export.json` im URL-Feld der Bridge funktioniert daher auch, wenn man die Seite unter `<ProxyPath>/` öffnet.
+- **Keine Daten von GitHub:** `.json` und `.anl3` außerhalb von `<ProxyPath>` werden nie weitergeleitet (404).
+- **Kein offener Proxy:** Ziel ist fest der eine GitHub-Host. Es gibt nur `GET` und `HEAD`, keine Cookies, keine Origin und keinen Referer zu GitHub. Umleitungen auf andere Hosts werden abgelehnt.
+- **Mit Internet:** Der EEP-Rechner braucht beim Aufruf eine Internetverbindung. Es gibt keinen Zwischenspeicher. Ohne Internet antwortet der Server mit 502.
+
+**Was entfällt, was bleibt**
+
+- Entfällt: CORS, die Rückfrage von Chrome zum lokalen Netzwerk, Mixed Content und `-AllowNullOrigin` (die Seiten werden nicht mehr aus einer lokalen Datei geöffnet).
+- Bleibt: Auf anderen Geräten muss die `.cer`-Datei importiert sein, sonst zeigt der Browser das rote Schloss (siehe 3.6). Der Server ist weiter nur per HTTPS erreichbar.
+- Bleibt: Die Origin-Prüfung für WebSocket und Befehle. Die Seite muss über IP-Adresse, `localhost`, `*.local` oder den PC-Namen geöffnet werden.
+
+**Sicherheit:** Der Code von GitHub läuft in der Origin des lokalen Servers. Wird die GitHub-Seite verändert oder kompromittiert, kann dieser Code alle Daten lesen und mit `-ActivateCommands` Befehle an EEP senden. Die Origin-Prüfung schützt davor nicht, weil die Anfragen von derselben Origin kommen. Die Option nur verwenden, wenn dem GitHub-Konto vertraut wird, und bei `-ActivateCommands` besonders sorgfältig abwägen. Die Skripte zeigen dazu Warnungen. Eine feste Kopie der Seiten im Installationsordner wäre die sicherere Alternative.
 
 ---
 
@@ -317,7 +352,7 @@ Alle Optionen mit Erklärung: `Get-Help .\<Skript>.ps1 -Detailed`.
 | „Node.js (node.exe) wurde nicht gefunden" | Node.js LTS installieren (`winget install OpenJS.NodeJS.LTS` oder <https://nodejs.org>), neue PowerShell als Administrator öffnen, Skript erneut starten. |
 | Chrome: „blocked by CORS policy … from origin 'null'" | Bridge wurde als lokale Datei geöffnet. Entweder über GitHub Pages öffnen oder `-AllowNullOrigin` verwenden (siehe 3.7). |
 | Chrome: Hinweis zum lokalen Netzwerk („privileged network position") | Kein Fehler. Berechtigung einmal erteilen (siehe 3.5). |
-| Zertifikatswarnung auf einem anderen Gerät | Die `.cer`-Datei (z. B. `EEP Export Node.js (MEIN-PC).cer`) dort als vertrauenswürdige Stammzertifizierungsstelle importieren (siehe 3.6 und [`README_Zertifikatsverteilung_Heimnetzwerk`](README_Zertifikatsverteilung_Heimnetzwerk.md "README_Zertifikatsverteilung_Heimnetzwerk.md")). |
+| Zertifikatswarnung auf einem anderen Gerät | Die `.cer`-Datei (z. B. `EEP Export Node.js (MEIN-PC).cer`) dort als vertrauenswürdige Stammzertifizierungsstelle importieren (siehe 3.6). |
 | Bridge zeigt „Fehler: Failed to fetch" | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat nicht vertraut oder Origin nicht erlaubt (CORS). |
 | Gleisplan zeigt bei **URL laden** „Fehler: …" | Wie zuvor. Zusätzlich: Die `.anl3`-Datei liegt nicht im `-SitePath`, oder der Dateiname in der URL stimmt nicht. |
 | Log: `"WS …" 403 Forbidden (Origin: …)` (Python, Node.js) | Die Origin der Bridge ist nicht erlaubt. Bridge von GitHub Pages oder aus dem lokalen Netz öffnen, bei einer lokalen Datei `-AllowNullOrigin` verwenden (siehe 3.7). Die Bridge fragt in der Zwischenzeit weiter per HTTPS ab. |
@@ -329,6 +364,8 @@ Alle Optionen mit Erklärung: `Get-Help .\<Skript>.ps1 -Detailed`.
 | Befehle: 411 oder 413 | `Content-Length` fehlt bzw. der Body ist größer als 64 KB. |
 | Befehle: Antwort 200, aber EEP reagiert nicht | Das Log zeigt „… Befehl(e) … nach … geschrieben“. Prüfen, ob die Kommando-Datei (Standard `<SitePath>\exchange\commands-to-eep.txt`, siehe `-ExchangePath` und `-ExchangeFile`) die erwartete Zeile enthält und ob das Lua-Skript in EEP dieselbe Datei liest. |
 | Warnung „Die Kommando-Datei … existiert bereits“ bei der Installation | Kein Fehler. Die Schreibtests für Befehle wurden übersprungen, damit keine vorhandenen Befehle verloren gehen oder ausgelöst werden. |
+| Mit `-ProxyGitHub`: Seite lädt nicht, Log `Proxy-Fehler …` oder Status 502 | Keine Internetverbindung des EEP-Rechners, GitHub nicht erreichbar oder `-ProxyPath` stimmt nicht. Der Pfad muss auf der GitHub-Seite existieren (Standard `/EEP_convert_anl3_file`). |
+| Mit `-ProxyGitHub`: `.json` oder `.anl3` liefert 404 | Die Datei liegt nicht im `-SitePath`. Außerhalb von `<ProxyPath>` werden Daten nie von GitHub geholt. |
 | Aufruf funktioniert nicht, obwohl der Test `[OK]` zeigt | `eep_export.json` bzw. die `.anl3`-Datei liegt nicht im `-SitePath`, oder der Server (Python/Node.js) läuft nicht mehr. Die Tests nutzen nur die Beispieldateien im Unterordner `exchange`. |
 
 **Protokolle**
