@@ -322,6 +322,8 @@ if ($Uninstall) {
     Remove-NetFirewallRule -DisplayName $fwName -ErrorAction SilentlyContinue
     if (Test-Path $serverJs) { Remove-Item $InstallPath -Recurse -Force }
     elseif (Test-Path $InstallPath) { Write-Warning "$InstallPath enthaelt keine server.js und wurde nicht geloescht." }
+		$scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+		Remove-Item (Join-Path $scriptDir "$SiteName Server starten (Node.js).cmd") -Force -ErrorAction SilentlyContinue
     Write-Host "Entfernt: laufender Server, Firewall-Regel, $InstallPath." -ForegroundColor Green
     Write-Host "Unveraendert: $SitePath, Node.js und das Zertifikat im Windows-Speicher (certlm.msc, Vertrauenswuerdige Stammzertifizierungsstellen)."
     exit 0
@@ -1207,6 +1209,24 @@ New-Item -ItemType Directory -Path $exDir -Force | Out-Null   # legt bei Bedarf 
 if (-not (Test-Path "$exDir\daten.json"))    { Write-Utf8NoBom "$exDir\daten.json" '{ "status": "ok" }' }
 if (-not (Test-Path "$exDir\beispiel.anl3")) { Write-Utf8NoBom "$exDir\beispiel.anl3" 'Beispiel' }
 
+# Startdatei fuer den Server (Doppelklick): im InstallPath und als Kopie neben dem Skript
+$startName  = "$SiteName Server starten (Node.js).cmd"
+$startLines = @(
+    '@echo off',
+    'title EEP Export Server (Node.js)',
+    "cd /d `"$InstallPath`"",
+    "`"$($node.Path)`" `"$serverJs`" %*",
+    'echo.',
+    'echo Server beendet.',
+    'pause'
+)
+$startFile = Join-Path $InstallPath "start-server.cmd"
+Set-Content -Path $startFile -Value $startLines -Encoding OEM
+$scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+$startCopy = Join-Path $scriptDir $startName
+Copy-Item $startFile $startCopy -Force
+Write-Host "   Startdatei: $startCopy"
+
 # ---------------------------------------------------------------- 5. Firewall
 Write-Host "5/6 Firewall ..." -ForegroundColor Cyan
 if ($OpenFirewall) {
@@ -1442,10 +1462,9 @@ if ($script:failed -gt 0) {
 }
 
 Write-Host "`nFertig. Alle Pruefungen bestanden; der Testserver wurde wieder beendet (kein Autostart)." -ForegroundColor Green
-Write-Host "Server starten (Strg+C beendet ihn):"
-Write-Host "  & `"$($node.Path)`" `"$serverJs`"" -ForegroundColor Yellow
-Write-Host "oder (npm gehoert zu Node.js):"
-Write-Host "  npm start --prefix `"$InstallPath`"" -ForegroundColor Yellow
+Write-Host "Server starten: Doppelklick auf  $startCopy (Strg+C beendet ihn)" -ForegroundColor Yellow
+Write-Host "  (oder in einer PowerShell:  & `"$($node.Path)`" `"$serverJs`")"
+Write-Host "  (oder ueber npm von Node.js: npm start --prefix `"$InstallPath`")"
 if ($ActivateCommands) {
     Write-Host "Befehle fuer EEP sind aktiv (POST $baseUrl/send-command -> $(Join-Path (Join-Path $SitePath $ExchangePath) $ExchangeFile))." -ForegroundColor Green
     Write-Host "  Test von diesem Rechner: curl.exe --data-binary `"Befehl`" $baseUrl/send-command"

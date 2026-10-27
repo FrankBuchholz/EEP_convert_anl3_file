@@ -13,9 +13,9 @@ Dafür gibt es drei Installationsskripte für Windows 11, die auf dem **EEP-Rech
 
 | Skript | Webserver | Start |
 |---|---|---|
-| [`Install-IIS-web-server.ps1`](Install-IIS-web-server.ps1 "Install-IIS-web-server.ps1") | IIS (Windows-Bordmittel) | läuft als Windows-Dienst, Autostart |
 | [`Install-Python-web-server.ps1`](Install-Python-web-server.ps1 "Install-Python-web-server.ps1") | Python (`server.py`) | von Hand mit einem Kommando |
 | [`Install-node-web-server.ps1`](Install-node-web-server.ps1 "Install-node-web-server.ps1") | Node.js (`server.js`) | von Hand mit einem Kommando |
+| [`Install-IIS-web-server.ps1`](Install-IIS-web-server.ps1 "Install-IIS-web-server.ps1") | IIS (Windows-Bordmittel) | läuft als Windows-Dienst, Autostart |
 
 ```
 EEP-Rechner                                         zweiter Rechner / Tablet
@@ -53,33 +53,16 @@ Alle drei Varianten liefern die Dateien gleich aus:
 
 **Zusätzlich je Variante**
 
-| | IIS | Python | Node.js |
+| | Python | Node.js | IIS |
 |---|---|---|---|
-| Software | IIS-Features (werden aktiviert) und das Modul *URL Rewrite* (wird installiert) | Python 3.9+ für alle Benutzer (wird bei Bedarf per `winget` installiert), Paket `cryptography` (per `pip`) | **Node.js 18 oder neuer muss bereits installiert sein.** Fehlt es, bricht das Skript sofort ab, ohne etwas zu ändern |
-| Internet | ja (Download von URL Rewrite) | ja (`winget`, `pip`), nur beim ersten Mal | nein |
-| Eingriff ins System | groß: Windows-Features, Dienst, TLS-Einstellungen (Registry) | klein: Ordner unter `C:\ProgramData`, ggf. Python | klein: Ordner unter `C:\ProgramData` |
-| Dateien im Datenordner (`-SitePath`) | `web.config` (steuert Dateityp-Sperre und CORS) und Unterordner `exchange` mit Beispieldateien | Unterordner `exchange` (Beispieldateien, mit `-ActivateCommands` zusätzlich die Kommando-Datei) | Unterordner `exchange` (Beispieldateien, mit `-ActivateCommands` zusätzlich die Kommando-Datei) |
+| Software | Python 3.9+ für alle Benutzer (wird bei Bedarf per `winget` installiert), Paket `cryptography` (per `pip`) | **Node.js 18 oder neuer muss bereits installiert sein.** Fehlt es, bricht das Skript sofort ab, ohne etwas zu ändern | IIS-Features (werden aktiviert) und das Modul *URL Rewrite* (wird installiert) |
+| Internet | ja (`winget`, `pip`), nur beim ersten Mal | nein | ja (Download von URL Rewrite) |
+| Eingriff ins System | klein: Ordner unter `C:\ProgramData`, ggf. Python | klein: Ordner unter `C:\ProgramData` | groß: Windows-Features, Dienst, TLS-Einstellungen (Registry) |
+| Dateien im Datenordner (`-SitePath`) | Unterordner `exchange` (Beispieldateien, mit `-ActivateCommands` zusätzlich die Kommando-Datei) | Unterordner `exchange` (Beispieldateien, mit `-ActivateCommands` zusätzlich die Kommando-Datei) | `web.config` (steuert Dateityp-Sperre und CORS) und Unterordner `exchange` mit Beispieldateien |
 
 ---
 
 ## 2. Die drei Varianten im Vergleich
-
-### IIS
-
-**Vorteile**
-
-- Robust und dauerhaft: Der Dienst startet mit Windows, es muss nichts von Hand gestartet werden.
-- Keine zusätzliche Laufzeit (kein Python, kein Node.js).
-- Zertifikat im Windows-Zertifikatsspeicher, Protokolle in den IIS-Logs.
-
-**Nachteile**
-
-- Größter Eingriff ins System: IIS-Features, URL-Rewrite-Modul, systemweite TLS-Härtung (SSL und TLS 1.0/1.1 für Serverdienste deaktiviert, wirksam nach einem Neustart; abschaltbar mit `-SkipTlsHardening`).
-- Braucht Internet für URL Rewrite.
-- Schreibt eine `web.config` in den Datenordner und legt den Unterordner `exchange` mit Beispieldateien an (Name fest, kein `-ExchangePath`).
-- Konflikte mit anderen IIS-Websites auf demselben Port sind möglich (werden erkannt, aber nicht verändert).
-- Hat kein `-Uninstall`; die Website wird von Hand entfernt (siehe Abschnitt 3.9).
-- Kennt weder WebSocket noch Befehle an EEP (`-ActivateCommands`, `-ExchangePath`, `-ExchangeFile`): Das wäre zu aufwendig. Wer das braucht, nimmt Python oder Node.js.
 
 ### Python
 
@@ -111,12 +94,29 @@ Alle drei Varianten liefern die Dateien gleich aus:
 - Kein Autostart (wie bei Python).
 - Das Paket `npx` wird nicht verwendet da dessen `http-server` weder nur `.json`/`.anl3` ausliefern noch CORS nur für bestimmte Origins freigeben könnte. Deshalb enthält das Skript einen eigenen, abhängigkeitsfreien Server, der mit `node` gestartet wird.
 
+### IIS
+
+**Vorteile**
+
+- Robust und dauerhaft: Der Dienst startet mit Windows, es muss nichts von Hand gestartet werden.
+- Keine zusätzliche Laufzeit (kein Python, kein Node.js).
+- Zertifikat im Windows-Zertifikatsspeicher, Protokolle in den IIS-Logs.
+
+**Nachteile**
+
+- Größter Eingriff ins System: IIS-Features, URL-Rewrite-Modul, systemweite TLS-Härtung (SSL und TLS 1.0/1.1 für Serverdienste deaktiviert, wirksam nach einem Neustart; abschaltbar mit `-SkipTlsHardening`).
+- Braucht Internet für URL Rewrite.
+- Schreibt eine `web.config` in den Datenordner und legt den Unterordner `exchange` mit Beispieldateien an (Name fest, kein `-ExchangePath`).
+- Konflikte mit anderen IIS-Websites auf demselben Port sind möglich (werden erkannt, aber nicht verändert).
+- Hat kein `-Uninstall`; die Website wird von Hand entfernt (siehe Abschnitt 3.9).
+- Kennt weder WebSocket noch Befehle an EEP (`-ActivateCommands`, `-ExchangePath`, `-ExchangeFile`): Das wäre zu aufwendig. Wer das braucht, nimmt Python oder Node.js.
+
 ### Welche Variante?
 
-- **Dauerbetrieb ohne Handgriffe:** IIS.
 - **Wenige Änderungen am System, Internet vorhanden:** Python.
 - **Node.js ist ohnehin installiert oder es gibt kein Internet:** Node.js.
 - **Befehle von der Bridge an EEP senden:** Python oder Node.js (der IIS unterstützt das nicht).
+- **Dauerbetrieb ohne Handgriffe für statische Anzeige der Gleisplaene:** IIS.
 
 ### WebSocket (Python und Node.js)
 
@@ -167,9 +167,9 @@ Das Beispiel gilt für alle drei Varianten. `C:/EEP17` und `C:\EEP17` werden gle
 3. Meldung „nicht digital signiert"? Heruntergeladene Skripte sind als „aus dem Internet" markiert. Die Markierung entfernt man einmalig:
 
    ```powershell
-   Unblock-File .\Install-IIS-web-server.ps1
    Unblock-File .\Install-Python-web-server.ps1
    Unblock-File .\Install-node-web-server.ps1
+   Unblock-File .\Install-IIS-web-server.ps1
    ```
 
    Falls nötig, gilt zusätzlich für dieses eine Fenster: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`.
@@ -177,12 +177,6 @@ Das Beispiel gilt für alle drei Varianten. `C:/EEP17` und `C:\EEP17` werden gle
 Ohne Parameter aufgerufen, zeigt jedes Skript nur die wichtigsten Optionen (`-SitePath`, `-HttpPort`, `-HttpsPort`) und ändert nichts.
 
 ### 3.2 Installation
-
-**IIS**
-
-```powershell
-.\Install-IIS-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001
-```
 
 **Python**
 
@@ -196,11 +190,23 @@ Ohne Parameter aufgerufen, zeigt jedes Skript nur die wichtigsten Optionen (`-Si
 .\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001
 ```
 
+**IIS**
+
+```powershell
+.\Install-IIS-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001
+```
+
 Das Skript prüft zuerst die Voraussetzungen (beim Node.js-Skript als Erstes, ob `node` vorhanden ist), führt dann die Installation durch und endet mit den Abschlusstests. Alle Zeilen müssen `[OK]` zeigen. Bei Python und Node.js gehört dazu ein WebSocket-Test: Er legt kurz die Datei `wstest.json` im Ordner `exchange` an und löscht sie wieder. Mit `-ActivateCommands` kommen Tests für `POST /send-command` hinzu (Origin-Prüfung, ANSI-Kodierung, Schreiben der Kommando-Datei). Sie legen die Kommando-Datei kurz an und löschen sie wieder; existiert sie schon, werden die Schreibtests mit einer Warnung übersprungen, damit keine Befehle verloren gehen oder ausgelöst werden. Das Skript legt im Unterordner `exchange` (bei Python und Node.js über `-ExchangePath` änderbar) die Beispieldateien `daten.json` und `beispiel.anl3` an, mit denen die Tests laufen. Die Tests prüfen also diesen Unterordner und nicht, ob `eep_export.json` und die `.anl3`-Datei im `-SitePath` liegen.
+
+Ausgabe des Installationsskriptes (zum Stand 26.10.2026): [Beispiel Installation Python](Beispiel_Installation_Python.html "Beispiel Installation Python")
 
 ### 3.3 Server starten (nur Python und Node.js)
 
 Der Testserver wird nach den Tests wieder beendet. Zum Arbeiten startet man den Server selbst. Das Fenster muss offen bleiben, **Strg+C** beendet ihn. Es zeigt das Protokoll (INFO grau, WARNING gelb, ERROR rot); dieselben Zeilen stehen in `server.log`.
+
+Start durch Doppelklick auf die vom Skript erzeugte Datei "EEP Export Server starten (Python).cmd" bzw. "EEP Export Server starten (Node.js).cmd" (neben dem Skript und als start-web-server-python.cmd bzw. start-web-server-node.cmd im Installationsordner).
+
+Alternative:
 
 ```powershell
 # Python
@@ -212,17 +218,21 @@ Der Testserver wird nach den Tests wieder beendet. Zum Arbeiten startet man den 
 npm start --prefix "C:\ProgramData\EEP-Node-Server"
 ```
 
-Beim IIS ist nichts zu starten, der Dienst läuft bereits.
-
-Die Annahme von Befehlen (nur Python und Node.js) lässt sich auch ohne Neuinstallation einschalten, indem man beim Start `--activateCommands` anhängt:
+Die Annahme von Befehlen (nur Python und Node.js) lässt sich auch ohne Neuinstallation einschalten, indem man beim Start der cmd-Datei bzw. der Shell-Befehle `--activateCommands` anhängt:
 
 ```powershell
 # Python
+& '.\EEP Export Server starten (Python).cmd' --activateCommands
+# oder
 & "C:\ProgramData\EEP-Python-Server\venv\Scripts\python.exe" "C:\ProgramData\EEP-Python-Server\server.py" --activateCommands
 
 # Node.js
+& '.\EEP Export Server starten (Node.js).cmd' --activateCommands
+# oder
 & "C:\Program Files\nodejs\node.exe" "C:\ProgramData\EEP-Node-Server\server.js" --activateCommands
 ```
+
+Beim IIS ist nichts zu starten, der Dienst läuft bereits.
 
 ### 3.4 Prüfen
 
@@ -263,7 +273,7 @@ Die `.anl3`-Datei wird vom Gleisplan nur einmalig geladen. Wurde die Anlage in E
    .\Install-node-web-server.ps1 -SitePath C:/EEP17 -HttpsPort 3001 -OpenFirewall
    ```
 
-2. Die erzeugte Datei `<SiteName> <Variante> (<PC-Name>).cer`, z. B. `EEP Export Node.js (MEIN-PC).cer` (liegt neben dem Skript; Varianten: `IIS`, `Python`, `Node.js`) auf den anderen Rechner bzw. das Tablet kopieren und dort als **vertrauenswürdige Stammzertifizierungsstelle** (Zertifikatsspeicher *Lokaler Computer*) importieren. Sonst meldet der Browser einen Zertifikatsfehler.Schritt-für-Schritt-Anleitungen für Windows, macOS, iOS/iPadOS und Android stehen in [`README_Zertifikatsverteilung_Heimnetzwerk`](README_Zertifikatsverteilung_Heimnetzwerk.md "README_Zertifikatsverteilung_Heimnetzwerk.md").
+2. Die erzeugte Datei `<SiteName> <Variante> (<PC-Name>).cer`, z. B. `EEP Export Node.js (MEIN-PC).cer` (liegt neben dem Skript; Varianten: `Python`, `Node.js`, `IIS`) auf den anderen Rechner bzw. das Tablet kopieren und dort als **vertrauenswürdige Stammzertifizierungsstelle** (Zertifikatsspeicher *Lokaler Computer*) importieren. Sonst meldet der Browser einen Zertifikatsfehler.Schritt-für-Schritt-Anleitungen für Windows, macOS, iOS/iPadOS und Android stehen in [`README_Zertifikatsverteilung_Heimnetzwerk`](README_Zertifikatsverteilung_Heimnetzwerk.md "README_Zertifikatsverteilung_Heimnetzwerk.md").
 3. Im Browser oder in der Bridge die IP-Adresse des EEP-Rechners verwenden, z. B. `https://192.168.0.115:3001/eep_export.json`, und im Gleisplan entsprechend `https://192.168.0.115:3001/MeineAnlage.anl3`.
 
 Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. Ändert sich die IP-Adresse (DHCP), das Skript einfach erneut ausführen (oder dem EEP-Rechner eine feste IP geben) und die `.cer`-Datei neu importieren.
