@@ -2,10 +2,10 @@
 <#
 .SYNOPSIS
     Installiert und konfiguriert einen Node.js-Webserver unter Windows 11:
-    - liefert nur .json und .anl3 Dateien aus
+    - liefert nur .json, .anl3, .gbs und .zip Dateien aus
     - optional (-ActivateCommands): nimmt per POST auf /send-command Befehle fuer EEP an und haengt sie als ANSI an
       <SitePath>\<ExchangePath>\<ExchangeFile> an. Absender: die Bridge (erlaubte Origins) bzw. curl von diesem Rechner (ohne Origin)
-    - optional (-ProxyGitHub): alle Anfragen, die keine lokale .json/.anl3-Datei sind (z.B. /EEP_Gleisplan oder
+    - optional (-ProxyGitHub): alle Anfragen, die keine lokale .json/.anl3/.gbs/.zip-Datei sind (z.B. /EEP_Gleisplan oder
       /EEP_convert_anl3_file/EEP_Gleisplan.html), werden per GET/HEAD von der ersten GitHub-Origin unter -ProxyPath geholt
       und ausgeliefert. Bridge, Gleisplan und Daten haben dann dieselbe Origin (kein CORS, kein Mixed Content, keine PNA-Rueckfrage)
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
@@ -380,8 +380,8 @@ if ($ExchangePath -match '[:*?"<>|]' -or $ExchangePath.StartsWith('\') -or $Exch
 }
 if ($ExchangeFile -notmatch '^[A-Za-z0-9._-]+$' -or $ExchangeFile -match '^\.+$|[. ]$') {
     $errors.Add("ExchangeFile muss ein reiner Dateiname sein (z.B. commands-to-eep.txt).")
-} elseif ($ExchangeFile -match '\.(json|anl3)$') {
-    $errors.Add("ExchangeFile darf nicht auf .json oder .anl3 enden (diese Dateitypen liefert der Server aus).")
+} elseif ($ExchangeFile -match '\.(json|anl3|gbs|zip)$') {
+    $errors.Add("ExchangeFile darf nicht auf .json, .anl3, .gbs oder .zip enden (diese Dateitypen liefert der Server aus).")
 }
 if ($PfxPath -and -not (Test-Path $PfxPath -PathType Leaf)) { $errors.Add("PfxPath nicht gefunden: $PfxPath") }
 foreach ($g in $GitHubOrigins) {
@@ -605,11 +605,11 @@ $serverCode = @'
 /*
  * EEP Export - schlanker HTTPS-Server (nur Node.js-Standardbibliothek).
  *
- * Liefert ausschliesslich .json und .anl3 aus (GET, HEAD, OPTIONS), mit CORS,
+ * Liefert ausschliesslich .json, .anl3, .gbs und .zip aus (GET, HEAD, OPTIONS), mit CORS,
  * HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung.
  * WebSocket (wss://, gleiche URL wie die Datei): sendet die Datei beim Verbinden und nach jeder Aenderung.
  * Optional (--activateCommands oder activate_commands in config.json): POST /send-command haengt Befehle fuer EEP als ANSI an eine Datei an.
- * Optional (proxy_github in config.json): alles, was keine lokale .json/.anl3-Datei ist, wird per GET/HEAD von proxy_host unter proxy_path geholt.
+ * Optional (proxy_github in config.json): alles, was keine lokale .json/.anl3/.gbs/.zip-Datei ist, wird per GET/HEAD von proxy_host unter proxy_path geholt.
  * Konfiguration: config.json neben dieser Datei
  * (wird von Install-node-web-server.ps1 erzeugt).
  */
@@ -625,7 +625,12 @@ const CFG = JSON.parse(readText(path.join(__dirname, 'config.json')));
 const SITE_ROOT = fs.realpathSync(CFG.site_path);
 const HTTP_PORT = parseInt(CFG.http_port, 10) || 0;
 const HTTPS_PORT = parseInt(CFG.https_port, 10);
-const ALLOWED_TYPES = { '.json': 'application/json', '.anl3': 'application/octet-stream' };
+const ALLOWED_TYPES = { 
+  '.json': 'application/json', 
+  '.anl3': 'application/octet-stream', 
+  '.gbs': 'application/octet-stream', 
+  '.zip': 'application/zip' 
+};
 // Befehle fuer EEP: POST /send-command (nur mit -ActivateCommands bei der Installation ("activate_commands" in config.json)
 // oder --activateCommands beim Start). Ohne Aktivierung antwortet der Server auf POST mit 405.
 const ACTIVATE_COMMANDS = !!CFG.activate_commands || process.argv.slice(2).some(a => /^--?activatecommands$/i.test(a));
@@ -753,7 +758,7 @@ function notFound(req, res) {
 
 // ---- Proxy (nur mit -ProxyGitHub): Seiten von GitHub Pages holen und selbst ausliefern
 // Ziel fest: https://<proxy_host><proxy_path>/... Nur GET/HEAD, keine Cookies/Origin/Referer an GitHub, Redirects nur innerhalb desselben Hosts.
-// .json/.anl3 werden nie von GitHub geholt, ausser unter proxy_path (dort zuerst lokal, z.B. relative URL "eep_export.json" der Bridge).
+// .json/.anl3/.gbs/.zip werden nie von GitHub geholt, ausser unter proxy_path (dort zuerst lokal, z.B. relative URL "eep_export.json" der Bridge).
 const PROXY = !!CFG.proxy_github && /^[A-Za-z0-9.-]+$/.test(String(CFG.proxy_host || ''));
 const PROXY_HOST = PROXY ? String(CFG.proxy_host) : '';
 const PROXY_PATH = PROXY ? String(CFG.proxy_path || '').replace(/\/+$/, '') : '';
@@ -1094,7 +1099,7 @@ function onUpgrade(req, socket, head) {
       || req.headers['sec-websocket-version'] !== '13' || !/^[A-Za-z0-9+/]{22}==$/.test(key)) return deny(400, 'Bad Request');
   const origin = String(req.headers['origin'] || '');
   if (!originAllowed(origin)) return deny(403, 'Forbidden', ' (Origin: ' + (clean(origin) || 'fehlt') + (ALLOW_NULL ? '' : ', file:// und null nur mit -AllowNullOrigin') + ')');
-  const full = resolvePath(req.url || '/');          // gleiche Regeln wie bei HTTP: nur .json und .anl3
+  const full = resolvePath(req.url || '/');          // gleiche Regeln wie bei HTTP: nur .json, .anl3, .gbs, .zip
   if (!full) return deny(404, 'Not Found');
   if (wsClients.size >= WS_MAX_CLIENTS) return deny(503, 'Service Unavailable');
 
@@ -1175,7 +1180,7 @@ async function main() {
     await listen(prepare(http.createServer(logged(redirect))), HTTP_PORT);
   }
   log('Server gestartet (mit WebSocket): HTTPS Port ' + HTTPS_PORT + ', HTTP Port ' + (HTTP_PORT || 'aus') + ', Inhalt ' + SITE_ROOT);
-  if (PROXY) log('Proxy aktiv: andere Seiten kommen von https://' + PROXY_HOST + PROXY_PATH + '/ (nur GET/HEAD; .json/.anl3 nur lokal)', 'WARNING');
+  if (PROXY) log('Proxy aktiv: andere Seiten kommen von https://' + PROXY_HOST + PROXY_PATH + '/ (nur GET/HEAD; .json/.anl3/.gbs/.zip nur lokal)', 'WARNING');
   if (ACTIVATE_COMMANDS) {
     log('Befehle fuer EEP aktiv: POST ' + POST_PATH + ' -> ' + EXCHANGE_FILE + ' (Browser: nur erlaubte Origins, ohne Origin nur von diesem Rechner)');
     if (ALLOW_NULL) log('Origin null/file:// ist erlaubt: auch Seiten in Sandbox-Frames koennten Befehle senden', 'WARNING');
@@ -1196,7 +1201,7 @@ $packageCode = @'
   "name": "eep-export-server",
   "version": "1.0.0",
   "private": true,
-  "description": "EEP Export: HTTPS-Server fuer .json und .anl3 (nur Node.js-Standardbibliothek)",
+  "description": "EEP Export: HTTPS-Server fuer .json, .anl3, .gbs, .zip (nur Node.js-Standardbibliothek)",
   "main": "server.js",
   "bin": { "eep-export-server": "server.js" },
   "scripts": { "start": "node server.js" },
@@ -1362,7 +1367,7 @@ if (-not $ActivateCommands) {
     }
 }
 
-# Nur .json und .anl3
+# Nur .json, .anl3, .gbs, .zip
 $r = Invoke-Probe "$testBase/beispiel.anl3"
 Write-Check ($r.Status -eq 200) "beispiel.anl3 wird ausgeliefert: Status $($r.Status)"
 

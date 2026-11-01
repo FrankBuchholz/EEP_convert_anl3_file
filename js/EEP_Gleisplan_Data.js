@@ -35,6 +35,7 @@ global data which is defined here:
 	global.Rollmaterial
 	global.Routen
 	global.Sounds
+	global.trackConnectionElements
 	global.TrackSystem
 	global.TrackSystemCode
 	global.TrackSystemTexts
@@ -252,7 +253,10 @@ function prepareGleissysteme(sutrackp) {
 									// oder die mit solchen Gleisen verbunden sind
 	// Preparation: Collect connected tracks
 	const trackConnections = [];	// Gleisverbindungen
-
+	// Preparation: Collect <Gleisverbindung> elements per track (for the info popup)
+	// Verwendung: global.trackConnectionElements[GleissystemID][GleisID] = [<Gleisverbindung>, ...]
+	global.trackConnectionElements = {};
+	
 	// Preparation: Collect signals on tracks
 	const trackSignals = [];		// Vor- und Hauptsignale
 	// Start-route-signals of end-route-signals 
@@ -397,8 +401,8 @@ function prepareGleissysteme(sutrackp) {
 
 		// Gleisverbindungen
 		trackConnections[GleissystemID] = [];
-		const Gleisverbindungen = Gleissystem.getElementsByTagName("Gleisverbindung");
-		for (const Gleisverbindung of Gleisverbindungen) {
+		global.trackConnectionElements[GleissystemID] = {};
+		for (const Gleisverbindung of Gleissystem.getElementsByTagName("Gleisverbindung")) {
 			// <Gleisverbindung GleisID1="1" Anschluss1="Anfang" GleisID2="5" Anschluss2="Anfang" Flags="1"/>
 			// Verwendung:
 			// prevGleisID   		= trackConnections[GleissystemID][GleisID].Anfang.GleisID
@@ -412,6 +416,12 @@ function prepareGleissysteme(sutrackp) {
 			const Anschluss2 	= Gleisverbindung.getAttribute("Anschluss2");
 			const Flags 		= Gleisverbindung.getAttribute("Flags");		// undefined: normal connection, 1: virtual connection
 
+			// Element bei beiden beteiligten Gleisen merken
+			const tce = global.trackConnectionElements[GleissystemID];
+			for (const id of new Set([GleisID1, GleisID2])) {
+				(tce[id] = tce[id] || []).push(Gleisverbindung);
+			}
+			
 			// Store relation GleisID1 -> GleisID2
 			if (!trackConnections[GleissystemID][GleisID1]) {
 				 trackConnections[GleissystemID][GleisID1] = {};

@@ -71,6 +71,7 @@ input.cin.rt{width:12em}
   <label><span data-t="alle"></span> <input id="iv" type="number" value="2" min="0.2" step="0.2" style="width:55px"> s</label>
   <label><input type="checkbox" id="send" checked> <span data-t="an Gleisplan senden"></span></label>
   <button id="bPlan" data-t="Gleisplan öffnen"></button>
+  <button id="bGbs" data-t="Gleisbildstellpult öffnen"></button>
   <span id="st" data-t="keine Daten"></span>
   <span id="cst" hidden></span>
   <span id="raw" hidden><input id="rawCmd" size="50" autocomplete="off" placeholder="EEPSetSignal|6|1" title="Textbefehl ohne Whitelist-Prüfung der Bridge; das Lua-Modul entscheidet"> <button id="bRaw" data-t="Senden"></button></span>
@@ -805,6 +806,10 @@ document.addEventListener("drop", async e => {
 // Aktion ausführen: Gleisplan öffnen
 // Öffnet die Seite EEP_Gleisplan.html in einem neuen Tab oder Fenster.
 $("bPlan").onclick = () => window.open("EEP_Gleisplan.html", "EEP_Gleisplan");
+
+// Aktion ausführen: Gleisbildstellpult öffnen
+// Öffnet die Seite EEP_GBS.html in einem neuen Tab oder Fenster.
+$("bGbs").onclick = () => window.open("EEP_GBS.html", "EEP_GBS");
 
 // Aktion ausführen: Folge dem aktiven Zug im Gleisplan
 // Wenn der Benutzer einen Zug aus der Liste auswählt, wird der Gleisplan zentriert auf den Zug ausgerichtet.

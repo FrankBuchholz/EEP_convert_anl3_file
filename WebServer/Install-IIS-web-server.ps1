@@ -2,8 +2,8 @@
 <#
 .SYNOPSIS
     File version: 2026-10-22
-		Installiert und konfiguriert den IIS unter Windows 11:
-    - liefert nur .json und .anl3 Dateien aus
+	Installiert und konfiguriert den IIS unter Windows 11:
+    - liefert nur .json, .anl3, .gbs und .zip Dateien aus
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
     - Access-Control-Allow-Private-Network: true, nur wenn der Browser es per Preflight anfragt
     - optional (-AllowNullOrigin): CORS auch fuer die Origin "null" (Seite wird aus einer lokalen Datei file:// geoeffnet)
@@ -418,6 +418,8 @@ $webConfig = @"
         <fileExtensions allowUnlisted="false">
           <add fileExtension=".json" allowed="true" />
           <add fileExtension=".anl3" allowed="true" />
+          <add fileExtension=".gbs" allowed="true" />
+          <add fileExtension=".zip" allowed="true" />
         </fileExtensions>
         <verbs allowUnlisted="false">
           <add verb="GET" allowed="true" />
@@ -432,6 +434,8 @@ $webConfig = @"
       <mimeMap fileExtension=".json" mimeType="application/json; charset=windows-1252" />
       <remove fileExtension=".anl3" />
       <mimeMap fileExtension=".anl3" mimeType="application/octet-stream" />
+      <remove fileExtension=".gbs" />
+      <mimeMap fileExtension=".gbs" mimeType="application/octet-stream" />
     </staticContent>
     <httpProtocol>
       <customHeaders>
@@ -568,7 +572,7 @@ $pre["Origin"] = "https://fremde-seite.example"
 $r = Invoke-Probe "$testBase/daten.json" $pre "OPTIONS"
 Write-Check (-not $r.Headers[$pna]) "PNA: fremde Origin wird NICHT freigegeben"
 
-# Nur .json und .anl3
+# Nur .json, .anl3, .gbs und .zip
 $r = Invoke-Probe "$testBase/beispiel.anl3"
 Write-Check ($r.Status -eq 200) "beispiel.anl3 wird ausgeliefert: Status $($r.Status)"
 

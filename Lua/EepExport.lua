@@ -59,6 +59,7 @@ EepExport.configure({
   --scanInterval     = 2,      -- Abstand der automatischen Suche in EEP-Sekunden, Standard: 2
   --installCallbacks = true,   -- EEP-Rueckruffunktionen automatisch erweitern, Standard: true
   --anlFile          = nil,    -- Pfad zu einer .anl3-Datei: Namen aller Rollmaterialien werden daraus gelesen, Standard: nil
+  --gbsTracks        = true,   -- mit anlFile: Gleise der Gleisbildstellpulte (GBS) fuer Besetztmeldungen anmelden, Standard: true
   debug              = true,   -- Debug, Standard: false
 })
 
@@ -138,6 +139,7 @@ local config = {
   installCallbacks = true,  -- EEP-Rueckruffunktionen beim ersten run() automatisch erweitern
   trainScanBatch   = 100,   -- Rollmaterialien je Suchlauf, deren Zug per EEPRollingstockGetTrainName ermittelt wird (0 = aus)
   anlFile          = nil,   -- Pfad zu einer .anl3-Datei; daraus werden die Namen aller Rollmaterialien gelesen
+  gbsTracks        = true,  -- bei gesetztem anlFile auch alle in GBS eingetragenen Gleise zur Besetztabfrage anmelden
   debug            = false, -- Debugging-Information anzeigen
 }
 
@@ -552,12 +554,98 @@ local function loadAnlRollingstock()
   if #names > 0 then queue("rollingstock", names, true) end
 end
 
+--- Liest aus einer .anl3-Datei alle Gleise, die in Gleisbildstellpulten (GBS) eingetragen sind
+--- (<GBSObject> ... <Tracks1..4><Table Count="n" e0=".." e1=".."/>, siehe EEP_GBS.html).
+--- Gibt eine Tabelle Gleissystem-Nummer (TrackSystemNumber, 1 = Bahn, 2 = Tram, 3 = Strasse,
+--- 4 = Wasserwege, 5 = Steuerstrecken) -> sortierte Liste der GleisIDs zurueck, sonst nil, Fehlermeldung.
+function M.readGbsTracks(path)
+  local file, err = io.open(path, "rb")
+  if not file then return nil, "Datei nicht lesbar: " .. tostring(err) end
+
+  local found, sysNumber = {}, {}   -- GleissystemID -> { [GleisID] = true }, GleissystemID -> TrackSystemNumber
+  local buf = ""
+  while true do
+    local chunk = file:read(65536)
+    if chunk then buf = buf .. chunk end
+
+    -- Gleissystem-Tags (ab EEP 16 mit GleissystemID und TrackSystemNumber)
+    for attrs in buf:gmatch("<Gleissystem%s([^>]*)>") do
+      local id = attrs:match('GleissystemID="(%d+)"')
+      local nr = attrs:match('TrackSystemNumber="(%d+)"')
+      if id or nr then sysNumber[id or nr] = nr or id end
+    end
+
+    local pos = 1
+    while true do
+      local s = buf:find("<GBSObject", pos, true)
+      if not s then pos = math.max(pos, #buf - 300); break end   -- Tags koennten ueber die Blockgrenze reichen
+      local e = buf:find("</GBSObject>", s, true)
+      if not e then pos = s; break end                          -- GBS noch unvollstaendig: Block nachladen
+
+      local block = buf:sub(s, e)
+      local system = block:match('^<GBSObject[^>]-GleissystemID="(%d+)"') or "1"
+      found[system] = found[system] or {}
+      for tag in block:gmatch("<Tracks%d>%s*<Table([^>]*)>") do
+        local count = tonumber(tag:match('Count="(%d+)"')) or 0
+        for i = 0, count - 1 do
+          local id = tonumber(tag:match('%se' .. i .. '="(%d+)"'))
+          if id and id > 0 then found[system][id] = true end
+        end
+      end
+      pos = e + 1
+    end
+
+    buf = buf:sub(pos)
+    if chunk == nil then break end
+  end
+  file:close()
+
+  local result = {}
+  for system, set in pairs(found) do
+    local nr = tonumber(sysNumber[system] or system)
+    result[nr] = result[nr] or {}
+    for id in pairs(set) do result[nr][#result[nr] + 1] = id end
+    table.sort(result[nr])
+  end
+  return result
+end
+
+-- Gleissystem-Nummer -> Kategorie der Gleisregistrierung (EEPRegisterRailTrack usw.)
+local gbsTrackCategory = { [1] = "railTracks", [2] = "tramTracks", [3] = "roadTracks", [4] = "auxTracks", [5] = "controlTracks" }
+local gbsLoaded = nil   -- Datei, aus der die GBS-Gleise zuletzt gelesen wurden
+
+--- Meldet alle in den GBS der .anl3-Datei eingetragenen Gleise zur Besetztabfrage an (einmalig je Datei).
+--- Wird bei gesetztem config.anlFile automatisch aufgerufen (ausser config.gbsTracks = false).
+local function loadGbsTracks(path)
+  if type(path) ~= "string" or path == "" or gbsLoaded == path then return end
+  gbsLoaded = path   -- nur einmal je Datei versuchen, auch bei Fehler
+
+  local okRead, systems, err = pcall(M.readGbsTracks, path)
+  if not okRead then systems, err = nil, systems end
+  if not systems then
+    M.lastError = "EepExport: GBS-Gleise aus " .. tostring(path) .. ": " .. tostring(err)
+    if config.debug then print(M.lastError) end
+    return
+  end
+  for nr, ids in pairs(systems) do
+    local key = gbsTrackCategory[nr]
+    if key and #ids > 0 then
+      if config.debug then print(string.format("EepExport: %d GBS-Gleise in Gleissystem %d (%s)", #ids, nr, key)) end
+      queue(key, ids, true)
+    end
+  end
+end
+
+--- Meldet die in den GBS einer .anl3-Datei eingetragenen Gleise an (ohne config.anlFile).
+function M.addGbsTracks(path) gbsLoaded = nil; loadGbsTracks(path) end
+
 --- Wertet alle bisher angemeldeten add...()-Aufrufe aus. Wird von collect() automatisch aufgerufen.
 --- Gibt eine Tabelle mit der Anzahl neu hinzugefuegter Objekte je Kategorie zurueck.
 function M.resolve()
   --if config.debug then print("EepExport.resolve") end
   
   loadAnlRollingstock()   -- falls config.anlFile gesetzt ist (einmalig je Datei)
+  if config.gbsTracks then loadGbsTracks(config.anlFile) end   -- Gleise der GBS (einmalig je Datei)
 
   local queued = pending
   pending = {}
@@ -1176,6 +1264,7 @@ end
 function M.configure(options)
   for k, v in pairs(options or {}) do config[k] = v end
   if options and options.anlFile ~= nil and options.anlFile ~= anlLoaded then anlLoaded = nil end
+  if options and options.anlFile ~= nil and options.anlFile ~= gbsLoaded then gbsLoaded = nil end
 end
 
 --- Sammelt alle Zustandsdaten und gibt sie als Tabelle zurueck.

@@ -8,6 +8,7 @@ Mit diesem Programm siehst du den aktuellen Zustand einer laufenden EEP-Anlage i
 | **`CommandExecution.lua`** (in EEP) | liest die Befehle aus `exchange\commands-to-eep.txt` und führt sie in EEP aus (nur für Befehle nötig) |
 | **[`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html")** | liest die JSON-Datei, zeigt Züge, Signale, Weichen und Rollmaterial als Tabellen, leitet die Daten an den Gleisplan weiter und sendet optional Befehle an EEP |
 | **[`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html")** | zeigt den Gleisplan einer Anlage (`.anl3`) und zeichnet die Live-Daten der Bridge hinein; optional bedienst du Signale, Weichen, Züge und Kameras direkt im Plan |
+| **[`EEP_GBS.html`](EEP_GBS.html "EEP_GBS.html")** | zeigt die Gleisbildstellpulte einer Anlage (`.anl3` oder `.gbs`) mit den Live-Daten der Bridge; optional bedienst du Weichen, Signale, Fahrstraßen und Kameras direkt im Stellpult |
 | **Webserver** (Python oder Node.js, siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer")) | liefert `eep_export.json` und die `.anl3`-Datei aus, sendet Änderungen sofort per WebSocket und nimmt Befehle für EEP an |
 
 ```
@@ -15,7 +16,7 @@ EEP (EepExport.lua) ──► Datei eep_export.json ──► Webserver ──�
                         Datei <Anlage>.anl3   ──► Webserver ────────────────────────────► (Züge, Signale, Weichen im Plan)
 
 Befehle (optional):
-EEP_Gleisplan.html ──► EEP_Export_Bridge.html ──► POST /send-command ──► Webserver ──► exchange\commands-to-eep.txt ──► CommandExecution.lua in EEP
+EEP_Gleisplan.html oder EEP_GBS.html ──► EEP_Export_Bridge.html ──► POST /send-command ──► Webserver ──► exchange\commands-to-eep.txt ──► CommandExecution.lua in EEP
 ```
 
 **Aufbau dieser Datei:** Teil 1 ist die Benutzer-Dokumentation (einrichten, bedienen, Fehler beheben). Teil 2 enthält die technischen Details (Konfiguration des Lua-Moduls, Kommunikationsprotokolle, JSON-Format).
@@ -127,7 +128,9 @@ Auf einem anderen Gerät muss vorher das Zertifikat importiert sein, siehe [`REA
 
 **Wichtig:** Lade im Gleisplan dieselbe Anlage, die in EEP läuft. Bei einer anderen Anlage stimmen Gleis-, Signal- und Weichennummern nicht überein.
 
-**Bridge und Gleisplan müssen aus demselben Ursprung geladen werden** (gleiches Protokoll, gleicher Rechnername, gleicher Port) und im selben Browser (selbes Profil) laufen. Beispiele: beide von GitHub Pages, beide vom Webserver oder beide von derselben lokalen Kopie. Der Knopf **Gleisplan öffnen** der Bridge öffnet den Gleisplan aus demselben Ordner und sorgt so automatisch für denselben Ursprung.
+**GBS:** Die Stellpulte zeigst du mit `EEP_GBS.html` live an. Es wird wie der Gleisplan mit der Bridge verbunden: Lade die `.anl3`-Datei derselben Anlage (oder eine `.zip` mit genau einer `.anl3`-Datei) per Dateiauswahl, Drag&Drop oder `?url=…`. Auch eine `.gbs`-Datei ist möglich, dann fehlen aber Fahrstraßen und Signalnamen. Nach dem Laden meldet sich das GBS bei der Bridge, ab dann fließen die Daten. Beschreibung des Programms: [`README`](https://frankbuchholz.github.io/EEP_convert_anl3_file/#6-programm-eep_gbshtml "README"), Abschnitt 6.
+
+**Bridge, Gleisplan und GBS müssen aus demselben Ursprung geladen werden** (gleiches Protokoll, gleicher Rechnername, gleicher Port) und im selben Browser (selbes Profil) laufen. Beispiele: alle von GitHub Pages, alle vom Webserver oder alle von derselben lokalen Kopie. Der Knopf **Gleisplan öffnen** der Bridge öffnet den Gleisplan aus demselben Ordner und sorgt so automatisch für denselben Ursprung.
 
 **Zuletzt:** Die Bridge merkt sich die zuletzt benutzte Datei bzw. URL und bietet sie beim nächsten Aufruf als Knopf **Zuletzt: …** an.
 
@@ -167,7 +170,7 @@ Bei einer lokalen Kopie (entpacktes Archiv) kannst du die Seiten per Doppelklick
 
 - Der **statische Gleisplan** funktioniert uneingeschränkt, die `.anl3`-Datei lädst du per Dateiauswahl oder Drag&Drop.
 - **Bridge und Gleisplan müssen miteinander sprechen können.** Lokale Dateien (`file://`) verhalten sich je nach Browser unterschiedlich; zuverlässiger ist es, beide Seiten von einem lokalen Server (Abschnitt 3.3) oder vom Webserver zu laden.
-- Für **Befehle** brauchst du den Webserver. Eine Bridge, die als lokale Datei geöffnet wurde, sendet die Origin `null`; der Webserver lässt sie nur mit der Option `-AllowNullOrigin` zu (Sicherheitshinweise in [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 5).
+- Für **Befehle** brauchst du den Webserver. Eine Bridge, die als lokale Datei geöffnet wurde, sendet die Origin `null`; der Webserver lässt sie nur mit der Option `-AllowNullOrigin` zu (Sicherheitshinweise in [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 3.7).
 
 ## 4. Die Export Bridge bedienen
 
@@ -181,7 +184,7 @@ Die Bridge ist eine einzelne HTML-Datei (`EEP_Export_Bridge.html`, zusammen mit 
 | **Datei öffnen** | JSON-Datei auswählen und fortlaufend lesen (Abschnitt 3.2) |
 | **URL / URL abfragen** | JSON-Datei per HTTP(S) abfragen (auch per Aufruf mit `?url=…`) |
 | **alle … s** | Abfrageintervall (gilt für Datei und HTTP(S)-Abfrage, nicht bei aktivem WebSocket) |
-| **an Gleisplan senden** | Daten an einen geöffneten Gleisplan weiterleiten |
+| **an Gleisplan senden** | Daten an einen geöffneten Gleisplan und an geöffnete GBS-Seiten weiterleiten |
 | **Gleisplan öffnen** | öffnet `EEP_Gleisplan.html` im selben Ordner in einem neuen Fenster |
 | **⚡ Befehle an EEP aktiv** | erscheint nur, wenn der Webserver Befehle annimmt; zeigt kurz auch das Ergebnis des letzten Befehls |
 | **Befehlszeile** + **Senden** | beliebigen Textbefehl an EEP senden (nur bei aktiven Befehlen, siehe Abschnitt 6) |
@@ -248,13 +251,17 @@ Das gilt für Haupt-, Vorsignale und Haltepunkte. Bei nicht eindeutigen Stellung
 - Wo sich das Gleisnetz verzweigt, folgt der Linienzug bevorzugt dem Gleis, auf dem Fahrzeuge des Zuges stehen. Sonst gilt die aktuelle Weichenstellung.
 - Damit Züge, Signale und Weichen sichtbar sind, müssen die entsprechenden Checkboxen im Gleisplan aktiviert sein (*Gleissysteme*, *Signale*, *Weichen* usw.).
 
+### Die Stellpulte im GBS
+
+`EEP_GBS.html` ist ein weiterer Empfänger der Bridge-Daten. Es zeichnet die Gleisbildstellpulte der Anlage und färbt sie live: Weichenstellung (Nummer und gesetzte Verbindung), Signale, Besetztmeldungen sowie die Spezialsymbole Reset, Status und Zähler. Die Statuszeile des GBS zeigt, wie alt die Daten sind. Ohne verbundene Bridge erscheint „Keine Live-Daten“. Die Bedienung beschreibt Abschnitt 6.
+
 ## 6. Befehle an EEP senden
 
-Bridge und Gleisplan können Befehle an EEP zurückschicken: Signale und Weichen stellen, Zügen eine Geschwindigkeit oder Route geben und Kameras aufrufen. Die Bedienelemente erscheinen **nur, wenn der Webserver Befehle annimmt**. Ohne Befehle ändert sich nichts an der Anzeige.
+Bridge, Gleisplan und GBS können Befehle an EEP zurückschicken: Signale und Weichen stellen, Zügen eine Geschwindigkeit oder Route geben und Kameras aufrufen. Die Bedienelemente erscheinen **nur, wenn der Webserver Befehle annimmt**. Ohne Befehle ändert sich nichts an der Anzeige.
 
 **Voraussetzungen**
 
-1. **Webserver mit Befehlsannahme:** Python oder Node.js, installiert mit `-ActivateCommands` (oder gestartet mit `--activateCommands`). Der IIS unterstützt das nicht (siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 7).
+1. **Webserver mit Befehlsannahme:** Python oder Node.js, installiert mit `-ActivateCommands` (oder gestartet mit `--activateCommands`). Der IIS unterstützt das nicht (siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 2).
 2. **`CommandExecution` in der Anlage** (Abschnitt 1).
 3. **URL-Zugriff:** Die Bridge muss die Daten per URL abfragen, bei direktem Dateizugriff gibt es keine Befehle.
 
@@ -307,10 +314,23 @@ Die Befehlszeile sendet die Zeile **unverändert** (höchstens 500 Zeichen, kein
 
 Die Bedienelemente passen sich bei jedem neuen Datensatz an die aktuellen Stellungen an. Ein Eingabefeld oder eine Auswahl mit Fokus bleibt dabei unverändert.
 
+### Bedienung im GBS
+
+Die **Bridge muss geöffnet** sein (im selben Browser, **an Gleisplan senden** eingeschaltet) und **⚡ Befehle an EEP aktiv** anzeigen. Im GBS wirkt ein **normaler Klick direkt**, es gibt kein Info-Popup und kein Kontextmenü:
+
+| Klick auf | Befehl |
+| --- | --- |
+| Weiche | `EEPSetSwitch`: nächste Stellung, mit <kbd>⇧ Shift</kbd> rückwärts |
+| Signal, Ein/Aus, Reset | `EEPSetSignal`: zwischen Fahrt und Halt wechseln, sonst nächste Stellung |
+| Kamera | `EEPSetCamera` (statisch oder dynamisch laut `.anl3`-Datei; bei einer `.gbs`-Datei immer statisch) |
+| Startsignal **S**, dann Zielsignal **Z** | `EEPSetSignal` auf das Startsignal: Stellung 2 = erste Fahrstraße, 3 = zweite usw. (<kbd>⇧ Shift</kbd> + Klick auf **S** = Stellung 1, löst auf); nur mit `.anl3`-Datei |
+
+Weil ein Klick sofort schaltet, ist die Bedienung im GBS direkt, aber auch leichter zu verklicken als im Gleisplan.
+
 ### Sicherheit
 
 - Der Server nimmt Befehle nur über **HTTPS** und nur von erlaubten Origins an (GitHub-Origin, lokales Netz, `localhost`). Wer den Server erreichen darf, kann Befehle für EEP einreichen: Aktiviere die Befehle nur in vertrauenswürdigen Netzen.
-- Der Gleisplan sendet nie selbst an den Server, sondern nur über die Bridge und deren Whitelist.
+- Gleisplan und GBS senden nie selbst an den Server, sondern nur über die Bridge und deren Whitelist.
 - Die Befehlszeile der Bridge umgeht diese Whitelist. Das Lua-Modul in EEP sollte unbekannte Befehle selbst ablehnen.
 
 ## 7. Fehlersuche
@@ -324,7 +344,7 @@ Die Bedienelemente passen sich bei jedem neuen Datensatz an die aktuellen Stellu
 | „Ungültiges JSON“ | Die Datei wird gerade geschrieben oder ist beschädigt. Beim nächsten Intervall erneut versuchen. |
 | „Kein EEP-Export (global/trains fehlen)“ | Falsche Datei gewählt. |
 | „HTTP 404“ bei URL | Pfad falsch oder Server im falschen Ordner gestartet. Liegt `exchange\eep_export.json` im `-SitePath` des Webservers? |
-| „Fehler: Failed to fetch“ bei URL | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat auf diesem Gerät nicht vertraut, Origin der Bridge vom Server nicht erlaubt (CORS) oder die Bridge kommt per HTTPS aus dem Web und die URL ist nur HTTP. Siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 9. |
+| „Fehler: Failed to fetch“ bei URL | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat auf diesem Gerät nicht vertraut, Origin der Bridge vom Server nicht erlaubt (CORS) oder die Bridge kommt per HTTPS aus dem Web und die URL ist nur HTTP. Siehe [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 4. |
 | Statuszeile zeigt dauernd „HTTP“ statt „WebSocket“ | Der Server unterstützt keinen WebSocket (IIS, einfacher lokaler Server, älteres Skript), die URL ist keine `http(s)`-Adresse, oder der Server lehnt die Origin ab (Log: `403 Forbidden`). Die Daten kommen trotzdem per Abfrage. |
 | „Letzte Änderung vor …“ wächst dauernd | EEP steht oder das Lua-Modul exportiert nicht mehr. |
 | Gleisplan: „Fehler: …“ bei **URL laden** | Datei nicht erreichbar (falsche URL, `file://`, fehlendes CORS bei anderem Server, Zertifikat nicht vertraut). Datei stattdessen auswählen oder per Drag&Drop laden. |
@@ -332,7 +352,8 @@ Die Bedienelemente passen sich bei jedem neuen Datensatz an die aktuellen Stellu
 | Alle Signale grau | Gleisplan nicht verbunden bzw. Anlage noch nicht geladen. Das Signalmodell fehlt in `js/EEP_Signale_Daten.js`. |
 | Züge nicht auf dem Gleis | Anlage im Gleisplan stimmt nicht mit der laufenden überein, oder das Gleis hat einen nicht unterstützten Kurventyp (siehe Konsole). |
 | Keine Bedienelemente, kein „⚡ Befehle an EEP aktiv“ | Der Server nimmt keine Befehle an: nicht mit `-ActivateCommands` installiert bzw. nicht mit `--activateCommands` gestartet, IIS-Variante, Origin nicht erlaubt oder Server nicht erreichbar. Die Quelle muss eine URL sein. Danach **URL abfragen** erneut klicken. |
-| Gleisplan: „Keine Antwort der Export Bridge (ist sie geöffnet?)“ | Die Bridge ist nicht im selben Browser und aus demselben Ursprung geöffnet, oder sie antwortet nicht innerhalb von 3 Sekunden. |
+| Gleisplan oder GBS: „Keine Antwort der Export Bridge (ist sie geöffnet?)“ | Die Bridge ist nicht im selben Browser und aus demselben Ursprung geöffnet, oder sie antwortet nicht innerhalb von 3 Sekunden. |
+| GBS zeigt „Keine Live-Daten …“ | Die Bridge ist nicht im selben Browser und aus demselben Ursprung geöffnet, **an Gleisplan senden** ist aus, oder die Bridge hat noch keine Daten. Bridge öffnen, **URL abfragen** klicken und das GBS danach neu laden. |
 | „Ungültiger Befehl“ | Die Argumente verletzen die Whitelist (z. B. Stellung 0 oder ID über 99999, siehe Abschnitt 9.3). |
 | „Befehl nicht gesendet: HTTP 400 …“ | Zeile leer oder länger als 500 Zeichen, Steuerzeichen oder ein Zeichen, das Windows-1252 nicht kennt. |
 | Meldung „gesendet“, aber EEP reagiert nicht | Prüfen, ob `exchange\commands-to-eep.txt` die Zeile enthält und ob `CommandExecution` in EEP genau diese Datei liest und den Befehl kennt. |
@@ -512,21 +533,23 @@ Alle Programme im selben Browser (gleicher Ursprung, gleiches Profil) sprechen �
 | Kanal | Teilnehmer | Nachrichten |
 | --- | --- | --- |
 | `EEP` | Inventar, Bridge → Gleisplan | `command`: `showTrack`, `showID`, `showContact`, `showCamera`, `showTrackObject`, `showGBS` (mit Objekt-IDs und gedrückten Tasten) |
-| `EEP_LIVE` | Bridge ↔ Gleisplan | siehe unten |
+| `EEP_LIVE` | Bridge ↔ Gleisplan, Bridge ↔ GBS | siehe unten |
 
 Nachrichten auf `EEP_LIVE` (Feld `type`):
 
 | `type` | Richtung | Inhalt |
 | --- | --- | --- |
-| `ready` | Gleisplan → Bridge | Anlage-Datei ist geladen; die Bridge sendet daraufhin den letzten Stand |
-| `data` | Bridge → Gleisplan | komplette Exportdaten |
+| `ready` | Gleisplan oder GBS → Bridge | Anlage-Datei ist geladen; die Bridge sendet daraufhin den letzten Stand |
+| `data` | Bridge → Gleisplan, GBS | komplette Exportdaten |
 | `center` | Bridge → Gleisplan | Ansicht auf Position (`x`, `y`) zentrieren |
 | `showTrack` | Bridge → Gleisplan | Gleis-Info öffnen (`GleissystemID`, `GleisID`) |
 | `signalQuery` | Bridge → Gleisplan | Signal-IDs, zu denen die Stellungstexte erfragt werden |
 | `signalInfo` | Gleisplan → Bridge | Name, Tipp-Text und klassifizierte Stellungstexte je Signal |
-| `cmdState` | Bridge → Gleisplan | Befehle möglich (`ok`)? |
-| `command` | Gleisplan → Bridge | Befehl (`seq`, `fn`, `args`) |
-| `cmdResult` | Bridge → Gleisplan | Ergebnis zu `seq` (`ok`, `text`) |
+| `cmdState` | Bridge → Gleisplan, GBS | Befehle möglich (`ok`)? |
+| `command` | Gleisplan oder GBS → Bridge | Befehl (`seq`, `fn`, `args`) |
+| `cmdResult` | Bridge → Gleisplan, GBS | Ergebnis zu `seq` (`ok`, `text`) |
+
+Das GBS verwendet nur `ready`, `data`, `cmdState`, `command` und `cmdResult`. Weil die Nachrichten an alle geöffneten Seiten gehen, beginnt es seine Folgenummern `seq` zufällig und ignoriert Ergebnisse zu fremden Folgenummern, damit es sich nicht mit einem gleichzeitig geöffneten Gleisplan verwechselt.
 
 Daten, die vor dem Laden der Anlage-Datei eintreffen, speichert der Gleisplan zwischen und zeichnet sie nach dem Laden. Ein Befehl ohne Antwort wird nach 3 Sekunden gemeldet.
 
@@ -561,7 +584,7 @@ Die Befehlszeile der Bridge hat keine Whitelist (höchstens 500 Zeichen, keine S
 
 ### 9.5 WebSocket
 
-Bei einer `http(s)`-URL liest die Bridge die Datei zuerst per HTTP(S) und baut dann eine WebSocket-Verbindung zur selben Adresse auf (`https://` wird zu `wss://`, `http://` zu `ws://`). Der Server sendet die Datei sofort und danach bei jeder Änderung; die Bridge fragt dann nicht mehr ab. Bricht die Verbindung ab, fragt die Bridge wieder im eingestellten Intervall ab und versucht nach 5 Sekunden erneut, sich zu verbinden. Bei Dateizugriff gibt es keinen WebSocket. Einzelheiten zum Server: [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 11.
+Bei einer `http(s)`-URL liest die Bridge die Datei zuerst per HTTP(S) und baut dann eine WebSocket-Verbindung zur selben Adresse auf (`https://` wird zu `wss://`, `http://` zu `ws://`). Der Server sendet die Datei sofort und danach bei jeder Änderung; die Bridge fragt dann nicht mehr ab. Bricht die Verbindung ab, fragt die Bridge wieder im eingestellten Intervall ab und versucht nach 5 Sekunden erneut, sich zu verbinden. Bei Dateizugriff gibt es keinen WebSocket. Einzelheiten zum Server: [`README_WebServer`](https://frankbuchholz.github.io/EEP_convert_anl3_file/WebServer/README_WebServer.html "README_WebServer"), Abschnitt 2 („WebSocket“).
 
 ### 9.6 Zugehörigkeit der Gleissystem-Nummern
 

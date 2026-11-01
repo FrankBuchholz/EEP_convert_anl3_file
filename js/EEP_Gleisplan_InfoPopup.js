@@ -86,6 +86,18 @@ function objectToHTML(object) {
 	return s;
 }
 
+// XML-Code der Gleisverbindungen eines Gleises (nur bei gedrückter alt-Taste, wie bei objectToHTML)
+// onlyFirst = true: nur Verbindungen, bei denen das Gleis als GleisID1 vorkommt (Weichen)
+function connectionsToHTML(GleissystemID, GleisID, onlyFirst) {
+	if (!global.altDown) { return ""; }
+	
+	const list = (global.trackConnectionElements[GleissystemID] || {})[GleisID] || [];
+	return list
+		.filter(v => !onlyFirst || v.getAttribute("GleisID1") === String(GleisID))
+		.map(v => objectToHTML(v))
+		.join("");
+}
+
 function showVirtualConnectionInfo(GleissystemID, GleisID, Anschluss) {
 	const posX = 12, posY = 13, posZ = 14;
 
@@ -226,6 +238,7 @@ function showGleisInfo(GleissystemID, GleisID) {
 			+ connectionText
 			+ quaternionText
 			+ objectToHTML(Gleis)
+			+ connectionsToHTML(GleissystemID, GleisID, false)
 	});
 }
 
@@ -303,6 +316,7 @@ function showWeicheInfo(WeicheID, GleissystemID, GleisID) {
 			+ (KontaktZiel != null && KontaktZiel != 0 ? `<br>${_('Kontaktziel')}: ${KontaktZiel}` : "")
 			+ connectionText
 			+ objectToHTML(Gleis)
+			+ connectionsToHTML(GleissystemID, GleisID, true)
 		});
 }
 

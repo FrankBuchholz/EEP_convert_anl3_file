@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EEP GBS</title>
+<meta name="description" content="Dieses Programm nutzt die Javascript-Funktion DOMParser um eine .anl3-Datei von EEP, die aus XML aufgebaut ist, zu interpretieren und in das Document Object Model (DOM) umzuwandeln. Anschließend wird der Inhalt ausgegeben.">
+<meta name="author" content="Frank Buchholz">
+<meta name="keywords" content="EEP,.anl3,GBS,.gbs,Gleisbildstellpult" />
+<meta name="language" content="de" />
+
+<link rel="icon" href="images/favicon.ico" type="image/x-icon">
+<script src="js/EEP_Zip.js"></script>
+<script src="js/EEP_Signale_Daten.js"></script>
+
+<link rel="stylesheet" href="css/EEP_Texts.css">
+<style>
+/* <![CDATA[ */
+body{
+  margin:0;
+	font:14px/1.4 system-ui,Arial,sans-serif;
+	background:#f5f5f5;color:#111
+}
+	
+.hidden{display:none!important}
+
+#fileselector,#container{margin:12px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:10px}
+#st,#msg{font-size:12px}
+.err{color:#c00}
+.gbs{margin:0 0 22px}
+.gbs svg{width:100%;height:auto;display:block;touch-action:manipulation}
+.tile{fill:#d8d8d8}
+
+/* Linie für Gleise */
+.ln{stroke:#000;stroke-width:12;stroke-linecap:round;fill:none}
+
+/* Linie für Besetztmeldung */
+.occ .ln{stroke:#d22}
+
+/* Linie für Besetztmeldung frei */
+.led{stroke:#999;stroke-width:5;stroke-linecap:round;pointer-events:none}
+/* Linie für Besetztmeldung besetzt */
+.led.occ{stroke:#f22;stroke-width:7}
+
+/* Fahrstrasse pending */
+.pend rect{stroke:#ff0;stroke-width:4}
+
+/* Line für geschaltete Weiche highlight */
+.hl{stroke-width:7;stroke-linecap:round;fill:none;pointer-events:none}
+
+/* Linie für Endgleise */
+.bar-end{stroke:#000;stroke-width:7}
+
+/* Weiche Id */
+.id{
+	fill:#fff;
+	stroke:#000;
+	stroke-width:3;
+	paint-order:stroke;
+	font:bold 16px Arial;
+	text-anchor:middle;
+	dominant-baseline:central;
+	pointer-events:none
+}
+
+/* Signal Id */
+.sid{
+	fill:#fff;
+	font:bold 12px Arial;text-anchor:middle;pointer-events:none}
+
+/* Symbol 37 Ein/Aus Schalter und Symbol 38 Reset */
+.lbl{
+	font:bold 24px Arial;
+	text-anchor:middle;
+	pointer-events:none
+}
+
+/* Symbol 36 Text für Kamera */
+.cn{
+	fill:#000;
+	font:11px Arial;
+	text-anchor:middle;
+	pointer-events:none
+}
+
+/* Symbol 44 Text für Zählersignal */
+.cnt{
+	fill:#ff9a2e; /* Orange */
+	font-family: "Courier New", Courier, Monaco, monospace;
+	font:bold 50px Courier;
+	text-anchor:middle;
+	dominant-baseline: central;
+	pointer-events:none
+}
+
+/* Live-Daten */
+[data-k]{cursor:pointer}
+[data-k]:hover{filter:brightness(1.15)}
+
+/* Debugging: Tabelle der Weichenstellungen */
+.dbg{fill:#a0a;stroke:#fff;stroke-width:3;paint-order:stroke;font:bold 16px Arial;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.gbsbar{margin:4px 0;font-size:12px}
+.gbsbar button{margin-right:6px}
+.gbstxt{width:100%;max-width:900px;height:220px;font:12px monospace;display:block;margin-bottom:6px}
+.dbgt{border-collapse:collapse;font-size:12px;margin-top:6px}
+.dbgt td,.dbgt th{border:1px solid #999;padding:2px 6px;text-align:left}
+/* ]]> */
+</style>
+</head>
+
+<body>
+<script src="js/EEP_Texts.js"></script>
+
+<section id="fileselector">
+
+<header class="flexRow"> <!-- Show heading and language selection buttons, see EEP_Texts.css -->
+<div> <!-- left part -->
+<h3>
+	<span lang="de">EEP-GBS (Gleisbildstellpulte bedienen)</span>
+	<span lang="en">EEP GBS (operate control desks)</span>
+	<span lang="fr">EEP GBS (commander les pupitres)</span>
+</h3>
+</div>
+
+<div> <!-- right part -->
+<label for="german" class="langBtn">Deutsch</label>
+<label for="english" class="langBtn">English</label>
+<label for="french" class="langBtn">Français</label>
+</div>
+</header>
+
+<form action="#" onsubmit="return false;">
+<label for="fileinput">
+<span lang="de">Wähle die EEP-Anlagendatei (.anl3, .zip) oder eine Gleisbildstellpultdatei (.gbs) der laufenden Anlage aus oder ziehe sie hierher.</span>
+<span lang="en">Select (or drag&amp;drop) the EEP layout file (.anl3 / .zip) or a control desk file (.gbs) of the running layout.</span>
+<span lang="fr">Sélectionnez (ou glissez-déposez) le fichier de réseau EEP (.anl3, .zip) ou un fichier de pupitre (.gbs) du réseau en cours.</span>
+</label>
+<input type="file" id="fileinput" accept=".anl3,.gbs,.zip">
+<br>
+
+<label for="urlinput">
+<span lang="de">oder URL der Datei:</span>
+<span lang="en">or URL of the file:</span>
+<span lang="fr">ou URL du fichier:</span>
+</label>
+<input type="text" id="urlinput" size="100" style="max-width:100%">
+<button type="button" id="btnUrl"><span lang="de">URL laden</span><span lang="en">Load URL</span><span lang="fr">Charger l'URL</span></button>
+<span id="urlStatus"></span>
+</form>
+
+<article>
+<p lang="de"><small>Die Stellpulte der Anlage werden angezeigt. Ein Klick auf eine Weiche, ein Signal oder eine Kamera sendet den Befehl über die <a href="EEP_Export_Bridge.html" target="_blank">Export Bridge</a> an EEP (Befehle müssen dort aktiv sein, die Bridge muss im selben Browser geöffnet sein und „an Gleisplan senden“ eingeschaltet haben). Umschalt+Klick auf eine Weiche schaltet rückwärts.</small></p>
+<p lang="en"><small>The control desks of the layout are shown. Clicking a switch, signal or camera sends the command to EEP via the <a href="EEP_Export_Bridge.html" target="_blank">Export Bridge</a> (commands must be active there, the Bridge must be open in the same browser with "Send to track plan" enabled). Shift+click on a switch steps back.</small></p>
+<p lang="fr"><small>Les pupitres du réseau sont affichés. Un clic sur un aiguillage, un signal ou une caméra envoie la commande à EEP via l'<a href="EEP_Export_Bridge.html" target="_blank">Export Bridge</a> (commandes actives, Bridge ouverte dans le même navigateur, « Envoyer au plan des voies » activé). Maj+clic sur un aiguillage: sens inverse.</small></p>
+</article>
+
+<footer>
+<hr>
+<p lang="de"><small>(c) Frank Buchholz, 2026</small></p>
+<p lang="en"><small>(c) Frank Buchholz, 2026</small></p>
+<p lang="fr"><small>(c) Frank Buchholz, 2026</small></p>
+</footer>
+
+</section> <!-- fileselector -->
+
+<main id="container" class="hidden"> <!-- The container shows the result -->
+<h3 id="filename"></h3>
+<div class="bar"><span id="st"></span><span id="msg"></span>
+<label><input type="checkbox" id="dbgOn"> <span lang="de">Debug</span><span lang="en">Debug</span><span lang="fr">Debug</span></label>
+</div>
+<div id="boards"></div>
+</main>
+
+<script>
+"use strict";
+// ---- Hilfsfunktionen -------------------------------------------------------------------
+// Shortcut für document.getElementById
+const $ = id => document.getElementById(id);
+
+// Übersetzungen auswählen
+const lt = (de, en, fr) => ({DE: de, EN: en, FR: fr}[EEP_Texts.getLanguage()] || de);
+
+// SVG-Element erzeugen und anfügen
+const NS = "http://www.w3.org/2000/svg"; // SVG-Namespace
+function el(parent, tagName, attribute, txt) {
+	const element = document.createElementNS(NS, tagName);
+	for (const k in attribute) { element.setAttribute(k, attribute[k]); }
+	if (txt != null) { element.textContent = txt; }
+	parent.appendChild(element);
+	return element;
+}
+
+// ---- Anlage-Datei laden (wie EEP_Inventar.html) ----------------------------------------
+// Liefert den Adressraum für Private Network Access, oder null für öffentliche Hosts
+function targetSpace(url) {
+	let hostname = "";
+	try { hostname = new URL(url, document.baseURI).hostname.toLowerCase(); } catch (e) { return null; }
+	if (hostname === "localhost" || hostname === "[::1]" || /^127\./.test(hostname)) { return "local"; }
+	if (/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostname) || hostname.endsWith(".local")) { return "private"; }
+	return null;
+}
+
+// Anlage-Datei einmalig von einer URL laden (relativ oder absolut) und wie eine ausgewählte Datei verarbeiten
+function loadUrl(url) {
+	url = (url || "").trim();
+	if (!url) { 
+		$("urlStatus").textContent = "URL?"; 
+		return; 
+	}
+	
+	// URL in localStorage merken, damit sie beim nächsten Aufruf wieder da ist
+	try { localStorage.setItem("anl3Url", url); } catch (e) {}
+
+	EEP_Zip.setStatus("...", false);
+
+	// Fetch-Optionen: kein Cache, GET-Methode, ggf. targetAddressSpace
+	const opts = {cache: "no-store", method: "GET"};
+	const space = targetSpace(url);
+	if (space) { opts.targetAddressSpace = space; }
+
+	fetch(url, opts)
+		// Prüft, ob die Antwort ok ist und wandelt sie in einen Blob um
+		.then(response => { 
+			if (!response.ok) { 
+				throw new Error("HTTP " + response.status); 
+			} 
+			return response.blob(); 
+		})
+		// Wandelt den Blob in eine Datei um und lädt sie
+		.then(blob => {
+			let name = "";
+			try { name = decodeURIComponent(new URL(url, document.baseURI).pathname.split("/").pop()); } catch (e) {}
+			EEP_Zip.setStatus("...", false);
+			loadFile(new File([blob], name || "anlage.anl3"));
+		})
+		// Behandelt Fehler
+		.catch(err => EEP_Zip.setStatus(EEP_Zip.describeError(err, url), true));
+	}
+
+// Bytes als Text lesen: UTF-8, ersatzweise Windows-1252 (ältere .gbs-Dateien)
+function decodeText(buf) {
+	try { return new TextDecoder("utf-8", {fatal: true}).decode(buf); }
+	catch (e) { return new TextDecoder("windows-1252").decode(buf); }
+}
+
+// Datei laden: .gbs direkt, sonst (ggf. ZIP) entpacken. Das Format wird am Inhalt erkannt.
+function loadFile(file) {
+	if (!file) { return; }
+	const open = /\.gbs$/i.test(file.name) ? Promise.resolve(file) : EEP_Zip.resolve(file);
+	open.then(f => {
+		const fr = new FileReader();
+		fr.onload = () => {
+			try { loadText(decodeText(fr.result), f.name); }
+			catch (err) { EEP_Zip.setStatus(String(err.message || err), true); }
+		};
+		fr.readAsArrayBuffer(f);
+	}).catch(err => EEP_Zip.setStatus(EEP_Zip.describeError(err, ""), true));
+}
+
+function loadText(text, name) {
+	M = parseText(text, name);
+	render(name);
+	$("fileselector").classList.add("hidden");
+	$("container").classList.remove("hidden");
+	ch.postMessage({type: "ready"});   // Bridge schickt Daten und Befehlsstatus
+}
+
+// ---- UI-Events --------------------------------------------------------------------------
+// Datei-Input
+$("fileinput").onchange = e => loadFile(e.target.files && e.target.files[0]);
+// URL-Input
+$("btnUrl").onclick = () => loadUrl($("urlinput").value);
+// Enter-Taste im URL-Input
+$("urlinput").onkeydown = e => { if (e.key === "Enter") { loadUrl($("urlinput").value); } };
+
+// Drag&Drop
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+
+// URL aus localStorage oder Query-Parameter laden
+try { 
+	$("urlinput").value = localStorage.getItem("anl3Url") || ""; 
+} catch (e) {}
+
+// URL-Parameter ?url= laden
+{ 
+	const p = new URLSearchParams(location.search).get("url"); 
+	if (p) { 
+		$("urlinput").value = p; 
+		loadUrl(p); 
+	} 
+}
+
+// URL-Parameter ?debug laden
+const DBG = {on: new URLSearchParams(location.search).has("debug")};   // Debug-Anzeige
+
+// ---- Daten der Anlage ------------------------------------------------------------------
+/*
+Gemeinsames Datenmodell für .anl3 (GBSObject) und .gbs (Online-Handbuch EEP 18, Kapitel 9.3):
+Stellpult g = {id, name, sys (GleissystemID), layer, Colums, Rows, itRadius, tiles}
+Kachel t = {
+	x, y, 
+	symbol (Icons i0), 
+	sl/sm/sr (Icons i1..i3), 
+	il/im/ir (Signals), 
+	tracks[4] (TrackA..D: Listen von GleisIDs),
+  WeicheID (Switch), 
+	set (SwitchSet, z.B. ["-B","-C"]: Buchstabe = Ausleuchtfeld A..D, "-" = Weichenantriebsgleis),
+  cam (Camera),
+	tip (TipText)
+}
+In der .anl3 steht TakeSwitch e1..e12 als Paare von Indizes 0..3 (= A..D), -1 = "-".
+*/
+// Layer der .gbs-Datei (1 Eisenbahn, 2 Straße, 3 Straßenbahn, 4 sonstige Splines) <-> GleissystemID der Anlage (1 Bahn, 2 Straßenbahn, 3 Straße, 4 sonstige)
+const LAYER_TO_SYS = {1: 1, 2: 3, 3: 2, 4: 4};
+const SYS_TO_LAYER = {1: 1, 3: 2, 2: 3, 4: 4};
+
+function emptyModel() {
+	return {
+		Weichen: {}, 	// Weichen (nur für die Debug-Prüfung)
+		sig: {}, 	// Signale (Name, Fahrstraßen)
+		cam: {}, 	// Kameras
+		gbs: [], 	// Stellpulte
+		sys: {},	// Gleissysteme
+		link: {},	// Gleisverbindungen (nur für die Debug-Prüfung)
+		swn: {}		// Anzahl der Weichenstellungen je Weichen-ID
+	};
+}
+let M = emptyModel();
+
+const newTile = (x, y) => ({x: x, y: y, symbol: 0, sl: 0, sm: 0, sr: 0, il: 0, im: 0, ir: 0, cam: null, tip: null,
+	tracks: [[], [], [], []], WeicheID: 0, set: []});
+
+function finishModel(m) {
+	for (const g of m.gbs) {
+		for (const t of g.tiles) {
+			t.gbs = g;
+			if (t.WeicheID) {
+				let n = t.set.length;
+				while (n > 2 && t.set[n - 1] === "--") { n--; }
+				m.swn[t.WeicheID] = Math.max(m.swn[t.WeicheID] || 2, n);
+			}
+		}
+		if (!g.Colums) { g.Colums = Math.max(1, ...g.tiles.map(t => t.x)); }
+		if (!g.Rows) { g.Rows = Math.max(1, ...g.tiles.map(t => t.y)); }
+	}
+	return m;
+}
+
+// Text einer .anl3 oder .gbs in das Modell umwandeln (Format wird am Inhalt erkannt)
+function parseText(text, name) {
+	text = text.replace(/^\uFEFF/, "");
+	if (/^\s*\[GBS\]/i.test(text)) { return parseGbs(text, name || ""); }
+	const doc = new DOMParser().parseFromString(text, "text/xml");
+	if (doc.querySelector("parsererror") || doc.documentElement.nodeName !== "sutrackp") { throw new Error("XML?"); }
+	return parseAnl3(doc.documentElement);
+}
+
+// ---- .anl3 lesen ----
+function anl3Tile(E) {
+	const tab = tag => { const T = E.getElementsByTagName(tag)[0]; return T && T.getElementsByTagName("Table")[0]; };
+	const num = (T, k) => T ? +T.getAttribute("e" + k) || 0 : 0;
+	const Mo = tab("Modell"), S = tab("Signal");
+	const t = newTile(+E.getAttribute("x"), +E.getAttribute("y"));
+	Object.assign(t, {symbol: num(Mo, 0), sl: num(Mo, 1), sm: num(Mo, 2), sr: num(Mo, 3), il: num(S, 0), im: num(S, 1), ir: num(S, 2),
+		cam: E.getAttribute("Kammera"), tip: E.getAttribute("TipTxt") || E.getAttribute("TipText")});
+	for (let i = 1; i <= 4; i++) {
+		const T = tab("Tracks" + i);
+		for (let j = 0; T && j < +T.getAttribute("Count"); j++) { if (num(T, j)) { t.tracks[i - 1].push(num(T, j)); } }
+	}
+	const TS = tab("TakeSwitch");
+	if (TS) {
+		t.WeicheID = num(TS, 0);
+		const lc = k => { const v = TS.getAttribute("e" + k); return v == null || +v < 0 ? "-" : "ABCD"[+v] || "-"; };
+		for (let k = 0; k < 6; k++) { t.set.push(lc(2 * k + 1) + lc(2 * k + 2)); }
+		while (t.set.length > 2 && t.set[t.set.length - 1] === "--") { t.set.pop(); }
+	}
+	return t;
+}
+
+function parseAnl3(sutrackp) {
+	const m = emptyModel();
+	for (const Gleissystem of sutrackp.getElementsByTagName("Gleissystem")) {
+		let GleissystemID = Gleissystem.getAttribute("GleissystemID");
+		let TrackSystemNumber = Gleissystem.getAttribute("TrackSystemNumber");
+		if (GleissystemID && !TrackSystemNumber) { TrackSystemNumber = GleissystemID; }
+		else if (!GleissystemID && TrackSystemNumber) { GleissystemID = TrackSystemNumber; }
+		m.sys[GleissystemID] = TrackSystemNumber;
+
+		for (const Gleis of Gleissystem.getElementsByTagName("Gleis")) {
+			const Id = Gleis.getAttribute("Key_Id");
+			if (Id) { m.Weichen[Id] = {sys: GleissystemID, gid: Gleis.getAttribute("GleisID")}; }
+			for (const Meldung of Gleis.getElementsByTagName("Meldung")) {
+				m.sig[Meldung.getAttribute("Key_Id")] = {
+					name: Meldung.getAttribute("name"),
+					// Fahrstraßen eines Startsignals: Zielsignale in der Reihenfolge der Signalstellungen 2, 3, ... (Stellung 1 = auflösen)
+					routes: Array.from(Meldung.getElementsByTagName("Route")).map(Route => Route.getAttribute("Target"))
+				};
+			}
+		}
+		// Gleisverbindungen: werden nur für die Prüfung im Debug-Modus verwendet, nicht für die Darstellung
+		const link = m.link[GleissystemID] = {};
+		for (const V of Gleissystem.getElementsByTagName("Gleisverbindung")) {
+			const g1 = V.getAttribute("GleisID1"), g2 = V.getAttribute("GleisID2");
+			(link[g1] = link[g1] || {})[V.getAttribute("Anschluss1")] = g2;
+			(link[g2] = link[g2] || {})[V.getAttribute("Anschluss2")] = g1;
+		}
+	}
+
+	const Kamerasammlung = sutrackp.getElementsByTagName("Kammerasammlung")[0];
+	if (Kamerasammlung) {
+		for (const Kamera of Kamerasammlung.getElementsByTagName("Kammera")) {
+			const Name = Kamera.getAttribute("name");
+			if (Name !== "Leer" && Name !== "blank" && Name !== "Vide") { m.cam[Name] = {dyn: Kamera.getAttribute("Dynamic") == 1}; }
+		}
+	}
+
+	for (const Sammlung of sutrackp.getElementsByTagName("Gebaeudesammlung")) {
+		if (Sammlung.getAttribute("GebaudesammlungID") != 4) { continue; }
+		for (const O of Sammlung.getElementsByTagName("GBSObject")) {
+			const id = O.getAttribute("id"), sys = O.getAttribute("GleissystemID");
+			m.gbs.push({
+				id: id, name: O.getAttribute("Name") || "GBS_" + id, sys: sys, layer: SYS_TO_LAYER[sys] || +sys,
+				Colums: +O.getAttribute("Width"), Rows: +O.getAttribute("Height"), itRadius: +O.getAttribute("ITRadius") || 2,
+				tiles: Array.from(O.getElementsByTagName("GBSElement")).map(anl3Tile)
+			});
+		}
+	}
+	return finishModel(m);
+}
+
+// ---- .gbs lesen ----
+function parseGbs(text, name) {
+	const m = emptyModel();
+	const g = {id: 1, name: name.replace(/\.[^.]*$/, "") || "GBS", layer: 1, Colums: 0, Rows: 0, itRadius: 2, tiles: []};
+	const ints = v => v.split(",").map(s => parseInt(s, 10) || 0);
+	const str = v => (v.match(/^"(.*)"\s*,?$/) || [0, v.replace(/,$/, "")])[1];
+	let t = null;
+	for (const raw of text.split(/\r?\n/)) {
+		const line = raw.trim();
+		if (!line || line[0] === ";") { continue; }
+		let k = line.match(/^\[(\d+)\s*,\s*(\d+)\]$/);
+		if (k) { t = newTile(+k[1], +k[2]); g.tiles.push(t); continue; }
+		if (/^\[GBS\]$/i.test(line)) { t = null; continue; }
+		k = line.match(/^([A-Za-z]+)\s*=\s*(.*)$/);
+		if (!k) { console.warn("GBS: Zeile nicht verstanden: " + line); continue; }
+		const key = k[1].toLowerCase(), val = k[2].trim();
+		if (!t) {   // Kopfzeilen
+
+			if (key === "size") { [g.Colums, g.Rows] = ints(val); }
+
+			else if (key === "layer") { g.layer = parseInt(val, 10) || 1; }
+
+		} else if (key === "icons") {
+			const a = ints(val); t.symbol = a[0] || 0; t.sl = a[1] || 0; t.sm = a[2] || 0; t.sr = a[3] || 0;
+
+		} else if (key === "signals") {
+			const a = ints(val); t.il = a[0] || 0; t.im = a[1] || 0; t.ir = a[2] || 0;
+
+		} else if (/^tracks?[a-d]$/.test(key)) {   // Handbuch: TrackA, Beispieldateien: TracksA
+			t.tracks["abcd".indexOf(key.slice(-1))] = ints(val).filter(Boolean);
+
+		} else if (key === "switch") {
+			t.WeicheID = parseInt(val, 10) || 0;
+
+		} else if (key === "switchset") {
+			t.set = str(val).split(",").map(s => s.trim().toUpperCase()).map(s => /^[A-D-]{2}$/.test(s) ? s : "--");
+
+		} else if (key === "camera") {
+			t.cam = str(val);
+
+		} else if (key === "tiptext") {
+			t.tip = str(val);
+		}
+	}
+	g.sys = LAYER_TO_SYS[g.layer] || g.layer;
+	m.sys[g.sys] = g.sys;
+	m.gbs.push(g);
+	return finishModel(m);
+}
+
+// ---- Schreiben und Umwandeln ----
+const sortedTiles = g => g.tiles.slice().sort((a, b) => a.y - b.y || a.x - b.x);
+const xmlq = s => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
+// Stellpult -> Text einer .gbs-Datei
+function writeGbs(g) {
+	const L = ["[GBS]", "Size=" + g.Colums + "," + g.Rows, "Layer=" + (g.layer || SYS_TO_LAYER[g.sys] || 1)];
+	for (const t of sortedTiles(g)) {
+		L.push("[" + t.x + "," + t.y + "]", "Icons=" + [t.symbol, t.sl, t.sm, t.sr].join(","));
+		if (t.symbol !== 36 && t.symbol !== 58) {
+			[0, 1, 2, 3].forEach(i => L.push("Tracks" + "ABCD"[i] + "=" + (t.tracks[i].length ? t.tracks[i].join(",") : 0)));
+			L.push("Signals=" + [t.il, t.im, t.ir].join(","));
+			if (t.WeicheID) { L.push("Switch=" + t.WeicheID, 'SwitchSet="' + t.set.join(",") + '"'); }
+		}
+		if (t.cam) { L.push('Camera="' + t.cam + '"'); }
+		if (t.tip) { L.push('TipText="' + t.tip + '"'); }
+	}
+	return L.join("\r\n") + "\r\n";
+}
+
+// Stellpult -> Text des GBSObject-Elements einer .anl3
+function writeAnl3(g) {
+	const table = (tag, v) => ["\t\t\t<" + tag + ">", '\t\t\t\t<Table Count="' + v.length + '" ' + v.map((x, i) => "e" + i + '="' + x + '"').join(" ") + "/>", "\t\t\t</" + tag + ">"];
+	const A = ['\t<GBSObject Width="' + g.Colums + '" Height="' + g.Rows + '" id="' + g.id + '" GleissystemID="' + g.sys +
+		'" ITRadius="' + (g.itRadius || 2) + '" Name="' + xmlq(g.name) + '">'];
+	for (const t of sortedTiles(g)) {
+		A.push('\t\t<GBSElement x="' + t.x + '" y="' + t.y + '"' + (t.cam ? ' Kammera="' + xmlq(t.cam) + '"' : "") + (t.tip ? ' TipTxt="' + xmlq(t.tip) + '"' : "") + ">");
+		A.push(...table("Modell", [t.symbol, t.sl, t.sm, t.sr]));
+		if (t.il || t.im || t.ir) { A.push(...table("Signal", [t.il, t.im, t.ir])); }
+		t.tracks.forEach((ids, i) => { if (ids.length) { A.push(...table("Tracks" + (i + 1), ids)); } });
+		if (t.WeicheID) {
+			const v = [t.WeicheID];
+			for (let k = 0; k < 6; k++) { const p = t.set[k] || "--"; v.push("ABCD".indexOf(p[0]), "ABCD".indexOf(p[1])); }
+			A.push(...table("TakeSwitch", v));
+		}
+		A.push("\t\t</GBSElement>");
+	}
+	A.push("\t</GBSObject>");
+	return A.join("\r\n");
+}
+
+// Umwandlung 1: .anl3-Text -> .gbs-Texte (ein Eintrag {name, text} je Stellpult)
+function anl3ToGbs(anl3Text) { return parseText(anl3Text, "").gbs.map(g => ({name: g.name, text: writeGbs(g)})); }
+// Umwandlung 2: .gbs-Text -> GBSObject-Text für die .anl3
+function gbsToAnl3(gbsText, name) { return parseText(gbsText, name || "GBS").gbs.map(writeAnl3).join("\r\n"); }
+
+// ---- Darstellung -----------------------------------------------------------------------
+// Richtungen für Gleise
+const DIRECTIONS = {
+	O:  [1, 0], 
+	SO: [1, 1], 
+	S:  [0, 1], 
+	SW: [-1, 1],
+	W:  [-1, 0], 
+	NW: [-1, -1], 
+	N:  [0, -1], 
+	NO: [1, -1]
+};
+/*
+Zuordnung der Ausleuchtfelder TrackA..D zu den Gleisschenkeln (Handbuch 9.3): Man wandert von der linken unteren Ecke
+im Uhrzeigersinn um den Kachelrand; das erste Feld ist TrackA, dann B, C, D. Ausnahmen laut Handbuch: Kacheln 33, 34, 57, 62, 68, 70.
+Die Schenkel eines Symbols stehen ungeordnet in GBS_LEGS; die Reihenfolge A..D ergibt sich aus CW.
+*/
+const CW = ["SW", "W", "NW", "N", "NO", "O", "SO", "S"];
+const OPP = {O: "W", W: "O", N: "S", S: "N", NO: "SW", SW: "NO", NW: "SO", SO: "NW"};
+// Symbole siehe https://www.eepforum.de/forum/thread/42251-9-3-die-gbs-datei-bearbeiten/
+const GBS_LEGS = {
+
+	// 1. Gleise
+
+	// gerade Gleise
+	1:  "W O",
+  3:  "SW NO",
+  4:  "NW SO",
+  45: "N S",
+	// geknickte Gleise
+	6:  "SW O",
+  9:  "W SO",
+  8:  "NW O",
+  7:  "W NO",
+	
+	47: "NO S",
+  46: "NW S",
+  49: "N SO",
+  48: "SW N",
+	// Endegleise: Schenkel zeigt in die angegebene Richtung, das Ende liegt gegenüber
+	// 10: "O", 
+	// 11: "W", 
+	// 50: "N", 
+	// 51: "S", 
+	
+	// 32: "SW", 
+	// 33: "SO", 
+	// 34: "NO", 
+	// 35: "NW"
+	// 90°-Bögen
+	62: "S O",
+  63: "W S",
+  64: "W N",
+  65: "N O",
+	// Diagonalstücke von Kante zu Kante
+	67: "O S",
+  68: "S W",
+  69: "W N",
+  70: "O N",
+	// Bahnsteige
+	2:  "W O",
+  59: "N S",
+  60: "N S",
+  61: "N S",
+  71: "W O",
+  72: "W O",
+	// Kreuzungen
+	5: "SW NW NO SO",
+	66: "W N O S",
+
+	// 2. Weichen
+
+	// Weichen (2 Stellungen)
+	13: "W O NO",
+  14: "O W NW",
+  15: "W O SO",
+  12: "O W SW",
+	
+	19: "SW NO O",
+  17: "SO NW W",
+  16: "NW SO O",
+  18: "NO SW W",
+	
+	40: "NO SW S",
+  43: "NW SO S",
+  41: "SW NO N",
+  42: "SO NW N",
+	
+	52: "N S SW",
+  53: "N S SO",
+  54: "S N NW",
+  55: "S N NO",
+	// Y-weichen (2 Stellungen)
+	21: "W NO SO",
+  20: "O NW SW",
+	// Weichen (3 Stellungen)
+	22: "W O NO SO",
+  23: "O W NW SW",
+	// DKW / EKW
+	24: "SW W NO O",
+  25: "W NW O SO",
+  56: "NW N SO S", 
+	57: "N NO S SW"
+
+	// 3. Signale
+
+	// 26 Signal oben
+	// 27 Signal unten
+	// 28 Startsignal oben
+	// 29 Startsignal unten
+	// 30 Zielsignal oben
+	// 31 Zielsignal unten
+
+	// 4. Sonstiges
+
+	// 36 Kamera
+	// 37 Hauptschalter
+	// 38 Reset
+	// 39 Status
+	// 44 Zählersignal (Info)	
+};
+// Endegleise: Schenkel zeigt in die angegebene Richtung, das Ende liegt gegenüber
+const GBS_END_SYMBOLS = {
+	10: "O", 
+	11: "W", 
+	50: "N", 
+	51: "S", 
+	32: "SW", 
+	33: "SO", 
+	34: "NO", 
+	35: "NW"
+};
+// Ausnahmen von der Uhrzeigerregel (laut Handbuchbildern: 57, 62, 68, 70)
+const ARM_ORDER_EXCEPTIONS = {
+  // 33: 
+	// 34:
+	57: "N NO S SW", 
+	62: "S O", 
+	68: "S W", 
+	70: "O N"
+};
+// Bahnsteige: Rechtecke je Symbol [x, y, Breite, Höhe]
+const PLATFORM = {
+	2:  [[ 5, 20, 90, 20], [ 5, 60, 90, 20]], 
+	59: [[20,  5, 20, 90], [60,  5, 20, 90]], 
+	60: [[20,  5, 20, 90]], 
+	61: [[60,  5, 20, 90]],
+	71: [[ 5, 60, 90, 20]],
+	72: [[ 5, 20, 90, 20]]
+};
+// Diagonalstücke von Kantenmitte zu Kantenmitte (kein Schenkel bis zur Kachelmitte)
+const STUBS = new Set([67, 68, 69, 70]);
+const stubPts = s => armsOf(s).map(d => [50 + 42 * DIRECTIONS[d][0], 50 + 42 * DIRECTIONS[d][1]]);
+const isTrackSymbol = s => !!(GBS_LEGS[s] || GBS_END_SYMBOLS[s]);
+
+// Gleisschenkel zum Zeichnen
+const legsOf = s => GBS_END_SYMBOLS[s] ? [GBS_END_SYMBOLS[s]] : GBS_LEGS[s].split(" ");
+// Schenkel in der Reihenfolge TrackA, B, C, D (Weichen: Buchstaben des SwitchSet)
+function armsOf(s) {
+	if (ARM_ORDER_EXCEPTIONS[s]) { return ARM_ORDER_EXCEPTIONS[s].split(" "); }
+	return (GBS_LEGS[s] || "").split(" ").filter(Boolean).sort((a, b) => CW.indexOf(a) - CW.indexOf(b));
+}
+// Ausleuchtfelder A..D eines Symbols: {dir} = Stück auf dem Schenkel, {mid} = Stück in der Mitte, {bar} = Stück zum Prellbock, null = kein Feld
+function trackSegs(s) {
+	if (s === 3) { return [{dir: "SW"}, {mid: [7, -7]}, {dir: "NO"}]; }
+	if (s === 4) { return [{dir: "NW"}, {mid: [7,  7]}, {dir: "SO"}]; }
+	if (STUBS.has(s)) { return [{stub: 0}, {stub: 1}]; }
+	
+	const leg = GBS_END_SYMBOLS[s];
+	if (leg) {
+		const arm = {dir: leg};
+		const bar = {bar: OPP[leg]};
+		if (s === 33 || s === 34) { return [null, bar, arm]; }   // Ausnahmen: TrackA leer (wie in GBS Anlage.gbs, Kachel 3,6)
+		return CW.indexOf(leg) < CW.indexOf(OPP[leg]) ? [arm, bar] : [bar, arm];
+	}
+	return armsOf(s).map(d => ({dir: d}));
+}
+// Weichenverbindungen aus dem SwitchSet: conn[Stellung-1] = [Schenkelindex, Schenkelindex] oder null
+function switchConn(tile) {
+	if (tile.swm) { return tile.swm; }
+	const arms = armsOf(tile.symbol);
+	const L = c => "ABCD".indexOf(c);
+	const set = tile.set.map(p => /^[A-D-]{2}$/.test(p) ? p : "--");
+	const used = new Set(set.join("").split("").filter(c => c !== "-").map(L));
+	const free = arms.map((d, i) => i).filter(i => !used.has(i));
+	const base = free.length === 1 ? free[0] : -1;   // Weichenantriebsgleis = das nicht genannte Feld
+	const conn = set.map((p, k) => {
+		if (p === "--") { return null; }
+		
+		const pair = [L(p[0]), L(p[1])].map(v => v < 0 ? base : v);
+		if (pair.some(v => v < 0 || v >= arms.length)) {
+			console.warn("Weiche " + tile.WeicheID + " (Symbol " + tile.symbol + "): SwitchSet-Eintrag " + (k + 1) + " '" + p + "' passt nicht zum Symbol");
+			return null;
+		}
+		return pair;
+	});
+	return (tile.swm = {base: base, conn: conn});
+}
+
+// Gleis-Symbole: Drehung in Grad (für Text-IDs)
+const ROTATIONS = {
+	18: -45, 
+	19: -45, 
+	40: -45, 
+	41: -45, 
+	57: -45, 
+
+	16: 45, 
+	17: 45, 
+	42: 45, 
+	43: 45, 
+	56: 45, 
+
+	52: -90, 
+	53: -90, 
+	54: -90, 
+	55: -90
+};
+// Weichenfarben je Stellung
+const SWITCH_COLORS = {
+	1: "#4aa3ff",    // Gerade, blau
+	2: "#ff9a2e",    // Abzweig, orange 
+	3: "#c05cff",    // Ko-Abzweig, violett
+	4: "#2ecc71"     // grün
+};
+// Signal-Lichtfarben
+const LIT = {
+	r: "#f90000",    // rot 
+	g: "#47f900",    // grün
+	off: "#3a3a3a",  // dunkelgrau 
+	warn: "#ff9a00"  // orange
+};
+// Symbol 39: Farben der 3 Balken (oben, mitte, unten) je Signalstellung
+const GRAY = "#9a9a9a";
+const STATUS_COLORS = {
+	1: [GRAY, GRAY, GRAY],      // grau
+	2: ["#e00000", GRAY, GRAY],	// rot
+	3: ["#ffffff", GRAY, GRAY],	// weiss
+	4: [GRAY, "#ffd800", GRAY],	// gelb
+	5: [GRAY, "#a020f0", GRAY],	// lila (nicht sichtbar im GBS in EEP 17)
+	6: [GRAY, GRAY, "#28c828"],	// grün
+	7: [GRAY, GRAY, "#2060ff"]	// blau
+};
+
+// Signal-Objekte, Weichen-Objekte, Gleisbesetzt-Objekte
+let curName = "";
+let SIGEL = {};
+let SWEL = {};
+let OCC = [];
+let RST = [];   // Resetanzeigen (Symbol 38): {id, rect}
+let STA = [];   // Statusanzeigen (Symbol 39): {id, bars}
+let CNT = [];   // Zählersignale (Symbol 44): {id, t1 (Zehner), t2 (Einer)}
+
+// Zeichnet je Weichenstellung die gesetzte Verbindung farbig über das Gleis; refresh() zeigt nur die aktuelle
+function drawBranches(parent, tile) {
+	const arms = armsOf(tile.symbol);
+	return switchConn(tile).conn.map((c, i) => {
+		const group = el(parent, "g", {style: "display:none"});
+		for (const a of c || []) {
+			const dir = arms[a];
+			if (dir) {
+				el(group, "line", {
+					class: "hl", 
+					stroke: SWITCH_COLORS[i + 1] || "#fff", 
+					x1: 50, 
+					y1: 50,
+					x2: 50 + 42 * DIRECTIONS[dir][0], 
+					y2: 50 + 42 * DIRECTIONS[dir][1]
+				});
+			}
+		}
+		return group;
+	});
+}
+
+// Position der Besetzt-LEDs je Ausleuchtfeld A..D (20 Einheiten lange Stücke)
+function ledCoords(symbol) {
+	const arm = dir => {
+		const v = DIRECTIONS[dir], n = Math.hypot(v[0], v[1]), m = dir.length > 1 ? 45 : 30;
+		return [50 + v[0] / n * (m - 10), 
+		        50 + v[1] / n * (m - 10), 
+		        50 + v[0] / n * (m + 10), 
+						50 + v[1] / n * (m + 10)
+					 ];
+	};
+	
+	return trackSegs(symbol).map(s => {
+		if (!s) { return null; }
+		
+		if (s.stub != null) { 
+			const [p, q] = stubPts(symbol);
+			const c = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+			const e = s.stub ? q : p; 
+			return [e[0] + (c[0] - e[0]) * 0.1, 
+			        e[1] + (c[1] - e[1]) * 0.1, 
+							e[0] + (c[0] - e[0]) * 0.9, 
+							e[1] + (c[1] - e[1]) * 0.9
+						 ]; 
+		}
+		
+		if (s.mid) { 
+			return [50 - s.mid[0], 
+			        50 - s.mid[1], 
+							50 + s.mid[0], 
+							50 + s.mid[1]
+						 ]; 
+		}
+		
+		if (s.bar) { 
+			const v = DIRECTIONS[s.bar];
+			const n = Math.hypot(v[0], v[1]); 
+			return [50, 
+			        50, 
+			        50 + v[0] / n * 20, 
+							50 + v[1] / n * 20
+						 ]; 
+			}
+			
+		return arm(s.dir);
+	});
+}
+
+// Besetztanzeige der Gleisabschnitte; refresh() färbt die LEDs aus den Live-Daten (tracks.<Gleissystem>.<ID>.occupied)
+function drawLeds(g, tile, sys) {
+	const segs = ledCoords(tile.symbol);
+	tile.tracks.forEach((ids, i) => {
+		const sg = segs[i];
+		if (!ids || !ids.length || !sg) { return; }
+		
+		const l = el(g, "line", {class: "led", x1: sg[0], y1: sg[1], x2: sg[2], y2: sg[3]});
+		el(l, "title", {}, _('Gleise') + " " + ids.join(", "));
+		OCC.push({g: l, sys: sys, ids: ids});
+		
+		if (DBG.on) { el(g, "text", {class: "dbg", x: (sg[0] + sg[2]) / 2, y: (sg[1] + sg[3]) / 2}, "ABCD"[i]); }
+	});
+}
+
+// Debug: Prüfung des SwitchSet gegen die Gleisverbindungen der .anl3 (nur Information, nicht für die Darstellung verwendet)
+function checkSwitch(tile) {
+	const w = M.Weichen[tile.WeicheID];
+	const L = w && M.link[w.sys] && M.link[w.sys][w.gid];
+	const m = switchConn(tile);
+	if (!L || m.base < 0) { return "–"; }
+	
+	const res = [];
+	if (!tile.tracks[m.base].includes(+w.gid)) { res.push("Basis ✖"); }
+	[L.Ende, L.EndeAbzweig, L.EndeKoAbzweig].forEach((gl, k) => {
+		if (gl == null || !m.conn[k]) { return; }
+		
+		const sec = tile.tracks.findIndex(ids => ids.includes(+gl));
+		const want = m.conn[k].find(v => v !== m.base);
+		res.push((k + 1) + ": " + (sec === want ? "✔" : "✖ Gleis " + gl + " in " + (sec < 0 ? "?" : "ABCD"[sec]) + ", SwitchSet: " + "ABCD"[want]));
+	});
+	
+	return res.join(", ") || "–";
+}
+
+// Debug: eine Zeile je Weiche
+function dbgRow(tile) {
+	const arms = armsOf(tile.symbol), m = switchConn(tile);
+	const dn = k => k >= 0 ? arms[k] : "-";
+	return {
+		pos:      tile.x + "," + tile.y,
+		WeicheID: tile.WeicheID,
+		symbol:   tile.symbol,
+		arms:     arms.map((d, i) => "ABCD"[i] + "=" + d).join(" "),
+		set:      tile.set.join(","),
+		conn:     m.conn.map((c, i) => c ? (i + 1) + ": " + c.map(dn).join("–") : null).filter(Boolean).join(", "),
+		check:    checkSwitch(tile),
+		tr:       tile.tracks
+	};
+}
+
+function showDebugTable(parent, gbs, rows) {
+	const p = document.createElement("p");
+	p.innerHTML = "<small>Debug: Felder A–D = Schenkel im Uhrzeigersinn ab links unten (Handbuch 9.3); SwitchSet: Buchstabe = Feld, − = Weichenantriebsgleis; Stellungen = daraus abgeleitete Verbindungen; Prüfung = Vergleich mit den Gleisverbindungen der .anl3 (nur Hinweis); T1..T4 = TrackA..D (rot = besetzt).</small>";
+	parent.appendChild(p);
+	const tb = document.createElement("table");
+	tb.className = "dbgt";
+	const head = ["Pos", "Weiche", "Symbol", "Felder", "SwitchSet", "Stellungen", "Prüfung", "A", "B", "C", "D", "Live: Weichenstellung"];
+	tb.appendChild(document.createElement("tr")).append(...head.map(t => { const th = document.createElement("th"); th.textContent = t; return th; }));
+	for (const row of rows) {
+		const tr = tb.appendChild(document.createElement("tr"));
+		const cell = txt => { const td = tr.appendChild(document.createElement("td")); if (txt != null) { td.textContent = txt; } return td; };
+		[row.pos, row.WeicheID, row.symbol, row.arms, row.set, row.conn, row.check].forEach(v => cell(v));
+		for (let i = 0; i < 4; i++) {
+			const td = cell();
+			(row.tr[i] || []).forEach((id, k) => {
+				const sp = document.createElement("span");
+				sp.className = "dbgid"; sp.dataset.sys = gbs.sys; sp.dataset.gid = id; sp.textContent = (k ? ", " : "") + id;
+				td.appendChild(sp);
+			});
+		}
+		cell("").dataset.weicheid = row.WeicheID;   // Kleinbuchstaben für data-weicheid sind notwendig
+	}
+	parent.appendChild(tb);
+	console.table(rows.map(row => Object.assign({}, row, {tr: row.tr.map(x => x.join("+")).join(" | ")})));
+}
+
+// Hilfsfunktion: Rechteck
+function rect(parent, x, y, width, height, fill) { return el(parent, "rect", {x: x, y: y, width: width, height: height, fill: fill}); }
+
+// Zeichne Gleis-Symbol
+function drawTrack(parent, symbol) {
+	const group = el(parent, "g", {});
+	for (const r of PLATFORM[symbol] || []) { rect(group, r[0], r[1], r[2], r[3], "#a19e9e"); }
+	if (STUBS.has(symbol)) {
+		const [p, q] = stubPts(symbol);
+		el(group, "line", {class: "ln", x1: p[0], y1: p[1], x2: q[0], y2: q[1]});
+		return group;
+	}
+	
+	// Zeichne Line je Gleis
+	for (const dir of legsOf(symbol)) {
+		el(group, "line", {class: "ln", x1: 50, y1: 50, x2: 50 + 42 * DIRECTIONS[dir][0], y2: 50 + 42 * DIRECTIONS[dir][1]});
+	}
+	
+	// Zeichne Gleisende (End track)
+	if (GBS_END_SYMBOLS[symbol]) {
+		const v = DIRECTIONS[GBS_END_SYMBOLS[symbol]];
+		const n = Math.hypot(v[0], v[1]);
+		const ux = -v[0] / n, uy = -v[1] / n;
+		el(group, "line", {class: "ln",      x1: 50,                     y1: 50,                     x2: 50 + 22 * ux,           y2: 50 + 22 * uy});
+		el(group, "line", {class: "bar-end", x1: 50 + 25 * ux + 20 * uy, y1: 50 + 25 * uy - 20 * ux, x2: 50 + 25 * ux - 20 * uy, y2: 50 + 25 * uy + 20 * ux});
+	}
+	return group;
+}
+
+// Signalnummer eines Sondersymbols (steht in <Signal> e0, ersatzweise e1/e2)
+const specialId = tile => tile.il || tile.im || tile.ir || 0;
+
+// Beschriftung mit Signalnummer (dark: dunkler Text für hellen Untergrund)
+function idLabel(parent, id, y, dark) {
+	if (!id) { return; }
+	el(parent, "text", {
+		class: "sid", 
+		x: 50, y: y, 
+		style: dark ? "fill:#222" : ""
+	}, id);
+}
+
+// Quickinfo und optional Klickbarkeit wie bei normalen Signalen
+function sigInfo(parent, id, clickable) {
+	if (!id) { return; }
+	el(parent, "title", {}, _('Signal') + " " + id);
+	if (clickable) { parent.dataset.k = "sig"; parent.dataset.id = id; }
+}
+
+// Zeichnet ein spezielles Symbol (Kamera, Ein/Aus, Reset, Status, Zählersignal)
+function drawSpecial(parent, symbol, tile) {
+	// Kamera (Camera)
+	if (symbol === 36) {
+		parent.dataset.k = "cam"; 
+		parent.dataset.id = tile.cam || "";
+		rect(parent, 30, 15, 40, 20, "#000"); // Schwarz
+		rect(parent, 10, 30, 80, 50, "#000"); // Schwarz
+		rect(parent, 5, 83, 90, 15, "#a19e9e"); // Grau
+		el(parent, "circle", {cx: 50, cy: 50, r: 18, fill: "#fff"}); // Weiß
+		el(parent, "circle", {cx: 50, cy: 50, r: 13, fill: "#000"}); //Schwarz
+		el(parent, "text", {class: "cn", x: 50, y: 94}, (tile.cam || "").substring(0, 14));
+		el(parent, "title", {}, (_('Kamera') + " " + (tile.cam || "")));
+
+	// Ein/Aus
+	} else if (symbol === 37) {
+		const id = specialId(tile);
+		rect(parent, 5, 44, 90, 12, "#858282"); // Grau
+		rect(parent, 15, 5, 70, 38, "#e8e6e6"); // Hellgrau
+		rect(parent, 15, 57, 70, 38, "#e8e6e6"); // Hellgrau
+		el(parent, "text", {class: "lbl", x: 50, y: 34, fill: "#009a28"}, lt("Ein", "On", "Marche")); // Grün
+		el(parent, "text", {class: "lbl", x: 50, y: 86, fill: "#9a0000"}, lt("Aus", "Off", "Arrêt")); // Rot
+		idLabel(parent, id, 54);   // Nummer im grauen Mittelbalken
+		sigInfo(parent, id, true);
+
+	// Reset: Rechteck in der Mitte, grün bei Fahrt
+	} else if (symbol === 38) {
+		const id = specialId(tile);
+		rect(parent, 5, 5, 90, 90, "#595858"); // Dunkelgrau, Rahmen
+		const r = rect(parent, 28, 30, 44, 34, LIT.off);
+		el(parent, "text", {class: "lbl", x: 50, y: 86, fill: "#fff", style: "font-size:16px"}, "Reset");
+		idLabel(parent, id, 20);
+		sigInfo(parent, id, true);
+		if (id) { RST.push({id: id, rect: r}); }
+
+	// Status: 3 waagerechte Balken für bis zu 7 Stellungen
+	} else if (symbol === 39) {
+		const id = specialId(tile);
+		rect(parent, 5, 5, 90, 90, "#595858"); // Dunkelgrau, Rahmen
+		const bars = [26, 49, 72].map(y => rect(parent, 15, y, 70, 18, GRAY));
+		idLabel(parent, id, 20);
+		sigInfo(parent, id, false);
+		if (id) { STA.push({id: id, bars: bars}); }
+
+	// Zählersignal (Info): aktueller Zählerstand (Stellung minus 1) als Text, siehe refresh()
+	/* Beispiel:
+	    <GBSElement x="9" y="10">
+     <Modell>
+      <Table Count="4" e0="0" e1="44" e2="0" e3="0"/>
+     </Modell>
+     <Signal>
+      <Table Count="3" e0="26" e1="0" e2="0"/>
+     </Signal>
+    </GBSElement>
+	*/
+	} else if (symbol === 44) {
+		const id = specialId(tile);
+		rect(parent, 10, 10, 80, 80, "#595858"); // Dunkelgrau, Rahmen
+		rect(parent, 15, 15, 70, 70, "#858282"); // Grau, Ziffern
+		const t1 = el(parent, "text", {class: "cnt", x: 30, y: 52}, "");
+		const t2 = el(parent, "text", {class: "cnt", x: 70, y: 52}, "");
+		idLabel(parent, id, 98, true);   // unter dem Rahmen
+		sigInfo(parent, id, false);
+		if (id) { CNT.push({id: id, t1: t1, t2: t2}); }
+		
+	} else if (symbol === 58) {   // Schraube, nur Tipptext
+		el(parent, "circle", {
+			cx: 50, 
+			cy: 50, 
+			r: 24, 
+			fill: "#8d8d8d", 
+			stroke: "#555", "stroke-width": 4
+		});
+		el(parent, "path", {
+			d: "M38 50H62M50 38V62", 
+			stroke: "#333", 
+			"stroke-width": 6
+		});
+		if (tile.tip) { el(parent, "title", {}, tile.tip); }
+		
+	} else {
+		// Unbekanntes Symbol
+		rect(parent, 10, 10, 80, 80, "#bbb");
+		el(parent, "text", {
+			class: "lbl", 
+			x: 50, 
+			y: 50, 
+			style: "font-size:28px;dominant-baseline:central"
+		}, symbol);
+		el(parent, "title", {}, lt("Symbol " + symbol + ": Darstellung noch nicht bekannt", "Symbol " + symbol + ": appearance unknown", "Symbole " + symbol + " : aspect inconnu"));
+		console.warn("Unbekanntes GBS-Symbol", symbol, tile);
+	}
+}
+
+// Zeichnet ein Signal-Symbol
+function drawSignal(parent, symbol, id, pos) {
+	const x = 50 + (pos === "left" ? -33 : pos === "right" ? 33 : 0);
+	const y0 = [27, 29, 31].includes(symbol) ? 59 : 3;
+	const light = symbol < 28;
+	const group = el(parent, "g", {});
+	if (!id) { return; }
+	
+	const r = rect(group, x - 12, y0, 24, 38, "#858282"); // Grau
+	el(group, "title", {}, _('Signal') + " " + id);
+	const o = {};
+	if (light) {
+		group.dataset.k = "sig"; 
+		group.dataset.id = id;
+		o.rc = el(group, "circle", {cx: x, cy: y0 + 10, r: 6, fill: LIT.r}); 
+		o.gc = el(group, "circle", {cx: x, cy: y0 + 23, r: 6, fill: LIT.g});
+	} else {
+		group.dataset.k = symbol < 30 ? "rs" : "rz"; // Fahrstraße: Start- bzw. Zielsignal
+		group.dataset.id = id;   
+		el(group, "text", {x: x, y: y0 + 18, class: "sid", style: "font-size:20px;fill:#222"}, symbol < 30 ? "S" : "Z");
+	}
+	el(group, "text", {x: x, y: y0 + 34, class: "sid"}, id);
+	o.set = c => {
+		if (light) {
+			o.rc.setAttribute("fill", c === "halt" ? LIT.r : c === "warn" ? LIT.warn : c === "fahrt" ? LIT.off : LIT.off);
+			o.gc.setAttribute("fill", c === "fahrt" ? LIT.g : LIT.off);
+		} else {
+			r.setAttribute("fill", {
+				halt: "#a33", // Rot 
+				fahrt: "#3a3", // Grün 
+				warn: "#c80" // Orange
+			}[c] || "#858282"); // Grau
+		}
+	};
+	(SIGEL[id] = SIGEL[id] || []).push(o);
+}
+
+// Werkzeugleiste je Stellpult: Umwandlung in das jeweils andere Dateiformat als Text anzeigen
+function convBar(gbs) {
+	const wrap = document.createElement("div");
+	const bar = document.createElement("div");
+	const out = document.createElement("textarea");
+	bar.className = "gbsbar"; 
+	out.className = "gbstxt hidden"; 
+	out.readOnly = true;
+	let ext = "";
+	const add = (label, fn) => {
+		const b = document.createElement("button");
+		b.type = "button"; 
+		b.textContent = label; 
+		b.onclick = fn; 
+		bar.appendChild(b);
+	};
+	const show = (fn, e) => () => { 
+		out.value = fn(gbs); 
+		ext = e; 
+		out.classList.remove("hidden"); 
+	};
+	add(lt("Als .gbs anzeigen", "Show as .gbs", "Afficher en .gbs"), show(writeGbs, ".gbs"));
+	add(lt("Als anl3-Text anzeigen", "Show as anl3 text", "Afficher en texte anl3"), show(writeAnl3, ".anl3.txt"));
+	add(lt("Text speichern", "Save text", "Enregistrer"), () => {
+		if (!out.value) { return; }
+		const a = document.createElement("a");
+		a.href = URL.createObjectURL(new Blob([out.value], {type: "text/plain"}));
+		a.download = gbs.name + ext; a.click();
+		setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+	});
+	wrap.append(bar, out);
+	return wrap;
+}
+
+// Rendert die Stellpulte
+function render(name) {
+	curName = name;
+	SIGEL = {}; 
+	SWEL = {}; 
+	OCC = []; 
+	RST = [];	// Reset
+	STA = []; // Status
+	CNT = []; // Zähler
+	$("filename").textContent = name.replace(/\.(anl3|gbs)$/i, "");
+
+	const box = $("boards");
+	box.textContent = "";
+	if (!M.gbs.length) {
+		box.textContent = lt("Keine Stellpulte in dieser Anlage.", "No control desks in this layout.", "Aucun pupitre dans ce réseau.");
+	}
+
+	for (const gbs of M.gbs) {
+		const div = document.createElement("div");
+		div.className = "gbs";
+		const heading = document.createElement("h4");
+		heading.textContent = `${_('Stellpult')} ${gbs.id} '${gbs.name}' (${gbs.Colums} x ${gbs.Rows})`;
+		div.appendChild(heading);
+		div.appendChild(convBar(gbs));
+		box.appendChild(div);
+
+		const svg = el(div, "svg", {viewBox: `0 0 ${100 * gbs.Colums} ${100 * gbs.Rows}`});
+		svg.style.maxWidth = gbs.Colums * 72 + "px";
+
+		{	// Zeichne Gitter aus leeren Kacheln
+			const group = el(svg, "g", {});
+			for (let y = 1; y <= gbs.Rows; y++) {
+				for (let x = 1; x <= gbs.Colums; x++) {
+					el(group, "rect", {class: "tile", x: (x - 1) * 100 + 1, y: (y - 1) * 100 + 1, width: 98, height: 98, rx: 5});
+				}
+			}
+		}
+
+		const dbgRows = [];
+		for (const tile of gbs.tiles) {
+			const group = el(svg, "g", {transform: `translate(${(tile.x - 1) * 100} ${(tile.y - 1) * 100})`});
+			if (tile.tip) { el(group, "title", {}, tile.tip); }
+      // Zeichne Modell mit Symbol in e0 (Gleise und Kamera)
+			if (isTrackSymbol(tile.symbol)) {
+				// Zeichne Gleis-Symbol			
+				drawTrack(group, tile.symbol);
+					
+				// Zeichne je Weichenstellung die gesetzte Verbindung farbig über das Gleis
+				const hl = tile.WeicheID ? drawBranches(group, tile) : [];
+					
+				// Zeichne Besetztanzeige der Gleisabschnitte
+				drawLeds(group, tile, gbs.sys);
+					
+				// Zeichne Text von Weichen
+				if (tile.WeicheID) {
+					if (DBG.on) { dbgRows.push(dbgRow(tile)); }
+
+					group.dataset.k = "WeicheID";
+					group.dataset.id = tile.WeicheID;
+					// Quickinfo
+					el(group, "title", {}, _('Weiche') + " " + tile.WeicheID + (DBG.on ? " Symbol " + tile.symbol : ""));
+					// Text
+					const tx = el(group, "text", {
+						class: "id", x: 50, y: 50,
+						transform: ROTATIONS[tile.symbol] ? `rotate(${ROTATIONS[tile.symbol]} 50 50)` : ""},
+						tile.WeicheID);
+					(SWEL[tile.WeicheID] = SWEL[tile.WeicheID] || []).push({tx: tx, hl: hl});
+				}
+				
+			} else if (tile.symbol > 0) {
+				drawSpecial(group, tile.symbol, tile);   // Kamera (36), Tipptext (58), usw., unbekannte Symbole
+				
+			// Zeichne spezielle Signale mit e0 = 0 und e1 in 36, 37, 38, 39, 44 
+			} else if ([36, 37, 38, 39, 44].includes(tile.sl)) {
+				drawSpecial(group, tile.sl, tile);       // Sondersignale: e0 = 0, Symbol in e1
+			}
+			// Signale (26..31) auch zusätzlich zu einem Gleis- oder Weichensymbol (linkes, mittleres, rechtes Drittel)
+			for (const [symbol, id, pos] of [[tile.sl, tile.il, "left"], [tile.sm, tile.im, "mid"], [tile.sr, tile.ir, "right"]]) {
+				if ([26, 27, 28, 29, 30, 31].includes(symbol)) { drawSignal(group, symbol, id, pos); }
+			}
+		}
+		if (DBG.on) { showDebugTable(div, gbs, dbgRows); }
+	}
+	refresh();
+}
+
+// Debug-Schalter
+$("dbgOn").checked = DBG.on;
+$("dbgOn").onchange = e => { DBG.on = e.target.checked; curName && render(curName); };
+
+// ---- Live-Daten und Befehle (wie EEP_Gleisplan_LiveData.js) ----------------------------------
+// https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API
+
+// Initialization: Connection to a broadcast channel
+const ch = new BroadcastChannel("EEP_LIVE");
+
+let liveData = null, live = 0, cmdOK = false;
+let seq = Math.floor(Math.random() * 1e9);   // zufälliger Start: keine Verwechslung mit dem Gleisplan
+const pend = {};
+const TrackKey = {
+	1: "rail", // Eisenbahn
+	2: "tram", // Strassenbahn
+	3: "road", // Strasse
+	4: "auxiliary", // Wasserwege
+	5: "control" // Steuerstrecken
+};
+
+function classify(t) {
+	t = String(t || "").trim().toLowerCase();
+	if (!t) { return null; }
+	if (/^(halt|stop|danger)\b.*(erwarten|expect)/.test(t)) { return "warn"; }
+	if (/^(halt|stop|danger|hp ?0|rot|close|geschlossen|schranke geschlossen)|gesperrt/.test(t)) { return "halt"; }
+	if (/^(fahrt|go|clear|open|offen|frei|gehen|schranke offen|sh1|ziel)/.test(t)) { return "fahrt"; }
+	if (/erwarten|expect/.test(t)) { return "warn"; }
+	return null;
+}
+
+const txt = o => typeof o === "string" ? o : (o ? (o.DE || o.EN || "") : "");
+let lc = null;
+
+function sigDef(f) {
+	if (typeof Signalstellung === "undefined") { return null; }
+	if (Signalstellung[f]) { return Signalstellung[f]; }
+	if (!lc) { 
+		lc = {}; 
+		for (const k in Signalstellung) { 
+			lc[k.toLowerCase()] = Signalstellung[k]; 
+		} 
+	}
+	return lc[String(f).toLowerCase()] || null;
+}
+
+function sigCls(id, state) {
+	const m = M.sig[id], d = m && sigDef(m.name);
+	return d && d.Pos ? classify(txt(d.Pos[state])) : null;
+}
+
+function sigTarget(id) {   // zwischen Fahrt und Halt wechseln, sonst nächste Stellung
+	const m = M.sig[id], d = m && sigDef(m.name);
+	const pos = d && d.Pos ? Object.keys(d.Pos).map(Number).sort((a, b) => a - b) : [1, 2];
+	const st = +liveData.signals[id].state;
+	const want = sigCls(id, st) === "fahrt" ? "halt" : "fahrt";
+	let t = pos.find(p => sigCls(id, p) === want);
+	if (t == null) { t = pos[(pos.indexOf(st) + 1) % pos.length]; }
+	return t;
+}
+
+function swMax(id) { return M.swn[id] || 2; }
+const occupied = (sys, id) => {
+	const g = liveData && liveData.tracks && liveData.tracks[TrackKey[M.sys[sys]]];
+	return !!(g && g[id] && g[id].occupied);
+};
+
+function refresh() {
+	if (!liveData) { return; }
+	
+	if (DBG.on) { 
+		// Weichenstellungen in Debug-Tabelle aktualisieren
+		// (Kleinbuchstaben für data-weicheid und dataset.weicheid sind notwendig)
+		document.querySelectorAll("td[data-weicheid]").forEach(td => { 
+			const Weiche = liveData.switches && liveData.switches[td.dataset.weicheid]; 
+			td.textContent = Weiche ? Weiche.state : "?"; 
+		});
+		document.querySelectorAll(".dbgid").forEach(sp => { 
+			const o = occupied(sp.dataset.sys, +sp.dataset.gid); 
+			sp.style.color =      o ? "#d22" : ""; 
+			sp.style.fontWeight = o ? "bold" : ""; 
+		});
+	}
+	
+	// Signalstellungen aktualisieren
+	for (const id in SIGEL) {
+		const Signal = liveData.signals && liveData.signals[id];
+		if (Signal) { 
+			const c = sigCls(id, Signal.state); 
+			SIGEL[id].forEach(o => o.set(c)); 
+		}
+	}
+	
+	// Symbol 44 Zählersignale: Stellung minus 1 als 2-stellige Zahl
+	for (const o of CNT) {
+		const Signal = liveData.signals && liveData.signals[o.id];
+		if (!Signal) { continue; }
+		
+		const n = Math.min(Math.max(+Signal.state - 1 || 0, 0), 98);
+		o.t1.textContent = n >= 10 ? Math.floor(n / 10) : "";   // Zehnerstelle nur ab 10
+		o.t2.textContent = n % 10;
+	}
+
+	// Symbol 38: Reset, grün bei Fahrt
+	for (const o of RST) {
+		const Signal = liveData.signals && liveData.signals[o.id];
+		if (!Signal) { continue; }
+		o.rect.setAttribute("fill", sigCls(o.id, Signal.state) === "fahrt" ? LIT.g : LIT.off);
+	}
+	
+	// Symbol 39: Statusanzeige
+	for (const o of STA) {
+		const Signal = liveData.signals && liveData.signals[o.id];
+		if (!Signal) { continue; }
+		
+		const col = STATUS_COLORS[+Signal.state] || STATUS_COLORS[1];
+		o.bars.forEach((b, i) => b.setAttribute("fill", col[i]));
+	}
+
+	// Weichenstellungen aktualisieren
+	for (const id in SWEL) {
+		const Weiche = liveData.switches && liveData.switches[id];
+		if (Weiche) { SWEL[id].forEach(o => {
+				o.tx.style.fill = SWITCH_COLORS[Weiche.state] || "#fff";
+				o.hl.forEach((hg, i) => { hg.style.display = (i + 1 === +Weiche.state) ? "" : "none"; });   // gesetzte Verbindung hervorheben
+			}); }
+	}
+	
+	// Besetztmeldungen aktualisieren
+	for (const o of OCC) { 
+		o.g.classList.toggle("occ", o.ids.some(i => occupied(o.sys, i))); 
+	}
+}
+
+function msg(t, err) { $("msg").textContent = t; $("msg").className = err ? "err" : ""; }
+
+// Statusanzeige aktualisieren
+function updSt() {
+	const age = Math.round((Date.now() - live) / 1000);
+	document.getElementById("st").textContent = 
+		(liveData 
+		? lt(	`Live-Daten vor ${age} s`, 
+				`Live data ${age} s ago`, 
+				`Données en direct il y a ${age} s`
+			)
+		: lt(	"Keine Live-Daten – Export Bridge öffnen und „an Gleisplan senden“ einschalten", 
+				"No live data – open the Export Bridge and enable \"Send to track plan\"", 
+				"Pas de données en direct – ouvrir l'Export Bridge et activer « Envoyer au plan des voies »"
+			)
+		)
+		+ (cmdOK ? " · ⚡ " + _('CmdAktiv') : " · " + _('CmdNichtVerfuegbar'));
+}
+
+// Wartezeit 1 Sekunde (ggf. auf 200 ms reduzieren)
+setInterval(updSt, 1000);
+updSt();
+
+function send(fn, args) {
+	const s = ++seq;
+	pend[s] = setTimeout(() => { delete pend[s]; msg(_('CmdKeineAntwort'), true); }, 3000);
+	ch.postMessage({type: "command", seq: s, fn: fn, args: args});
+}
+
+// Empfange Daten über BroadcastChannel EEP_LIVE 
+ch.onmessage = ev => {
+	const m = ev.data;
+	
+	if (m.type === "cmdState") { 
+		cmdOK = !!m.ok; 
+		updSt(); 
+		
+	} else if (m.type === "cmdResult") { 
+		if (pend[m.seq]) { 
+			clearTimeout(pend[m.seq]); 
+			delete pend[m.seq]; 
+			msg(m.text || "", !m.ok); 
+		} 
+		
+	} else if (m.type === "data") { 
+		// Neue Daten verarbeiten
+		liveData = m.data; 
+		live = Date.now(); 
+		refresh(); 
+		updSt(); 
+	}
+};
+
+// Bereitschaft zum Emfang von Nachrichten senden
+ch.postMessage({type: "ready"});
+
+// Befehl: Fahrstrasse schalten															 
+let routeStart = null;   // gewähltes Startsignal
+function routeClick(k, id, shift) {
+	const mark = v => 
+		document.querySelectorAll('#boards [data-k="rs"]')
+			.forEach(e => e.classList.toggle("pend", v != null && e.dataset.id === v));
+			
+	if (k === "rs") {
+		if (shift) { routeStart = null; mark(null); return send("EEPSetSignal", [+id, 1]); }   // Stellung 1 = Fahrstraße auflösen
+		
+		routeStart = routeStart === id ? null : id;   // erneuter Klick hebt die Auswahl auf
+		mark(routeStart);
+		return msg(routeStart ? lt(`Startsignal ${id} gewählt – jetzt Zielsignal anklicken`, 
+		                           `Start signal ${id} selected – now click the end signal`, 
+															 `Signal de départ ${id} choisi – cliquer sur le signal de fin`
+												      ) : "", false);
+	}
+	
+	if (!routeStart) { return msg(lt("Erst ein Startsignal (S) anklicken", 
+	                                 "Click a start signal (S) first", 
+																	 "Cliquer d'abord sur un signal de départ (S)"
+																	), true); }
+	
+	const i = ((M.sig[routeStart] || {}).routes || []).indexOf(id), start = routeStart;
+	routeStart = null; mark(null);
+	if (i < 0) { return msg(lt(`Keine Fahrstraße von Signal ${start} nach ${id}`, 
+	                           `No predefined line from signal ${start} to ${id}`, 
+														 `Aucun parcours prédéfini du signal ${start} au signal ${id}`
+														), true); }
+	
+	send("EEPSetSignal", [+start, i + 2]);   // Stellung 2 = erste Fahrstraße, 3 = zweite, ...
+}
+
+// EEP-Befehle senden
+$("boards").addEventListener("click", ev => {
+	const t = ev.target.closest && ev.target.closest("[data-k]");
+	if (!t) { return; }
+	
+	const k  = t.dataset.k;
+	const id = t.dataset.id;
+	if (!cmdOK) { return msg(_('CmdNichtVerfuegbar'), true); }
+	
+	// Fahrstraße: erst Startsignal (S), dann Zielsignal (Z) anklicken; Shift+Klick auf S löst die Fahrstraße auf
+	if (k === "rs" || k === "rz") { return routeClick(k, id, ev.shiftKey); }
+
+	// Befehl: Kamera auswählen
+	if (k === "cam") {
+		const c = M.cam[id];
+		return send("EEPSetCamera", [c && c.dyn ? 1 : 0, id]);
+	}
+	
+	const src = liveData && (k === "WeicheID" ? liveData.switches : liveData.signals);
+	const s = src && src[id];
+	if (!s) { 
+		return msg(lt("Keine Live-Daten zu diesem Objekt", 
+									"No live data for this object", 
+									"Pas de données en direct pour cet objet"
+									), true); 
+	}
+	
+	if (k === "WeicheID") {
+		// Befehl: Weiche weiterschalten
+		const st = +s.state, mx = swMax(id);
+		send("EEPSetSwitch", [+id, ev.shiftKey ? ((st - 2 + mx) % mx) + 1 : (st % mx) + 1]);
+	} else {
+		// Befehl: Signal schalten
+		send("EEPSetSignal", [+id, sigTarget(id)]);
+	}
+});
+</script>
+</body>
+</html>

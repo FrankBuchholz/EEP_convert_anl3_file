@@ -14,7 +14,7 @@ Die Menünamen unterscheiden sich je nach Version, Hersteller und Sprache leicht
 - **E-Mail an sich selbst** oder **Cloud-Speicher** (OneDrive, Google Drive, iCloud, Nextcloud).
 - **AirDrop** (iPhone, iPad, Mac) oder **Quick Share** (Android) sowie **USB-Stick**.
 
-Der Webserver selbst liefert die `.cer`-Datei nicht aus (nur `.json` und `.anl3`).
+Der Webserver selbst liefert die `.cer`-Datei nicht aus (nur `.json`, `.anl3`, `.gbs` und `.zip`).
 
 ---
 

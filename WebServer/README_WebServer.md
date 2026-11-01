@@ -1,12 +1,12 @@
 # EEP Export: lokaler Webserver für Export Bridge und Gleisplan
 
-Die **[`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html")** liest die Datei `eep_export.json`, die das Lua-Modul [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") in EEP schreibt. Der **[`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html")** lädt die Anlage-Datei (`.anl3`) der laufenden Anlage.
+Die **[`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html")** liest die Datei `eep_export.json`, die das Lua-Modul [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") in EEP schreibt. Der **[`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html")** lädt die Anlage-Datei (`.anl3`) der laufenden Anlage. Auch die **[`EEP_GBS.html`](EEP_GBS.html "EEP_GBS.html")** (Gleisbildstellpulte) lädt diese Datei oder alternativ eine `.gbs`-Datei.
 
-Laufen EEP und Browser auf **demselben Rechner**, kann die Bridge die JSON-Datei direkt lesen (siehe [`README_Export_Bridge`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html), Abschnitt 2.1). Ein Webserver wird dann nicht zwingend gebraucht.
+Laufen EEP und Browser auf **demselben Rechner**, kann die Bridge die JSON-Datei direkt lesen (siehe [`README_Export_Bridge`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html), Abschnitt 3.2). Ein Webserver wird dann nicht zwingend gebraucht.
 
 Einen Webserver braucht man, wenn
 
-- EEP und Bridge auf **verschiedenen Rechnern** laufen (zweiter PC, Laptop, Tablet im Heimnetz), die Dateien `eep_export.json` und `<Anlage>.anl3` also nicht direkt gelesen werden können, oder
+- EEP und Bridge auf **verschiedenen Rechnern** laufen (zweiter PC, Laptop, Tablet im Heimnetz), die Dateien `eep_export.json` und `<Anlage>.anl3` (bzw. `.gbs`, `.zip`) also nicht direkt gelesen werden können, oder
 - die Bridge **im Web** geöffnet ist (z. B. auf GitHub Pages). Eine HTTPS-Seite darf nur per **HTTPS** auf Daten zugreifen; reines HTTP im Netzwerk wird vom Browser blockiert.
 
 Dafür gibt es drei Installationsskripte für Windows 11, die auf dem **EEP-Rechner** einen kleinen Webserver einrichten:
@@ -23,13 +23,14 @@ EEP + EepExport.lua ──► eep_export.json ─┐
                         <Anlage>.anl3   ─┴─► Webserver (HTTPS, Port 3001) ──► Browser:
                                                                                EEP_Export_Bridge.html
                                                                                EEP_Gleisplan.html
+                                                                               EEP_GBS.html
 ```
 
 ![Architektur: EEP-Rechner mit Datenordner und Webserver, Browser auf Laptop oder Tablet, GitHub Pages (Seiten direkt oder über den optionalen Proxy)](images/EEP_Szenario_C.svg "Szenario C")
 
 Alle drei Varianten liefern die Dateien gleich aus:
 
-- Ausgeliefert werden **nur `.json` und `.anl3`** (nur `GET`, `HEAD`, `OPTIONS`). Alles andere liefert 404 bzw. 405, ebenso Verzeichnislisten. Einzige Ausnahme: Python und Node.js nehmen mit der Option `-ActivateCommands` zusätzlich `POST` auf `/send-command` an (siehe „Befehle an EEP“ in Abschnitt 2).
+- Ausgeliefert werden **nur `.json`, `.anl3`, `.gbs` und `.zip`** (nur `GET`, `HEAD`, `OPTIONS`). Alles andere liefert 404 bzw. 405, ebenso Verzeichnislisten. Einzige Ausnahme: Python und Node.js nehmen mit der Option `-ActivateCommands` zusätzlich `POST` auf `/send-command` an (siehe „Befehle an EEP“ in Abschnitt 2).
 - **CORS** nur für `localhost`, das lokale Netzwerk (10.x, 172.16–31.x, 192.168.x, `*.local`, PC-Name) und die GitHub-Origin (Standard: `https://frankbuchholz.github.io`, änderbar mit `-GitHubOrigins`).
 - `Access-Control-Allow-Private-Network: true` wird nur gesendet, wenn der Browser es per Preflight anfragt und die Origin erlaubt ist.
 - **HTTPS** mit selbstsigniertem Zertifikat (gültig für `localhost`, PC-Name und die lokalen IP-Adressen), HSTS, mindestens TLS 1.2.
@@ -48,7 +49,7 @@ Alle drei Varianten liefern die Dateien gleich aus:
 **Für alle Varianten**
 
 - Windows 11 und **Windows PowerShell 5.1** (`powershell.exe`, nicht PowerShell 7), gestartet **als Administrator**. Sonst zeigt das Skript eine Fehlermeldung und beendet sich.
-- Ein Ordner, der `eep_export.json` **und** die `.anl3`-Datei der Anlage enthält. Er wird mit `-SitePath` angegeben. Ab EEP 18.1 Plugin 1 schreibt `EepExport.lua` die JSON-Datei in den Anlagenordner neben die `.anl3`-Datei. Dann ist der Anlagenordner der passende `-SitePath`. Bei älteren EEP-Versionen landet die Datei im EEP-Installationsverzeichnis (z. B. `C:\EEP17`), sofern nicht mit `outputFile` ein anderer Pfad festgelegt wurde.
+- Ein Ordner, der `eep_export.json` **und** die `.anl3`-Datei der Anlage enthält (für `EEP_GBS.html` alternativ eine `.gbs`-Datei). Er wird mit `-SitePath` angegeben. Ab EEP 18.1 Plugin 1 schreibt `EepExport.lua` die JSON-Datei in den Anlagenordner neben die `.anl3`-Datei. Dann ist der Anlagenordner der passende `-SitePath`. Bei älteren EEP-Versionen landet die Datei im EEP-Installationsverzeichnis (z. B. `C:\EEP17`), sofern nicht mit `outputFile` ein anderer Pfad festgelegt wurde.
 - Ein freier Port für HTTPS (hier 3001). Ein anderer Webserver und der EEP-Server können nicht gleichzeitig denselben Port nutzen.
 
 **Zusätzlich je Variante**
@@ -92,7 +93,7 @@ Alle drei Varianten liefern die Dateien gleich aus:
 
 - Node.js muss schon installiert sein (das Skript installiert es nicht).
 - Kein Autostart (wie bei Python).
-- Das Paket `npx` wird nicht verwendet da dessen `http-server` weder nur `.json`/`.anl3` ausliefern noch CORS nur für bestimmte Origins freigeben könnte. Deshalb enthält das Skript einen eigenen, abhängigkeitsfreien Server, der mit `node` gestartet wird.
+- Das Paket `npx` wird nicht verwendet da dessen `http-server` weder nur `.json`/`.anl3`/`.gbs`/`.zip` ausliefern noch CORS nur für bestimmte Origins freigeben könnte. Deshalb enthält das Skript einen eigenen, abhängigkeitsfreien Server, der mit `node` gestartet wird.
 
 ### IIS
 
@@ -122,7 +123,7 @@ Alle drei Varianten liefern die Dateien gleich aus:
 
 Die Bridge liest die Exportdatei zuerst per HTTPS und öffnet dann eine WebSocket-Verbindung auf derselben Adresse (`https://` wird zu `wss://`, `http://` zu `ws://`). Der Server sendet die komplette Datei sofort und danach nach jeder Änderung. Solange die Verbindung steht, fragt die Bridge nicht mehr ab. Bricht sie ab, fragt die Bridge wieder per HTTPS ab und versucht nach 5 Sekunden eine neue Verbindung.
 
-- **Gleiche Regeln wie bei HTTP:** Nur `.json` und `.anl3`, Zugriff nur mit `GET`. Weil Browser bei WebSockets kein CORS prüfen, prüft der Server die Origin selbst (gleiche Regeln wie bei CORS). Eine fremde Origin erhält `403`. `file://` und `null` sind nur mit `-AllowNullOrigin` erlaubt.
+- **Gleiche Regeln wie bei HTTP:** Nur `.json`, `.anl3`, `.gbs` und `.zip`, Zugriff nur mit `GET`. Der Server sendet Textnachrichten; sinnvoll ist WebSocket daher nur für die `.json`-Datei (nur die Bridge nutzt es, und nur für `eep_export.json`), für die Binärdatei `.zip` ist es nicht geeignet. Weil Browser bei WebSockets kein CORS prüfen, prüft der Server die Origin selbst (gleiche Regeln wie bei CORS). Eine fremde Origin erhält `403`. `file://` und `null` sind nur mit `-AllowNullOrigin` erlaubt.
 - **Nur gültiges JSON:** Schreibt EEP die Datei gerade, wird der unvollständige Stand nicht gesendet, sondern kurz später erneut gelesen.
 - **Eine Überwachung je Datei**, egal wie viele Clients verbunden sind. Sie läuft nur, solange mindestens ein Client verbunden ist.
 - **Grenzen:** höchstens 50 gleichzeitige WebSocket-Verbindungen (weitere erhalten `503`), Ping alle 25 Sekunden, Clients, die nichts mehr abnehmen oder antworten, werden getrennt.
@@ -135,7 +136,7 @@ Python und Node.js können Befehle annehmen, die die Bridge (oder `curl`) an EEP
 
 - **Aktivierung:** Bei der Installation mit `-ActivateCommands` oder beim Start des Servers mit `--activateCommands` (siehe 3.3). Ohne Aktivierung antwortet der Server auf `POST` mit 405.
 - **Schnittstelle:** `POST https://<Host>:<Port>/send-command`, Text im Body, ein Befehl je Zeile, höchstens 64 KB und 500 Zeichen je Zeile. Leerzeilen werden übergangen, Steuerzeichen sind nicht erlaubt. Die Antwort ist `{"status": "success", "lines": n}`.
-- **Zieldatei:** `<SitePath>\<ExchangePath>\<ExchangeFile>`, Standard `exchange\commands-to-eep.txt` im Datenordner. Der Ordner wird bei Bedarf angelegt, neue Befehle werden angehängt. Die Datei wird als **ANSI (Windows-1252)** mit `CRLF` geschrieben, so liest EEP sie. Der Body darf UTF-8 oder ANSI sein; Zeichen, die in Windows-1252 nicht darstellbar sind, werden mit 400 abgelehnt. Die Datei darf nicht auf `.json` oder `.anl3` enden, damit sie nicht ausgeliefert wird.
+- **Zieldatei:** `<SitePath>\<ExchangePath>\<ExchangeFile>`, Standard `exchange\commands-to-eep.txt` im Datenordner. Der Ordner wird bei Bedarf angelegt, neue Befehle werden angehängt. Die Datei wird als **ANSI (Windows-1252)** mit `CRLF` geschrieben, so liest EEP sie. Der Body darf UTF-8 oder ANSI sein; Zeichen, die in Windows-1252 nicht darstellbar sind, werden mit 400 abgelehnt. Die Datei darf nicht auf `.json`, `.anl3`, `.gbs` oder `.zip` enden, damit sie nicht ausgeliefert wird.
 - **Wer darf senden:** Browser-Seiten (die Bridge) nur von erlaubten Origins, also GitHub-Origin, lokales Netz und `localhost`, gleiche Regeln wie bei CORS und WebSocket. Eine fremde Origin erhält 403. Eine Bridge als lokale Datei (`file://`) braucht zusätzlich `-AllowNullOrigin`. Anfragen **ohne Origin** (z. B. `curl`) werden nur von diesem Rechner angenommen.
 - **Nur HTTPS:** Auf dem HTTP-Port (`-HttpPort`) werden nie Befehle angenommen.
 - **Fehlercodes:** 400 (leerer Body, ungültige Zeilen oder Zeichen), 403 (Origin nicht erlaubt), 404 (falscher Pfad), 411 (`Content-Length` fehlt), 413 (mehr als 64 KB), 500 (Kommando-Datei nicht beschreibbar).
@@ -245,7 +246,7 @@ Im Browser auf dem EEP-Rechner:
 
 ### 3.5 Bridge und Gleisplan verwenden
 
-Bridge und Gleisplan müssen **vom selben Server stammen** (gleiche Origin), damit sie per `BroadcastChannel` miteinander sprechen können. Der beschriebene Webserver liefert bewusst nur Daten aus. Bridge und Gleisplan öffnet man deshalb entweder im Web (GitHub Pages) oder von einer lokalen Kopie (siehe [`README_Export_Bridge`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html "README_Export_Bridge"), Abschnitt 2.2).
+Bridge, Gleisplan und GBS müssen **vom selben Server stammen** (gleiche Origin), damit sie per `BroadcastChannel` miteinander sprechen können. Der beschriebene Webserver liefert bewusst nur Daten aus. Bridge, Gleisplan und GBS öffnet man deshalb entweder im Web (GitHub Pages) oder von einer lokalen Kopie (siehe [`README_Export_Bridge`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html "README_Export_Bridge"), Abschnitt 3.4).
 
 **Bridge**: Die Daten per URL abfragen, entweder im Feld **URL** mit Klick auf *URL abfragen* oder direkt über den Parameter `url`:
 
@@ -259,11 +260,18 @@ https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Export_Bridge.html?url
 https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Gleisplan.html?url=https://localhost:3001/MeineAnlage.anl3
 ```
 
+**GBS** (Gleisbildstellpulte): Die `.anl3`-Datei der Anlage oder eine `.gbs`-Datei per URL laden, wie beim Gleisplan im Feld **URL laden** oder per Parameter `url`. Für die Live-Bedienung ist die `.anl3`-Datei zu empfehlen (nur sie enthält Signalnamen, Fahrstraßen und Kameratypen):
+
+```
+https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_GBS.html?url=https://localhost:3001/MeineAnlage.anl3
+https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_GBS.html?url=https://localhost:3001/MeinStellpult.gbs
+```
+
 Beim ersten Zugriff fragt Chrome, ob die Seite auf Geräte im lokalen Netzwerk zugreifen darf. Das mit *Zulassen* bestätigen. Der Server muss dafür nichts senden. Die entsprechende Hinweismeldung in den DevTools ist kein Fehler.
 
 Bei Python und Node.js wechselt die Bridge nach dem ersten Abruf automatisch auf WebSocket (Statuszeile: „WebSocket“). Das Intervall **alle … s** gilt dann nicht mehr. Beim IIS bleibt es bei der Abfrage.
 
-Die `.anl3`-Datei wird vom Gleisplan nur einmalig geladen. Wurde die Anlage in EEP geändert und gespeichert, lädt man sie im Gleisplan erneut.
+Die `.anl3`-Datei (ebenso eine `.gbs`-Datei) wird vom Gleisplan und vom GBS nur einmalig geladen. Wurde die Anlage in EEP geändert und gespeichert, lädt man sie dort erneut.
 
 ### 3.6 Zugriff von einem anderen Rechner im Heimnetz
 
@@ -274,7 +282,7 @@ Die `.anl3`-Datei wird vom Gleisplan nur einmalig geladen. Wurde die Anlage in E
    ```
 
 2. Die erzeugte Datei `<SiteName> <Variante> (<PC-Name>).cer`, z. B. `EEP Export Node.js (MEIN-PC).cer` (liegt neben dem Skript; Varianten: `Python`, `Node.js`, `IIS`) auf den anderen Rechner bzw. das Tablet kopieren und dort als **vertrauenswürdige Stammzertifizierungsstelle** (Zertifikatsspeicher *Lokaler Computer*) importieren. Sonst meldet der Browser einen Zertifikatsfehler.Schritt-für-Schritt-Anleitungen für Windows, macOS, iOS/iPadOS und Android stehen in [`README_Zertifikatsverteilung_Heimnetzwerk`](README_Zertifikatsverteilung_Heimnetzwerk.md "README_Zertifikatsverteilung_Heimnetzwerk.md").
-3. Im Browser oder in der Bridge die IP-Adresse des EEP-Rechners verwenden, z. B. `https://192.168.0.115:3001/eep_export.json`, und im Gleisplan entsprechend `https://192.168.0.115:3001/MeineAnlage.anl3`.
+3. Im Browser oder in der Bridge die IP-Adresse des EEP-Rechners verwenden, z. B. `https://192.168.0.115:3001/eep_export.json`, und im Gleisplan bzw. GBS entsprechend `https://192.168.0.115:3001/MeineAnlage.anl3`.
 
 Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. Ändert sich die IP-Adresse (DHCP), das Skript einfach erneut ausführen (oder dem EEP-Rechner eine feste IP geben) und die `.cer`-Datei neu importieren.
 
@@ -299,7 +307,7 @@ Das Zertifikat enthält die IP-Adressen, die der PC bei der Installation hatte. 
 | `-AllowNullOrigin` | Origin `null` erlauben, bei Python und Node.js auch `file://` für WebSocket und Befehle (Bridge als lokale Datei) | alle |
 | `-ActivateCommands` | erlaubt `POST /send-command`: Befehle der Bridge (bzw. `curl` von diesem Rechner) werden an die Kommando-Datei für EEP angehängt (siehe „Befehle an EEP“ in 2). Beim Serverstart entspricht `--activateCommands` | Python, Node.js |
 | `-ExchangePath <Pfad>` | relativer Unterordner von `-SitePath` für die Kommando-Datei sowie die Test- und Beispieldateien (Standard `exchange`) | Python, Node.js |
-| `-ExchangeFile <Name>` | Dateiname der Kommando-Datei (Standard `commands-to-eep.txt`), darf nicht auf `.json` oder `.anl3` enden | Python, Node.js |
+| `-ExchangeFile <Name>` | Dateiname der Kommando-Datei (Standard `commands-to-eep.txt`), darf nicht auf `.json`, `.anl3`, `.gbs` oder `.zip` enden | Python, Node.js |
 | `-ProxyGitHub` | Bridge und Gleisplan von der ersten GitHub-Origin holen und selbst ausliefern (siehe 3.10) | Python, Node.js |
 | `-ProxyPath <Pfad>` | Pfad der Seiten auf der GitHub-Origin (Standard `/EEP_convert_anl3_file`), nur mit `-ProxyGitHub` | Python, Node.js |
 | `-OpenFirewall` | Firewall-Regel für den/die Port(s) (Privat, Domäne) | alle |
@@ -330,14 +338,15 @@ Normalerweise öffnet man Bridge und Gleisplan von GitHub Pages, und sie holen d
 ```
 https://192.168.0.115:3001/EEP_Export_Bridge?url=/exchange/eep_export.json
 https://192.168.0.115:3001/EEP_Gleisplan?url=/MeineAnlage.anl3
+https://192.168.0.115:3001/EEP_GBS?url=/MeineAnlage.anl3
 ```
 
 **Regeln**
 
-- **Lokal zuerst:** `.json`- und `.anl3`-Dateien kommen immer aus dem `-SitePath`. Die POST-Schnittstelle `/send-command` bleibt lokal.
-- **Alles andere von GitHub:** Jede andere Anfrage geht an `https://<erste GitHub-Origin><ProxyPath>/…`. `/EEP_Gleisplan` wird zu `<ProxyPath>/EEP_Gleisplan.html`, `/css/…` und `/js/…` bekommen den Pfad vorangestellt.
+- **Lokal zuerst:** `.json`, `.anl3`, `.gbs` und `.zip`-Dateien kommen immer aus dem `-SitePath`. Die POST-Schnittstelle `/send-command` bleibt lokal.
+- **Alles andere von GitHub:** Jede andere Anfrage geht an `https://<erste GitHub-Origin><ProxyPath>/…`. `/EEP_Gleisplan` wird zu `<ProxyPath>/EEP_Gleisplan.html` (ebenso `/EEP_GBS` zu `<ProxyPath>/EEP_GBS.html`), `/css/…` und `/js/…` bekommen den Pfad vorangestellt.
 - **Relative Daten-URL:** `<ProxyPath>/exchange/eep_export.json` wird ebenfalls aus dem `-SitePath` geliefert. Der Vorgabewert `exchange/eep_export.json` im URL-Feld der Bridge funktioniert daher auch, wenn man die Seite unter `<ProxyPath>/` öffnet.
-- **Keine Daten von GitHub:** `.json` und `.anl3` außerhalb von `<ProxyPath>` werden nie weitergeleitet (404).
+- **Keine Daten von GitHub:** `.json`, `.anl3`, `.gbs` und `.zip` außerhalb von `<ProxyPath>` werden nie weitergeleitet (404).
 - **Kein offener Proxy:** Ziel ist fest der eine GitHub-Host. Es gibt nur `GET` und `HEAD`, keine Cookies, keine Origin und keinen Referer zu GitHub. Umleitungen auf andere Hosts werden abgelehnt.
 - **Mit Internet:** Der EEP-Rechner braucht beim Aufruf eine Internetverbindung. Es gibt keinen Zwischenspeicher. Ohne Internet antwortet der Server mit 502.
 
@@ -364,7 +373,7 @@ https://192.168.0.115:3001/EEP_Gleisplan?url=/MeineAnlage.anl3
 | Chrome: Hinweis zum lokalen Netzwerk („privileged network position") | Kein Fehler. Berechtigung einmal erteilen (siehe 3.5). |
 | Zertifikatswarnung auf einem anderen Gerät | Die `.cer`-Datei (z. B. `EEP Export Node.js (MEIN-PC).cer`) dort als vertrauenswürdige Stammzertifizierungsstelle importieren (siehe 3.6). |
 | Bridge zeigt „Fehler: Failed to fetch" | Server nicht erreichbar (läuft er? Firewall? IP-Adresse geändert?), Zertifikat nicht vertraut oder Origin nicht erlaubt (CORS). |
-| Gleisplan zeigt bei **URL laden** „Fehler: …" | Wie zuvor. Zusätzlich: Die `.anl3`-Datei liegt nicht im `-SitePath`, oder der Dateiname in der URL stimmt nicht. |
+| Gleisplan oder GBS zeigt bei **URL laden** „Fehler: …" | Wie zuvor. Zusätzlich: Die `.anl3`- bzw. `.gbs`-Datei liegt nicht im `-SitePath`, oder der Dateiname in der URL stimmt nicht. |
 | Log: `"WS …" 403 Forbidden (Origin: …)` (Python, Node.js) | Die Origin der Bridge ist nicht erlaubt. Bridge von GitHub Pages oder aus dem lokalen Netz öffnen, bei einer lokalen Datei `-AllowNullOrigin` verwenden (siehe 3.7). Die Bridge fragt in der Zwischenzeit weiter per HTTPS ab. |
 | Statuszeile der Bridge zeigt dauernd „HTTP“ statt „WebSocket“ | Kein WebSocket möglich: IIS-Variante, Quelle ist keine `http(s)`-URL, Verbindung abgelehnt (`403`, `404`, `503` bei mehr als 50 Verbindungen) oder ein älterer Server ohne WebSocket (Skript erneut ausführen). Die Daten kommen trotzdem per Abfrage, die Bridge versucht alle 5 Sekunden eine neue Verbindung. |
 | Abschlusstest „WebSocket: …“ schlägt fehl | Details stehen hinter der Meldung. Meist ist der Ordner `exchange` im `-SitePath` nicht beschreibbar (der Test legt dort `wstest.json` an) oder ein Sicherheitsprogramm blockiert die Verbindung. |
@@ -375,8 +384,8 @@ https://192.168.0.115:3001/EEP_Gleisplan?url=/MeineAnlage.anl3
 | Befehle: Antwort 200, aber EEP reagiert nicht | Das Log zeigt „… Befehl(e) … nach … geschrieben“. Prüfen, ob die Kommando-Datei (Standard `<SitePath>\exchange\commands-to-eep.txt`, siehe `-ExchangePath` und `-ExchangeFile`) die erwartete Zeile enthält und ob das Lua-Skript in EEP dieselbe Datei liest. |
 | Warnung „Die Kommando-Datei … existiert bereits“ bei der Installation | Kein Fehler. Die Schreibtests für Befehle wurden übersprungen, damit keine vorhandenen Befehle verloren gehen oder ausgelöst werden. |
 | Mit `-ProxyGitHub`: Seite lädt nicht, Log `Proxy-Fehler …` oder Status 502 | Keine Internetverbindung des EEP-Rechners, GitHub nicht erreichbar oder `-ProxyPath` stimmt nicht. Der Pfad muss auf der GitHub-Seite existieren (Standard `/EEP_convert_anl3_file`). |
-| Mit `-ProxyGitHub`: `.json` oder `.anl3` liefert 404 | Die Datei liegt nicht im `-SitePath`. Außerhalb von `<ProxyPath>` werden Daten nie von GitHub geholt. |
-| Aufruf funktioniert nicht, obwohl der Test `[OK]` zeigt | `eep_export.json` bzw. die `.anl3`-Datei liegt nicht im `-SitePath`, oder der Server (Python/Node.js) läuft nicht mehr. Die Tests nutzen nur die Beispieldateien im Unterordner `exchange`. |
+| Mit `-ProxyGitHub`: `.json`, `.anl3`, `.gbs` oder `.zip` liefert 404 | Die Datei liegt nicht im `-SitePath`. Außerhalb von `<ProxyPath>` werden Daten nie von GitHub geholt. |
+| Aufruf funktioniert nicht, obwohl der Test `[OK]` zeigt | `eep_export.json` bzw. die `.anl3`- oder `.gbs`-Datei liegt nicht im `-SitePath`, oder der Server (Python/Node.js) läuft nicht mehr. Die Tests nutzen nur die Beispieldateien im Unterordner `exchange`. |
 
 **Protokolle**
 

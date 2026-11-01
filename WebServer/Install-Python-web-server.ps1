@@ -2,10 +2,10 @@
 <#
 .SYNOPSIS
     Installiert und konfiguriert einen Python-Webserver unter Windows 11:
-    - liefert nur .json und .anl3 Dateien aus
+    - liefert nur .json, .anl3, .gbs, .zip Dateien aus
     - optional (-ActivateCommands): nimmt per POST auf /send-command Befehle fuer EEP an und haengt sie als ANSI an
       <SitePath>\<ExchangePath>\<ExchangeFile> an. Absender: die Bridge (erlaubte Origins) bzw. curl von diesem Rechner (ohne Origin)
-    - optional (-ProxyGitHub): alle Anfragen, die keine lokale .json/.anl3-Datei sind (z.B. /EEP_Gleisplan oder
+    - optional (-ProxyGitHub): alle Anfragen, die keine lokale .json/.anl3/.gbs/.zip-Datei sind (z.B. /EEP_Gleisplan oder
       /EEP_convert_anl3_file/EEP_Gleisplan.html), werden per GET/HEAD von der ersten GitHub-Origin unter -ProxyPath geholt
       und ausgeliefert. Bridge, Gleisplan und Daten haben dann dieselbe Origin (kein CORS, kein Mixed Content, keine PNA-Rueckfrage)
     - CORS fuer localhost, lokales Netzwerk und GitHub-Origin
@@ -339,8 +339,8 @@ if ($ExchangePath -match '[:*?"<>|]' -or $ExchangePath.StartsWith('\') -or $Exch
 }
 if ($ExchangeFile -notmatch '^[A-Za-z0-9._-]+$' -or $ExchangeFile -match '^\.+$|[. ]$') {
     $errors.Add("ExchangeFile muss ein reiner Dateiname sein (z.B. commands-to-eep.txt).")
-} elseif ($ExchangeFile -match '\.(json|anl3)$') {
-    $errors.Add("ExchangeFile darf nicht auf .json oder .anl3 enden (diese Dateitypen liefert der Server aus).")
+} elseif ($ExchangeFile -match '\.(json|anl3|gbs|zip)$') {
+    $errors.Add("ExchangeFile darf nicht auf .json, .anl3, .gbs, .zip enden (diese Dateitypen liefert der Server aus).")
 }
 if ($PfxPath -and -not (Test-Path $PfxPath -PathType Leaf)) { $errors.Add("PfxPath nicht gefunden: $PfxPath") }
 foreach ($g in $GitHubOrigins) {
@@ -671,7 +671,7 @@ $serverCode = @'
 # -*- coding: utf-8 -*-
 """EEP Export - schlanker HTTPS-Server (nur Python-Standardbibliothek).
 
-Liefert ausschliesslich .json und .anl3 aus (GET, HEAD, OPTIONS), mit CORS,
+Liefert ausschliesslich .json, .anl3, .gbs, .zip aus (GET, HEAD, OPTIONS), mit CORS,
 HSTS und (optional, nur bei http_port > 0) HTTP->HTTPS-Umleitung.
 Optional (--activateCommands oder activate_commands in config.json): POST /send-command haengt Befehle fuer EEP als ANSI an eine Datei an.
 WebSocket (wss://, gleiche URL wie die Datei): sendet die Datei beim Verbinden und nach jeder Aenderung.
@@ -707,7 +707,12 @@ with open(os.path.join(BASE, "config.json"), encoding="utf-8-sig") as _f:
 SITE_ROOT = os.path.realpath(CFG["site_path"])
 HTTP_PORT = int(CFG["http_port"])
 HTTPS_PORT = int(CFG["https_port"])
-ALLOWED_TYPES = {".json": "application/json", ".anl3": "application/octet-stream"}
+ALLOWED_TYPES = {
+    ".json": "application/json",
+    ".anl3": "application/octet-stream",
+    ".gbs": "application/octet-stream",
+    ".zip": "application/zip"
+}
 ALLOWED_METHODS = "GET, HEAD, OPTIONS"
 
 # Erlaubte Origins: localhost, private Netze (10.x, 172.16-31.x, 192.168.x), *.local, PC-Name, GitHub
@@ -741,7 +746,7 @@ if ACTIVATE_COMMANDS:
 # Protokoll schreiben
 # Proxy (nur mit -ProxyGitHub): Seiten von GitHub Pages holen und selbst ausliefern
 # Ziel fest: https://<proxy_host><proxy_path>/... Nur GET/HEAD, keine Cookies/Origin/Referer an GitHub, Redirects nur innerhalb desselben Hosts.
-# .json/.anl3 werden nie von GitHub geholt, ausser unter proxy_path (dort zuerst lokal, z.B. relative URL "eep_export.json" der Bridge).
+# .json/.anl3/.gbs/.zip werden nie von GitHub geholt, ausser unter proxy_path (dort zuerst lokal, z.B. relative URL "eep_export.json" der Bridge).
 PROXY = bool(CFG.get("proxy_github")) and bool(re.fullmatch(r"[A-Za-z0-9.-]+", str(CFG.get("proxy_host") or "")))
 PROXY_HOST = str(CFG["proxy_host"]) if PROXY else ""
 PROXY_PATH = str(CFG.get("proxy_path") or "").rstrip("/") if PROXY else ""
@@ -1222,7 +1227,7 @@ class Handler(BaseHTTPRequestHandler):
                         "" if ALLOW_NULL else ", file:// und null nur mit -AllowNullOrigin")
             self.send_error(403)
             return
-        full = self._resolve(self.path)          # gleiche Regeln wie bei HTTP: nur .json und .anl3
+        full = self._resolve(self.path)          # gleiche Regeln wie bei HTTP: nur .json, .anl3, .gbs, .zip
         if not full:
             self.send_error(404)
             return
@@ -1461,7 +1466,7 @@ def main():
         threading.Thread(target=http.serve_forever, daemon=True).start()
     LOG.info("Server gestartet (mit WebSocket): HTTPS Port %d, HTTP Port %s, Inhalt %s", HTTPS_PORT, HTTP_PORT or "aus", SITE_ROOT)
     if PROXY:
-        LOG.warning("Proxy aktiv: andere Seiten kommen von https://%s%s/ (nur GET/HEAD; .json/.anl3 nur lokal)", PROXY_HOST, PROXY_PATH)
+        LOG.warning("Proxy aktiv: andere Seiten kommen von https://%s%s/ (nur GET/HEAD; .json/.anl3/.gbs/.zip nur lokal)", PROXY_HOST, PROXY_PATH)
     if ACTIVATE_COMMANDS:
         LOG.info("Befehle fuer EEP aktiv: POST %s -> %s (Browser: nur erlaubte Origins, ohne Origin nur von diesem Rechner)", POST_PATH, EXCHANGE_FILE)
         if ALLOW_NULL:
@@ -1640,7 +1645,7 @@ if (-not $ActivateCommands) {
     }
 }
 
-# Nur .json und .anl3
+# Nur .json, .anl3, .gbs, .zip
 $r = Invoke-Probe "$testBase/beispiel.anl3"
 Write-Check ($r.Status -eq 200) "beispiel.anl3 wird ausgeliefert: Status $($r.Status)"
 
