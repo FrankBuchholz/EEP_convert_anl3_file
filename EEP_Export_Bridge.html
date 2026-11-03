@@ -52,13 +52,11 @@ input.cin.rt{width:12em}
 </style>
 </head>
 <body>
-<script src="js/EEP_Texts.js"></script> <!-- Texte; fügt versteckte Sprach-Radiobuttons ein -->
+<script src="js/EEP_Texts.js"></script> <!-- Texte und Sprachumschaltung (Dropdown-Liste data-lang-select) -->
 <header class="flexRow"> <!-- Überschrift und Sprachauswahl wie in Gleisplan und Inventar, siehe EEP_Texts.css -->
   <div><h3>EEP Export Bridge</h3></div>
   <div>
-    <label for="german" class="langBtn">Deutsch</label>
-    <label for="english" class="langBtn">English</label>
-    <label for="french" class="langBtn">Français</label>
+    <select data-lang-select aria-label="Sprache / Language / Langue"></select>
   </div>
 </header>
 <nav id="controls">
@@ -827,16 +825,15 @@ $("follow").onchange = centerFollow;
 // ---- Sprache -------------------------------------------------------------------
 // Texte anwenden, Gleisplan informieren, Zug-Auswahl neu aufbauen
 function applyTexts() {
-  document.querySelectorAll("[data-t]").forEach(e => { e.textContent = _(e.dataset.t); });
+  EEP_Texts.apply();   // Texte mit data-t
   showLast();
   updateCst();
 	for (const k in lastHtml) delete lastHtml[k];
   trainKey = "";                       // Zug-Auswahl neu aufbauen (enthält übersetzten Text)
   if (data) render();
 }
-// Sprache wechseln: Radiobuttons in EEP_Texts.js erzeugt, Auswahl in <select> synchronisieren
-// Die Radiobuttons (von EEP_Texts.js) setzen die Sprache selbst; hier nur die Texte der Bridge neu aufbauen
-document.querySelectorAll('input[name="lang"]').forEach(r => r.addEventListener("click", applyTexts));
+// Sprachwechsel (Dropdown-Liste, andere Tabs): Texte der Bridge neu aufbauen
+EEP_Texts.onChange(applyTexts);
 applyTexts();
 
 </script>

@@ -2,7 +2,7 @@
 <#
 .SYNOPSIS
     Installiert und konfiguriert einen Python-Webserver unter Windows 11:
-    - liefert nur .json, .anl3, .gbs, .zip Dateien aus
+    - liefert nur .json, .anl3, .gbs und .zip Dateien aus
     - optional (-ActivateCommands): nimmt per POST auf /send-command Befehle fuer EEP an und haengt sie als ANSI an
       <SitePath>\<ExchangePath>\<ExchangeFile> an. Absender: die Bridge (erlaubte Origins) bzw. curl von diesem Rechner (ohne Origin)
     - optional (-ProxyGitHub): alle Anfragen, die keine lokale .json/.anl3/.gbs/.zip-Datei sind (z.B. /EEP_Gleisplan oder
@@ -17,10 +17,9 @@
     - Vorpruefungen (Ports, Parameter, Python, Internet) VOR jeder Aenderung
     - Abschlusstests (Ports, CORS, Dateityp-Sperre, Umleitung) mit einem kurzzeitig gestarteten Testserver
     - kein Autostart: der Server wird bei Bedarf mit einem Python-Kommando gestartet
-    Fremde Programme und Websites werden nie veraendert oder beendet.
-    Der Server selbst (server.py) nutzt nur die Python-Standardbibliothek.
-    Bei erneutem Start wird die bestehende Installation auf die aktuellen
-    Angaben aktualisiert.
+    - Fremde Programme und Websites werden nie veraendert oder beendet.
+    - Der Server selbst (server.py) nutzt nur die Python-Standardbibliothek.
+    - Bei erneutem Start wird die bestehende Installation auf die aktuellen Angaben aktualisiert.
 .EXAMPLE
     .\Install-Python-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001
 .EXAMPLE
@@ -66,7 +65,10 @@
       curl.exe --data-binary "Befehl" https://localhost:3001/send-command
       curl.exe --data-binary "@befehle.txt" https://localhost:3001/send-command
     Es gibt keinen Autostart. Der Server wird mit diesem Python-Kommando gestartet:
-    & "<InstallPath>\venv\Scripts\python.exe" "<InstallPath>\server.py"
+      & "<InstallPath>\venv\Scripts\python.exe" "<InstallPath>\server.py"
+    Prüfung wenn der Port blockiert ist:
+      Anzeige welche PID den Port festhält: netstat -ano | findstr :3001
+      Anzeige welches Programm zu dieser PID gehört: tasklist | findstr <PID>		
 #>
 [CmdletBinding()]
 param(
@@ -1455,6 +1457,36 @@ def make_server(cls, port, handler):
     raise last
 
 
+def get_local_ip_addresses() -> str:
+    """Ermittelt alle externen IPv4-Adressen des Rechners im Heimnetzwerk."""
+    ip_addresses = []
+    try:
+        # socket.getaddrinfo gibt alle verfügbaren Schnittstellen zurück
+        # Wir filtern nach IPv4 (AF_INET) und ignorieren Loopback (127.0.0.1)
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            ip = info[4][0]
+            if ip != "127.0.0.1" and ip not in ip_addresses:
+                ip_addresses.append(ip)
+    except Exception:
+        pass
+
+    # Falls der obige Weg fehlschlägt oder leer ist, nutzen wir einen bewährten Fallback-Trick
+    if not ip_addresses:
+        try:
+            # Baut eine Dummy-UDP-Verbindung auf, um die primäre Interface-IP zu sehen
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            primary_ip = s.getsockname()[0]
+            s.close()
+            if primary_ip != "127.0.0.1":
+                ip_addresses.append(primary_ip)
+        except Exception:
+            pass
+
+    return ", ".join(ip_addresses) if ip_addresses else "Keine Netzwerkadresse gefunden (nur localhost)"
+
+
 def main():
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.minimum_version = ssl.TLSVersion.TLSv1_2
@@ -1465,6 +1497,7 @@ def main():
         http = make_server(BaseServer, HTTP_PORT, RedirectHandler)
         threading.Thread(target=http.serve_forever, daemon=True).start()
     LOG.info("Server gestartet (mit WebSocket): HTTPS Port %d, HTTP Port %s, Inhalt %s", HTTPS_PORT, HTTP_PORT or "aus", SITE_ROOT)
+    LOG.info("Verfuegbare IPs im Heimnetzwerk: %s", get_local_ip_addresses())
     if PROXY:
         LOG.warning("Proxy aktiv: andere Seiten kommen von https://%s%s/ (nur GET/HEAD; .json/.anl3/.gbs/.zip nur lokal)", PROXY_HOST, PROXY_PATH)
     if ACTIVATE_COMMANDS:

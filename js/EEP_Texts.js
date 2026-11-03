@@ -24,6 +24,47 @@ err : {
 		EN : `in line`, 
 		FR : `en ligne`, 
 	},
+	// EEP_Zip.js: Fehlertexte beim Laden
+	'prefix' : {
+		DE : `Fehler`,
+		EN : `Error`,
+		FR : `Erreur`,
+	},
+	'http' : {
+		DE : `Der Server antwortete mit HTTP $1.`,
+		EN : `The server answered with HTTP $1.`,
+		FR : `Le serveur a répondu avec HTTP $1.`,
+	},
+	'http404' : {
+		DE : `Der Server antwortete mit HTTP $1 (Datei nicht gefunden).`,
+		EN : `The server answered with HTTP $1 (file not found).`,
+		FR : `Le serveur a répondu avec HTTP $1 (fichier introuvable).`,
+	},
+	'http403' : {
+		DE : `Der Server antwortete mit HTTP $1 (Zugriff verweigert).`,
+		EN : `The server answered with HTTP $1 (access denied).`,
+		FR : `Le serveur a répondu avec HTTP $1 (accès refusé).`,
+	},
+	'offline' : {
+		DE : `Es besteht keine Internetverbindung.`,
+		EN : `There is no internet connection.`,
+		FR : `Il n'y a pas de connexion Internet.`,
+	},
+	'mixed' : {
+		DE : `Eine http-URL kann nicht von einer https-Seite geladen werden (Mixed Content). Verwende eine https-URL.`,
+		EN : `An http URL cannot be loaded from an https page (mixed content). Use an https URL.`,
+		FR : `Une URL http ne peut pas être chargée depuis une page https (contenu mixte). Utilisez une URL https.`,
+	},
+	'file' : {
+		DE : `Die URL konnte nicht geladen werden. Da das Programm direkt als Datei (file://) geöffnet wurde, blockiert der Browser den Zugriff, wenn der Server CORS nicht erlaubt (Access-Control-Allow-Origin). Lade die Datei herunter und wähle sie aus, oder öffne das Programm über einen Webserver.`,
+		EN : `The URL could not be loaded. Because the program was opened directly as a file (file://), the browser blocks access unless the server allows CORS (Access-Control-Allow-Origin). Download the file and select it, or open the program via a web server.`,
+		FR : `L'URL n'a pas pu être chargée. Le programme ayant été ouvert directement comme fichier (file://), le navigateur bloque l'accès si le serveur n'autorise pas CORS (Access-Control-Allow-Origin). Téléchargez le fichier et sélectionnez-le, ou ouvrez le programme via un serveur web.`,
+	},
+	'net' : {
+		DE : `Die URL konnte nicht geladen werden: Der Server ist nicht erreichbar, die URL ist falsch, oder der Server erlaubt keinen Zugriff von dieser Seite aus (CORS).`,
+		EN : `The URL could not be loaded: the server is unreachable, the URL is wrong, or the server does not allow access from this page (CORS).`,
+		FR : `L'URL n'a pas pu être chargée : serveur inaccessible, URL incorrecte, ou le serveur n'autorise pas l'accès depuis cette page (CORS).`,
+	},
 },
 msg : {
 	TrackSystemNotExists : {
@@ -1704,6 +1745,11 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : `Open track plan`,
 		FR : `Ouvrir le plan de voies`,
 	},
+	'Gleisbildstellpult öffnen' : {
+		DE : `Gleisbildstellpult öffnen`,
+		EN : `Open control desk`,
+		FR : `Ouvrir le pupitre de commande`,
+	},
 	'keine Daten' : {
 		DE : `keine Daten`,
 		EN : `no data`,
@@ -1897,6 +1943,72 @@ Seule la section sélectionnée est exportée.<\/dd>
 		EN : ``, 
 		FR : ``, 
 	},
+	// EEP_GBS.html
+	'gbs.on' : {
+		DE : `Ein`,
+		EN : `On`,
+		FR : `Marche`,
+	},
+	'gbs.off' : {
+		DE : `Aus`,
+		EN : `Off`,
+		FR : `Arrêt`,
+	},
+	'gbs.unknownSymbol' : {
+		DE : `Symbol $1: Darstellung noch nicht bekannt`,
+		EN : `Symbol $1: appearance unknown`,
+		FR : `Symbole $1 : aspect inconnu`,
+	},
+	'gbs.showGbs' : {
+		DE : `Als .gbs anzeigen`,
+		EN : `Show as .gbs`,
+		FR : `Afficher en .gbs`,
+	},
+	'gbs.showAnl3' : {
+		DE : `Als anl3-Text anzeigen`,
+		EN : `Show as anl3 text`,
+		FR : `Afficher en texte anl3`,
+	},
+	'gbs.saveText' : {
+		DE : `Text speichern`,
+		EN : `Save text`,
+		FR : `Enregistrer`,
+	},
+	'gbs.noDesks' : {
+		DE : `Keine Stellpulte in dieser Anlage.`,
+		EN : `No control desks in this layout.`,
+		FR : `Aucun pupitre dans ce réseau.`,
+	},
+	'gbs.liveAge' : {
+		DE : `Live-Daten vor $1 s`,
+		EN : `Live data $1 s ago`,
+		FR : `Données en direct il y a $1 s`,
+	},
+	'gbs.noLive' : {
+		DE : `Keine Live-Daten – Export Bridge öffnen und „an Gleisplan senden“ einschalten`,
+		EN : `No live data – open the Export Bridge and enable "Send to track plan"`,
+		FR : `Pas de données en direct – ouvrir l'Export Bridge et activer « Envoyer au plan des voies »`,
+	},
+	'gbs.startSelected' : {
+		DE : `Startsignal $1 gewählt – jetzt Zielsignal anklicken`,
+		EN : `Start signal $1 selected – now click the end signal`,
+		FR : `Signal de départ $1 choisi – cliquer sur le signal de fin`,
+	},
+	'gbs.clickStartFirst' : {
+		DE : `Erst ein Startsignal (S) anklicken`,
+		EN : `Click a start signal (S) first`,
+		FR : `Cliquer d'abord sur un signal de départ (S)`,
+	},
+	'gbs.noRoute' : {
+		DE : `Keine Fahrstraße von Signal $1 nach $2`,
+		EN : `No predefined line from signal $1 to $2`,
+		FR : `Aucun parcours prédéfini du signal $1 au signal $2`,
+	},
+	'gbs.noObjData' : {
+		DE : `Keine Live-Daten zu diesem Objekt`,
+		EN : `No live data for this object`,
+		FR : `Pas de données en direct pour cet objet`,
+	},
 },
 /*
 Additional texts in EEP_Gleisplan.html and EEP_Inventar.html
@@ -2008,74 +2120,188 @@ Additional texts in EEP_Gleisplan.html and EEP_Inventar.html
 */
 
 }
+;
 
-	// Get language of the browser: navigator.language (de, en_US ...)
-	// Get language of the html document: document.documentElement.lang (as defined with html tag)
-	
-	const masterLanguage = 'DE';
-	let language;
+	// ---------------------------------------------------------------------------------------
+	// Kern: Sprache, Texte holen, Platzhalter ersetzen, Sprachwechsel melden
+	// ---------------------------------------------------------------------------------------
+	const masterLanguage = 'DE';		// Ausgangssprache: fehlt eine Übersetzung, wird dieser Text verwendet
+	const languages = [					// unterstützte Sprachen (Reihenfolge = Reihenfolge in der Dropdown-Liste)
+		{ code: 'DE', name: 'Deutsch' },
+		{ code: 'EN', name: 'English' },
+		{ code: 'FR', name: 'Français' },
+	];
+	const listeners = [];				// Funktionen, die bei einem Sprachwechsel aufgerufen werden
+	const warned = new Set();			// fehlende Texte nur einmal melden
+	let language = null;
+
+	// 'de', 'en-US', 'FR' ... -> 'DE' | 'EN' | 'FR', sonst null
+	function normalize(code) {
+		const c = String(code || '').slice(0, 2).toUpperCase();
+		return languages.some(l => l.code === c) ? c : null;
+	}
+
+	function storedLanguage() {
+		try { return normalize(localStorage.getItem("language")); } catch (e) { return null; }
+	}
+
+	// Sprache des Browsers (erste unterstützte Sprache aus navigator.languages), sonst Ausgangssprache
+	function detectLanguage() {
+		const preferred = (typeof navigator !== "undefined" && navigator.languages) ? navigator.languages : [];
+		for (const code of preferred) {
+			const c = normalize(code);
+			if (c) { return c; }
+		}
+		return masterLanguage;
+	}
+
+	// Liefert 'DE', 'EN' oder 'FR' (Großbuchstaben wie bisher)
 	function getLanguage() {
 		if (!language) {
-			language = localStorage.getItem("language");
-			if (!language) {
-				language = masterLanguage;
-			}
+			language = storedLanguage() || detectLanguage();
 		}
 		return language;
 	}
-	function setLanguage(langu) {
-		document.documentElement.lang = langu.toLowerCase();
-		language = langu.toUpperCase();
-		localStorage.setItem("language", language);
+
+	// Sprache wechseln: Attribut lang setzen, speichern, Texte mit data-t neu setzen, Listener aufrufen
+	function setLanguage(code) {
+		const c = normalize(code);
+		if (!c) { return; }
+
+		const changed = (c !== getLanguage());
+		language = c;
+		document.documentElement.lang = c.toLowerCase();
+		try { localStorage.setItem("language", c); } catch (e) {}
+		syncSelects();
+
+		if (changed) {
+			apply();
+			for (const fn of listeners.slice()) {
+				try { fn(c); } catch (e) { console.error(e); }
+			}
+		}
+	}
+
+	// Registriert fn(sprache), die nach jedem Sprachwechsel aufgerufen wird (auch bei Wechsel in einem anderen Tab).
+	// Mit runNow = true wird fn sofort einmal aufgerufen. Liefert eine Funktion zum Abmelden.
+	function onChange(fn, runNow) {
+		listeners.push(fn);
+		if (runNow) { fn(getLanguage()); }
+		return function() {
+			const i = listeners.indexOf(fn);
+			if (i >= 0) { listeners.splice(i, 1); }
+		};
+	}
+
+	// Text in der aktuellen Sprache, ersatzweise in der Ausgangssprache; undefined wenn es ihn nicht gibt
+	function lookup(topic, key) {
+		const has = Object.prototype.hasOwnProperty;
+		const entry = (has.call(texts, topic) && has.call(texts[topic], key)) ? texts[topic][key] : null;
+		return entry ? (entry[getLanguage()] || entry[masterLanguage] || undefined) : undefined;
+	}
+
+	// Platzhalter $1, $2 ... in einem Durchlauf ersetzen: ein Argument, das selbst "$2" enthält, wird nicht nochmals ersetzt,
+	// und $10 wird nicht als $1 + "0" missverstanden. Fehlt das Argument, bleibt der Platzhalter stehen.
+	function format(text, args) {
+		return text.replace(/\$(\d+)/g, (match, n) => (args[n - 1] !== undefined ? String(args[n - 1]) : match));
 	}
 
 	function getText(topic, key, ...args) {
-		if ( texts[topic] && texts[topic][key] ) {
-			// get text
-			let text = texts[topic][key][getLanguage()];
-			// in case of missing translation get text in master language
-			if (!text || text === ``) {
-				text = texts[topic][key][masterLanguage];
+		const text = lookup(topic, key);
+		if (text === undefined) {
+			const id = topic + '.' + key;
+			if (!warned.has(id)) {
+				warned.add(id);
+				console.warn("EEP_Texts: Text fehlt: " + id);
 			}
-			// still nothing: show the key
-			if (!text) {
-				return topic + '.' + key;
+			return id;
+		}
+		return args.length ? format(text, args) : text;
+	}
+
+	// Text aus einem Objekt {DE, EN, FR} (oder einen String) in der aktuellen bzw. in der angegebenen Sprache.
+	// Ersatz: Ausgangssprache, dann Englisch. Wird z.B. für die Signaldaten in EEP_Signale_Daten.js verwendet.
+	function pick(obj, lang) {
+		if (typeof obj === "string") { return obj; }
+		if (!obj) { return ""; }
+		const l = normalize(lang) || getLanguage();
+		return obj[l] || obj[masterLanguage] || obj.EN || "";
+	}
+
+	// Name und Stellungstexte eines Signals; def = Eintrag aus Signalstellung[Dateiname] (oder undefined)
+	function signalName(def) {
+		return pick(def && def.Name);
+	}
+	function signalPosition(def, position) {
+		const text = pick(def && def.Pos && def.Pos[position]);
+		if (text === "Fahrt") { return getText('info', 'Fahrt'); }		// Standardtexte übersetzen
+		if (text === "Halt")  { return getText('info', 'Halt'); }
+		return text;
+	}
+
+	// ---------------------------------------------------------------------------------------
+	// DOM: Texte mit data-t, Dropdown-Liste für die Sprache
+	// ---------------------------------------------------------------------------------------
+	// <span data-t="Schlüssel"> setzt den Text, data-t-title den Tooltip, data-t-placeholder den Platzhalter (Topic 'info')
+	function apply(root) {
+		root = root || document;
+		root.querySelectorAll("[data-t]").forEach(e => { e.textContent = getText('info', e.dataset.t); });
+		root.querySelectorAll("[data-t-title]").forEach(e => { e.title = getText('info', e.dataset.tTitle); });
+		root.querySelectorAll("[data-t-placeholder]").forEach(e => { e.placeholder = getText('info', e.dataset.tPlaceholder); });
+	}
+
+	// Jedes <select data-lang-select> wird mit den Sprachen gefüllt und auf die aktuelle Sprache gestellt.
+	// Die Optionen tragen bewusst kein lang-Attribut, sonst würde die CSS-Regel sie ausblenden.
+	function syncSelects() {
+		document.querySelectorAll("select[data-lang-select]").forEach(sel => {
+			if (!sel.options.length) {
+				for (const l of languages) { sel.add(new Option(l.name, l.code)); }
 			}
-			// replace parameters $1 , $2 , ...
-			let i = 1;
-			for (const arg of args) {
-				text = text.replace('$'+i, () => arg);	// function avoids special handling of $& etc. in arg
-				i += 1;
-			}
-			return text;
-		} else {
-			return topic + '.' + key;
-		} 
+			sel.value = getLanguage();
+		});
+	}
+
+	function init() {
+		syncSelects();
+		apply();
+	}
+
+	document.documentElement.lang = getLanguage().toLowerCase();	// so früh wie möglich, damit nichts flackert
+
+	// Auswahl in der Dropdown-Liste (Event-Delegation: gilt auch für später eingefügte Listen)
+	document.addEventListener("change", ev => {
+		const sel = ev.target && ev.target.closest && ev.target.closest("select[data-lang-select]");
+		if (sel) { setLanguage(sel.value); }
+	});
+
+	// Sprachwechsel in einem anderen Tab übernehmen (das Ereignis kommt nur bei geänderten Werten, daher keine Schleife)
+	if (typeof window !== "undefined") {
+		window.addEventListener("storage", ev => {
+			if (ev.key === "language" && normalize(ev.newValue)) { setLanguage(ev.newValue); }
+		});
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", init);
+	} else {
+		init();
 	}
 
 	return {
 		getLanguage : getLanguage,
 		setLanguage : setLanguage,
 		getText : getText,
+		pick : pick,
+		signalName : signalName,
+		signalPosition : signalPosition,
+		apply : apply,
+		onChange : onChange,
+		masterLanguage : masterLanguage,
+		languages : languages.map(l => ({ code: l.code, name: l.name })),
 	};
 
 })();
 
 function _(...args) {	// define shortcut
 	return EEP_Texts.getText('info', ...args);
-}
-
-// Add hidden radio buttons to the beginning of the body of the document.
-// The checked status of these radio buttons is used by css to hide elements in other languages than the current one.
-// Such elements have to be part of a <section> or of <main>. 
-document.write(`
-<input type="radio" name="lang" class="hiddenRadio" id="german" onclick="EEP_Texts.setLanguage('DE')" autocomplete="off" >
-<input type="radio" name="lang" class="hiddenRadio" id="english" onclick="EEP_Texts.setLanguage('EN')" autocomplete="off" >
-<input type="radio" name="lang" class="hiddenRadio" id="french" onclick="EEP_Texts.setLanguage('FR')" autocomplete="off" >
-`);
-document.documentElement.lang = EEP_Texts.getLanguage().toLowerCase();
-switch (EEP_Texts.getLanguage()) {	// do it as early as possible
-	case "DE" : document.getElementById("german").checked = true; break;
-	case "EN" : document.getElementById("english").checked = true; break;
-	case "FR" : document.getElementById("french").checked = true; break;
 }

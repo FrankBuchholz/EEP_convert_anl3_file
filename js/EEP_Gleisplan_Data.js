@@ -60,59 +60,71 @@ function TrackSystemText(GleissystemID) {
 	return global.TrackSystemTexts[global.TrackSystem[GleissystemID]];
 }
 	
+// Tabellen, die erst beim Zugriff übersetzen: Sie bleiben nach einem Sprachwechsel automatisch aktuell.
+// defs: Schlüssel -> Funktion, die den Text liefert
+function lazyTexts(defs) {
+	const map = {};
+	for (const key of Object.keys(defs)) {
+		Object.defineProperty(map, key, { get: defs[key], enumerable: true });
+	}
+	return map;
+}
+const text   = key => () => _(key);							// ein Text
+const joined = (...keys) => () => keys.map(k => _(k)).join(', ');	// mehrere Texte, durch Komma getrennt
+
 function loadStaticTexts() {
 
-global.TrackSystemTexts = { 			// per TrackSystemNumber 1-6 (caution: GleissystemID could show other numbers, too) 
-	1 : _('Eisenbahn'),
-	2 : _('Strassenbahn'),
-	3 : _('Strasse'),
-	4 : _('Wasserwege'),
-	5 : _('Steuerstrecken'),		// nicht in EEP 9
-	6 : _('GBS'),					// nicht in EEP 9
-};
+global.TrackSystemTexts = lazyTexts({	// per TrackSystemNumber 1-6 (caution: GleissystemID could show other numbers, too)
+	1 : text('Eisenbahn'),
+	2 : text('Strassenbahn'),
+	3 : text('Strasse'),
+	4 : text('Wasserwege'),
+	5 : text('Steuerstrecken'),		// nicht in EEP 9
+	6 : text('GBS'),				// nicht in EEP 9
+});
 
-global.Gleisart = { 					// clsid
-	"2E25C8E2-ADCD-469A-942E-7484556FF932" : _('Normal'),
-	"C889EADB-63B5-44A2-AAB9-457424CFF15F" : _('Weiche'),
-	"B0818DD8-5DFD-409F-8022-993FD3C90759" : _('3-Weg-Weiche'),
-	"06D80C90-4E4B-469B-BFE0-509A573EBC99" : _('Prellbock'),
-};
+global.Gleisart = lazyTexts({			// clsid
+	"2E25C8E2-ADCD-469A-942E-7484556FF932" : text('Normal'),
+	"C889EADB-63B5-44A2-AAB9-457424CFF15F" : text('Weiche'),
+	"B0818DD8-5DFD-409F-8022-993FD3C90759" : text('3-Weg-Weiche'),
+	"06D80C90-4E4B-469B-BFE0-509A573EBC99" : text('Prellbock'),
+});
 
 // GleisData
-global.GleisDataText = {
-	1	: _('Oberleitung'),											// 1
-	2	: _('Weichenlaterne verstecken'),							// 2
-	3	: _('Oberleitung') + ', ' + _('Weichenlaterne verstecken'),	// 1 + 2 
-	4	: _('Weichenlaterne rechts'),								// 4
-	5	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts'),		// 1 + 4
-	8	: _('Weichenlaterne links'),								// 8
-	9	: _('Oberleitung') + ', ' + _('Weichenlaterne links'),		// 1 + 8
-	16	: _('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),		//
-	18	: _('Doppelkreuzungsweiche'),								// 
-	19	: _('Oberleitung') + ', ' + _('Doppelkreuzungsweiche'),		// 
-	20	: _('Straßen-T-Kreuzung'),									// 
-	64	: _('Spezial'),																	//         64 ?
-	65	: _('Oberleitung') + ', ' + _('Spezial'),										// 1 +     64 ?
-	69	: _('Oberleitung') + ', ' + _('Weichenlaterne rechts') + ', ' + _('Spezial'),	// 1 + 4 + 64 ?
-	73	: _('Oberleitung') + ', ' + _('Weichenlaterne links')  + ', ' + _('Spezial'),	// 1 + 8 + 64 ?
-};
+global.GleisDataText = lazyTexts({
+	1	: text('Oberleitung'),													// 1
+	2	: text('Weichenlaterne verstecken'),									// 2
+	3	: joined('Oberleitung', 'Weichenlaterne verstecken'),					// 1 + 2
+	4	: text('Weichenlaterne rechts'),										// 4
+	5	: joined('Oberleitung', 'Weichenlaterne rechts'),						// 1 + 4
+	8	: text('Weichenlaterne links'),											// 8
+	9	: joined('Oberleitung', 'Weichenlaterne links'),						// 1 + 8
+	16	: text('Weichenlaterne als Immobilie/Straßen-T-Kreuzung'),
+	18	: text('Doppelkreuzungsweiche'),
+	19	: joined('Oberleitung', 'Doppelkreuzungsweiche'),
+	20	: text('Straßen-T-Kreuzung'),
+	64	: text('Spezial'),														//         64 ?
+	65	: joined('Oberleitung', 'Spezial'),										// 1 +     64 ?
+	69	: joined('Oberleitung', 'Weichenlaterne rechts', 'Spezial'),			// 1 + 4 + 64 ?
+	73	: joined('Oberleitung', 'Weichenlaterne links', 'Spezial'),				// 1 + 8 + 64 ?
+});
 
 // Weichenstellung
-global.WeichenstellungText = {
-	1 : _('Durchfahrt'),
-	2 : _('Abzweig'),
-	3 : _('KoAbzweig'),
-	5 : _('Spezial'),
-};
+global.WeichenstellungText = lazyTexts({
+	1 : text('Durchfahrt'),
+	2 : text('Abzweig'),
+	3 : text('KoAbzweig'),
+	5 : text('Spezial'),
+});
 
-global.GebaeudesammlungText = {		// GebaeudesammlungID : Text,
-	1 : _('Eisenbahn'),
-	2 : _('Strassenbahn'),
-	3 : _('Strasse'),
-	4 : _('Immobilien'),
-	5 : _('Landschaftselemente'),
-	6 : _('Sonstiges'),			//  (Wasserwege)
-};
+global.GebaeudesammlungText = lazyTexts({	// GebaeudesammlungID : Text,
+	1 : text('Eisenbahn'),
+	2 : text('Strassenbahn'),
+	3 : text('Strasse'),
+	4 : text('Immobilien'),
+	5 : text('Landschaftselemente'),
+	6 : text('Sonstiges'),			//  (Wasserwege)
+});
 
 } // end function loadStaticTexts
 

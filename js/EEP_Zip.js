@@ -105,53 +105,27 @@ function setStatus(text, isError) {
 
 // Aussagekräftiger Text zu einem Fehler beim Laden einer URL oder Datei
 function describeError(err, url) {
-	let lang = "DE";
-	try { lang = String(EEP_Texts.getLanguage()).toUpperCase(); } catch (e) {}
-	if (lang !== "EN" && lang !== "FR") { lang = "DE"; }
-
-	const T = {
-		DE: {
-			prefix:  "Fehler",
-			http:    (c) => "Der Server antwortete mit HTTP " + c + (c == 404 ? " (Datei nicht gefunden)" : c == 403 || c == 401 ? " (Zugriff verweigert)" : "") + ".",
-			offline: "Es besteht keine Internetverbindung.",
-			mixed:   "Eine http-URL kann nicht von einer https-Seite geladen werden (Mixed Content). Verwende eine https-URL.",
-			file:    "Die URL konnte nicht geladen werden. Da das Programm direkt als Datei (file://) geöffnet wurde, blockiert der Browser den Zugriff, wenn der Server CORS nicht erlaubt (Access-Control-Allow-Origin). Lade die Datei herunter und wähle sie aus, oder öffne das Programm über einen Webserver.",
-			net:     "Die URL konnte nicht geladen werden: Der Server ist nicht erreichbar, die URL ist falsch, oder der Server erlaubt keinen Zugriff von dieser Seite aus (CORS).",
-		},
-		EN: {
-			prefix:  "Error",
-			http:    (c) => "The server answered with HTTP " + c + (c == 404 ? " (file not found)" : c == 403 || c == 401 ? " (access denied)" : "") + ".",
-			offline: "There is no internet connection.",
-			mixed:   "An http URL cannot be loaded from an https page (mixed content). Use an https URL.",
-			file:    "The URL could not be loaded. Because the program was opened directly as a file (file://), the browser blocks access unless the server allows CORS (Access-Control-Allow-Origin). Download the file and select it, or open the program via a web server.",
-			net:     "The URL could not be loaded: the server is unreachable, the URL is wrong, or the server does not allow access from this page (CORS).",
-		},
-		FR: {
-			prefix:  "Erreur",
-			http:    (c) => "Le serveur a répondu avec HTTP " + c + (c == 404 ? " (fichier introuvable)" : c == 403 || c == 401 ? " (accès refusé)" : "") + ".",
-			offline: "Il n'y a pas de connexion Internet.",
-			mixed:   "Une URL http ne peut pas être chargée depuis une page https (contenu mixte). Utilisez une URL https.",
-			file:    "L'URL n'a pas pu être chargée. Le programme ayant été ouvert directement comme fichier (file://), le navigateur bloque l'accès si le serveur n'autorise pas CORS (Access-Control-Allow-Origin). Téléchargez le fichier et sélectionnez-le, ou ouvrez le programme via un serveur web.",
-			net:     "L'URL n'a pas pu être chargée : serveur inaccessible, URL incorrecte, ou le serveur n'autorise pas l'accès depuis cette page (CORS).",
-		},
-	}[lang];
-
+	const T = (key, ...args) => EEP_Texts.getText("err", key, ...args);
 	const msg = (err && err.message) ? err.message : String(err);
 
 	const http = /^HTTP (\d+)/.exec(msg);
-	if (http) { return T.prefix + ": " + T.http(http[1]); }
+	if (http) {
+		const c = http[1];
+		const key = (c == 404) ? "http404" : (c == 403 || c == 401) ? "http403" : "http";
+		return T("prefix") + ": " + T(key, c);
+	}
 
 	// fetch liefert bei Netzwerk-, CORS- und Mixed-Content-Problemen nur eine TypeError ohne Details
 	if (err instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(msg)) {
-		if (typeof navigator !== "undefined" && navigator.onLine === false) { return T.prefix + ": " + T.offline; }
+		if (typeof navigator !== "undefined" && navigator.onLine === false) { return T("prefix") + ": " + T("offline"); }
 		let abs = null;
 		try { abs = new URL(url, document.baseURI); } catch (e) {}
-		if (abs && location.protocol === "https:" && abs.protocol === "http:") { return T.prefix + ": " + T.mixed; }
-		if (location.protocol === "file:") { return T.prefix + ": " + T.file; }
-		return T.prefix + ": " + T.net;
+		if (abs && location.protocol === "https:" && abs.protocol === "http:") { return T("prefix") + ": " + T("mixed"); }
+		if (location.protocol === "file:") { return T("prefix") + ": " + T("file"); }
+		return T("prefix") + ": " + T("net");
 	}
 
-	return T.prefix + ": " + msg;	// z.B. Fehler beim Entpacken der zip-Datei
+	return T("prefix") + ": " + msg;	// z.B. Fehler beim Entpacken der zip-Datei
 }
 
 })(window.EEP_Zip = window.EEP_Zip || {}); // end module

@@ -18,10 +18,9 @@
     - Vorpruefungen (Ports, Parameter) VOR jeder Aenderung
     - Abschlusstests (Ports, CORS, Dateityp-Sperre, Umleitung) mit einem kurzzeitig gestarteten Testserver
     - kein Autostart: der Server wird bei Bedarf mit einem Node-Kommando gestartet
-    Fremde Programme und Websites werden nie veraendert oder beendet.
-    Der Server selbst (server.js) nutzt nur die Node.js-Standardbibliothek (keine npm-Pakete).
-    Bei erneutem Start wird die bestehende Installation auf die aktuellen
-    Angaben aktualisiert.
+    - Fremde Programme und Websites werden nie veraendert oder beendet.
+    - Der Server selbst (server.js) nutzt nur die Node.js-Standardbibliothek (keine npm-Pakete).
+    - Bei erneutem Start wird die bestehende Installation auf die aktuellen Angaben aktualisiert.
 .EXAMPLE
     .\Install-node-web-server.ps1 -SitePath C:\EEP17 -HttpsPort 3001
 .EXAMPLE
@@ -67,7 +66,10 @@
       curl.exe --data-binary "@befehle.txt" https://localhost:3001/send-command
     Die .json-Dateien werden einheitlich als UTF-8 ausgeliefert (liegt die Datei in ANSI vor, wird sie umgewandelt).
     Es gibt keinen Autostart. Der Server wird mit diesem Node-Kommando gestartet:
-    & "<Pfad zu node.exe>" "<InstallPath>\server.js"
+      & "<Pfad zu node.exe>" "<InstallPath>\server.js"
+    Prüfung wenn der Port blockiert ist:
+      Anzeige welche PID den Port festhält: netstat -ano | findstr :3001
+      Anzeige welches Programm zu dieser PID gehört: tasklist | findstr <PID>
 #>
 [CmdletBinding()]
 param(
@@ -618,6 +620,7 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
+const os = require('os'); // Get local ID adresses using os.networkInterfaces()
 
 function readText(file) { return fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''); }
 const CFG = JSON.parse(readText(path.join(__dirname, 'config.json')));
@@ -1165,6 +1168,33 @@ function listen(server, port) {
   });
 }
 
+/**
+ * Ermittelt alle externen IPv4-Adressen des Rechners im Heimnetzwerk.
+ * @returns {string} Eine kommagetrennte Liste der IPs oder ein Hinweistext.
+ */
+function getLocalIpAddresses() {
+  const interfaces = os.networkInterfaces();
+  const ipAddresses = [];
+  
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name]) {
+      // Überspringe interne (Loopback) Adressen wie 127.0.0.1
+      if (net.internal) continue;
+      
+      // Node.js < 18 nutzt net.family === 'IPv4', neuere Versionen nutzen die Zahl 4
+      const isIPv4 = net.family === 'IPv4' || net.family === 4;
+      
+      if (isIPv4) {
+        ipAddresses.push(`${net.address} (${name})`);
+      }
+    }
+  }
+  
+  return ipAddresses.length > 0 
+    ? ipAddresses.join(', ') 
+    : 'Keine Netzwerkadresse gefunden (nur localhost)';
+}
+
 async function main() {
   const tls = { pfx: fs.readFileSync(CFG.pfx_file), minVersion: 'TLSv1.2' };
   const pass = readText(CFG.pass_file);
@@ -1180,6 +1210,7 @@ async function main() {
     await listen(prepare(http.createServer(logged(redirect))), HTTP_PORT);
   }
   log('Server gestartet (mit WebSocket): HTTPS Port ' + HTTPS_PORT + ', HTTP Port ' + (HTTP_PORT || 'aus') + ', Inhalt ' + SITE_ROOT);
+  log('Verfuegbare IPs im Heimnetzwerk: ' + getLocalIpAddresses());
   if (PROXY) log('Proxy aktiv: andere Seiten kommen von https://' + PROXY_HOST + PROXY_PATH + '/ (nur GET/HEAD; .json/.anl3/.gbs/.zip nur lokal)', 'WARNING');
   if (ACTIVATE_COMMANDS) {
     log('Befehle fuer EEP aktiv: POST ' + POST_PATH + ' -> ' + EXCHANGE_FILE + ' (Browser: nur erlaubte Origins, ohne Origin nur von diesem Rechner)');

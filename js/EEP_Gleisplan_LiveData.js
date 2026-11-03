@@ -2,6 +2,7 @@
 "use strict";
 /* global
 	global:readonly,
+	EEP_Texts:readonly,
 	Signalstellung:readonly,
 	_:readonly,
 	msg:readonly,
@@ -75,8 +76,8 @@ function classify(text){
 	if (/erwarten|expect/.test(text)) return "warn";
 	return null;
 }
-// Liefere den Text in Deutsch bzw. in Ersatzsprache Englisch
-function txt(o){ return typeof o === "string" ? o : (o ? (o.DE || o.EN || "") : ""); }
+// Signaltexte immer auf Deutsch (Ersatz: Englisch): classify() erkennt Halt/Fahrt anhand dieser Texte, unabhängig von der Anzeigesprache
+function txt(o){ return EEP_Texts.pick(o, EEP_Texts.masterLanguage); }
 
 // Lese die Signalstellungen und speichere sie in Kleinbuchstaben
 let lc = null;

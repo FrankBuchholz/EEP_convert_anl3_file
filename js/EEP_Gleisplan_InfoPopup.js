@@ -365,42 +365,11 @@ function showSignalInfo(SignalID, GleissystemID, GleisID) {
 	const RouteList	 	= Meldung.getElementsByTagName("Route");
 
 		function getSignalName(File) {
-			let Name = '';
-			if (!Signalstellung[File]) {
-				// no name
-			} else if (typeof(Signalstellung[File].Name) === "string") {
-				Name = Signalstellung[File].Name;
-			} else if (typeof(Signalstellung[File].Name) === "object") {
-				Name = Signalstellung[File].Name[EEP_Texts.getLanguage()]
-					|| Signalstellung[File].Name.DE
-					|| Signalstellung[File].Name.EN
-					;
-			} else {
-				// no name
-			}
-			return Name;
+			return EEP_Texts.signalName(Signalstellung[File]);
 		}
 		
 		function getSignalPositionText(File, Position) {
-			let Text = '';
-			if (!Signalstellung[File]) {
-				// no text
-			} else if (typeof(Signalstellung[File].Pos[Position]) === "string") {
-				Text = Signalstellung[File].Pos[Position];
-			} else if (typeof(Signalstellung[File].Pos[Position]) === "object") {
-				Text = Signalstellung[File].Pos[Position][EEP_Texts.getLanguage()]
-					|| Signalstellung[File].Pos[Position].DE	// primary language
-					|| Signalstellung[File].Pos[Position].EN	// secondary language
-					;
-			} else {
-				// no text
-			}
-
-			// Default translations
-			if (Text === "Fahrt") 	{ Text = _("Fahrt"); }
-			if (Text === "Halt") 	{ Text = _("Halt"); }
-
-			return Text;
+			return EEP_Texts.signalPosition(Signalstellung[File], Position);
 		}
 		
 	let SignalTypeText;

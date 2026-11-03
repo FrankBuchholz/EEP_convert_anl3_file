@@ -44,6 +44,22 @@ https://www.tablefilter.com/data-types.html
 // Shortcut für document.getElementById
 const $ = id => document.getElementById(id);
 
+// Geladene Anlage (Wurzelelement), damit die Tabellen nach einem Sprachwechsel neu aufgebaut werden können
+let loadedRoot = null;
+EEP_Texts.onChange(function() {
+	if (!loadedRoot) { return; }
+	const container = $('container');
+	// Erzeugte Elemente (Tabellen, Stellpulte) entfernen; Überschrift und Auswahlleiste bleiben stehen
+	for (const child of Array.from(container.children)) {
+		if (child.id !== 'filename' && !child.classList.contains('group')) { child.remove(); }
+	}
+	process_node(loadedRoot);
+	// Abgewählte Bereiche wieder ausblenden
+	container.querySelectorAll('.fieldset input[type="checkbox"]').forEach(function(cb) {
+		if (!cb.checked) { cb.dispatchEvent(new Event('change')); }
+	});
+});
+
 // Liefert den Adressraum für Private Network Access, oder null für öffentliche Hosts
 function targetSpace(url) {
 	let h = "";
@@ -156,7 +172,8 @@ function loadFileInner(file) {
 		$('filename').textContent = file.name.substring(0, file.name.length -1 -1 -3);
 
 		// Process root node (documentElement always represents the root node)
-		process_node(xmlDoc.documentElement);
+		loadedRoot = xmlDoc.documentElement;
+		process_node(loadedRoot);
 	}
 
 }
@@ -1216,41 +1233,10 @@ function createSwitchesTable() {
 	
 // Anzeige der Signale
 		function getSignalName(File) {
-			let Name = '';
-			if (!Signalstellung[File]) {
-				// no name
-			} else if (typeof(Signalstellung[File].Name) === "string") {
-				Name = Signalstellung[File].Name;
-			} else if (typeof(Signalstellung[File].Name) === "object") {
-				Name = Signalstellung[File].Name[EEP_Texts.getLanguage()]
-					|| Signalstellung[File].Name.DE
-					|| Signalstellung[File].Name.EN
-					;
-			} else {
-				// no name
-			}
-			return Name;
+			return EEP_Texts.signalName(Signalstellung[File]);
 		}
 		function getSignalPositionText(File, Position) {
-			let Text = '';
-			if (!Signalstellung[File]) {
-				// no text
-			} else if (typeof(Signalstellung[File].Pos[Position]) === "string") {
-				Text = Signalstellung[File].Pos[Position];
-			} else if (typeof(Signalstellung[File].Pos[Position]) === "object") {
-				Text = Signalstellung[File].Pos[Position][EEP_Texts.getLanguage()]
-					|| Signalstellung[File].Pos[Position].DE	// primary language
-					|| Signalstellung[File].Pos[Position].EN	// secondary language
-					;
-			} else {
-				// no text
-			}
-			
-			// Default translations
-			if (Text === "Fahrt") 	{ Text = _("Fahrt") };
-			if (Text === "Halt") 	{ Text = _("Halt") };
-			
-			return Text;
+			return EEP_Texts.signalPosition(Signalstellung[File], Position);
 		}
 function createSignalsTable() {	
 	/*
@@ -2859,9 +2845,7 @@ button {
 </div>
 
 <div> <!-- right part -->
-<label for="german" class="langBtn">Deutsch</label>
-<label for="english" class="langBtn">English</label>
-<label for="french" class="langBtn">Français</label>
+<select data-lang-select aria-label="Sprache / Language / Langue"></select>
 </div>
 </header>
 
