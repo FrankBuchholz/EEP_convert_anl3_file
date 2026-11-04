@@ -911,18 +911,22 @@ local function collectGlobal()
     },
   }
   
+  -- Ermittelt die Position der aktuellen Kamera
   local ok, x, y, z = try(EEPGetCameraPosition)            -- Verfuegbar ab EEP 16.1 - Plugin 1 
   if ok then g.cameraPosition = { x = x, y = y, z = z } end
   
+  -- Ermittelt die Ausrichtung der aktuellen Kamera
   local ok2, rx, ry, rz = try(EEPGetCameraRotation)        -- Verfuegbar ab EEP 16.1 - Plugin 1
   if ok2 then g.cameraRotation = { x = rx, y = ry, z = rz } end
   
+  -- Ermittelt, welcher "Fahrzeugverband" derzeit im Steuerdialog ausgewaehlt ist
   local activeTrain = try(EEPGetTrainActive)               -- Verfuegbar ab EEP 15 - Plugin 1
   if activeTrain and activeTrain ~= "" then 
     g.activeTrain = activeTrain
     if config.autoTrains then addAuto("trains", activeTrain) end  
   end
 
+  -- Ermittelt, welches Fahrzeug derzeit im Steuerdialog ausgewaehlt ist
   local activeRollingstock = try(EEPRollingstockGetActive) -- Verfuegbar ab EEP 15 - Plugin 1
   if activeRollingstock and activeRollingstock ~= "" then g.activeRollingstock = activeRollingstock  end
   

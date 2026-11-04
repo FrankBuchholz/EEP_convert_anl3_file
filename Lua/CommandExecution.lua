@@ -63,13 +63,7 @@ local extraEepCommands = {
 
 local fileName = "exchange\\commands-to-eep.txt"
 
----@param name string Verzeichnis mit der Kommando-Datei
-function CommandExecution.setDirectoryName(name)
-  assert(type(name) == "string", prefix.."setDirectoryName: Need 'name' as string")
-  directoryName = name
-end
-
----@param name string Name der Kommando-Datei
+---@param name string Name der Kommando-Datei (incl. relativer Pfad)
 function CommandExecution.setFileName(name)
   assert(type(name) == "string", prefix.."setFileName: Need 'name' as string")
   fileName = name
@@ -102,35 +96,7 @@ local function toValue(text)
   return text
 end
 
---- Fuehrt alle vollstaendigen Zeilen aus dem Text aus.
---- Aufruf in EEPMain
----@param text string
-function CommandExecution.executeCommands(text)
-  for line in text:gmatch("[^\n]+") do
-    line = line:gsub("\r$", "")
-    if line == "" then break end
-    
-    if debug then print(prefix.."Command: "..line) end
-    
-    -- Parameter lesen
-    local fields = parseLine(line)
-
-    -- Funktion ausführen
-    local functionName = table.remove(fields, 1)
-    if functionName ~= "" then
-      local f = findCommand(functionName)
-      if not f then
-        print(prefix..string.format("Command '%s' is not allowed", functionName))
-      else
-        --for i, value in ipairs(fields) do fields[i] = toValue(value) end -- already done
-        local ok, err = pcall(f, table.unpack(fields))
-        if not ok then print(prefix.."Error: "..err) end
-      end
-    end
-  end
-end
-
-function parseLine(line)
+local function parseLine(line)
   local tokens = {}
   -- Einfache Variante nur mit Trennzeichen | wie in der Control Extension
   --for token in (line .. "|"):gmatch("([^|]*)|") do tokens[#tokens + 1] = token end
@@ -198,6 +164,34 @@ function parseLine(line)
   end
   
   return tokens
+end
+
+--- Fuehrt alle vollstaendigen Zeilen aus dem Text aus.
+--- Aufruf in EEPMain
+---@param text string
+function CommandExecution.executeCommands(text)
+  for line in text:gmatch("[^\n]+") do
+    line = line:gsub("\r$", "")
+    if line == "" then break end
+    
+    if debug then print(prefix.."Command: "..line) end
+    
+    -- Parameter lesen
+    local fields = parseLine(line)
+
+    -- Funktion ausführen
+    local functionName = table.remove(fields, 1)
+    if functionName ~= "" then
+      local f = findCommand(functionName)
+      if not f then
+        print(prefix..string.format("Command '%s' is not allowed", functionName))
+      else
+        --for i, value in ipairs(fields) do fields[i] = toValue(value) end -- already done
+        local ok, err = pcall(f, table.unpack(fields))
+        if not ok then print(prefix.."Error: "..err) end
+      end
+    end
+  end
 end
 
 local commandFileName

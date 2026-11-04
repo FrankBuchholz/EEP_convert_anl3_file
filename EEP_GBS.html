@@ -18,8 +18,9 @@
 /* <![CDATA[ */
 body{
   margin:0;
-	font:14px/1.4 system-ui,Arial,sans-serif;
-	background:#f5f5f5;color:#111
+  font:14px/1.4 system-ui,Arial,sans-serif;
+  background:#f5f5f5;
+  color:#111
 }
 	
 .hidden{display:none!important}
@@ -65,9 +66,9 @@ body{
 }
 
 /* Signal Id */
-.sid{
+.signalId{
 	fill:#fff;
-	font:bold 12px Arial;text-anchor:middle;pointer-events:none}
+	font:bold 14px Arial;text-anchor:middle;pointer-events:none}
 
 /* Symbol 37 Ein/Aus Schalter und Symbol 38 Reset */
 .lbl{
@@ -77,15 +78,16 @@ body{
 }
 
 /* Symbol 36 Text für Kamera */
-.cn{
-	fill:#000;
-	font:11px Arial;
+.camText{
+	fill:#F00;
 	text-anchor:middle;
-	pointer-events:none
+	/* font-weight:bold; */
+	font-family:Arial; /* font-zize wird dynamische bestimmt */
+	pointer-events:none;
 }
 
 /* Symbol 44 Text für Zählersignal */
-.cnt{
+.cntText{
 	font-family: "Courier New", Courier, Monaco, monospace;
 	font: bold 80px Courier;
 	fill: url(#dot-pattern); /*Punktmuster statt fill:#ff9a2e; */
@@ -1218,7 +1220,7 @@ function idLabel(parent, id, y, dark) {
 	if (!id) { return; }
 
 	el(parent, "text", {
-		class: "sid", 
+		class: "signalId", 
 		x: 50, y: y, 
 		style: dark ? "fill:#222" : ""
 	}, id);
@@ -1235,72 +1237,124 @@ function sigInfo(parent, id, clickable) {
 	}
 }
 
+// Text in eine Box umbrechen und einpassen
+function wrapText(svg, attributes, text, w = 100, h = 100) {
+    let bestLines, bestFs = 1;
+    const lineFactor = 0.9; // enger Zeilenabstand
+    const minChars = 6;  // mind. 6 Zeichen je Zeile
+    for (let lines = 1; lines <= 4; lines++) { // max. 4 Zeilen
+        const chars = Math.ceil(text.length / lines);
+        // mindestens n Zeichen pro Zeile
+        if (text.length > minChars && chars < minChars) continue;
+				
+        const parts = text.match(new RegExp(`.{1,${chars}}`, "g"));
+
+        // letzte Zeile darf nicht zu kurz werden
+        if (parts.length > 1 && parts.at(-1).length < minChars) continue;
+
+        const fs = Math.min(
+            (h - 10) / (1 + (parts.length - 1) * lineFactor),
+            w / (chars * 0.62)
+        );
+
+        if (fs > bestFs) {
+            bestFs = fs;
+            bestLines = parts;
+        }
+    }
+
+		// Erzeuge text-Element
+    const txt = el(svg, "text", {
+        x: w / 2,
+        y: 5 + bestFs,
+        "font-size": bestFs
+    });
+		for (const k in attributes) { txt.setAttribute(k, attributes[k]); }
+		// Erzeuge Zeilen
+    bestLines.forEach((line, i) =>
+        el(txt, "tspan", {
+            x: w / 2,
+            dy: i ? bestFs * lineFactor : 0
+        }, line)
+    );
+
+    return txt;
+}
+
 // Zeichnet ein spezielles Symbol (Kamera, Ein/Aus, Reset, Status, Zählersignal)
 function drawSpecial(parent, symbol, tile) {
 	// Kamera (Camera)
 	if (symbol === 36) {
+		// Interaktive Funktion aktivieren
 		parent.dataset.k = "cam"; 
 		parent.dataset.id = tile.cam || "";
-		rect(parent, 30, 15, 40, 20, "#000"); // Schwarz
-		rect(parent, 10, 30, 80, 50, "#000"); // Schwarz
-		rect(parent, 5, 83, 90, 15, "#a19e9e"); // Grau
-		el(parent, "circle", {cx: 50, cy: 50, r: 18, fill: "#fff"}); // Weiß
-		el(parent, "circle", {cx: 50, cy: 50, r: 13, fill: "#000"}); //Schwarz
-		el(parent, "text", {class: "cn", x: 50, y: 94}, (tile.cam || "").substring(0, 14));
-		el(parent, "title", {}, (_('Kamera') + " " + (tile.cam || "")));
+		// Symboldbild der Kamera zeichnen
+		/*
+		rect(parent, 30,  5, 40,  5, "#000"); // Schwarz
+		rect(parent, 10, 10, 80, 40, "#000"); // Schwarz
+		el(parent, "circle", {cx: 50, cy: 30, r: 17, fill: "#fff"}); // Weiß
+		el(parent, "circle", {cx: 50, cy: 30, r: 12, fill: "#000"}); // Schwarz
+		rect(parent, 5, 55, 90, 40, "#a19e9e"); // Grauer Balken für Text
+		*/
+		rect(parent, 5, 5, 90, 90, "#e8e6e6"); // Hintergrung hellgrau
+		// Text zeichnen 
+		wrapText(parent, { class: "camText" },
+			tile.cam.substring(0, 24) || "",
+			98,
+			98
+		);
+		// Tooltip
+		el(parent, "title", {}, (_('Kamera') + ": " + (tile.cam || "")));
 
 	// Ein/Aus
 	} else if (symbol === 37) {
 		const id = specialId(tile);
-		rect(parent, 5, 44, 90, 12, "#858282"); // Grau
-		rect(parent, 15, 5, 70, 38, "#e8e6e6"); // Hellgrau
-		rect(parent, 15, 57, 70, 38, "#e8e6e6"); // Hellgrau
+		rect(parent, 15, 5, 70, 90, "#e8e6e6"); // Hintergrung hellgrau
+		rect(parent, 5, 40, 90, 20, "#858282"); // Trennbalken grau
+		idLabel(parent, id, 56);   // Nummer im grauen Mittelbalken
 		el(parent, "text", {class: "lbl", x: 50, y: 34, fill: "#009a28"}, _('gbs.on')); // Grün
 		el(parent, "text", {class: "lbl", x: 50, y: 86, fill: "#9a0000"}, _('gbs.off')); // Rot
-		idLabel(parent, id, 54);   // Nummer im grauen Mittelbalken
+		// Tooltip
 		sigInfo(parent, id, true);
 
 	// Reset: Rechteck in der Mitte, grün bei Fahrt
 	} else if (symbol === 38) {
 		const id = specialId(tile);
 		rect(parent, 5, 5, 90, 90, "#595858"); // Dunkelgrau, Rahmen
+		idLabel(parent, id, 20);
 		const r = rect(parent, 28, 30, 44, 34, LIT.off);
 		el(parent, "text", {class: "lbl", x: 50, y: 86, fill: "#fff", style: "font-size:16px"}, "Reset");
-		idLabel(parent, id, 20);
+		// Tooltip
 		sigInfo(parent, id, true);
+
 		if (id) { RST.push({id: id, rect: r}); }
 
 	// Status: 3 waagerechte Balken für bis zu 7 Stellungen
 	} else if (symbol === 39) {
 		const id = specialId(tile);
 		rect(parent, 5, 5, 90, 90, "#595858"); // Dunkelgrau, Rahmen
-		const bars = [26, 49, 72].map(y => rect(parent, 15, y, 70, 18, GRAY));
 		idLabel(parent, id, 20);
+		const bars = [26, 49, 72].map(y => rect(parent, 15, y, 70, 18, GRAY));
+		// Tooltip
 		sigInfo(parent, id, false);
+
 		if (id) { STA.push({id: id, bars: bars}); }
 
 	// Zählersignal (Info): aktueller Zählerstand (Stellung minus 1) als Text, siehe refresh()
-	/* Beispiel:
-	    <GBSElement x="9" y="10">
-     <Modell>
-      <Table Count="4" e0="0" e1="44" e2="0" e3="0"/>
-     </Modell>
-     <Signal>
-      <Table Count="3" e0="26" e1="0" e2="0"/>
-     </Signal>
-    </GBSElement>
-	*/
 	} else if (symbol === 44) {
 		const id = specialId(tile);
-		rect(parent, 10, 10, 80, 80, "#595858"); // Dunkelgrau, Rahmen
-		rect(parent, 15, 15, 70, 70, "#858282"); // Grau, Ziffern
-		const t1 = el(parent, "text", {class: "cnt", x: 30, y: 52}, "");
-		const t2 = el(parent, "text", {class: "cnt", x: 70, y: 52}, "");
-		idLabel(parent, id, 98, true);   // unter dem Rahmen
+		rect(parent, 5, 5, 90, 90, "#595858"); // Dunkelgrau, Rahmen
+		idLabel(parent, id, 20);
+		rect(parent, 15, 30, 70, 60, "#858282"); // Grau, Ziffern
+		const t1 = el(parent, "text", {class: "cntText", x: 30, y: 60}, "");
+		const t2 = el(parent, "text", {class: "cntText", x: 70, y: 60}, "");
+		// Tooltip
 		sigInfo(parent, id, false);
+
 		if (id) { CNT.push({id: id, t1: t1, t2: t2}); }
 		
 	} else if (symbol === 58) {   // Schraube, nur Tipptext
+	/*
 		el(parent, "circle", {
 			cx: 50, 
 			cy: 50, 
@@ -1313,6 +1367,19 @@ function drawSpecial(parent, symbol, tile) {
 			stroke: "#333", 
 			"stroke-width": 6
 		});
+		*/
+		rect(parent, 5, 5, 90, 90, "#e8e6e6"); // Hintergrung hellgrau
+		wrapText(parent, {
+				"text-anchor": "middle",
+        //"font-weight": "bold",
+        "font-family": "Arial",
+				fill: "#922ecc" // Lila
+			},
+			tile.tip.substring(0, 24) || "",
+			98,
+			98
+		);
+		// Tooltip
 		if (tile.tip) { el(parent, "title", {}, tile.tip); }
 		
 	} else {
@@ -1324,7 +1391,9 @@ function drawSpecial(parent, symbol, tile) {
 			y: 50, 
 			style: "font-size:28px;dominant-baseline:central"
 		}, symbol);
+		// Tooltip
 		el(parent, "title", {}, _('gbs.unknownSymbol', symbol));
+
 		console.warn("Unbekanntes GBS-Symbol", symbol, tile);
 	}
 }
@@ -1344,17 +1413,23 @@ function drawSignal(parent, symbol, id, pos) {
 	// Daten-Attribute für Klickbarkeit wie bei normalen Signalen
 	const o = {};
 	if (light) {
+		// Normales Signal
+		// Interaktive Funktion aktivieren
 		group.dataset.k = "sig"; 
 		group.dataset.id = id;
+		// Signalbild zeichnen
 		o.rc = el(group, "circle", {cx: x, cy: y0 + 10, r: 6, fill: LIT.r}); 
 		o.gc = el(group, "circle", {cx: x, cy: y0 + 23, r: 6, fill: LIT.g});
 	} else {
-		group.dataset.k = symbol < 30 ? "rs" : "rz"; // Fahrstraße: Start- bzw. Zielsignal
+		// Fahrstraße: Start- bzw. Zielsignal
+		// Interaktive Funktion aktivieren
+		group.dataset.k = symbol < 30 ? "rs" : "rz";
 		group.dataset.id = id;   
-		el(group, "text", {x: x, y: y0 + 18, class: "sid", style: "font-size:20px;fill:#222"}, symbol < 30 ? "S" : "Z");
+		// Signalbild zeichnen
+		el(group, "text", {x: x, y: y0 + 18, class: "signalId", style: "font-size:20px;fill:#222"}, symbol < 30 ? "S" : "Z");
 	}
 	// Signalnummer unterhalb des Symbols
-	el(group, "text", {x: x, y: y0 + 34, class: "sid"}, id);
+	el(group, "text", {x: x, y: y0 + 36, class: "signalId"}, id);
 	// Signal-Lichtfarben je Signalstellung
 	o.set = c => {
 		if (light) {

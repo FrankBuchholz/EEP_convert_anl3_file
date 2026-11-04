@@ -1,26 +1,34 @@
-/* EEP_Texts.css: Sprachumschaltung und Kopfzeile der Seiten (Gleisplan, Inventar, GBS, Export Bridge) */
+/* EEP_Texts.css: Sprachumschaltung, Kopfzeile und Tastatursymbole (Gleisplan, Inventar, GBS, Export Bridge) */
 
 /* Elemente mit eigenem lang-Attribut (<span lang="en"> usw.) werden ausgeblendet, wenn sie nicht zur aktuellen Sprache passen.
-   Das lang-Attribut von <html> setzt js/EEP_Texts.js (sofort beim Laden und bei jedem Sprachwechsel). */
+   Das lang-Attribut von <html> setzt js/EEP_Texts.js (sofort beim Laden und bei jedem Sprachwechsel).
+   Die Optionen der Sprach-Dropdown-Liste tragen kein lang-Attribut, sonst würden sie hier ausgeblendet. */
 html[lang="de"] [lang]:not(:lang(de)),
 html[lang="en"] [lang]:not(:lang(en)),
 html[lang="fr"] [lang]:not(:lang(fr)) {
 	display: none !important;
 }
 
-/* Kopfzeile: Ueberschrift links, Sprachauswahl rechts */
+/* Kopfzeile: Überschrift links, Sprachauswahl rechts
+
+<header class="flexRow">
+<div> <!-- left part -->
+<h3><span lang="de">Überschrift</span><span lang="en">Heading</span><span lang="fr">Titre</span></h3>
+</div>
+
+<div> <!-- right part -->
+<select data-lang-select aria-label="Sprache / Language / Langue"></select>
+</div>
+</header>
+*/
 .flexRow {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
+	flex-direction: row;
 	justify-content: space-between;
-	gap: 0.5em 1em;
-}
-.flexRow h3 {
-	margin: 0.5em 0;
+	align-items: baseline;
 }
 
-/* Dropdown-Liste fuer die Sprache (von js/EEP_Texts.js gefÃ¼llt) */
+/* Dropdown-Liste für die Sprache (von js/EEP_Texts.js gefüllt) */
 select[data-lang-select] {
 	font: inherit;
 	padding: 0.15em 0.3em;
@@ -46,4 +54,3 @@ kbd {
 	font-family: inherit;
 	font-size: 0.85em;
 }
-
