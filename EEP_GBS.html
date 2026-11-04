@@ -79,7 +79,7 @@ body{
 
 /* Symbol 36 Text für Kamera */
 .camText{
-	fill:#F00;
+	fill:#000;
 	text-anchor:middle;
 	/* font-weight:bold; */
 	font-family:Arial; /* font-zize wird dynamische bestimmt */
@@ -89,7 +89,7 @@ body{
 /* Symbol 44 Text für Zählersignal */
 .cntText{
 	font-family: "Courier New", Courier, Monaco, monospace;
-	font: bold 80px Courier;
+	font: bold 85px Courier;
 	fill: url(#dot-pattern); /*Punktmuster statt fill:#ff9a2e; */
 	text-anchor:middle;
 	dominant-baseline: central;
@@ -1263,7 +1263,7 @@ function wrapText(svg, attributes, text, w = 100, h = 100) {
         }
     }
 
-		// Erzeuge text-Element
+		// Erzeuge text-Element und setzt die Schriftgröße
     const txt = el(svg, "text", {
         x: w / 2,
         y: 5 + bestFs,
@@ -1345,7 +1345,7 @@ function drawSpecial(parent, symbol, tile) {
 		const id = specialId(tile);
 		rect(parent, 5, 5, 90, 90, "#595858"); // Dunkelgrau, Rahmen
 		idLabel(parent, id, 20);
-		rect(parent, 15, 30, 70, 60, "#858282"); // Grau, Ziffern
+		rect(parent, 10, 28, 80, 62, "#858282"); // Grau, Ziffern
 		const t1 = el(parent, "text", {class: "cntText", x: 30, y: 60}, "");
 		const t2 = el(parent, "text", {class: "cntText", x: 70, y: 60}, "");
 		// Tooltip
