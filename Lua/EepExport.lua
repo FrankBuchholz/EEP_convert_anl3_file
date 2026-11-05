@@ -15,6 +15,12 @@
 --- Zuege und Rollmaterial haben keine numerischen IDs; hier ist nur a) und b) moeglich.
 ---
 --- Alle Rollmaterialien und indirekt damit auch alle Züge können auch komplett aus der anl3-Datei gelesen werden.
+--- Aus der anl3-Datei werden in einem Durchlauf folgende Daten gelesen (config.anlFile):
+---   * die Namen aller Rollmaterialien und damit indirekt auch alle Züge,
+---   * die Kameras (Name, statisch/dynamisch) -> Ausgabe als "cameras" in der JSON-Datei, damit die Bridge direkt Kameras mit EEPSetCamera aufrufen kann,
+---   * die Gleise der Gleisbildstellpulte (GBS), falls config.gbsTracks = true, damit die Besetztmeldungen im GBS Programm gezeigt werden können.
+--- Die Abschnitte stehen in der anl3-Datei in fester Reihenfolge (Gleissystem, Fuhrpark, Gebaeudesammlung mit GBSObject,
+--- Kammerasammlung); die Datei wird deshalb nur so weit gelesen, wie es noetig ist.
 ---
 --- Automatische Erkennung von Zuegen und Rollmaterial (autoTrains / autoRollingstock):
 ---   * Zuege: werden aus den angemeldeten Signalen (EEPGetSignalTrainName) und virtuellen Depots
@@ -30,6 +36,7 @@
 ---   * Die EEP-Rueckruffunktionen werden erweitert (siehe installCallbacks()), ausser config.installCallbacks = false.
 ---   * Wurden keine Signale bzw. Weichen angemeldet, wird 1..discoverMax danach durchsucht.
 ---     Wurden keine Depots angemeldet, wird 1..discoverDepotMax (Standard 10) durchsucht.
+---   * Die Suche wird auf mehrere EEPMain-Aufrufe verteilt (discoverBudget); exportiert wird erst, wenn sie fertig ist.
 ---
 --- Speichern der Anlage: Der Export pausiert, sobald EEP EEPOnBeforeSaveAnl() aufruft, und
 --- wird durch EEPOnSaveAnl(Pfad) wieder freigegeben. Dabei merkt sich das Modul den Speicherpfad
@@ -54,11 +61,12 @@ EepExport.configure({
   --discoverMax      = 1000,   -- Bereich 1..discoverMax wird beim ersten Lauf automatisch auf vorhandene Objekte
                                -- geprueft (nil oder 0 = keine automatische Erkennung), Standard: 1000
   --discoverDepotMax = 10,     -- Obergrenze der automatischen Depot-Suche, Standard: 10
+  --discoverBudget   = 0.03,   -- Rechenzeit der ID-Suche je EEPMain-Aufruf in Sekunden (0 = Suche in einem Rutsch), Standard: 0.03
   --autoTrains       = true,   -- Zuege automatisch ueber Signale und Depots einsammeln, Standard: true
   --autoRollingstock = true,   -- Rollmaterial automatisch aus den Fahrzeuglisten bekannter Zuege einsammeln, Standard: true
   --scanInterval     = 2,      -- Abstand der automatischen Suche in EEP-Sekunden, Standard: 2
   --installCallbacks = true,   -- EEP-Rueckruffunktionen automatisch erweitern, Standard: true
-  --anlFile          = nil,    -- Pfad zu einer .anl3-Datei: Namen aller Rollmaterialien werden daraus gelesen, Standard: nil
+  --anlFile          = nil,    -- Pfad zu einer .anl3-Datei: Rollmaterialien, Kameras und GBS-Gleise werden daraus gelesen, Standard: nil
   --gbsTracks        = true,   -- mit anlFile: Gleise der Gleisbildstellpulte (GBS) fuer Besetztmeldungen anmelden, Standard: true
   debug              = true,   -- Debug, Standard: false
 })
@@ -100,8 +108,15 @@ end
 
 --- Test-Funktionen (diese Funktionen können in einer späteren Version entfallen)
 
+--- Test: Liest Rollmaterialien, Kameras und GBS-Gleise einer anl3-Datei in einem Durchlauf.
+--- want ist optional, z.B. { cameras = true }; ohne Angabe wird alles gelesen.
+--local result, err = EepExport.readAnl(path, want)   -- result.rollingstock, result.cameras, result.gbs
+
 --- Test: Lese die Namen von Rollmaterialien aus einer anl3-Datei
---local okRead, names, err = EepExport.readRollingstockNames(path)
+--local names, err = EepExport.readRollingstockNames(path)
+
+--- Test: Lese die Kameras aus einer anl3-Datei: Name -> { dynamic = true|false }
+--local cameras, err = EepExport.readCameras(path)
 
 --- Test: Sucht in allen Kategorien mit numerischen IDs (also ausser Zuege und Rollmaterial) nach vorhandenen Objekten.
 --EepExport.discoverAll()
@@ -131,6 +146,8 @@ local config = {
   global           = true,  -- Zeit, Jahreszeit, Wetter, Kamera exportieren
   discoverMax      = 1000,  -- Obergrenze der ID-Suche, wenn add...() ohne Eingabe aufgerufen wird
   discoverDepotMax = 10,    -- Obergrenze der ID-Suche fuer virtuelle Depots (nil oder 0 = keine Depot-Suche)
+  discoverBudget   = 0.03,  -- Rechenzeit der ID-Suche je Aufruf in Sekunden (0 = Suche in einem Rutsch).
+                            -- Exportiert wird erst, wenn die Suche abgeschlossen ist.
   autoTrains       = true,  -- Zuege automatisch ueber Signale und Depots einsammeln
   autoRollingstock = true,  -- Rollmaterial automatisch aus den Fahrzeuglisten bekannter Zuege einsammeln
   scanInterval     = 2,     -- Abstand der automatischen Suche in EEP-Sekunden
@@ -138,7 +155,7 @@ local config = {
                             -- falls EEPOnSaveAnl nie kommt (0 = kein Timeout)
   installCallbacks = true,  -- EEP-Rueckruffunktionen beim ersten run() automatisch erweitern
   trainScanBatch   = 100,   -- Rollmaterialien je Suchlauf, deren Zug per EEPRollingstockGetTrainName ermittelt wird (0 = aus)
-  anlFile          = nil,   -- Pfad zu einer .anl3-Datei; daraus werden die Namen aller Rollmaterialien gelesen
+  anlFile          = nil,   -- Pfad zu einer .anl3-Datei; daraus werden Rollmaterialien, Kameras und GBS-Gleise gelesen
   gbsTracks        = true,  -- bei gesetztem anlFile auch alle in GBS eingetragenen Gleise zur Besetztabfrage anmelden
   debug            = false, -- Debugging-Information anzeigen
 }
@@ -159,7 +176,8 @@ local registry = {
   rollingstock = {},
 }
 local pending = {}      -- noch nicht ausgewertete add...()-Aufrufe
-local anlLoaded = nil   -- anlFile, aus dem die Rollmaterialnamen zuletzt gelesen wurden
+local anlLoaded = nil   -- anlFile, aus dem Rollmaterial, Kameras und GBS-Gleise zuletzt gelesen wurden
+local cameraList = nil  -- Kameras aus der anl3-Datei: Name -> { dynamic = true|false }
 local lastExport = nil
 local lastScan   = nil       
 local initialized = false  -- automatische Initialisierung (Callbacks, Suche) bereits erfolgt
@@ -184,12 +202,12 @@ local function try(fn, ...)
   return unwrap(pcall(fn, ...))
 end
 
-local function contains(list, value)
-  for _, v in ipairs(list) do
-    if v == value then return true end
-  end
-  return false
-end
+                                    
+                             
+                                      
+     
+              
+   
 
 --- Erzeugt eine Zahlenliste aus einem Bereich, z.B. range(1, 20).
 function M.range(first, last)
@@ -227,6 +245,8 @@ local escapes = {
 }
 
 local function encodeString(s)
+  -- Schnellpfad: die meisten Strings enthalten nichts, was maskiert werden muss
+  if not s:find('[%c"\\]') then return '"' .. s .. '"' end
   s = s:gsub(
     '[%c"\\]', 
     function(c)
@@ -234,6 +254,12 @@ local function encodeString(s)
     end
   )
   return '"' .. s .. '"'
+end
+
+local function encodeNumber(v)
+  if v ~= v or v == math.huge or v == -math.huge then return "null" end
+  if v % 1 == 0 and math.abs(v) < 1e15 then return string.format("%d", v) end
+  return string.format("%.6g", v)
 end
 
 local function isArray(t)
@@ -245,51 +271,67 @@ local function isArray(t)
   return n == #t
 end
 
-local function encode(v, pretty, indent)
+--- Schreibt die JSON-Teilstrings in den Puffer out (wird am Ende mit table.concat zusammengesetzt).
+local function encodeTo(out, v, pretty, indent)
   local tv = type(v)
-  if tv == "nil" then return "null"
-  
-  elseif tv == "boolean" then return tostring(v)
-  
+                                   
+
+  if tv == "string" then
+    out[#out + 1] = encodeString(v)
+
   elseif tv == "number" then
-    if v ~= v or v == math.huge or v == -math.huge then return "null" end
-    if v % 1 == 0 and math.abs(v) < 1e15 then return string.format("%d", v) end
-    return string.format("%.6g", v)
-    
-  elseif tv == "string" then return encodeString(v)
-  
+    out[#out + 1] = encodeNumber(v)
+                                                                               
+                                   
+
+  elseif tv == "boolean" then
+    out[#out + 1] = v and "true" or "false"
+
   elseif tv == "table" then
+    if next(v) == nil then out[#out + 1] = "{}"; return end
+
     local nl, ind, ind2, sep = "", "", "", ":"
     if pretty then
       nl = "\n"; ind = string.rep("  ", indent + 1); ind2 = string.rep("  ", indent); sep = ": "
     end
-    
-    local parts = {}
-    if next(v) == nil then return "{}" end
+
+                    
+                                          
     
     if isArray(v) then
-      for i = 1, #v do parts[#parts + 1] = ind .. encode(v[i], pretty, indent + 1) end
-      return "[" .. nl .. table.concat(parts, "," .. nl) .. nl .. ind2 .. "]"
+      out[#out + 1] = "[" .. nl
+      for i = 1, #v do
+        if i > 1 then out[#out + 1] = "," .. nl end
+        out[#out + 1] = ind
+        encodeTo(out, v[i], pretty, indent + 1)
+      end
+      out[#out + 1] = nl .. ind2 .. "]"
+    else
+      local keys = {}
+      for k in pairs(v) do keys[#keys + 1] = k end
+      -- Sortiert wird nur fuer die lesbare Ausgabe; JSON-Objekte sind ohnehin ungeordnet
+      if pretty then table.sort(keys, function(a, b) return tostring(a) < tostring(b) end) end
+      out[#out + 1] = "{" .. nl
+      for i, k in ipairs(keys) do
+        if i > 1 then out[#out + 1] = "," .. nl end
+                                                 
+        out[#out + 1] = ind .. encodeString(tostring(k)) .. sep
+        encodeTo(out, v[k], pretty, indent + 1)
+      end
+      out[#out + 1] = nl .. ind2 .. "}"
     end
-    
-    local keys = {}
-    for k in pairs(v) do keys[#keys + 1] = tostring(k) end
-    table.sort(keys)
-    for _, k in ipairs(keys) do
-      local val = v[k]
-      if val == nil then val = v[tonumber(k)] end
-      parts[#parts + 1] = ind .. encodeString(k) .. sep .. encode(val, pretty, indent + 1)
-    end
-    return "{" .. nl .. table.concat(parts, "," .. nl) .. nl .. ind2 .. "}"
+
+  else
+    out[#out + 1] = "null"
   end
-  
-  return "null"
 end
 
 --- Wandelt eine Lua-Tabelle in einen JSON-String um.
 function M.toJson(value, pretty)
   -- Alternative: json.lua (c) 2020 rxi rxi https://github.com/rxi/json.lua oder cjson.dll
-  return encode(value, pretty and true or false, 0)
+  local out = {}
+  encodeTo(out, value, pretty and true or false, 0)
+  return table.concat(out)
 end
 
 -- ---------------------------------------------------------------------------------------------
@@ -367,26 +409,29 @@ local categories = {
   trains        = { list = registry.trains,        exists = existsTrain,                          normalize = toName,    scan = false },
   rollingstock  = { list = registry.rollingstock,  exists = existsRollingstock,                   normalize = toName,    scan = false },
 }
-for key, cat in pairs(categories) do cat.key = key end
+-- set: Mengen-Index zur Liste (schnelle Pruefung "schon angemeldet?" ohne lineare Suche)
+for key, cat in pairs(categories) do cat.key = key; cat.set = {} end
 
 -- Automatisch aufgenommene Eintraege je Kategorie: key -> { [wert] = true }
 local autoSet = {}
 
 --- Wertet einen add...()-Aufruf aus: prueft die Werte und haengt vorhandene Objekte an die Liste an.
---- Gibt die Anzahl neu hinzugefuegter Objekte zurueck.
-local function process(cat, input, scan, auto)
+--- Gibt die Anzahl neu hinzugefuegter Objekte zurueck und ob die Suche abgeschlossen ist (false, wenn die
+--- Zeitgrenze deadline erreicht wurde; job.cursor merkt sich dann die Position).
+local function process(cat, input, scan, auto, job, deadline)
   local added = 0
   
   local function consider(value)
     value = cat.normalize(value)
     if value == nil then return end
     
-    if contains(cat.list, value) then
+    if cat.set[value] then
       -- von Hand bestaetigt: wird nie mehr automatisch entfernt
       if not auto and autoSet[cat.key] then autoSet[cat.key][value] = nil end
       
     elseif cat.exists(value) then
       cat.list[#cat.list + 1] = value
+      cat.set[value] = true
       added = added + 1
       if auto then
         autoSet[cat.key] = autoSet[cat.key] or {}
@@ -398,14 +443,22 @@ local function process(cat, input, scan, auto)
   if scan then
     if cat.scan then
       local max = config[cat.scanMaxKey or "discoverMax"] or 0
-      for id = 1, max do consider(id) end
+      local id = job and job.cursor or 0
+      while id < max do
+        id = id + 1
+        consider(id)
+        if deadline and id < max and os.clock() > deadline then
+          job.cursor = id
+          return added, false
+        end
+      end
     end
   elseif type(input) == "table" then
     for _, value in ipairs(input) do consider(value) end
   else
     consider(input)
   end
-  return added
+  return added, true
 end
 
 local function queue(key, input, auto)
@@ -413,11 +466,21 @@ local function queue(key, input, auto)
 end
 
 -- ---------------------------------------------------------------------------------------------
--- Rollmaterialnamen aus einer .anl3-Datei lesen
+-- Daten aus einer .anl3-Datei lesen (Rollmaterial, Kameras, GBS-Gleise) in EINEM Durchlauf
 -- ---------------------------------------------------------------------------------------------
--- Die Datei wird in Bloecken gelesen und nicht als Ganzes geladen. Es wird erst ab <Fuhrpark>
--- gesucht und nach </Fuhrpark> sofort aufgehoert; Landschaft, Gleise, Kameras usw. werden nur
--- uebersprungen. Ausgewertet werden nur die name-Attribute der <Rollmaterial>-Elemente.
+-- Die Datei wird in Bloecken gelesen und nicht als Ganzes geladen. Die Abschnitte stehen in fester Reihenfolge:
+                                                                                                     
+                                                                                          
+                                                                                                   
+                                                      
+               
+--   1. Gleissystem
+--   2. Fuhrpark mit Rollmaterial
+--   3. Gebaeudesammlung mit GBSObject
+--   4. Kammerasammlung
+-- Je Phase wird nur nach den dann moeglichen Abschnittsanfaengen gesucht; alles andere (Landschaft,
+-- Gleise usw.) wird uebersprungen. Die Kammerasammlung beendet den GBS-Bereich. Sind keine Kameras
+-- gewuenscht, endet das Lesen dort, sonst am Ende der Kammerasammlung. Der Rest der Datei wird nie gelesen.
 
 local function codepointToUtf8(cp)
   if not cp then return "" end
@@ -448,6 +511,13 @@ local function xmlUnescape(s)
   return s
 end
 
+--- UTF-8 (Latin-1-Bereich) -> ANSI, damit Namen wie die von EEP geliefern aussehen
+local function utf8ToAnsi(s)
+  return (s:gsub("([\194\195])([\128-\191])", function(a, b)
+    return string.char((a:byte() - 194) * 64 + b:byte())
+  end))
+end
+
 --- Position des ">" das ein Tag beendet (">" in Anfuehrungszeichen zaehlt nicht), sonst nil.
 local function findTagEnd(buf, from)
   local pos = from
@@ -461,172 +531,227 @@ local function findTagEnd(buf, from)
   end
 end
 
---- Liest die Namen aller Rollmaterialien (Fuhrpark/Zugverband/Rollmaterial@name) aus einer .anl3-Datei.
---- Gibt eine Liste (Reihenfolge wie in der Datei, ohne Duplikate) zurueck oder nil, Fehlermeldung.
-function M.readRollingstockNames(path)
+--- Sammelt die Gleis-IDs eines <GBSObject>...</GBSObject>-Blocks in found[GleissystemID][GleisID] = true.
+--- (<Tracks1..4><Table Count="n" e0=".." e1=".."/>, siehe EEP_GBS.html)
+local function parseGbsBlock(block, found)
+  local system = block:match('^<GBSObject[^>]-GleissystemID="(%d+)"') or "1"
+  found[system] = found[system] or {}
+  for tag in block:gmatch("<Tracks%d>%s*<Table([^>]*)>") do
+    local count = tonumber(tag:match('Count="(%d+)"')) or 0
+    for i = 0, count - 1 do
+      local id = tonumber(tag:match('%se' .. i .. '="(%d+)"'))
+      if id and id > 0 then found[system][id] = true end
+    end
+  end
+end
+
+--- Liest eine .anl3-Datei in einem Durchlauf.
+--- want = { rollingstock = bool, cameras = bool, gbs = bool }  (Standard: alles)
+--- Ergebnis:
+---   rollingstock = Liste der Namen aller Rollmaterialien (Fuhrpark/Zugverband/Rollmaterial@name,
+---                  Reihenfolge wie in der Datei, ohne Duplikate)
+---   cameras      = Kamerasammlung: Name -> { dynamic = true|false }
+---                  (die Platzhalter "Leer", "blank", "Vide" werden ausgelassen)
+---   gbs          = Gleissystem-Nummer (TrackSystemNumber, 1 = Bahn, 2 = Tram, 3 = Strasse,
+---                  4 = Wasserwege, 5 = Steuerstrecken) -> sortierte Liste der in GBS eingetragenen GleisIDs
+--- Bei einem Fehler: nil, Fehlermeldung.
+function M.readAnl(path, want)
+  want = want or { rollingstock = true, cameras = true, gbs = true }
   local file, err = io.open(path, "rb")
   if not file then return nil, "Datei nicht lesbar: " .. tostring(err) end
 
-  local OPEN, CLOSE = "<Rollmaterial", "</Fuhrpark"
-  local names, seen = {}, {}
-  local buf, inFuhrpark, done = "", false, false
+  local result = { rollingstock = {}, cameras = {}, gbs = {} }
+  local seen = {}        -- Namen der Rollmaterialien (Duplikate vermeiden)
+  local sysNumber = {}   -- GleissystemID -> TrackSystemNumber
+  local found = {}       -- GleissystemID -> { [GleisID] = true }
+  local done = { fuhrpark = not want.rollingstock, kameras = not want.cameras, gbs = not want.gbs }
+  local sysPassed = not want.gbs   -- true: <Gleissystem ...> wird nicht mehr gesucht (nur fuer GBS noetig)
+                                  
+                                       
+                                  
+                                      
+   
+  local mode = nil       -- nil = Suche nach dem naechsten Abschnitt, sonst "fuhrpark" oder "kameras"
+  local buf, eof = "", false
 
-  while not done do
-    local chunk = file:read(65536)
-    local eof = (chunk == nil)
-    if chunk then buf = buf .. chunk end
+  --- Fruehester Abschnittsanfang ab pos, der in der aktuellen Phase noch moeglich ist.
+  local function nextMarker(pos)
+    local at, kind
+    local function probe(marker, k)
+      local s = buf:find(marker, pos, true)
+      if s and (not at or s < at) then at, kind = s, k end
+    end
+    if not sysPassed     then probe("<Gleissystem ", "sys") end
+    if not done.fuhrpark then probe("<Fuhrpark", "fuhrpark") end
+    if not done.gbs      then probe("<GBSObject", "gbs") end
+    -- beendet den GBS-Bereich und startet ggf. die Kameras
+    if want.gbs or want.cameras then probe("<Kammerasammlung", "kameras") end
+    return at, kind
+  end
 
-    local pos = 1
-    while true do
-      if not inFuhrpark then
-        -- Suche Fuhrpark
-        local s = buf:find("<Fuhrpark", pos, true)
-        if not s then pos = math.max(pos, #buf - 8); break end     -- Rest koennte ein Teil von "<Fuhrpark" sein
-        local e = findTagEnd(buf, s + 9)
-        if not e then pos = s; break end                           -- Tag noch unvollstaendig: Block nachladen
-        if buf:sub(e - 1, e - 1) == "/" then done = true; break end -- <Fuhrpark/> ohne Inhalt
-        inFuhrpark = true
-        pos = e + 1
-      else
-        -- Verarbeite Fuhrpark
-        local sR = buf:find(OPEN, pos, true)  -- Suche Anfang von Rollmaterial
-        local sE = buf:find(CLOSE, pos, true) -- Suche Ende des Fuhrparks
-        if sE and (not sR or sE < sR) then done = true; break end
-        if not sR then pos = math.max(pos, #buf - 12); break end -- 12 = Länge von "<Rollmaterial" - 1
-        local e = findTagEnd(buf, sR + #OPEN)
-        if not e then pos = sR; break end
+  while not eof and not (done.fuhrpark and done.kameras and done.gbs) do
+    local chunk = file:read(262144)
+    if chunk then buf = buf .. chunk else eof = true end
 
-        -- Rollmaterial gefunden
-        local attrs = buf:sub(sR + #OPEN, e - 1)
-        for key, value in attrs:gmatch('([%w_:%-]+)%s*=%s*"([^"]*)"') do
-          if key == "name" then
-            local name = xmlUnescape(value)
-            -- UTF-8 (Latin-1-Bereich) -> ANSI, damit Namen wie die von EEP geliefern aussehen
-            name = name:gsub("([\194\195])([\128-\191])", function(a, b)
-              return string.char((a:byte() - 194) * 64 + b:byte())
-            end)
-            if name ~= "" and not seen[name] then
-              if config.debug then print("EepExport: Rollmaterial in anl3-Datei gefunden: ", name) end
-              seen[name] = true
-              names[#names + 1] = name
+    local pos, more = 1, false   -- more = true: Puffer ist aufgebraucht, naechsten Block nachladen
+    while not more do
+
+      if mode == "fuhrpark" then
+        local sR = buf:find("<Rollmaterial", pos, true)
+        local sE = buf:find("</Fuhrpark", pos, true)
+        if sE and (not sR or sE < sR) then
+          done.fuhrpark, mode, pos = true, nil, sE + 10
+          sysPassed = true                                 -- Gleissysteme stehen vor dem Fuhrpark
+        elseif not sR then
+          pos = math.max(pos, #buf - 12); more = true      -- Rest koennte ein Teil von "<Rollmaterial" sein
+        else
+          local e = findTagEnd(buf, sR + 13)
+          if not e then
+            pos = sR; more = true                          -- Tag noch unvollstaendig: Block nachladen
+          else
+            local attrs = buf:sub(sR + 13, e - 1)
+            for key, value in attrs:gmatch('([%w_:%-]+)%s*=%s*"([^"]*)"') do
+              if key == "name" then
+                local name = utf8ToAnsi(xmlUnescape(value))
+                if name ~= "" and not seen[name] then
+                  if config.debug then print("EepExport: Rollmaterial in anl3-Datei gefunden: ", name) end
+                  seen[name] = true
+                  result.rollingstock[#result.rollingstock + 1] = name
+                end
+                break
+              end
             end
-            break
+            pos = e + 1
           end
         end
-        pos = e + 1
-      end
-    end
 
-    buf = buf:sub(pos)
-    if eof then break end
-  end
+      elseif mode == "kameras" then
+        local sK = buf:find("<Kammera%s", pos)
+        local sE = buf:find("</Kammerasammlung", pos, true)
+        if sE and (not sK or sE < sK) then
+          done.kameras, mode, pos = true, nil, sE + 17
+        elseif not sK then
+          pos = math.max(pos, #buf - 20); more = true
+        else
+          local e = findTagEnd(buf, sK + 8)
+          if not e then
+            pos = sK; more = true
+          else
+            local attrs = buf:sub(sK + 8, e - 1)
+            local name = attrs:match('%sname="([^"]*)"')
+            if name then
+              name = utf8ToAnsi(xmlUnescape(name))
+              if name ~= "Leer" and name ~= "blank" and name ~= "Vide" then
+                result.cameras[name] = { dynamic = attrs:match('%sDynamic="(%d+)"') == "1" }
+              end
+            end
+            pos = e + 1
+          end
+        end
 
-  file:close()
-  return names
-end
+      else
+        local at, kind = nextMarker(pos)
+                      
+                                      
+                                                           
+                                               
+                                                                   
+             
+           
 
---- Liest bei Bedarf (neuer/geaenderter config.anlFile) die Rollmaterialnamen und meldet sie als
---- automatisch aufgenommene Eintraege an. Nicht mehr vorhandene werden spaeter per pruneAuto entfernt.
-local function loadAnlRollingstock()
-  local path = config.anlFile
-  if type(path) ~= "string" or path == "" or anlLoaded == path then return end
-  anlLoaded = path   -- nur einmal je Datei versuchen, auch bei Fehler
+        if not at then
+          pos = math.max(pos, #buf - 20); more = true      -- Anfang koennte ueber die Blockgrenze reichen
 
-  local s0 = os.clock()
+        elseif kind == "fuhrpark" then
+          local e = findTagEnd(buf, at + 9)
+          if not e then
+            pos = at; more = true
+          elseif buf:sub(e - 1, e - 1) == "/" then
+            done.fuhrpark, sysPassed = true, true; pos = e + 1   -- leerer Abschnitt ohne Inhalt
+          else
+            mode, sysPassed = "fuhrpark", true; pos = e + 1
+          end
 
-  local okRead, names, err = pcall(M.readRollingstockNames, path)
-  if not okRead then names, err = nil, names end
-  if not names then
-    M.lastError = "EepExport: anl3-Datei " .. tostring(path) .. ": " .. tostring(err)
-    if config.debug then print(M.lastError) end
-    return
-  end
+        elseif kind == "kameras" then
+          -- Ab hier gibt es weder Fuhrpark noch GBS noch Gleissysteme
+          local e = findTagEnd(buf, at + 16)
+          if not e then
+            pos = at; more = true
+          else
+            done.gbs, done.fuhrpark, sysPassed = true, true, true
+            if done.kameras or buf:sub(e - 1, e - 1) == "/" then
+              done.kameras = true; pos = e + 1                 -- Kameras nicht gewuenscht oder leer: fertig
+            else
+              mode = "kameras"; pos = e + 1
+            end
+          end
 
-  local s1 = os.clock()
+        elseif kind == "gbs" then
+          local e = buf:find("</GBSObject>", at, true)
+          if not e then
+            pos = at; more = true                          -- GBS noch unvollstaendig: Block nachladen
+          else
+            parseGbsBlock(buf:sub(at, e), found)
+            sysPassed = true
+            pos = e + 1
+          end
 
-  if config.debug then 
-    print(string.format("EepExport: %d Rollmaterialien in %.1f ms aus %s gelesen", 
-      #names, 
-      (s1 - s0) * 1000, 
-      path
-    )) 
-  end
-  if #names > 0 then queue("rollingstock", names, true) end
-end
-
---- Liest aus einer .anl3-Datei alle Gleise, die in Gleisbildstellpulten (GBS) eingetragen sind
---- (<GBSObject> ... <Tracks1..4><Table Count="n" e0=".." e1=".."/>, siehe EEP_GBS.html).
---- Gibt eine Tabelle Gleissystem-Nummer (TrackSystemNumber, 1 = Bahn, 2 = Tram, 3 = Strasse,
---- 4 = Wasserwege, 5 = Steuerstrecken) -> sortierte Liste der GleisIDs zurueck, sonst nil, Fehlermeldung.
-function M.readGbsTracks(path)
-  local file, err = io.open(path, "rb")
-  if not file then return nil, "Datei nicht lesbar: " .. tostring(err) end
-
-  local found, sysNumber = {}, {}   -- GleissystemID -> { [GleisID] = true }, GleissystemID -> TrackSystemNumber
-  local buf = ""
-  while true do
-    local chunk = file:read(65536)
-    if chunk then buf = buf .. chunk end
-
-    -- Gleissystem-Tags (ab EEP 16 mit GleissystemID und TrackSystemNumber)
-    for attrs in buf:gmatch("<Gleissystem%s([^>]*)>") do
-      local id = attrs:match('GleissystemID="(%d+)"')
-      local nr = attrs:match('TrackSystemNumber="(%d+)"')
-      if id or nr then sysNumber[id or nr] = nr or id end
-    end
-
-    local pos = 1
-    while true do
-      local s = buf:find("<GBSObject", pos, true)
-      if not s then pos = math.max(pos, #buf - 300); break end   -- Tags koennten ueber die Blockgrenze reichen
-      local e = buf:find("</GBSObject>", s, true)
-      if not e then pos = s; break end                          -- GBS noch unvollstaendig: Block nachladen
-
-      local block = buf:sub(s, e)
-      local system = block:match('^<GBSObject[^>]-GleissystemID="(%d+)"') or "1"
-      found[system] = found[system] or {}
-      for tag in block:gmatch("<Tracks%d>%s*<Table([^>]*)>") do
-        local count = tonumber(tag:match('Count="(%d+)"')) or 0
-        for i = 0, count - 1 do
-          local id = tonumber(tag:match('%se' .. i .. '="(%d+)"'))
-          if id and id > 0 then found[system][id] = true end
+        else  -- "sys": <Gleissystem GleissystemID=".." TrackSystemNumber=".."> (ab EEP 16)
+          local e = buf:find(">", at, true)
+          if not e then
+            pos = at; more = true
+          else
+            local attrs = buf:sub(at, e)
+            local id = attrs:match('GleissystemID="(%d+)"')
+            local nr = attrs:match('TrackSystemNumber="(%d+)"')
+            if id or nr then sysNumber[id or nr] = nr or id end
+            pos = e + 1
+          end
         end
       end
-      pos = e + 1
     end
-
     buf = buf:sub(pos)
-    if chunk == nil then break end
   end
   file:close()
 
-  local result = {}
+  -- Gleissystem-IDs erst jetzt in Systemnummern uebersetzen (unabhaengig von der Reihenfolge in der Datei)
   for system, set in pairs(found) do
     local nr = tonumber(sysNumber[system] or system)
-    result[nr] = result[nr] or {}
-    for id in pairs(set) do result[nr][#result[nr] + 1] = id end
-    table.sort(result[nr])
+    local list = result.gbs[nr] or {}
+    for id in pairs(set) do list[#list + 1] = id end
+    table.sort(list)
+    result.gbs[nr] = list
   end
+
   return result
+end
+
+--- Liest die Namen aller Rollmaterialien aus einer .anl3-Datei. Liste oder nil, Fehlermeldung.
+function M.readRollingstockNames(path)
+  local r, err = M.readAnl(path, { rollingstock = true })
+  if not r then return nil, err end
+  return r.rollingstock
+end
+
+--- Liest die Kameras aus einer .anl3-Datei: Name -> { dynamic = true|false } oder nil, Fehlermeldung.
+function M.readCameras(path)
+  local r, err = M.readAnl(path, { cameras = true })
+  if not r then return nil, err end
+  return r.cameras
+end
+
+--- Liest die in Gleisbildstellpulten (GBS) eingetragenen Gleise: Gleissystem-Nummer -> Liste der GleisIDs.
+function M.readGbsTracks(path)
+  local r, err = M.readAnl(path, { gbs = true })
+  if not r then return nil, err end
+  return r.gbs
 end
 
 -- Gleissystem-Nummer -> Kategorie der Gleisregistrierung (EEPRegisterRailTrack usw.)
 local gbsTrackCategory = { [1] = "railTracks", [2] = "tramTracks", [3] = "roadTracks", [4] = "auxTracks", [5] = "controlTracks" }
-local gbsLoaded = nil   -- Datei, aus der die GBS-Gleise zuletzt gelesen wurden
 
---- Meldet alle in den GBS der .anl3-Datei eingetragenen Gleise zur Besetztabfrage an (einmalig je Datei).
---- Wird bei gesetztem config.anlFile automatisch aufgerufen (ausser config.gbsTracks = false).
-local function loadGbsTracks(path)
-  if type(path) ~= "string" or path == "" or gbsLoaded == path then return end
-  gbsLoaded = path   -- nur einmal je Datei versuchen, auch bei Fehler
-
-  local okRead, systems, err = pcall(M.readGbsTracks, path)
-  if not okRead then systems, err = nil, systems end
-  if not systems then
-    M.lastError = "EepExport: GBS-Gleise aus " .. tostring(path) .. ": " .. tostring(err)
-    if config.debug then print(M.lastError) end
-    return
-  end
+--- Meldet die GBS-Gleise (Gleissystem-Nummer -> GleisIDs) zur Besetztabfrage an.
+local function queueGbsTracks(systems)
   for nr, ids in pairs(systems) do
     local key = gbsTrackCategory[nr]
     if key and #ids > 0 then
@@ -636,23 +761,74 @@ local function loadGbsTracks(path)
   end
 end
 
+--- Liest config.anlFile einmalig (je Datei) und meldet Rollmaterialien (automatisch aufgenommen; nicht mehr
+--- vorhandene werden spaeter per pruneMissing entfernt) und GBS-Gleise an. Die Kameras werden fuer den Export gemerkt.
+local function loadAnl()
+  local path = config.anlFile
+  if type(path) ~= "string" or path == "" or anlLoaded == path then return end
+  anlLoaded = path   -- nur einmal je Datei versuchen, auch bei Fehler
+
+  local s0 = os.clock()
+
+  local ok, res, err = pcall(M.readAnl, path, {
+    rollingstock = true,
+    cameras      = true,
+    gbs          = config.gbsTracks and true or false,
+  })
+  if not ok then res, err = nil, res end
+  if not res then
+    M.lastError = "EepExport: anl3-Datei " .. tostring(path) .. ": " .. tostring(err)
+    if config.debug then print(M.lastError) end
+    return
+  end
+
+  if config.debug then
+    local cams = 0
+    for _ in pairs(res.cameras) do cams = cams + 1 end
+    print(string.format("EepExport: %s in %.1f ms gelesen (%d Rollmaterialien, %d Kameras)",
+      path, (os.clock() - s0) * 1000, #res.rollingstock, cams))
+  end
+
+  if #res.rollingstock > 0 then queue("rollingstock", res.rollingstock, true) end
+  cameraList = res.cameras
+  queueGbsTracks(res.gbs)
+end
+
 --- Meldet die in den GBS einer .anl3-Datei eingetragenen Gleise an (ohne config.anlFile).
-function M.addGbsTracks(path) gbsLoaded = nil; loadGbsTracks(path) end
+function M.addGbsTracks(path)
+  local r, err = M.readAnl(path, { gbs = true })
+  if r then
+    queueGbsTracks(r.gbs)
+  else
+    M.lastError = "EepExport: GBS-Gleise aus " .. tostring(path) .. ": " .. tostring(err)
+    if config.debug then print(M.lastError) end
+  end
+end
 
 --- Wertet alle bisher angemeldeten add...()-Aufrufe aus. Wird von collect() automatisch aufgerufen.
 --- Gibt eine Tabelle mit der Anzahl neu hinzugefuegter Objekte je Kategorie zurueck.
+--- Umfangreiche ID-Suchlaeufe werden auf mehrere Aufrufe verteilt (config.discoverBudget); unfertige
+--- Auftraege bleiben in pending und werden beim naechsten Aufruf fortgesetzt.
 function M.resolve()
-  --if config.debug then print("EepExport.resolve") end
+                                                       
   
-  loadAnlRollingstock()   -- falls config.anlFile gesetzt ist (einmalig je Datei)
-  if config.gbsTracks then loadGbsTracks(config.anlFile) end   -- Gleise der GBS (einmalig je Datei)
+  loadAnl()   -- falls config.anlFile gesetzt ist (einmalig je Datei): Rollmaterial, Kameras, GBS-Gleise
 
   local queued = pending
   pending = {}
   local counts = {}
+
+  local budget = config.discoverBudget
+  local deadline = (budget and budget > 0) and (os.clock() + budget) or nil
+
   for _, job in ipairs(queued) do
-    local cat = categories[job.key]
-    counts[job.key] = (counts[job.key] or 0) + process(cat, job.input, job.scan, job.auto)
+    if deadline and job.scan and os.clock() > deadline then
+      pending[#pending + 1] = job        -- Zeitscheibe verbraucht: beim naechsten Aufruf
+    else
+      local added, finished = process(categories[job.key], job.input, job.scan, job.auto, job, deadline)
+      counts[job.key] = (counts[job.key] or 0) + added
+      if not finished then pending[#pending + 1] = job end
+    end
   end
   return counts
 end
@@ -703,13 +879,13 @@ local function addAuto(key, name)
   
   local cat = categories[key]
   if key == "trains" then
-    if contains(cat.list, name) or contains(cat.list, "#" .. name) then return end
+    if cat.set[name] or cat.set["#" .. name] then return end
     
     if not existsTrain(name) and name:sub(1, 1) ~= "#" and existsTrain("#" .. name) then
       name = "#" .. name
     end
     
-  elseif contains(cat.list, name) then
+  elseif cat.set[name] then
     return
   end
   
@@ -718,22 +894,34 @@ local function addAuto(key, name)
   process(cat, name, false, true)
 end
 
---- Entfernt automatisch aufgenommene Eintraege, die es nicht mehr gibt.
-local function pruneAuto(key)
+--- Entfernt automatisch aufgenommene Eintraege, die es nicht mehr gibt. Grundlage sind die gerade
+--- gesammelten Daten (map = Ergebnis von collectMap): Eintraege mit exists == false entfallen,
+--- ohne dass dafuer weitere EEP-Abfragen noetig sind.
+local function pruneMissing(key, map)
   local set = autoSet[key]
-  if not set then return end
-  
-  local cat = categories[key]
-  for i = #cat.list, 1, -1 do
-    local value = cat.list[i]
-    if set[value] and not cat.exists(value) then
+  if not set or next(set) == nil then return end
+
+  local cat, keep, removed = categories[key], {}, false
+  for _, value in ipairs(cat.list) do
+    local entry = map[tostring(value)]
+    if set[value] and entry and entry.exists == false then
+      removed = true
       if config.debug then print(string.format("EepExport auto removal: %s %s", key, value)) end
 
-			table.remove(cat.list, i)
-      set[value] = nil
+                            
+      set[value], cat.set[value] = nil, nil
       vehicleCount[value] = nil
       if staticCache[key] then staticCache[key][value] = nil end
+      map[tostring(value)] = nil          -- erscheint nicht in der Ausgabe
+    else
+      keep[#keep + 1] = value
     end
+  end
+
+  if removed then
+    -- registry.* muss dieselbe Tabelle bleiben: Inhalt an Ort und Stelle ersetzen
+    for i = #cat.list, 1, -1 do cat.list[i] = nil end
+    for i, v in ipairs(keep) do cat.list[i] = v end
   end
 end
 
@@ -1050,7 +1238,9 @@ local function collectTrack(isReservedFn, id)
 end
 
 -- Züge
-local function collectTrain(name)
+-- rsMap: bereits gesammelte Rollmaterialdaten (Name -> Daten) dieses Exports. Position und Gleis des ersten
+-- Fahrzeugs werden daraus uebernommen (gleicher Zeitpunkt, keine zusaetzliche EEP-Abfrage).
+local function collectTrain(name, rsMap)
   local okS, speed = try(EEPGetTrainSpeed, name) -- aktuelle Geschwindigkeit
   if not okS then
     -- Zug existiert evtl. nur im Depot
@@ -1081,23 +1271,35 @@ local function collectTrain(name)
   local okY, depot = try(EEPIsTrainInTrainyard, name)
   if okY then t.trainyard = depot end
   
+  -- Die Fahrzeugliste wird bei jedem Export frisch gelesen: Kuppeln und Trennen kann an jeder
+  -- Stelle des Zuges geschehen, die Zusammensetzung laesst sich nicht aus wenigen Werten ableiten.
   local count = try(EEPGetRollingstockItemsCount, name)
   if count then
     t.vehicleCount = count
     local vehicles = {}
     for i = 0, count - 1 do
       local vname = try(EEPGetRollingstockItemName, name, i)
-      if vname and vname ~= "" then vehicles[#vehicles + 1] = vname end
+      if vname and vname ~= "" then
+        vehicles[#vehicles + 1] = vname
+        -- unbekannte Fahrzeuge sofort aufnehmen (nur eine Mengenabfrage, solange sie bekannt sind)
+        if config.autoRollingstock then addAuto("rollingstock", vname) end
+      end
     end
     t.vehicles = vehicles
     
     -- Position des Zuges = Position des ersten Fahrzeugs
-    if vehicles[1] then
-      local okP, x, y, z = try(EEPRollingstockGetPosition, vehicles[1])
-      if okP then t.position = { x = x, y = y, z = z } end
-      
-      local okTr, trackId, pos, dir, system = try(EEPRollingstockGetTrack, vehicles[1])
-      if okTr then t.track = { id = trackId, position = pos, direction = dir, system = system } end
+    local first = vehicles[1]
+    if first then
+      local rs = rsMap and rsMap[first]
+      if rs and rs.exists then
+        t.position, t.track = rs.position, rs.track
+      else
+        local okP, x, y, z = try(EEPRollingstockGetPosition, first)
+        if okP then t.position = { x = x, y = y, z = z } end
+        
+        local okTr, trackId, pos, dir, system = try(EEPRollingstockGetTrack, first)
+        if okTr then t.track = { id = trackId, position = pos, direction = dir, system = system } end
+      end
     end
   end
   
@@ -1128,9 +1330,9 @@ local function collectRollingstock(name)
   local okT, trackId, pos, dir, system = try(EEPRollingstockGetTrack, name)
   if okT then r.track = { id = trackId, position = pos, direction = dir, system = system } end
   
-  -- Länge des Fahrzeugs von Kupplung zu Kupplung in Meter
-  local okL, len = try(EEPRollingstockGetLength, name)
-  if okL then r.length = len end
+  -- STATIC Länge des Fahrzeugs von Kupplung zu Kupplung in Meter
+  r.length = cachedStatic(staticCache.rollingstock, name, "length", EEPRollingstockGetLength, name)
+                                
 
   -- STATIC Anzahl der Getriebegaenge (0 = nicht motorisiert)
   r.gears = cachedStatic(staticCache.rollingstock, name, "gears", EEPRollingstockGetMotor, name)
@@ -1267,20 +1469,22 @@ end
 --- Setzt Konfigurationswerte. Beispiel: EepExport.configure({ interval = 10, pretty = true })
 function M.configure(options)
   for k, v in pairs(options or {}) do config[k] = v end
-  if options and options.anlFile ~= nil and options.anlFile ~= anlLoaded then anlLoaded = nil end
-  if options and options.anlFile ~= nil and options.anlFile ~= gbsLoaded then gbsLoaded = nil end
+  -- Bei geaenderter anl3-Datei bzw. geaendertem gbsTracks die Datei erneut lesen
+  if options and (options.anlFile ~= nil or options.gbsTracks ~= nil) then anlLoaded = nil end
 end
 
 --- Sammelt alle Zustandsdaten und gibt sie als Tabelle zurueck.
 function M.collect()
   M.resolve()               -- Ermittelt den Status der registrierten Objekte
   scanForTrains()           -- Suche nach neuen Zuegen
-  pruneAuto("trains")       -- Entferne Zuege, die es nicht mehr gibt
-  pruneAuto("rollingstock") -- Entferne Rollmaterialien, die es nicht mehr gibt  
+                                                                     
+                                                                                 
   
   local data = {}
   data.meta = { exportedAtEepTime = EEPTime } -- oder string.format("%02d:%02d:%02d", EEPTimeH, EEPTimeM, EEPTimeS)}
   if config.global then data.global = collectGlobal() end
+  -- Kameras (statisch, aus der anl3-Datei): Name -> { dynamic = true|false }; Aufruf mit EEPSetCamera(0|1, Name)
+  if cameraList then data.cameras = cameraList end
   data.signals      = collectMap(registry.signals, collectSignal)
   data.switches     = collectMap(registry.switches, collectSwitch)
   data.trainyards   = collectMap(registry.depots, collectDepot)
@@ -1294,8 +1498,20 @@ function M.collect()
     auxiliary = collectMap(registry.auxTracks,     function(id) return collectTrack(EEPIsAuxiliaryTrackReserved, id) end),
     control   = collectMap(registry.controlTracks, function(id) return collectTrack(EEPIsControlTrackReserved, id) end),
   }
-  data.trains       = collectMap(registry.trains, collectTrain)
+
+  -- Rollmaterial zuerst: collectTrain uebernimmt daraus Position und Gleis des ersten Fahrzeugs
   data.rollingstock = collectMap(registry.rollingstock, collectRollingstock)
+  data.trains       = collectMap(registry.trains, function(name) return collectTrain(name, data.rollingstock) end)
+
+  -- Fahrzeuge, die collectTrain gerade neu aufgenommen hat, noch im selben Export erfassen
+  for _, vname in ipairs(registry.rollingstock) do
+    local key = tostring(vname)
+    if data.rollingstock[key] == nil then data.rollingstock[key] = collectRollingstock(vname) end
+  end
+
+  -- Automatisch aufgenommene Zuege/Fahrzeuge entfernen, die es nicht mehr gibt (aus den gesammelten Daten)
+  pruneMissing("trains", data.trains)
+  pruneMissing("rollingstock", data.rollingstock)
   return data
 end
 
@@ -1396,6 +1612,10 @@ function M.run()
   end
   
   if not config.interval or config.interval < 0 then return end
+  
+  -- Die ID-Suche laeuft noch (auf mehrere Aufrufe verteilt): erst exportieren, wenn alles gefunden wurde,
+  -- damit keine unvollstaendigen Daten geschrieben werden.
+  if #pending > 0 then return end
   
   if M.isExportPaused() then return end
   

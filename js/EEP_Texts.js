@@ -674,6 +674,11 @@ info : {
 		EN : `Show camera`,
 		FR : `Afficher la caméra`,
 	},
+	Aktivieren : {
+		DE : `Aktivieren`, 
+		EN : `Activate`, 
+		FR : `Activer`, 
+	},
 	Sichtfeld : {
 		DE : `Sichtfeld`,
 		EN : `Field of view`,

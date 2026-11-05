@@ -80,6 +80,7 @@ input.cin.rt{width:12em}
   <section class="medium"><h2 data-t="ZeitWetter"></h2><div id="gl">–</div></section>
   <section class="wide"><h2><span data-t="Züge"></span> <small>
     <span data-t="Folgen"></span>: <select id="follow"><option value="" data-t="kein Zug"></option></select></small></h2><div id="trains"></div></section>
+  <section class="wide" hidden><h2 data-t="Kameras"></h2><div id="cams"></div></section>
     <section class="medium"><h2><span data-t="Signale"></span> <small id="sigNote"></small></h2><div id="sigs"></div></section>
   <section><h2 data-t="Weichen"></h2><div id="sws"></div></section>
   <section class="wide"><h2 data-t="Rollmaterialien"></h2><div id="rs"></div></section>
@@ -239,6 +240,8 @@ const CMD_RULES = {
   EEPSetTrainRoute:        ["name", "name"],
   EEPSetCamera:            ["camType", "name"],
   EEPSetPerspectiveCamera: ["camPos", "name"],
+  EEPSetTrainActive:       ["name"],         // Zug im Steuerdialog aktivieren (Automatikmodus)
+  EEPActivateCtrlDesk:     ["name"],         // Gleisbildstellpult im Radarfenster aufrufen
 };
 const CMD_CHECK = {
   id:      v => Number.isInteger(v) && v > 0 && v < 100000,
@@ -452,6 +455,23 @@ document.body.addEventListener("focusout", () => setTimeout(() => {
   if (data && Object.values(dirty).some(Boolean)) render();
 }, 0));
 
+// Kameras (aus der anl3-Datei, Export "cameras": Name -> {dynamic}). Aufruf per EEPSetCamera(0 = statisch | 1 = dynamisch, Name)
+function renderCams() {
+  const cams = data.cameras || {};
+  const names = Object.keys(cams).sort((a, b) => a.localeCompare(b));
+  $("cams").parentElement.hidden = !names.length;
+  const group = dyn => {
+    const l = names.filter(n => !!cams[n].dynamic === dyn);
+    return `<p><b>${_(dyn ? "dynamisch" : "statisch")}</b> (${l.length}): `
+      + l.map(n => cmdOK
+          ? `<button data-a="cam" data-t="${dyn ? 1 : 0}" data-n="${esc(n)}" title="${esc(_("KameraAufrufen"))}">${esc(n)}</button>`
+          : `<span class="chip x">${esc(n)}</span>`).join(" ")
+      + `</p>`;
+  };
+  const h = group(false) + group(true);
+  if (lastHtml.cams !== h) { lastHtml.cams = h; $("cams").innerHTML = h; }
+}
+
 // Darstellung der Daten
 function render() {
   const g = data.global;
@@ -496,7 +516,9 @@ function render() {
           : esc(t.route || "")}</td>`
       + `<td>${k.system}-${k.id} @ ${fmt(k.position, 0)} m</td>`
       + `<td><button data-a="center" data-n="${esc(n)}">${_("Zeige")}</button>`
-      + `<button data-a="track" data-gs="${k.system}" data-gi="${k.id}">${_("GleisInfo")}</button></td>`
+      + `<button data-a="track" data-gs="${k.system}" data-gi="${k.id}">${_("GleisInfo")}</button>`
+      + (cmdOK ? `<button data-a="activate" data-n="${esc(n)}">${_("Aktivieren")}</button>` : "")
+      + `</td>`
       + `</tr>`;
   }
   h += `</tbody></table>`;
@@ -597,6 +619,8 @@ function render() {
       + `</tr>`;
   }
   showTable("rs", "tblRolling", h + `</tbody></table>`, _("Rollmaterialien"));
+
+  renderCams();
 }
 
 // Status: Uhrzeit und Zeit seit Empfang der Daten
@@ -624,6 +648,12 @@ document.body.addEventListener("click", ev => {
 
   } else if (a === "cmd") {
     sendCmd(buildCmd(b.dataset.f, Number(b.dataset.i), Number(b.dataset.v)));   // EEPSetSignal|ID|Stellung bzw. EEPSetSwitch|ID|Stellung
+
+  } else if (a === "activate") {
+    sendCmd(buildCmd("EEPSetTrainActive", b.dataset.n));                          // Zug aktivieren
+
+  } else if (a === "cam") {
+    sendCmd(buildCmd("EEPSetCamera", Number(b.dataset.t), b.dataset.n));          // 0 = statisch, 1 = dynamisch
   }
 });
 

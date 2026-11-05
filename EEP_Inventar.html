@@ -302,6 +302,7 @@ function process_node(sutrackp) {
 	let div;
 	div = e(null, 'div' );
 	div.classList.add('Intro');
+	div.id = 'divIntro';
 
 	let EEPversion;
 	const Version = sutrackp.getElementsByTagName('Version')[0];
@@ -479,6 +480,8 @@ mit
 				const Cubic		= Curve.getElementsByTagName("Cubic")[0];
 				const Rotator	= Curve.getElementsByTagName("Rotator")[0];
 				const RotatorChain	= Curve.getElementsByTagName("RotatorChain")[0];
+				const PolygonalChain	= Curve.getElementsByTagName("PolygonalChain")[0];
+				
 				// Depending on CurveType some adjustments might be required!
 				// Let's start with a simple case.
 				if (EEPCurve) {	// EEPCurve = Line or Arc
@@ -553,9 +556,14 @@ mit
 					console.log(`RotatorChain not supported yet: ${TrackSystemText(GleissystemID)} ${GleisID}`);
 					continue;
 
+				} else if (PolygonalChain) {
+
+					console.log(`PolygonalChain not supported yet: ${TrackSystemText(GleissystemID)} ${GleisID}`);
+					continue;
+
 				} else { // curve not supported yet
 
-					console.log(`other curve type not supported yet:  ${TrackSystemText(GleissystemID)} ${GleisID}`);
+					console.log(`other curve type not supported yet: ${TrackSystemText(GleissystemID)} ${GleisID}`);
 					continue;
 				
 				}
@@ -1480,8 +1488,13 @@ function createContactsTable() {
 		let KontaktTypText = (KontaktText[SetType] ? KontaktText[SetType] : _('unbekannt'));
 
 		// Spezielle Kontakt-Typen
-		if 		  (SetType == 0) {										// Weiche/Signal
-			KontaktTypText = Ziel.Typ;
+		if 		  (SetType == 0) {										// Weiche/Signal/...
+			if (!Ziel) {
+				KontaktTypText = "kein Signal mit passendem KontaktZiel";
+			} else if (!Ziel.Typ) {
+				KontaktTypText = "kein Signal mit passendem KontaktZiel-Typ";
+				debugger;
+			}
 
 		} else if (SetType >= 1 && SetType <= 39) {						// Fahrzeug
 			KontaktTypText = KontaktTypText.replace('$1', SetValue);	// Geschwindigkeit eintragen
@@ -2756,6 +2769,76 @@ function toggleElements(selector, visible) {
 	}
 }
 
+
+// Feststehende Navigation: Springen ohne URL-Änderung
+document.addEventListener("DOMContentLoaded", function() {
+	const nav = document.querySelector('#container .group');
+
+	// Höhe der festen Leiste als CSS-Variable (ändert sich z.B. beim Umbruch)
+	if (nav && window.ResizeObserver) {
+		new ResizeObserver(function() {
+			document.documentElement.style.setProperty('--navh', nav.offsetHeight + 'px');
+		}).observe(nav);
+	}
+
+	// Bereich ein- bzw. ausblenden wie über die Checkbox
+	function setSection(cb, on) {
+		if (cb.checked !== on) {
+			cb.checked = on;
+			cb.dispatchEvent(new Event('change'));
+		}
+	}
+	function sectionCheckboxes() {
+		return Array.from(document.querySelectorAll('.fieldset input[type="checkbox"]:not([name="Filter"])'));
+	}
+
+	// Alle # - Links (Navigation und Links in den Tabellen) abfangen
+	document.addEventListener('click', function(ev) {
+		const a = ev.target.closest && ev.target.closest('a[href^="#"]');
+		if (!a) { return; }
+		const target = document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));
+		if (!target) { return; }
+
+		ev.preventDefault();	// keine URL-Änderung; verhindert auch das Umschalten der umgebenden Checkbox
+
+		// Ist der Bereich ausgeblendet, dann zuerst wieder einblenden
+		const section = target.closest('#container > div');
+		if (section && section.classList.contains('hidden')) {
+			const cb = document.querySelector('.fieldset input[name="' + section.classList[0] + '"]');
+			if (cb) { setSection(cb, true); }
+		}
+
+		target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	});
+
+	// Schaltflächen
+	$('btnAllOn').addEventListener('click',  function() { sectionCheckboxes().forEach(cb => setSection(cb, true));  });
+	$('btnAllOff').addEventListener('click', function() { sectionCheckboxes().forEach(cb => setSection(cb, false)); });
+	$('btnTop').addEventListener('click',    function() { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+	// Aktiven Bereich in der Leiste markieren
+	const links = Array.from(document.querySelectorAll('.fieldset a[href^="#div"]'));
+	window.addEventListener('scroll', function() {
+		const navh = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--navh')) || 60;
+		let current = -1;
+		links.forEach(function(a, i) {
+			const s = document.getElementById(a.getAttribute('href').slice(1));
+			if (s && !s.classList.contains('hidden') && s.getBoundingClientRect().top <= navh + 5) { current = i; }
+		});
+		links.forEach((a, i) => a.classList.toggle('active', i === current));
+		updateFltH();
+	}, { passive: true });
+
+	// Höhe der Filterzeile (für die Position der Spaltenüberschriften); 0, wenn die Filter ausgeblendet sind
+	function updateFltH() {
+		let h = 0;
+		document.querySelectorAll('tr.fltrow').forEach(function(r) { h = Math.max(h, r.offsetHeight); });
+		document.documentElement.style.setProperty('--fltH', h + 'px');
+	}
+	window.addEventListener('resize', updateFltH);
+	document.addEventListener('change', function() { setTimeout(updateFltH, 0); });
+	updateFltH();
+});
 </script>
 <style>
 /* Selection screen */
@@ -2830,6 +2913,45 @@ input,
 label,
 button {
 	user-select: none;
+}
+
+/* Feststehende Navigation */
+.group {
+	position: sticky;
+	top: 0;
+	z-index: 1000;
+	background: #fff;
+	padding: 6px 10px;
+	border-bottom: 1px solid #999;
+	box-shadow: 0 2px 4px rgba(0,0,0,.15);
+}
+.group a { text-decoration: none; }
+.group a.active { font-weight: bold; text-decoration: underline; }
+.group button { cursor: pointer; }
+
+/* Tabellenköpfe unterhalb der festen Navigation festhalten (überschreibt die Vorgaben von TableFilter).
+   Zeile 1 = Filterzeile (.fltrow), Zeile 2 = Spaltenüberschriften. --navh und --fltH setzt das Skript.
+   Fallback, falls es Probleme gibt: die beiden Regeln durch
+   table.TF th, table.TF td { position: static !important; }
+   ersetzen, dann scrollen die Tabellenköpfe einfach mit. */
+table.TF > thead > tr.fltrow > td,
+table.TF > thead > tr.fltrow > th {
+	position: sticky !important;
+	top: var(--navh, 60px) !important;
+	z-index: 20 !important;
+	background: #fff;
+}
+table.TF > thead > tr:not(.fltrow) > th {
+	position: sticky !important;
+	top: calc(var(--navh, 60px) + var(--fltH, 0px)) !important;
+	z-index: 20 !important;
+	background: #C5D8E1;
+}
+
+/* Sprungziele nicht unter der festen Leiste verschwinden lassen */
+#container > div,
+#container a[id] {
+	scroll-margin-top: var(--navh, 60px);
 }
 </style>
 
@@ -2947,6 +3069,10 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 	|
 	<!-- Hide filter row and filter related icons to make copy&paste to Excel easier -->
 	<div class="item"><label><input type='checkbox' name='Filter'		checked autocomplete='off' onchange="toggleElements('.fltrow,.rdiv', this.checked)"><span lang="de">Filter</span><span lang="en">Filter</span><span lang="fr">Filtre</span></label></div>
+	|
+	<div class="item"><button type="button" id="btnAllOn"><span lang="de">Alle ein</span><span lang="en">Show all</span><span lang="fr">Tout afficher</span></button></div>
+	<div class="item"><button type="button" id="btnAllOff"><span lang="de">Alle aus</span><span lang="en">Hide all</span><span lang="fr">Tout masquer</span></button></div>
+	<div class="item"><button type="button" id="btnTop"><span lang="de">&#8593; Nach oben</span><span lang="en">&#8593; Top</span><span lang="fr">&#8593; Haut</span></button></div>
 </fieldset>
 </div>
 
@@ -3627,17 +3753,6 @@ global.shiftDown 	= false;
 global.strgDown 	= false;
 global.altDown 		= false;
 // Activate key
-/*
-document.addEventListener("keydown", function(event){
-    if			(event.keyCode === 16 || event.charCode === 16){
-        global.shiftDown = true;
-    } else if	(event.keyCode === 17 || event.charCode === 17){
-        global.strgDown = true;
-    } else if	(event.keyCode === 18 || event.charCode === 18){
-        global.altDown = true;
-    }
-});
-*/
 document.addEventListener("keydown", function(event){
     if (event.key === "Shift") {
         global.shiftDown = true;
@@ -3648,17 +3763,6 @@ document.addEventListener("keydown", function(event){
     }
 });
 // Deactivate key
-/*
-document.addEventListener("keyup", function(event){
-    if			(event.keyCode === 16 || event.charCode === 16){
-        global.shiftDown = false;
-    } else if	(event.keyCode === 17 || event.charCode === 17){
-        global.strgDown = false;
-    } else if	(event.keyCode === 18 || event.charCode === 18){
-        global.altDown = false;
-    }
-});
-*/
 document.addEventListener("keyup", function(event){
     if (event.key === "Shift") {
         global.shiftDown = false;
