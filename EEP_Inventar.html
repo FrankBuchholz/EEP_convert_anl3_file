@@ -2388,6 +2388,10 @@ function showGBS( GBS_table, div ) {
 				const Signal = Signale.find(x => x.ID === Number(id));
 				if (Signal) { postIDMessage(Number(id), Signal.GleissystemID, Signal.GleisID); }
 			},
+			gleis	: id => {	// Besetztanzeige: erstes Gleis der Anzeige im Gleissystem des Stellpults
+				const Gleise = GleisMap.get(GBS.GleissystemID);
+				if (Gleise && Gleise.has(String(id))) { postGleisMessage(GBS.GleissystemID, id); }
+			},
 			camera	: name => {
 				const Kamera = Kameras.find(x => x.Name === name);
 				if (Kamera) { postKameraMessage(Kamera.ID); }
@@ -2826,7 +2830,7 @@ table.TF > thead > tr:not(.fltrow) > th {
 .gbsWrap .sigLetter { fill: #222; font: bold 18px Arial, sans-serif; text-anchor: middle; }
 
 /* Klick-Links zum Gleisplan */
-.gbsWrap .gbsLink { cursor: pointer; }
+.gbsWrap .gbsLink { cursor: pointer; pointer-events: all; }
 .gbsWrap .gbsLink:hover { filter: brightness(1.2); }
 .gbsWrap .hit { fill: #000; fill-opacity: 0; }
 
@@ -3242,7 +3246,7 @@ function drawTrack(parent, symbol) {
 }
 
 // Besetztanzeigen der Gleisabschnitte (graue Linienstücke); liefert die Beschriftungen, die später darüber gezeichnet werden
-function drawLeds(g, tile) {
+function drawLeds(g, tile, handlers) {
 	const labels = [];
 	const segs = ledCoords(tile.symbol);
 	tile.tracks.forEach((ids, i) => {
@@ -3251,13 +3255,14 @@ function drawLeds(g, tile) {
 
 		const l = el(g, "line", {class: "led", x1: sg[0], y1: sg[1], x2: sg[2], y2: sg[3]});
 		el(l, "title", {}, _('Gleise') + " " + ids.join(", "));
+		makeLink(l, handlers.gleis, ids[0]);	// Klick: Gleisplan auf das (erste) Gleis der Besetztanzeige positionieren
 		labels.push({sg: sg, ids: ids});
 	});
 	return labels;
 }
 
 // Gleisnummern der Besetztanzeige: auf dem Gleis, höchstens 2 Nummern je Zeile
-function drawTrackIds(g, label) {
+function drawTrackIds(g, label, handlers) {
 	const lineHeight = 11;
 	const parts = [];
 	for (let i = 0; i < label.ids.length; i += 2) { 
@@ -3271,6 +3276,7 @@ function drawTrackIds(g, label) {
 
 	const t = el(g, "text", {class: "occId", x: cx, y: cy - (parts.length - 1) * lineHeight / 2});
 	parts.forEach((p, i) => el(t, "tspan", {x: cx, dy: i ? lineHeight : 0}, p));
+	makeLink(t, handlers.gleis, label.ids[0]);
 }
 
 // Text in eine Box umbrechen und einpassen
@@ -3401,7 +3407,7 @@ function drawSignal(parent, symbol, id, pos, handlers) {
 }
 
 // Ein Stellpult zeichnen
-// handlers (optional): { weiche(id), signal(id), camera(name) } werden bei Klick auf die Nummer bzw. das Symbol aufgerufen
+// handlers (optional): { weiche(id), signal(id), camera(name), gleis(id) } werden bei Klick auf die Nummer bzw. das Symbol aufgerufen
 function draw(container, gbs, handlers) {
 	handlers = handlers || {};
 	// SVG-Element mit der Größe des Stellpults
@@ -3430,7 +3436,7 @@ function draw(container, gbs, handlers) {
 			// Gleis-Symbol und Besetztanzeigen
 			drawTrack(group, tile.symbol);
 			// Gleisnummern der Besetztanzeigen
-			labels = drawLeds(group, tile);
+			labels = drawLeds(group, tile, handlers);
 
 			// Weichennummer in der Kachelmitte
 			if (tile.WeicheID) {
@@ -3460,7 +3466,7 @@ function draw(container, gbs, handlers) {
 		}
 
 		// Gleisnummern zuletzt, damit sie nicht verdeckt werden
-		for (const label of labels) { drawTrackIds(group, label); }
+		for (const label of labels) { drawTrackIds(group, label, handlers); }
 	}
 	return svg;
 }

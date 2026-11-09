@@ -5,7 +5,7 @@ Dieses Projekt enthält Programme zur Analyse, Darstellung und Konvertierung von
 | Programm | Zweck | Dokumentation |
 | --- | --- | --- |
 | [`EEP_Gleisplan.html`](EEP_Gleisplan.html "EEP_Gleisplan.html") | Gleisplan einer Anlage im Browser, optional mit Live-Daten und Bedienung | dieser Text |
-| [`EEP_Inventar.html`](EEP_Inventar.html "EEP_Inventar.html") | Inventarlisten einer Anlage | dieser Text |
+| [`EEP_Inventar.html`](EEP_Inventar.html "EEP_Inventar.html") | Inventarlisten einer Anlage, mit statischer Anzeige der Gleisbildstellpulte | dieser Text |
 | [`EEP_Signale.html`](EEP_Signale.html "EEP_Signale.html") | Signalstellungen | dieser Text |
 | [`EEP_GBS.html`](EEP_GBS.html "EEP_GBS.html") | Gleisbildstellpulte (GBS) einer Anlage anzeigen und bedienen, `.anl3` und `.gbs` ineinander umwandeln | dieser Text |
 | [`EEP_Export_Bridge.html`](EEP_Export_Bridge.html "EEP_Export_Bridge.html") + [`EepExport.lua`](Lua/EepExport.lua "EepExport.lua") + `CommandExecution.lua` | Live-Zustand einer laufenden Anlage (Züge, Signale, Weichen, Zeit, Wetter), optional mit Befehlen an EEP | [`README_Export_Bridge`](https://frankbuchholz.github.io/EEP_convert_anl3_file/README_Export_Bridge.html "README_Export_Bridge") |
@@ -134,7 +134,7 @@ Anzeige einer Inventarliste zu einer EEP-Anlage.
 
 **Aufruf:** [https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html](https://frankbuchholz.github.io/EEP_convert_anl3_file/EEP_Inventar.html "EEP_Inventar.html")
 
-Ausgegeben werden Listen der Weichen, Signale, Kontakte, virtuellen Verbindungen, Zugverbände, Depots, Rollmaterialien, Gleisstile, Gleisobjekte und Kameras sowie die Gleisbildstellpulte. Die Anlage-Datei (`.anl3` oder `.zip` mit genau einer `.anl3`-Datei, siehe *Zip-Dateien*) lädst du per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Inventar.html?url=<Adresse der .anl3- oder .zip-Datei>`).
+Ausgegeben werden Listen der Weichen, Signale, Kontakte, virtuellen Verbindungen, Zugverbände, Depots, Rollmaterialien, Gleisstile, Gleisobjekte und Kameras sowie die Gleisbildstellpulte (siehe unten). Die Anlage-Datei (`.anl3` oder `.zip` mit genau einer `.anl3`-Datei, siehe *Zip-Dateien*) lädst du per Datei-Auswahl, Drag&Drop oder URL (Eingabefeld **URL laden** bzw. Aufruf mit `EEP_Inventar.html?url=<Adresse der .anl3- oder .zip-Datei>`).
 
 ### Interaktive Funktionen
 
@@ -143,10 +143,29 @@ Man kann die Tabellen (bei Firefox auch mit Strg+A) mit Copy & Paste in ein Tabe
 [Filter-Operatoren](https://github.com/koalyptus/TableFilter/wiki/4.-Filter-operators):  
 <kbd>&lt;</kbd>, <kbd>&lt;=</kbd>, <kbd>=</kbd>, <kbd>&gt;=</kbd>, <kbd>&gt;</kbd>, <kbd>*</kbd>, <kbd>!</kbd> (nicht), <kbd>{</kbd> (beginnt mit), <kbd>}</kbd> (endet mit), <kbd>||</kbd> (oder), <kbd>&amp;&amp;</kbd> (und), <kbd>[empty]</kbd>, <kbd>[nonempty]</kbd>, <kbd>rgx:</kbd> (gefolgt von einer _regular expression_)
 
-Öffnest du in einem weiteren Fenster oder Tab den Gleisplan für dieselbe Anlage-Datei, positionieren die Links von Gleisen, Signalen, Weichen oder Kontakten den Gleisplan auf das gewählte Objekt und öffnen dort das Info-Popup:
+Öffnest du in einem weiteren Fenster oder Tab den Gleisplan für dieselbe Anlage-Datei, positionieren die Links von Gleisen, Signalen, Weichen, Kontakten, Kameras oder Gleisobjekten den Gleisplan auf das gewählte Objekt und öffnen dort das Info-Popup:
 
 - wenn zusammen mit <kbd>&#x21E7; Shift</kbd>, dann wird jeweils ein neues Popup geöffnet
 - wenn zusammen mit <kbd>alt</kbd>, dann wird zusätzlich der Code aus der Anlage-Datei für dieses Objekt angezeigt
+
+### Gleisbildstellpulte
+
+Am Ende der Seite werden die Stellpulte der Anlage als **statische Grafik** gezeigt. Sie werden wie im [GBS-Programm](#6-programm-eep_gbshtml) gezeichnet, jedoch ohne Live-Daten und ohne Bedienung, und es werden nur `.anl3`-Dateien unterstützt. Die Grafik dient als Dokumentation: Jede Kachel ist 100 Pixel groß, breite Stellpulte lassen sich seitlich scrollen, sodass die Nummern lesbar bleiben. Eine Legende über den Stellpulten erklärt die Farben:
+
+| Nummer | Darstellung |
+| --- | --- |
+| Weichennummer | weiß mit dunkler Umrandung, in der Kachelmitte (bei Diagonalweichen mitgedreht) |
+| Signalnummer | weiß im unteren Teil des Signalsymbols; Fahrstraßen-Startsignale tragen ein **S**, Zielsignale ein **Z** |
+| Gleisnummern der Besetztanzeigen | gelb mit dunkler Umrandung, auf dem jeweiligen Anzeigestück; bei mehreren Gleisen höchstens zwei Nummern je Zeile |
+
+Dargestellt werden außerdem Kameras (mit Kameraname), Ein/Aus-Schalter, Reset, Statusanzeigen, Zählersignale und Tipptexte. Die Quickinfo zeigt beim Überfahren mit der Maus die Nummern, bei Besetztanzeigen alle Gleise des Abschnitts. Bei dicht belegten Kacheln können sich Gleisnummern und Signalsymbole an einer Ecke überlappen.
+
+Ein Klick positioniert den Gleisplan (wie die Links in den Tabellen, auch mit <kbd>&#x21E7; Shift</kbd> und <kbd>alt</kbd>) auf
+
+- eine **Weiche** (Klick auf die Weichennummer),
+- ein **Signal** (Klick auf das Signalsymbol, auch bei Ein/Aus-Schalter, Reset, Status und Zähler),
+- eine **Kamera** (Klick auf das Kamerasymbol),
+- das **Gleis** einer Besetztanzeige (Klick auf die Gleisnummer oder das Anzeigestück). Bei mehreren Gleisen wird das erste Gleis der Anzeige verwendet, die Quickinfo nennt alle.
 
 ## 4. Programm: EEP_Signale.html
 
@@ -258,6 +277,7 @@ Mit der Checkbox **Debug** oder dem Aufruf `EEP_GBS.html?debug` erscheint je Ste
 - Die `.anl3`-Datei wird wie im Gleisplan mit [`DOMParser`](https://www.w3schools.com/xml/xml_parser.asp) in das DOM umgewandelt, der Inhalt wird in Tabellen ausgegeben.
 - Die interaktiven Funktionen der Tabellen (Filter, Spaltenverwaltung) stammen aus der Bibliothek [`TableFilter`](https://github.com/koalyptus/TableFilter). Sortieren nach Klick auf die Spaltenüberschrift ist selbst implementiert.
 - Die Interaktion mit dem Gleisplan erfolgt über [`BroadcastChannel`](https://developer.mozilla.org/de/docs/Web/API/BroadcastChannel) (Kanal `EEP`, Nachrichten `showTrack`, `showID`, `showContact`, `showCamera`, `showTrackObject`, `showGBS`).
+- Die Stellpulte werden mit dem Modul `GBSView` (am Ende der Datei) gezeichnet. Es verwendet dieselbe Zeichentechnik wie `EEP_GBS.html` (siehe Abschnitt 9) ohne Live-Daten; die Klicks auf Weichen, Signale, Kameras und Besetztanzeigen gehen als `showID`, `showCamera` bzw. `showTrack` an den Gleisplan. Die Symboltabellen (`GBS_LEGS`, `GBS_END_SYMBOLS`, `ARM_ORDER_EXCEPTIONS`, ...) sind in beiden Programmen als Kopie vorhanden und müssen bei Änderungen in beiden Dateien nachgezogen werden.
 
 ## 9. Technik des GBS
 
