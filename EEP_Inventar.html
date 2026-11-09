@@ -833,6 +833,7 @@ mit
 				Tile.ID				= ( Tile.y - 1 ) * Width + Tile.x;				// ID to sort by position
 
 				Tile.Kammera		= GBSElement.getAttribute('Kammera'); 			// Gleissymbol 36 = Kammera
+				Tile.tip			= GBSElement.getAttribute('TipTxt') || GBSElement.getAttribute('TipText') || '';	// Tipp-Text
 
 				// Get track symbols
 				const Modell 		= GBSElement.getElementsByTagName('Modell')[0];
@@ -859,19 +860,20 @@ mit
 					Tile.SignalID_right = +Table.getAttribute('e2');					// Signal-ID Rechts
 				}
 
-				// Get tracks
+				// Get tracks: je Besetztanzeige (Tracks1 - Tracks4) die Liste der GleisIDs
 				Tile.Tracks = [];
 				for (let i = 1; i <= 4; i++) {
-					const Tracks = GBSElement.getElementsByTagName('Tracks' + i);	// Tracks1 - Tracks4
-					if ( Tracks.length == 0 ) { 
-						Tile.Tracks.push( 0 );
-						continue;
+					const IDs = [];
+					const Tracks = GBSElement.getElementsByTagName('Tracks' + i);
+					if ( Tracks.length > 0 ) {
+						const Table 	= Tracks[0].getElementsByTagName('Table')[0];
+						const Count 	= +Table.getAttribute('Count');
+						for (let j = 0; j < Count; j++) {
+							const GleisID = +Table.getAttribute('e' + j);				// GleisID für die Besetztmeldung
+							if (GleisID) { IDs.push( GleisID ); }
+						}
 					}
-					
-					const Table 	= Tracks[0].getElementsByTagName('Table')[0];
-					const Count 	= +Table.getAttribute('Count');
-					const GleisID	= +Table.getAttribute('e0');						// GleisID für die Besetztmeldung
-					Tile.Tracks.push( GleisID );
+					Tile.Tracks.push( IDs );
 				}
 				
 				// Store GBSElement
@@ -2334,14 +2336,18 @@ function createGBSTable() {
 	})
 }
 
-// Show graphic for GBS
-// requires TrackSystemText
+// Show graphic for GBS (Technik wie in EEP_GBS.html, jedoch nur als statische Dokumentation)
 function showGBS( GBS_table, div ) {
 
-	//const svgGBS 		= document.getElementById('svgGBS');
-	const svgNS 	= 'http://www.w3.org/2000/svg';
-	const xlinkNS 	= 'http://www.w3.org/1999/xlink';
-	const scale = 100;
+	if (GBS_table.length > 0) {
+		// Legende der Beschriftungen
+		e(div, 'p',
+			  `<span class="gbsKey gbsKeyW">${_('Weiche')}</span> `
+			+ `<span class="gbsKey gbsKeyS">${_('Signal')}</span> `
+			+ `<span class="gbsKey gbsKeyG">${_('Gleise')}</span>`,
+			true
+		).classList.add('gbsLegend');
+	}
 
 	GBS_table.sort(orderByID).forEach(GBS => {
 
@@ -2350,216 +2356,45 @@ function showGBS( GBS_table, div ) {
 			`${_('Stellpult')} ${GBS.ID} '${GBS.Name}' ${_('auf')} ${TrackSystemText(GBS.GleissystemID)} (${GBS.Width} x ${GBS.Height})`
 		);
 
-		// Create svg for the GBS
-		const svg = document.createElementNS(svgNS, 'svg');
-		div.appendChild(svg);
-		svg.setAttributeNS(svgNS, 'viewBox', '0 0 ' + scale * GBS.Width + ' ' + scale * GBS.Height );
-		svg.setAttribute('width',  scale * GBS.Width );
-		svg.setAttribute('height', scale * GBS.Height );
-		
-		// Add empty tiles
-		for (let x = 1; x <= GBS.Width; x++) {
-			for (let y = 1; y <= GBS.Height; y++) {
-				// Add tile to svg
-				createTile(svg, 0, x, y);
-			}
-		}
-		
-		GBS.Tiles.sort(orderByID).forEach(Tile => {
+		// Breite Stellpulte können seitlich gescrollt werden, die Größe der Beschriftungen bleibt dabei lesbar
+		const wrap = e(div, 'div');
+		wrap.classList.add('gbsWrap');
 
-			// Add track to svg
-			if (Tile.TrackSymbol > 0) {
+		GBSView.draw(wrap, {
+			Width	: GBS.Width,
+			Height	: GBS.Height,
+			tiles	: GBS.Tiles.map(Tile => ({
+				x		: Tile.x,
+				y		: Tile.y,
+				symbol	: Tile.TrackSymbol,
+				sl		: Tile.Signal_left,
+				sm		: Tile.Signal_mid,
+				sr		: Tile.Signal_right,
+				il		: Tile.SignalID_left  || 0,
+				im		: Tile.SignalID_mid   || 0,
+				ir		: Tile.SignalID_right || 0,
+				tracks	: Tile.Tracks,
+				WeicheID: Tile.SwitchID || 0,
+				cam		: Tile.Kammera,
+				tip		: Tile.tip,
+			})),
+		}, {
+			// Klick: Gleisplan (in einem anderen Fenster) auf Weiche, Signal bzw. Kamera positionieren
+			weiche	: id => {
+				const Weiche = Weichen.find(x => x.ID === Number(id));
+				if (Weiche) { postIDMessage(Number(id), Weiche.GleissystemID, Weiche.GleisID); }
+			},
+			signal	: id => {
+				const Signal = Signale.find(x => x.ID === Number(id));
+				if (Signal) { postIDMessage(Number(id), Signal.GleissystemID, Signal.GleisID); }
+			},
+			camera	: name => {
+				const Kamera = Kameras.find(x => x.Name === name);
+				if (Kamera) { postKameraMessage(Kamera.ID); }
+			},
+		});
+	});
 
-				// Check switch ID
-				let Gleissystem, Gleis;
-				Gleissystem = GleisMap.get(GBS.GleissystemID);
-				if (Gleissystem) {
-					Gleis = Gleissystem.get(Tile.Tracks[0]);
-				}
-				if (Gleis) {
-					const Key_Id = Gleis.getAttribute('Key_Id');
-					if (Tile.SwitchID != Key_Id) {
-						console.log( 'Tile.SwitchID != Key_Id',
-							"(", Tile.x, Tile.y, ")",
-							Tile.SwitchID, "!=", Key_Id
-						);
-					}
-				}
-			
-				// Construct tipp text and tile
-				if (Tile.TrackSymbol == 36) {
-					const titleText = (Tile.Kammera       ? _('Kamera') + " " + Tile.Kammera : "");
-					createTile(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText, Tile.Kammera);
-
-				} else {
-					const titleText = 
-					  (Tile.SwitchID       ? _('Weiche') + " " + Tile.SwitchID + " ": "")  		
-					+ _('Gleise')  		
-					+ (Tile.Tracks[0] > 0 ? " "  + Tile.Tracks[0] : "")
-					+ (Tile.Tracks[1] > 0 ? ", " + Tile.Tracks[1] : "")
-					+ (Tile.Tracks[2] > 0 ? ", " + Tile.Tracks[2] : "")
-					+ (Tile.Tracks[3] > 0 ? ", " + Tile.Tracks[3] : "");
-
-					createTile(svg, Tile.TrackSymbol, Tile.x, Tile.y, titleText, Tile.SwitchID);
-				}
-			
-			}	
-			
-			// Add signal overlay to svg
-			if (Tile.Signal_left  > 0) {
-				const titleText = _('Signal') + " " + (Tile.SignalID_left  > 0 ? Tile.SignalID_left  : null);
-				createTile(svg, Tile.Signal_left, Tile.x, Tile.y, titleText, Tile.SignalID_left,   'left');
-			}
-			if (Tile.Signal_mid   > 0) {
-				const titleText = _('Signal') + " " + (Tile.SignalID_mid   > 0 ? Tile.SignalID_mid   : null);
-				createTile(svg, Tile.Signal_mid,   Tile.x, Tile.y, titleText, Tile.SignalID_mid,   'mid');
-			}
-			if (Tile.Signal_right > 0) {
-				const titleText = _('Signal') + " " + (Tile.SignalID_right > 0 ? Tile.SignalID_right : null);
-				createTile(svg, Tile.Signal_right, Tile.x, Tile.y, titleText, Tile.SignalID_right, 'right');
-			}
-		
-		})
-
-	})
-	
-	function createTile(svg_tag, TrackSymbol, x, y, titleText = null, ID = null, pos = null) {
-
-		// Create group for the tile
-		const g_tag = document.createElementNS(svgNS, 'g');
-		svg_tag.appendChild(g_tag);
-
-		// Calculate position
-		// Adjustment for signals
-		let hpos = 0;
-		if ( TrackSymbol >= 26 && TrackSymbol <= 31) { // Shift postion in case of signals
-			if        ( pos === 'left' ) {
-				hpos = - scale / 3;
-			} else if ( pos === 'right' ) {
-				hpos = + scale / 3;
-			}
-		}
-		// Set position 
-		g_tag.setAttribute('transform', 
-			'translate('
-			+ ( scale * ( x - 1) + hpos )
-			+ ' '
-			+ ( scale * ( y - 1) )
-			+ ')'
-			);
-
-		// Create tile
-		const use_tag = document.createElementNS(svgNS, 'use');
-		use_tag.setAttributeNS(xlinkNS, 'xlink:href', '#Tile_' + TrackSymbol );
-		use_tag.setAttribute('width',  scale );
-		use_tag.setAttribute('height', scale );
-		g_tag.appendChild(use_tag);
-
-		// Create title for tile
-		if (titleText) {
-			const title_tag = document.createElementNS(svgNS, 'title');
-			const titleNode = document.createTextNode(titleText);
-			title_tag.appendChild(titleNode);
-			use_tag.appendChild(title_tag);
-		}
-
-		// Create text for switch or signal
-		if (ID) {
-
-			// Create text
-			const textNode = document.createTextNode(ID);
-			const text_tag = document.createElementNS(svgNS, 'text');
-			text_tag.setAttribute('class', 'IDtext'); 
-			text_tag.appendChild(textNode);
-
-			// Create link for Gleisplan program
-			const a_tag = document.createElementNS(svgNS, 'a');
-			a_tag.setAttribute('href', 'javascript:void(0);');
-			a_tag.appendChild(text_tag);
-			g_tag.appendChild(a_tag);
-			
-			if ([36].includes(TrackSymbol)) {	// Camera
-				// Identify KameraID
-				let KameraID;
-				for (const Kamera of Kameras) {
-					if (ID == Kamera.Name) {
-						KameraID = Kamera.ID;
-						break;
-					}; 
-				}; 
-			
-				//Construct link
-				// `<a href="javascript:void(0);" onclick="javascript:postKameraMessage(${KameraID});">${ID}<\/a>`
-				a_tag.setAttribute('onclick', 
-					'javascript:postKameraMessage(' + KameraID + ');'
-				);
-
-			} else {	// Signal or switch 
-
-				// Get GleisID
-				let GleissystemID, GleisID;
-
-				if ([26, 27, 28, 29, 30, 31].includes(TrackSymbol)) {	// Signals
-					for (const Signal of Signale) {
-						if (ID == Signal.ID) {
-							GleissystemID = Signal.GleissystemID;
-							GleisID = Signal.GleisID;
-							break;
-						}; 
-					}; 
-					
-				} else { // Switches
-					for (const Weiche of Weichen) {
-						if (ID == Weiche.ID) {
-							GleissystemID = Weiche.GleissystemID;
-							GleisID = Weiche.GleisID;
-							break;
-						}; 
-					}; 
-				}
-					
-				//Construct link
-				// `<a href="javascript:void(0);" onclick="javascript:postIDMessage(${ID},${GleissystemID},${GleisID});">${ID}<\/a>`
-				a_tag.setAttribute('onclick', 
-					'javascript:postIDMessage(' + ID + ',' + GleissystemID + ',' + GleisID + ');'
-				);
-			}
-			// else // Track
-			// `<a href="javascript:void(0);" onclick="javascript:postGleisMessage(${GleissystemID},${GleisID});">${ID}<\/a>`
-
-			// Calculate middle position
-			let dx = scale / 2;
-			let dy = scale / 2;
-
-			// Move text of signals
-			if ([26, 28, 30].includes(TrackSymbol)) {
-				dy -= 15;
-			} 
-			if ([27, 29, 31].includes(TrackSymbol)) {
-				dy += 41;
-			} 
-			
-			// Move text of camera
-			if ([36].includes(TrackSymbol)) {
-				dy += 39;
-			} 
-			
-			let transform = 'translate(' + ( dx ) + ' ' + ( dy ) + ')';
-			
-			// Rotate text depending on TrackSymbol of a switch
-			if ([19, 18, 40, 41, 57].includes(TrackSymbol)) {
-				transform += ' ' + 'rotate(-45)';
-			}
-			if ([17, 16, 43, 42, 56].includes(TrackSymbol)) {
-				transform += ' ' + 'rotate(45)';
-			}
-			if ([52, 53, 54, 55].includes(TrackSymbol)) {
-				transform += ' ' + 'rotate(-90)';
-			}
-			
-			text_tag.setAttribute('transform',  transform );
-		}
-	}	
 } // function showGBS
 	
 } // function process_node
@@ -2952,6 +2787,55 @@ table.TF > thead > tr:not(.fltrow) > th {
 }
 </style>
 
+<style> /* GBS (Technik wie in EEP_GBS.html) */
+/* <![CDATA[ */
+.svg-defs-only { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+
+.gbsWrap { overflow-x: auto; max-width: 100%; margin: 4px 0 20px; }
+.gbsWrap svg { display: block; max-width: none; }
+
+.gbsLegend { margin: 6px 0; }
+.gbsKey { display: inline-block; padding: 0 8px; border-radius: 3px; font-weight: bold; }
+.gbsKeyW { background: #333;    color: #fff; }
+.gbsKeyS { background: #858282; color: #fff; }
+.gbsKeyG { background: #000;    color: #ffe14d; }
+
+.gbsWrap .tile { fill: #d8d8d8; }
+
+/* Gleise */
+.gbsWrap .ln { stroke: #000; stroke-width: 12; stroke-linecap: round; fill: none; }
+.gbsWrap .bar-end { stroke: #000; stroke-width: 7; }
+/* Besetztanzeige */
+.gbsWrap .led { stroke: #999; stroke-width: 5; stroke-linecap: round; pointer-events: none; }
+
+/* Nummern: Umrandung statt Hintergrund, damit sie auf jedem Untergrund lesbar sind */
+.gbsWrap .id, .gbsWrap .occId, .gbsWrap .signalId {
+	font-family: Arial, sans-serif;
+	font-weight: bold;
+	text-anchor: middle;
+	stroke-linejoin: round;
+	paint-order: stroke;
+	pointer-events: none;
+}
+/* Weichennummer */
+.gbsWrap .id { fill: #fff; stroke: #000; stroke-width: 3.5px; font-size: 17px; dominant-baseline: central; }
+/* Gleisnummern der Besetztanzeigen */
+.gbsWrap .occId { fill: #ffe14d; stroke: #000; stroke-width: 3px; font-size: 11.5px; dominant-baseline: central; }
+/* Signalnummer */
+.gbsWrap .signalId { fill: #fff; stroke: #000; stroke-width: 2.5px; font-size: 12.5px; }
+.gbsWrap .sigLetter { fill: #222; font: bold 18px Arial, sans-serif; text-anchor: middle; }
+
+/* Klick-Links zum Gleisplan */
+.gbsWrap .gbsLink { cursor: pointer; }
+.gbsWrap .gbsLink:hover { filter: brightness(1.2); }
+.gbsWrap .hit { fill: #000; fill-opacity: 0; }
+
+/* Sondersymbole */
+.gbsWrap .lbl { font: bold 24px Arial, sans-serif; text-anchor: middle; pointer-events: none; }
+.gbsWrap .camText { fill: #000; text-anchor: middle; font-family: Arial, sans-serif; pointer-events: none; }
+.gbsWrap .cntText { font: bold 85px Courier, monospace; fill: url(#dot-pattern); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+/* ]]> */
+</style>
 </head>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -3075,597 +2959,516 @@ Les opérateurs de filtrage sont décrits à la page du projet dans le chapitre 
 
 </main> <!-- container -->
 
-<!-- GBS --> 
-<svg id="GBSsymbols" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" > 
-<!-- viewBox="0 0 1000 500" width="1000" height="500"> -->
-<defs>
-<style>/* <![CDATA[ */
-    .tile {
-      fill: rgb(216, 216, 216);
-    }
-
-    .line {
-      stroke: rgb(0, 0, 0); 
-	  stroke-width: 12px; 
-	  stroke-linecap: round; 
-	  stroke-linejoin: round;
-    }
-
-    .Track_End {
-      stroke: rgb(0, 0, 0); 
-	  stroke-width: 7px; 
-    }
-	
-	.signalCode {
-		white-space: pre; 
-		text-anchor: middle; 
-		fill: rgb(51, 51, 51); 
-		font-family: Arial, sans-serif; 
-		font-size: 25px;
-	}
-	
-    .block1 { /* block 1 of a track */
-      /* stroke: rgb(200, 0, 0); 		/* red */
-      stroke: rgb(150, 150, 150); 
-	  stroke-width: 5px; 
-    }
-	
-    .block2 { /* block 2 of a track */
-      /* stroke: rgb(230, 230, 0); 		/* yellow */
-      stroke: rgb(160, 160, 160); 
-	  stroke-width: 5px; 
-    }
-	
-    .block3 { /* block 3 of a track */
-      /* stroke: rgb(0, 200, 0); 		/* green */
-      stroke: rgb(170, 170, 170); 
-	  stroke-width: 5px; 
-    }
-	
-    .block4 { /* block 4 of a track */
-      /* stroke: rgb(0, 230, 230); 		/* blue */
-      stroke: rgb(180, 180, 180); 
-	  stroke-width: 5px; 
-    }
-
-	.red {
-		fill: rgb(249, 0, 0);			/* red */
-	}
-
-	.green {
-		fill: rgb(71, 249, 0);			/* green */ 
-	}
-
-	.grey {
-		fill: rgb(180, 180, 180);		/* grey */ 
-	}
-	
-	.IDtext {
-		fill: white; 
-		font-size: small;
-		text-anchor: middle;
-		alignment-baseline: central;
-	}
-
-  /* ]]> */</style>
-
-	<!-- leer -->
-	<symbol id="Tile_0" viewBox="0 0 100 100">
-			<rect class="tile" x="1" y="1" width="98" height="98" rx="5" ry="5"/>
-	</symbol>
-
-	<defs> <!-- Fahrwege -->
-		<line id="Track_O"  class="line" x1="0"  y1="0" x2="42" y2="0"/>  <!-- gerade -->
-		<line id="Track_SO" class="line" x1="0"  y1="0" x2="42" y2="42"/> <!-- schräg -->
-		<use  id="Track_S"  href="#Track_O"  transform="rotate(90)"/>
-		<use  id="Track_SW" href="#Track_SO" transform="rotate(90)"/>
-		<use  id="Track_W"  href="#Track_O"  transform="rotate(180)"/>
-		<use  id="Track_NW" href="#Track_SO" transform="rotate(180)"/>
-		<use  id="Track_N"  href="#Track_O"  transform="rotate(270)"/>
-		<use  id="Track_NO" href="#Track_SO" transform="rotate(270)"/>
-
-		<g id="Track_End">	<!-- Endebalken -->
-			<line class="line" x1="0" y1="0" x2="-22" y2="0"/>  <!-- gerade -->
-			<line class="Track_End" x1="-25" y1="-20" x2="-25" y2="20"/>          <!-- Endebalken -->
-		</g>
-		</defs>
-
-	<defs> <!-- Block-LEDs -->
-		<line id="LED"      x1="-10" y1="0" x2="10" y2="0"/>
-		<use  id="LED_O"    href="#LED"   transform="rotate(0)   translate(30 0)"/>
-		<use  id="LED_SO"   href="#LED"   transform="rotate(45)  translate(45 0)"/>
-		<use  id="LED_S"    href="#LED"   transform="rotate(90)  translate(30 0)"/>
-		<use  id="LED_SW"   href="#LED"   transform="rotate(135) translate(45 0)"/>
-		<use  id="LED_W"    href="#LED"   transform="rotate(180) translate(30 0)"/>
-		<use  id="LED_NW"   href="#LED"   transform="rotate(225) translate(45 0)"/>
-		<use  id="LED_N"    href="#LED"   transform="rotate(270) translate(30 0)"/>
-		<use  id="LED_NO"   href="#LED"   transform="rotate(315) translate(45 0)"/>
-
-		<line id="LED_End"  x1="-20" y1="0" x2="0" y2="0"/> <!-- Led bei Endebalken --> 
-	</defs>
-
-	<!-- gerade Gleise -->
-	<symbol id="Tile_1" viewBox="-50 -50 100 100">
-			<title>Tile 1</title>
-			<use href="#Track_W"/>
-			<use href="#Track_O"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_O"      class="block2"/>
-	</symbol>
-	<symbol id="Tile_3" viewBox="-50 -50 100 100">
-			<title>Tile 3</title>
-			<use href="#Track_SW"/>
-			<use href="#Track_NO"/>
-			<use href="#LED_SW"     class="block1"/>
-			<use href="#LED"        class="block2" transform="rotate(-45)"/>
-			<use href="#LED_NO"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_4" viewBox="-50 -50 100 100">
-			<title>Tile 4</title>
-			<use href="#Track_NW"/>
-			<use href="#Track_SO"/>
-			<use href="#LED_NW"     class="block1"/>
-			<use href="#LED"        class="block2" transform="rotate(45)"/>
-			<use href="#LED_SO"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_45" viewBox="-50 -50 100 100">
-			<title>Tile 45</title>
-			<use href="#Track_S"/>
-			<use href="#Track_N"/>
-			<use href="#LED_S"      class="block1"/>
-			<use href="#LED_N"      class="block2"/>
-	</symbol>
-	
-	<!-- gebogene Gleise -->
-	<symbol id="Tile_6" viewBox="-50 -50 100 100">
-			<title>Tile 6</title>
-			<use href="#Track_SW"/>
-			<use href="#Track_O"/>
-			<use href="#LED_SW"      class="block1"/>
-			<use href="#LED_O"      class="block2"/>
-	</symbol>
-	<symbol id="Tile_9" viewBox="-50 -50 100 100">
-			<title>Tile 9</title>
-			<use href="#Track_W"/>
-			<use href="#Track_SO"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_SO"      class="block2"/>
-	</symbol>
-	<symbol id="Tile_8" viewBox="-50 -50 100 100">
-			<title>Tile 8</title>
-			<use href="#Track_O"/>
-			<use href="#Track_NW"/>
-			<use href="#LED_O"      class="block1"/>
-			<use href="#LED_NW"      class="block2"/>
-	</symbol>
-	<symbol id="Tile_7" viewBox="-50 -50 100 100">
-			<title>Tile 7</title>
-			<use href="#Track_W"/>
-			<use href="#Track_NO"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_NO"      class="block2"/>
-	</symbol>
-	
-	<symbol id="Tile_47" viewBox="-50 -50 100 100">
-			<title>Tile 47</title>
-			<use href="#Track_S"/>
-			<use href="#Track_NO"/>
-			<use href="#LED_S"      class="block1"/>
-			<use href="#LED_NO"      class="block2"/>
-	</symbol>
-	<symbol id="Tile_46" viewBox="-50 -50 100 100">
-			<title>Tile 46</title>
-			<use href="#Track_S"/>
-			<use href="#Track_NW"/>
-			<use href="#LED_S"      class="block1"/>
-			<use href="#LED_NW"      class="block2"/>
-	</symbol>
-	<symbol id="Tile_49" viewBox="-50 -50 100 100">
-			<title>Tile 49</title>
-			<use href="#Track_SO"/>
-			<use href="#Track_N"/>
-			<use href="#LED_SO"      class="block1"/>
-			<use href="#LED_N"      class="block2"/>
-	</symbol>
-	<symbol id="Tile_48" viewBox="-50 -50 100 100">
-			<title>Tile 48</title>
-			<use href="#Track_SW"/>
-			<use href="#Track_N"/>
-			<use href="#LED_SW"      class="block1"/>
-			<use href="#LED_N"      class="block2"/>
-	</symbol>
-	
-	<!-- Endgleise -->
-	<symbol id="Tile_10" viewBox="-50 -50 100 100">
-			<title>Tile 10</title>
-			<use href="#Track_O"/>
-			<use href="#Track_End"                transform="rotate(0)"/>
-			<use href="#LED_O"     class="block1"/>
-			<use href="#LED_End"   class="block2" transform="rotate(0)"/>
-	</symbol>
-	<symbol id="Tile_11" viewBox="-50 -50 100 100">
-			<title>Tile 11</title>
-			<use href="#Track_W"/>
-			<use href="#Track_End"                transform="rotate(180)"/>
-			<use href="#LED_W"     class="block1"/>
-			<use href="#LED_End"   class="block2" transform="rotate(180)"/>
-	</symbol>
-	<symbol id="Tile_50" viewBox="-50 -50 100 100">
-			<title>Tile 50</title>
-			<use href="#Track_N"/>
-			<use href="#Track_End"                transform="rotate(270)"/>
-			<use href="#LED_N"     class="block1"/>
-			<use href="#LED_End"   class="block2" transform="rotate(270)"/>
-	</symbol>
-	<symbol id="Tile_51" viewBox="-50 -50 100 100">
-			<title>Tile 51</title>
-			<use href="#Track_S"/>
-			<use href="#Track_End"                transform="rotate(90)"/>
-			<use href="#LED_S"     class="block1"/>
-			<use href="#LED_End"   class="block2" transform="rotate(90)"/>
-	</symbol>
-	
-	<symbol id="Tile_32" viewBox="-50 -50 100 100">
-			<title>Tile 32</title>
-			<use href="#Track_SW"/>
-			<use href="#Track_End"                transform="rotate(135)"/>
-			<use href="#LED_SW"    class="block1"/>
-			<use href="#LED_End"   class="block2" transform="rotate(135)"/>
-	</symbol>
-	<symbol id="Tile_33" viewBox="-50 -50 100 100">
-			<title>Tile 33</title>
-			<use href="#Track_SO"/>
-			<use href="#Track_End"                transform="rotate(45)"/>
-			<use href="#LED_SO"    class="block1"/>
-			<use href="#LED_End"   class="block2" transform="rotate(45)"/>
-	</symbol>
-	<symbol id="Tile_34" viewBox="-50 -50 100 100">
-			<title>Tile 34</title>
-			<use href="#Track_NO"/>
-			<use href="#Track_End"                transform="rotate(315)"/>
-			<use href="#LED_NO"    class="block1"/>
-			<use href="#LED_End"   class="block2" transform="rotate(315)"/>
-	</symbol>
-	<symbol id="Tile_35" viewBox="-50 -50 100 100">
-			<title>Tile 35</title>
-			<use href="#Track_NW"/>
-			<use href="#Track_End"                transform="rotate(225)"/>
-			<use href="#LED_NW"    class="block1"/>
-			<use href="#LED_End"   class="block2" transform="rotate(225)"/>
-	</symbol>
-	
-	<!-- Bahnsteig -->
-	<symbol id="Tile_2" viewBox="-50 -50 100 100">
-			<title>Tile 2 - Bahnsteig</title>
-			<use href="#Track_W"/>
-			<use href="#Track_O"/>
-			<rect class="tile" x="-45" y="-30" width="90" height="20" style="fill: rgb(161, 158, 158);"/>
-			<rect class="tile" x="-45" y="10"  width="90" height="20" style="fill: rgb(161, 158, 158);"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_O"      class="block2"/>
-	</symbol>
-	
-	<!-- Kreuzung -->
-	<symbol id="Tile_5" viewBox="-50 -50 100 100">
-			<title>Tile 5 - Kreuzung</title>
-			<use href="#Track_NW"/>
-			<use href="#Track_SW"/>
-			<use href="#Track_SO"/>
-			<use href="#Track_NO"/>
-			<use href="#LED_SW"      class="block1"/>
-			<use href="#LED_NW"      class="block2"/>
-			<use href="#LED_NO"      class="block3"/>
-			<use href="#LED_SO"      class="block4"/>
-	</symbol>
-	
-	<!-- Weichen -->
-	<symbol id="Tile_13" viewBox="-50 -50 100 100">
-			<title>Tile 13</title>
-			<use href="#Track_W"/>
-			<use href="#Track_O"/>
-			<use href="#Track_NO"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_O"      class="block2"/>
-			<use href="#LED_NO"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_14" viewBox="-50 -50 100 100">
-			<title>Tile 14</title>
-			<use href="#Track_O"/>
-			<use href="#Track_W"/>
-			<use href="#Track_NW"/>
-			<use href="#LED_O"      class="block1"/>
-			<use href="#LED_W"      class="block2"/>
-			<use href="#LED_NW"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_15" viewBox="-50 -50 100 100">
-			<title>Tile 15</title>
-			<use href="#Track_W"/>
-			<use href="#Track_O"/>
-			<use href="#Track_SO"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_O"      class="block2"/>
-			<use href="#LED_SO"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_12" viewBox="-50 -50 100 100">
-			<title>Tile 12</title>
-			<use href="#Track_O"/>
-			<use href="#Track_W"/>
-			<use href="#Track_SW"/>
-			<use href="#LED_O"      class="block1"/>
-			<use href="#LED_W"      class="block2"/>
-			<use href="#LED_SW"     class="block3"/>
-	</symbol>
-	
-	<symbol id="Tile_19" viewBox="-50 -50 100 100">
-			<title>Tile 19</title>
-			<use href="#Track_SW"/>
-			<use href="#Track_NO"/>
-			<use href="#Track_O"/>
-			<use href="#LED_SW"     class="block1"/>
-			<use href="#LED_NO"     class="block2"/>
-			<use href="#LED_O"      class="block3"/>
-	</symbol>
-	<symbol id="Tile_17" viewBox="-50 -50 100 100">
-			<title>Tile 17</title>
-			<use href="#Track_SO"/>
-			<use href="#Track_NW"/>
-			<use href="#Track_W"/>
-			<use href="#LED_SO"     class="block1"/>
-			<use href="#LED_NW"     class="block2"/>
-			<use href="#LED_W"      class="block3"/>
-	</symbol>
-	<symbol id="Tile_18" viewBox="-50 -50 100 100">
-			<title>Tile 18</title>
-			<use href="#Track_NO"/>
-			<use href="#Track_SW"/>
-			<use href="#Track_W"/>
-			<use href="#LED_NO"     class="block1"/>
-			<use href="#LED_SW"     class="block2"/>
-			<use href="#LED_W"      class="block3"/>
-	</symbol>
-	<symbol id="Tile_16" viewBox="-50 -50 100 100">
-			<title>Tile 16</title>
-			<use href="#Track_NW"/>
-			<use href="#Track_SO"/>
-			<use href="#Track_O"/>
-			<use href="#LED_NW"     class="block1"/>
-			<use href="#LED_SO"     class="block2"/>
-			<use href="#LED_O"      class="block3"/>
-	</symbol>
-	
-	<symbol id="Tile_40" viewBox="-50 -50 100 100">
-			<title>Tile 40</title>
-			<use href="#Track_NO"/>
-			<use href="#Track_SW"/>
-			<use href="#Track_S"/>
-			<use href="#LED_NO"     class="block1"/>
-			<use href="#LED_SW"     class="block2"/>
-			<use href="#LED_S"      class="block3"/>
-	</symbol>
-	<symbol id="Tile_43" viewBox="-50 -50 100 100">
-			<title>Tile 43</title>
-			<use href="#Track_NW"/>
-			<use href="#Track_SO"/>
-			<use href="#Track_S"/>
-			<use href="#LED_NW"     class="block1"/>
-			<use href="#LED_SO"     class="block2"/>
-			<use href="#LED_S"      class="block3"/>
-	</symbol>
-	<symbol id="Tile_41" viewBox="-50 -50 100 100">
-			<title>Tile 41</title>
-			<use href="#Track_SW"/>
-			<use href="#Track_NO"/>
-			<use href="#Track_N"/>
-			<use href="#LED_SW"     class="block1"/>
-			<use href="#LED_NO"     class="block2"/>
-			<use href="#LED_N"      class="block3"/>
-	</symbol>
-	<symbol id="Tile_42" viewBox="-50 -50 100 100">
-			<title>Tile 42</title>
-			<use href="#Track_SO"/>
-			<use href="#Track_NW"/>
-			<use href="#Track_N"/>
-			<use href="#LED_SO"     class="block1"/>
-			<use href="#LED_NW"     class="block2"/>
-			<use href="#LED_N"      class="block3"/>
-	</symbol>
-	
-	<symbol id="Tile_52" viewBox="-50 -50 100 100">
-			<title>Tile 52</title>
-			<use href="#Track_N"/>
-			<use href="#Track_S"/>
-			<use href="#Track_SW"/>
-			<use href="#LED_N"      class="block1"/>
-			<use href="#LED_S"      class="block2"/>
-			<use href="#LED_SW"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_53" viewBox="-50 -50 100 100">
-			<title>Tile 53</title>
-			<use href="#Track_N"/>
-			<use href="#Track_S"/>
-			<use href="#Track_SO"/>
-			<use href="#LED_N"      class="block1"/>
-			<use href="#LED_S"      class="block2"/>
-			<use href="#LED_SO"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_54" viewBox="-50 -50 100 100">
-			<title>Tile 54</title>
-			<use href="#Track_S"/>
-			<use href="#Track_N"/>
-			<use href="#Track_NW"/>
-			<use href="#LED_S"      class="block1"/>
-			<use href="#LED_N"      class="block2"/>
-			<use href="#LED_NW"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_55" viewBox="-50 -50 100 100">
-			<title>Tile 55</title>
-			<use href="#Track_S"/>
-			<use href="#Track_N"/>
-			<use href="#Track_NO"/>
-			<use href="#LED_S"      class="block1"/>
-			<use href="#LED_N"      class="block2"/>
-			<use href="#LED_NO"     class="block3"/>
-	</symbol>
-	
-	<symbol id="Tile_21" viewBox="-50 -50 100 100">
-			<title>Tile 21</title>
-			<use href="#Track_W"/>
-			<use href="#Track_NO"/>
-			<use href="#Track_SO"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_NO"     class="block2"/>
-			<use href="#LED_SO"     class="block3"/>
-	</symbol>
-	<symbol id="Tile_20" viewBox="-50 -50 100 100">
-			<title>Tile 20</title>
-			<use href="#Track_O"/>
-			<use href="#Track_NW"/>
-			<use href="#Track_SW"/>
-			<use href="#LED_O"      class="block1"/>
-			<use href="#LED_NW"     class="block2"/>
-			<use href="#LED_SW"     class="block3"/>
-	</symbol>
-	
-	<symbol id="Tile_22" viewBox="-50 -50 100 100">
-			<title>Tile 22</title>
-			<use href="#Track_W"/>
-			<use href="#Track_O"/>
-			<use href="#Track_NO"/>
-			<use href="#Track_SO"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_O"      class="block2"/>
-			<use href="#LED_NO"     class="block3"/>
-			<use href="#LED_SO"     class="block4"/>
-	</symbol>
-	<symbol id="Tile_23" viewBox="-50 -50 100 100">
-			<title>Tile 23</title>
-			<use href="#Track_O"/>
-			<use href="#Track_W"/>
-			<use href="#Track_NW"/>
-			<use href="#Track_SW"/>
-			<use href="#LED_O"      class="block1"/>
-			<use href="#LED_W"      class="block2"/>
-			<use href="#LED_NW"     class="block3"/>
-			<use href="#LED_SW"     class="block4"/>
-	</symbol>
-	
-	<symbol id="Tile_24" viewBox="-50 -50 100 100">
-			<title>Tile 24</title>
-			<use href="#Track_SW"/>
-			<use href="#Track_W"/>
-			<use href="#Track_NO"/>
-			<use href="#Track_O"/>
-			<use href="#LED_SW"     class="block1"/>
-			<use href="#LED_W"      class="block2"/>
-			<use href="#LED_NO"     class="block3"/>
-			<use href="#LED_O"      class="block4"/>
-	</symbol>
-	<symbol id="Tile_25" viewBox="-50 -50 100 100">
-			<title>Tile 25</title>
-			<use href="#Track_W"/>
-			<use href="#Track_NW"/>
-			<use href="#Track_O"/>
-			<use href="#Track_SO"/>
-			<use href="#LED_W"      class="block1"/>
-			<use href="#LED_NW"     class="block2"/>
-			<use href="#LED_O"      class="block3"/>
-			<use href="#LED_SO"     class="block4"/>
-	</symbol>
-	<symbol id="Tile_56" viewBox="-50 -50 100 100">
-			<title>Tile 56</title>
-			<use href="#Track_NW"/>
-			<use href="#Track_N"/>
-			<use href="#Track_SO"/>
-			<use href="#Track_S"/>
-			<use href="#LED_NW"     class="block1"/>
-			<use href="#LED_N"      class="block2"/>
-			<use href="#LED_SO"     class="block3"/>
-			<use href="#LED_S"      class="block4"/>
-	</symbol>
-	<symbol id="Tile_57" viewBox="-50 -50 100 100">
-			<title>Tile 57</title>
-			<use href="#Track_N"/>
-			<use href="#Track_NO"/>
-			<use href="#Track_S"/>
-			<use href="#Track_SW"/>
-			<use href="#LED_N"      class="block1"/>
-			<use href="#LED_NO"     class="block2"/>
-			<use href="#LED_S"      class="block3"/>
-			<use href="#LED_SW"     class="block4"/>
-	</symbol>
-	
-	<!-- Signale - Overlay zu Gleis oder Weiche, Postion Links, Mitte, Rechts -->
-	<symbol id="Signal_Light" viewBox="-12 -19 24 38">
-			<rect x="-12" y="-19" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
-			<circle class="red"   cx="0" cy="-12" r="6"/>	<!-- red -->
-			<circle class="green" cx="0" cy="2"  r="6">	<!-- green --> 
-	</symbol> 
-	<symbol id="Tile_26" viewBox="0 0 100 100">
-			<title>Signal 26</title>
-			<use href="#Signal_Light" x="38" y="3" width="24" height="38"/>
-	</symbol>
-	<symbol id="Tile_27" viewBox="0 0 100 100">
-			<title>Signal 27</title>
-			<use href="#Signal_Light" x="38" y="59" width="24" height="38"/>
- 	</symbol>
-	<symbol id="Tile_28" viewBox="0 0 100 100">
-			<title>Signal 28</title>
-			<rect class="tile" x="38" y="3" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="28" class="signalCode">S</text>
-	</symbol>
-	<symbol id="Tile_29" viewBox="0 0 100 100">
-			<title>Signal 29</title>
-			<rect class="tile" x="38" y="59" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="84" class="signalCode">S</text>
-	</symbol>
-	<symbol id="Tile_30" viewBox="0 0 100 100">
-			<title>Signal 30</title>
-			<rect class="tile" x="38" y="3" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="28" class="signalCode">Z</text>
-	</symbol>
-	<symbol id="Tile_31" viewBox="0 0 100 100">
-			<title>Signal 31</title>
-			<rect class="tile" x="38" y="59" width="24" height="38" style="fill: rgb(133, 130, 130);"/>
-			<text x="50" y="84" class="signalCode">Z</text>
-	</symbol>
-	
-	<!-- Sonstiges -->
-	<symbol id="Tile_36" viewBox="0 0 100 100">
-			<title>Tile 36 - Camera</title>
-			<rect x="30" y="15" height="20" width="40" rx="5" ry="5" style="fill: rgb(0, 0, 0);"/> <!-- top -->
-			<rect x="10" y="30" height="50" width="80" rx="5" ry="5" style="fill: rgb(0, 0, 0);"/> <!-- body -->
-			<rect x="5" y="83"  width="90" height="15" style="fill: rgb(161, 158, 158);"/> <!-- base -->
-			<circle cx="50" cy="50" r="18" fill="#ffffff"/>  <!-- lens -->
-			<circle cx="50" cy="50" r="13" fill="#000000"/>  <!-- lens -->
-			<circle cx="80" cy="40" r="5" fill="#ffffff"/>   <!-- flash -->
-	</symbol>
-	<symbol id="Tile_37" viewBox="0 0 100 100">
-			<title>Tile 37 - Main switch </title>
-			<rect x="5" y="44" width="90" height="12" style="fill: rgb(133, 130, 130);"/>
-			<rect x="15" y="5" width="70" height="38" style="fill: rgb(232, 230, 230);"/>
-			<text x="50" y="35" style="white-space: pre; text-anchor: middle; fill: rgb(0, 154, 40); font-family: Arial, sans-serif; font-size: 32px;">Ein</text>
-			<rect x="15" y="57" width="70" height="38" style="fill: rgb(232, 230, 230);"/>
-			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 0, 0); font-family: Arial, sans-serif; font-size: 32px;">Aus</text>
-	</symbol>
-	<symbol id="Tile_38" viewBox="0 0 100 100">
-			<title>Tile 38 - Reset</title>
-			<rect x="5" y="44" width="90" height="12" style="fill: rgb(133, 130, 130);"/>
-			<rect x="5" y="57" width="90" height="38" style="fill: rgb(232, 230, 230);"/>
-			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 0, 0); font-family: Arial, sans-serif; font-size: 32px;">Reset</text>
-	</symbol>
-	<symbol id="Tile_39" viewBox="0 0 100 100">
-			<title>Tile 39 - Status</title>
-			<rect x="5" y="44" width="90" height="12" style="fill: rgb(133, 130, 130);"/>
-			<rect x="5" y="57" width="90" height="38" style="fill: rgb(232, 230, 230);"/>
-			<text x="50" y="85" style="white-space: pre; text-anchor: middle; fill: rgb(154, 154, 154); font-family: Arial, sans-serif; font-size: 32px;">Status</text>
-	</symbol>
-	<symbol id="Tile_44" viewBox="0 0 100 100">
-			<title>Tile 44 - Info</title>
-			<rect x="15" y="15" width="30" height="70" style="fill: rgb(232, 230, 230);" rx="5" ry="5"/>
-			<rect x="55" y="15" width="30" height="70" style="fill: rgb(232, 230, 230);" rx="5" ry="5"/>
-	</symbol>
-</defs>
+<!-- GBS: Defs für Symbol 44 (Zählersignal). Kein display:none, sonst werden Muster in manchen Browsern nicht gefunden. -->
+<svg class="svg-defs-only" aria-hidden="true">
+  <defs>
+    <pattern id="dot-pattern" width="8" height="8" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="2.4" fill="#ff9a2e" />
+    </pattern>
+  </defs>
 </svg>
+
+<script type="text/javascript"> // GBS: Darstellung der Stellpulte (Technik wie in EEP_GBS.html, jedoch nur als statische Dokumentation)
+"use strict";
+/* global _:readonly */
+/* Interface
+required functions:
+	_ (js/EEP_Texts.js)
+public api:
+	GBSView.draw(container, gbs)
+
+gbs = { Width, Height, tiles }
+Kachel = { x, y, symbol (e0), sl/sm/sr (e1..e3), il/im/ir (Signal-IDs), tracks[4] (Listen von GleisIDs der Besetztanzeigen A..D), WeicheID, cam, tip }
+Interaktion nur mit der Gleisplan-Programm zur Positionierung von Weichen, Signales und Kameras.
+Keine Live-Daten: Gezeigt werden die Symbole mit den Nummern von Weichen, Signalen und Gleisen (Besetztanzeigen).
+*/
+const GBSView = (function () {
+"use strict";
+
+// ---- Hilfsfunktionen ----
+const NS = "http://www.w3.org/2000/svg";
+// Element erzeugen und anhängen
+function el(parent, tagName, attribute, txt) {
+	const element = document.createElementNS(NS, tagName);
+	for (const k in attribute) { element.setAttribute(k, attribute[k]); }
+	if (txt != null) { element.textContent = txt; }
+	parent.appendChild(element);
+	return element;
+}
+// Rechteck erzeugen und anhängen
+function rect(parent, x, y, width, height, fill) {
+	return el(parent, "rect", {x: x, y: y, width: width, height: height, fill: fill});
+}
+
+// ---- Symbole ----
+// Richtungen für Gleise
+const DIRECTIONS = {
+	O: [1, 0], 
+	SO: [1, 1], 
+	S: [0, 1], 
+	SW: [-1, 1],
+	W: [-1, 0], 
+	NW: [-1, -1], 
+	N: [0, -1], 
+	NO: [1, -1]
+};
+// Zuordnung der Ausleuchtfelder TrackA..D zu den Gleisschenkeln: von links unten im Uhrzeigersinn
+const CW = ["SW", "W", "NW", "N", "NO", "O", "SO", "S"];
+const OPP = {
+	O: "W", 
+	W: "O", 
+	N: "S", 
+	S: "N", 
+	NO: "SW", 
+	SW: "NO", 
+	NW: "SO", 
+	SO: "NW"
+};
+// Symbole siehe https://www.eepforum.de/forum/thread/42251-9-3-die-gbs-datei-bearbeiten/
+const GBS_LEGS = {
+	// gerade Gleise
+	1: "W O", 
+	3: "SW NO", 
+	4: "NW SO", 
+	45: "N S",
+	// geknickte Gleise
+	6: "SW O", 
+	9: "W SO", 
+	8: "NW O", 
+	7: "W NO",
+	47: "NO S", 
+	46: "NW S", 
+	49: "N SO", 
+	48: "SW N",
+	// 90°-Bögen
+	62: "S O", 
+	63: "W S", 
+	64: "W N", 
+	65: "N O",
+	// Diagonalstücke von Kante zu Kante
+	67: "O S", 
+	68: "S W", 
+	69: "W N", 
+	70: "O N",
+	// Bahnsteige
+	2: "W O", 
+	59: "N S", 
+	60: "N S", 
+	61: "N S", 
+	71: "W O", 
+	72: "W O",
+	// Kreuzungen
+	5: "SW NW NO SO", 
+	66: "W N O S",
+	// Weichen (2 Stellungen)
+	13: "W O NO", 
+	14: "O W NW",
+	15: "W O SO", 
+	12: "O W SW",
+	19: "SW NO O", 
+	17: "SO NW W", 
+	16: "NW SO O", 
+	18: "NO SW W",
+	40: "NO SW S", 
+	43: "NW SO S", 
+	41: "SW NO N", 
+	42: "SO NW N",
+	52: "N S SW", 
+	53: "N S SO",
+	54: "S N NW", 
+	55: "S N NO",
+	// Y-Weichen (2 Stellungen)
+	21: "W NO SO", 
+	20: "O NW SW",
+	// Weichen (3 Stellungen)
+	22: "W O NO SO", 
+	23: "O W NW SW",
+	// DKW / EKW
+	24: "SW W NO O", 
+	25: "W NW O SO", 
+	56: "NW N SO S", 
+	57: "N NO S SW"
+};
+// Endegleise: Schenkel zeigt in die angegebene Richtung, das Ende liegt gegenüber
+const GBS_END_SYMBOLS = {
+	10: "O", 
+	11: "W", 
+	50: "N", 
+	51: "S", 
+	32: "SW", 
+	33: "SO", 
+	34: "NO", 
+	35: "NW"
+};
+// Ausnahmen von der Uhrzeigerregel
+const ARM_ORDER_EXCEPTIONS = {
+	57: "N NO S SW", 
+	62: "S O", 
+	68: "S W", 
+	70: "O N"
+};
+// Bahnsteige: Rechtecke je Symbol [x, y, Breite, Höhe]
+const PLATFORM = {
+	2:  [[ 5, 20, 90, 20], [ 5, 60, 90, 20]],
+	59: [[20,  5, 20, 90], [60,  5, 20, 90]],
+	60: [[20,  5, 20, 90]],
+	61: [[60,  5, 20, 90]],
+	71: [[ 5, 60, 90, 20]],
+	72: [[ 5, 20, 90, 20]]
+};
+// Diagonalstücke von Kantenmitte zu Kantenmitte
+const STUBS = new Set([67, 68, 69, 70]);
+
+// Drehung der Weichennummer in Grad
+const ROTATIONS = {
+	18: -45, 
+	19: -45, 
+	40: -45, 
+	41: -45, 
+	57: -45,
+
+	16: 45, 
+	17: 45, 
+	42: 45, 
+	43: 45, 
+	56: 45,
+
+	52: -90, 
+	53: -90, 
+	54: -90, 
+	55: -90
+};
+// Signal-Lichtfarben
+const LIT = {
+	r: "#f90000", 
+	g: "#47f900"
+};
+
+const isTrackSymbol = s => !!(GBS_LEGS[s] || GBS_END_SYMBOLS[s]);
+const legsOf = s => GBS_END_SYMBOLS[s] ? [GBS_END_SYMBOLS[s]] : GBS_LEGS[s].split(" ");
+
+// Schenkel in der Reihenfolge TrackA, B, C, D
+function armsOf(s) {
+	if (ARM_ORDER_EXCEPTIONS[s]) { return ARM_ORDER_EXCEPTIONS[s].split(" "); }
+	return (GBS_LEGS[s] || "").split(" ").filter(Boolean).sort((a, b) => CW.indexOf(a) - CW.indexOf(b));
+}
+// Gleisschenkel: Punkte, die auf die Schenkel zeigen
+const stubPts = s => armsOf(s).map(d => [50 + 42 * DIRECTIONS[d][0], 50 + 42 * DIRECTIONS[d][1]]);
+
+// Ausleuchtfelder A..D eines Symbols: {dir} = Stück auf dem Schenkel, {mid} = Stück in der Mitte, {bar} = Stück zum Prellbock, {stub} = Diagonalstück, null = kein Feld
+function trackSegs(s) {
+	if (s === 3) { return [{dir: "SW"}, {mid: [7, -7]}, {dir: "NO"}]; }
+	if (s === 4) { return [{dir: "NW"}, {mid: [7,  7]}, {dir: "SO"}]; }
+	if (STUBS.has(s)) { return [{stub: 0}, {stub: 1}]; }
+
+	// Endegleise: nur ein Schenkel, das andere Feld liegt am Prellbock
+	const leg = GBS_END_SYMBOLS[s];
+	if (leg) {
+		const arm = {dir: leg};
+		const bar = {bar: OPP[leg]};
+		if (s === 33 || s === 34) { return [null, bar, arm]; }
+		return CW.indexOf(leg) < CW.indexOf(OPP[leg]) ? [arm, bar] : [bar, arm];
+	}
+	return armsOf(s).map(d => ({dir: d}));
+}
+
+// Lage der Besetztanzeigen je Ausleuchtfeld A..D (Linienstücke [x1, y1, x2, y2])
+function ledCoords(symbol) {
+	const arm = dir => {
+		const v = DIRECTIONS[dir];
+		const n = Math.hypot(v[0], v[1]);
+		const m = dir.length > 1 ? 45 : 30;
+		return [50 + v[0] / n * (m - 10), 50 + v[1] / n * (m - 10),
+		        50 + v[0] / n * (m + 10), 50 + v[1] / n * (m + 10)];
+	};
+
+	// Gleisabschnitte auf den Schenkeln, in der Mitte oder zum Prellbock
+	return trackSegs(symbol).map(s => {
+		if (!s) { return null; }
+
+		// Diagonalstücke: Linie zwischen den beiden Schenkeln, etwas kürzer als die Strecke zwischen den Schenkeln
+		if (s.stub != null) {
+			const [p, q] = stubPts(symbol);
+			const c = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+			const e = s.stub ? q : p;
+			return [e[0] + (c[0] - e[0]) * 0.1, e[1] + (c[1] - e[1]) * 0.1,
+			        e[0] + (c[0] - e[0]) * 0.9, e[1] + (c[1] - e[1]) * 0.9];
+		}
+		// Gleisabschnitte in der Mitte: Linie zwischen den beiden Schenkeln, etwas kürzer als die Strecke zwischen den Schenkeln
+		if (s.mid) {
+			return [50 - s.mid[0], 50 - s.mid[1], 50 + s.mid[0], 50 + s.mid[1]];
+		}
+		// Gleisabschnitte zum Prellbock: Linie vom Schenkel zum Prellbock, etwas kürzer als die Strecke zwischen den beiden Punkten
+		if (s.bar) {
+			const v = DIRECTIONS[s.bar];
+			const n = Math.hypot(v[0], v[1]);
+			return [50, 50, 50 + v[0] / n * 20, 50 + v[1] / n * 20];
+		}
+		// Gleisabschnitte auf den Schenkeln: Linie auf dem Schenkel, etwas kürzer als die Strecke zwischen den beiden Punkten
+		return arm(s.dir);
+	});
+}
+
+// ---- Zeichnen ----
+// Gleis-Symbol
+function drawTrack(parent, symbol) {
+	const group = el(parent, "g", {});
+
+	// Bahnsteige: Rechtecke
+	for (const r of PLATFORM[symbol] || []) { rect(group, r[0], r[1], r[2], r[3], "#a19e9e"); }
+
+	// Diagonalstücke von Kantenmitte zu Kantenmitte
+	if (STUBS.has(symbol)) {
+		const [p, q] = stubPts(symbol);
+		el(group, "line", {class: "ln", x1: p[0], y1: p[1], x2: q[0], y2: q[1]});
+		return group;
+	}
+
+	// Gleisschenkel
+	for (const dir of legsOf(symbol)) {
+		el(group, "line", {class: "ln", x1: 50, y1: 50, x2: 50 + 42 * DIRECTIONS[dir][0], y2: 50 + 42 * DIRECTIONS[dir][1]});
+	}
+
+	// Gleisende mit Prellbock
+	if (GBS_END_SYMBOLS[symbol]) {
+		const v = DIRECTIONS[GBS_END_SYMBOLS[symbol]];
+		const n = Math.hypot(v[0], v[1]);
+		const ux = -v[0] / n;
+		const uy = -v[1] / n;
+		el(group, "line", {class: "ln",      x1: 50,                     y1: 50,                     x2: 50 + 22 * ux,           y2: 50 + 22 * uy});
+		el(group, "line", {class: "bar-end", x1: 50 + 25 * ux + 20 * uy, y1: 50 + 25 * uy - 20 * ux, x2: 50 + 25 * ux - 20 * uy, y2: 50 + 25 * uy + 20 * ux});
+	}
+	return group;
+}
+
+// Besetztanzeigen der Gleisabschnitte (graue Linienstücke); liefert die Beschriftungen, die später darüber gezeichnet werden
+function drawLeds(g, tile) {
+	const labels = [];
+	const segs = ledCoords(tile.symbol);
+	tile.tracks.forEach((ids, i) => {
+		const sg = segs[i];
+		if (!ids || !ids.length || !sg) { return; }
+
+		const l = el(g, "line", {class: "led", x1: sg[0], y1: sg[1], x2: sg[2], y2: sg[3]});
+		el(l, "title", {}, _('Gleise') + " " + ids.join(", "));
+		labels.push({sg: sg, ids: ids});
+	});
+	return labels;
+}
+
+// Gleisnummern der Besetztanzeige: auf dem Gleis, höchstens 2 Nummern je Zeile
+function drawTrackIds(g, label) {
+	const lineHeight = 11;
+	const parts = [];
+	for (let i = 0; i < label.ids.length; i += 2) { 
+		parts.push(label.ids.slice(i, i + 2).join(",")); 
+	}
+
+	const width = Math.max(...parts.map(p => p.length)) * 6.6;			// ungefähre Textbreite
+	let cx = (label.sg[0] + label.sg[2]) / 2;
+	cx = Math.min(Math.max(cx, width / 2 + 2), 98 - width / 2);			// innerhalb der Kachel halten
+	const cy = (label.sg[1] + label.sg[3]) / 2;
+
+	const t = el(g, "text", {class: "occId", x: cx, y: cy - (parts.length - 1) * lineHeight / 2});
+	parts.forEach((p, i) => el(t, "tspan", {x: cx, dy: i ? lineHeight : 0}, p));
+}
+
+// Text in eine Box umbrechen und einpassen
+function wrapText(svg, attributes, text, w = 100, h = 100) {
+	if (!text) { return null; }
+	let bestLines = [text], bestFs = 1;
+	const lineFactor = 0.9;	// enger Zeilenabstand
+	const minChars = 6;		// mind. 6 Zeichen je Zeile
+	for (let lines = 1; lines <= 4; lines++) {
+		const chars = Math.ceil(text.length / lines);
+		if (text.length > minChars && chars < minChars) { continue; }
+
+		const parts = text.match(new RegExp(`.{1,${chars}}`, "g"));
+		if (parts.length > 1 && parts.at(-1).length < minChars) { continue; }
+
+		const fs = Math.min((h - 10) / (1 + (parts.length - 1) * lineFactor), w / (chars * 0.62));
+		if (fs > bestFs) {
+			bestFs = fs;
+			bestLines = parts;
+		}
+	}
+
+	const txt = el(svg, "text", {x: w / 2, y: 5 + bestFs, "font-size": bestFs});
+	for (const k in attributes) { txt.setAttribute(k, attributes[k]); }
+	bestLines.forEach((line, i) => el(txt, "tspan", {x: w / 2, dy: i ? bestFs * lineFactor : 0}, line));
+	return txt;
+}
+
+// Signalnummer eines Sondersymbols (steht in <Signal> e0, ersatzweise e1/e2)
+const specialId = tile => tile.il || tile.im || tile.ir || 0;
+
+// Beschriftung mit Signalnummer
+function idLabel(parent, id, y) {
+	if (id) { el(parent, "text", {class: "signalId", x: 50, y: y}, id); }
+}
+
+// Klick-Link (z.B. zum Gleisplan): fn(id) wird beim Klick aufgerufen; ohne Funktion oder ID passiert nichts
+function makeLink(node, fn, id) {
+	if (typeof fn !== "function" || !id) { return; }
+
+	node.classList.add("gbsLink");
+	node.addEventListener("click", ev => { 
+		ev.stopPropagation();
+		 fn(id); 
+	});
+}
+
+// Quickinfo mit der Signalnummer
+function sigInfo(parent, id) {
+	if (id) { el(parent, "title", {}, _('Signal') + " " + id); }
+}
+
+// Spezielle Symbole: Kamera, Ein/Aus, Reset, Status, Zählersignal, Tipptext
+function drawSpecial(parent, symbol, tile) {
+	if (symbol === 36) {	// Kamera
+		rect(parent, 5, 5, 90, 90, "#e8e6e6");
+		wrapText(parent, {class: "camText"}, (tile.cam || "").substring(0, 24), 98, 98);
+		el(parent, "title", {}, _('Kamera') + ": " + (tile.cam || ""));
+
+	} else if (symbol === 37) {	// Ein/Aus
+		const id = specialId(tile);
+		rect(parent, 15, 5, 70, 90, "#e8e6e6");
+		rect(parent, 5, 40, 90, 20, "#858282");
+		idLabel(parent, id, 56);
+		el(parent, "text", {class: "lbl", x: 50, y: 34, fill: "#009a28"}, _('gbs.on'));
+		el(parent, "text", {class: "lbl", x: 50, y: 86, fill: "#9a0000"}, _('gbs.off'));
+		sigInfo(parent, id);
+
+	} else if (symbol === 38) {	// Reset
+		const id = specialId(tile);
+		rect(parent, 5, 5, 90, 90, "#595858");
+		idLabel(parent, id, 20);
+		rect(parent, 28, 30, 44, 34, "#3a3a3a");
+		el(parent, "text", {class: "lbl", x: 50, y: 86, fill: "#fff", style: "font-size:16px"}, "Reset");
+		sigInfo(parent, id);
+
+	} else if (symbol === 39) {	// Status: 3 waagerechte Balken
+		const id = specialId(tile);
+		rect(parent, 5, 5, 90, 90, "#595858");
+		idLabel(parent, id, 20);
+		[26, 49, 72].forEach(y => rect(parent, 15, y, 70, 18, "#9a9a9a"));
+		sigInfo(parent, id);
+
+	} else if (symbol === 44) {	// Zählersignal (Info)
+		const id = specialId(tile);
+		rect(parent, 5, 5, 90, 90, "#595858");
+		idLabel(parent, id, 20);
+		rect(parent, 10, 28, 80, 62, "#858282");
+		el(parent, "text", {class: "cntText", x: 30, y: 60}, "0");
+		el(parent, "text", {class: "cntText", x: 70, y: 60}, "0");
+		sigInfo(parent, id);
+
+	} else if (symbol === 58) {	// Tipptext
+		rect(parent, 5, 5, 90, 90, "#e8e6e6");
+		wrapText(parent, {
+				"text-anchor": "middle", 
+				"font-family": "Arial", 
+				fill: "#922ecc"
+			}, (tile.tip || "").substring(0, 24), 98, 98);
+		if (tile.tip) { el(parent, "title", {}, tile.tip); }
+
+	} else {	// Unbekanntes Symbol
+		rect(parent, 10, 10, 80, 80, "#bbb");
+		el(parent, "text", {class: "lbl", x: 50, y: 50, style: "font-size:28px;dominant-baseline:central"}, symbol);
+		el(parent, "title", {}, _('gbs.unknownSymbol', symbol));
+	}
+}
+
+// Signal-Symbol (Overlay in linkem, mittlerem oder rechtem Drittel der Kachel)
+function drawSignal(parent, symbol, id, pos, handlers) {
+	const x = 50 + (pos === "left" ? -33 : pos === "right" ? 33 : 0);
+	const y0 = [27, 29, 31].includes(symbol) ? 59 : 3;
+	const light = symbol < 28;
+	const group = el(parent, "g", {});
+
+	rect(group, x - 12, y0, 24, 38, "#858282");
+	if (id) { el(group, "title", {}, _('Signal') + " " + id); }
+
+	if (light) {	// normales Signal: rot und grün
+		el(group, "circle", {cx: x, cy: y0 + 8,  r: 5, fill: LIT.r});
+		el(group, "circle", {cx: x, cy: y0 + 19, r: 5, fill: LIT.g});
+	} else {		// Fahrstraße: Start- bzw. Zielsignal
+		el(group, "text", {x: x, y: y0 + 19, class: "sigLetter"}, symbol < 30 ? "S" : "Z");
+	}
+	// Signalnummer im unteren Teil des Symbols
+	if (id) { el(group, "text", {x: x, y: y0 + 35, class: "signalId"}, id); }
+	makeLink(group, handlers.signal, id);
+}
+
+// Ein Stellpult zeichnen
+// handlers (optional): { weiche(id), signal(id), camera(name) } werden bei Klick auf die Nummer bzw. das Symbol aufgerufen
+function draw(container, gbs, handlers) {
+	handlers = handlers || {};
+	// SVG-Element mit der Größe des Stellpults
+	const svg = el(container, "svg", {
+		viewBox: `0 0 ${100 * gbs.Width} ${100 * gbs.Height}`,
+		width:   100 * gbs.Width,
+		height:  100 * gbs.Height
+	});
+
+	// Gitter aus leeren Kacheln
+	const grid = el(svg, "g", {});
+	for (let y = 1; y <= gbs.Height; y++) {
+		for (let x = 1; x <= gbs.Width; x++) {
+			el(grid, "rect", {class: "tile", x: (x - 1) * 100 + 1, y: (y - 1) * 100 + 1, width: 98, height: 98, rx: 5});
+		}
+	}
+
+	// Kacheln mit Symbolen
+	for (const tile of gbs.tiles) {
+		const group = el(svg, "g", {transform: `translate(${(tile.x - 1) * 100} ${(tile.y - 1) * 100})`});
+		if (tile.tip) { el(group, "title", {}, tile.tip); }
+
+		// Gleis-Symbol und Besetztanzeigen
+		let labels = [];
+		if (isTrackSymbol(tile.symbol)) {
+			// Gleis-Symbol und Besetztanzeigen
+			drawTrack(group, tile.symbol);
+			// Gleisnummern der Besetztanzeigen
+			labels = drawLeds(group, tile);
+
+			// Weichennummer in der Kachelmitte
+			if (tile.WeicheID) {
+				el(group, "title", {}, _('Weiche') + " " + tile.WeicheID);
+				const wg = el(group, "g", {transform: ROTATIONS[tile.symbol] ? `rotate(${ROTATIONS[tile.symbol]} 50 50)` : ""});
+				if (typeof handlers.weiche === "function") { // Klickfläche
+					el(wg, "circle", {class: "hit", cx: 50, cy: 50, r: 15});
+				}
+				el(wg, "text", {class: "id", x: 50, y: 50}, tile.WeicheID);
+				makeLink(wg, handlers.weiche, tile.WeicheID);
+			}
+
+		} else if (tile.symbol > 0) {
+			drawSpecial(group, tile.symbol, tile);
+			if (tile.symbol === 36) { makeLink(group, handlers.camera, tile.cam); }
+			else if ([37, 38, 39, 44].includes(tile.symbol)) { makeLink(group, handlers.signal, specialId(tile)); }
+
+		} else if ([36, 37, 38, 39, 44].includes(tile.sl)) {
+			drawSpecial(group, tile.sl, tile);	// Sondersignale: e0 = 0, Symbol in e1
+			if (tile.sl === 36) { makeLink(group, handlers.camera, tile.cam); }
+			else if (tile.sl !== 36) { makeLink(group, handlers.signal, specialId(tile)); }
+		}
+
+		// Signale (auch zusätzlich zu einem Gleis- oder Weichensymbol)
+		for (const [symbol, id, pos] of [[tile.sl, tile.il, "left"], [tile.sm, tile.im, "mid"], [tile.sr, tile.ir, "right"]]) {
+			if ([26, 27, 28, 29, 30, 31].includes(symbol)) { drawSignal(group, symbol, id, pos, handlers); }
+		}
+
+		// Gleisnummern zuletzt, damit sie nicht verdeckt werden
+		for (const label of labels) { drawTrackIds(group, label); }
+	}
+	return svg;
+}
+
+return { draw: draw };
+})();
+</script>
+
 
 <script type="text/javascript"> // Broadcast Channel
 "use strict";
@@ -3685,9 +3488,9 @@ function postGleisMessage(GleissystemID, GleisID) {					// Gleis
 		command:		"showTrack",
 		GleissystemID: 	GleissystemID,
 		GleisID: 		GleisID,
-		shiftDown:		global.shiftDown,
-		strgDown:		global.strgDown,
-		altDown:		global.altDown,
+		shiftDown:		event.shiftKey,
+		strgDown:		event.ctrlKey,
+		altDown:		event.altKey,
 	});
 }
 
@@ -3697,9 +3500,9 @@ function postIDMessage(ID, GleissystemID, GleisID) {				// Signal oder Weiche
 		ID: 			ID,
 		GleissystemID: 	GleissystemID,
 		GleisID: 		GleisID,
-		shiftDown:		global.shiftDown,
-		strgDown:		global.strgDown,
-		altDown:		global.altDown,
+		shiftDown:		event.shiftKey,
+		strgDown:		event.ctrlKey,
+		altDown:		event.altKey,
 	});
 }
 
@@ -3709,9 +3512,9 @@ function postKontaktMessage(KontaktID, GleissystemID, GleisID) {	// Kontakt
 		KontaktID: 		KontaktID,
 		GleissystemID: 	GleissystemID,
 		GleisID: 		GleisID,
-		shiftDown:		global.shiftDown,
-		strgDown:		global.strgDown,
-		altDown:		global.altDown,
+		shiftDown:		event.shiftKey,
+		strgDown:		event.ctrlKey,
+		altDown:		event.altKey,
 	});
 }
 
@@ -3719,9 +3522,9 @@ function postKameraMessage(KameraID) {	// Kamera
 	EEPchannel.postMessage({
 		command:		"showCamera",
 		KameraID: 		KameraID,
-		shiftDown:		global.shiftDown,
-		strgDown:		global.strgDown,
-		altDown:		global.altDown,
+		shiftDown:		event.shiftKey,
+		strgDown:		event.ctrlKey,
+		altDown:		event.altKey,
 	});
 }
 
@@ -3729,9 +3532,9 @@ function postGleisobjektMessage(GleisobjektID) {	// Gleisobjekt
 	EEPchannel.postMessage({
 		command:		"showTrackObject",
 		GleisobjektID: 	GleisobjektID,
-		shiftDown:		global.shiftDown,
-		strgDown:		global.strgDown,
-		altDown:		global.altDown,
+		shiftDown:		event.shiftKey,
+		strgDown:		event.ctrlKey,
+		altDown:		event.altKey,
 	});
 }
 
@@ -3739,36 +3542,11 @@ function postGBSMessage(GBSID) {	// GBS
 	EEPchannel.postMessage({
 		command:		"showGBS",
 		GBSID: 			GBSID,
-		shiftDown:		global.shiftDown,
-		strgDown:		global.strgDown,
-		altDown:		global.altDown,
+		shiftDown:		event.shiftKey,
+		strgDown:		event.ctrlKey,
+		altDown:		event.altKey,
 	});
 }
-
-const global = {};
-global.shiftDown 	= false;
-global.strgDown 	= false;
-global.altDown 		= false;
-// Activate key
-document.addEventListener("keydown", function(event){
-    if (event.key === "Shift") {
-        global.shiftDown = true;
-    } else if (event.key === "Control") {
-        global.strgDown = true;
-    } else if (event.key === "Alt") {
-        global.altDown = true;
-    }
-});
-// Deactivate key
-document.addEventListener("keyup", function(event){
-    if (event.key === "Shift") {
-        global.shiftDown = false;
-    } else if (event.key === "Control") {
-        global.strgDown = false;
-    } else if (event.key === "Alt") {
-        global.altDown = false;
-    }
-});
 
 // Disconnect the channel
 //EEPchannel.close();
